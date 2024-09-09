@@ -15,11 +15,8 @@ structure Subgraph (G : Graph V E) extends InducedSubgraph G where
 structure QuotientGraph (G : Graph V E) extends InducedSubgraph G where
   vmap : ↑rmvᶜ → ↑rmvᶜ
   vmap_idem : ∀ v, vmap^[2] v = vmap v
-  -- r : V → V → Prop
-  -- r_equiv : Equivalence r
 
 structure QuotientSubgraph (G : Graph V E) extends Subgraph G, QuotientGraph G where
-  -- h : ∀ u v, r u v → (u ∈ vertices ↔ v ∈ vertices)
 
 structure Minor (G : Graph V E) extends QuotientSubgraph G where
   contracted : ↑rmvᶜ → Option rme

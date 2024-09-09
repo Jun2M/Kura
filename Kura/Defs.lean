@@ -74,28 +74,31 @@ def BipComplete (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ Fin n₂) (Fin n₁ × 
   inc e := undir s(.inl e.1, .inr e.2)
 #eval BipComplete 3 4
 
-def adj : Prop := ∃ e, u ∈ (G.inc e).startAt ∧ v ∈ (G.inc e).finishAt
+def adj : Prop := ∃ e, u ∈ G.startAt e ∧ v ∈ G.finishAt e
 
 def neighbourhood : Set V := {u | G.adj u v}
 
 def inNeighbors [Fintype E] : Multiset V :=
   @Multiset.fold (Multiset V) (· + ·) _ _ ∅
   ((@Fintype.elems E _ : Finset E)
-  |>.filter (λ e => v ∈ (G.inc e).finishAt)
+  |>.filter (λ e => v ∈ G.finishAt e)
   |>.val
-  |>.map (λ e => (G.inc e).flip.gofrom v))
+  |>.map (λ e => (G.flip e).gofrom v))
 
 def outNeighbors [Fintype E] : Multiset V :=
   @Multiset.fold (Multiset V) (· + ·) _ _ ∅
   ((@Fintype.elems E _ : Finset E)
-  |>.filter (λ e => v ∈ (G.inc e).startAt)
+  |>.filter (λ e => v ∈ G.startAt e)
   |>.val
-  |>.map (λ e => (G.inc e).gofrom v))
+  |>.map (λ e => G.gofrom e v))
+
+abbrev neighbors [Fintype E] : Multiset V := G.outNeighbors v
 
 #eval (Complete (Fin 5)).outNeighbors 4
 
 def inDegree [Fintype E] : ℕ := Multiset.card (G.inNeighbors v)
 def outDegree [Fintype E] : ℕ := Multiset.card (G.outNeighbors v)
+abbrev degree [Fintype E] : ℕ := G.outDegree v
 
 #eval (Complete (Fin 5)).outDegree 3
 
@@ -109,7 +112,7 @@ variable {G : Graph V E} [Inhabited E] (w : Walk G)
 
 def length : ℕ := w.tail.length
 
-def Subpath : Walk G → Walk G → Prop := λ w₁ w₂ => w₁.tail.IsInfix w₂.tail
+def isSubpath : Walk G → Walk G → Prop := λ w₁ w₂ => w₁.tail.IsInfix w₂.tail
 
 
 
@@ -127,12 +130,17 @@ def ball (n : ℕ) : Set V :=
 
 end Walk
 
+def conn (G : Graph V E) [Inhabited E] (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.finish = v
+
+class connected (G : Graph V E) [Inhabited E] : Prop :=
+  all_conn : ∀ u v : V, conn G u v
+
 variable (H : Graph W F)
 
 structure Hom where
   fᵥ : V → W
   fₑ : E → F
-  comm : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
+  comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
 
 structure Isom where
   toHom : Hom G H
