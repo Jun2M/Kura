@@ -31,8 +31,15 @@ def Subgraph.eval {G : Graph V E} (S : Subgraph G) :
   Graph ↑S.rmvᶜ {e // e ∉ S.rme ∧ ∀ v ∈ G.inc e, v ∉ S.rmv} where
   inc e := edge.pmap Subtype.mk (G.inc e.1) e.2.2
 
-def Minor.eval {G : Graph V E} (S : Minor G) :
-  Graph ↑(Set.range vmap) {e // e ∉ S.rme ∧ ∀ v ∈ G.inc e, v ∈ Set.range vmap} where
-  inc e := edge.pmap Subtype.mk (G.inc e.1) e.2.2
+def Minor.eval {G : Graph V E} (S : Minor G) [DecidableEq ↑(Set.range S.vmap)] :
+  Graph ↑(Set.range S.vmap) {e // e ∉ S.rme ∧ ∀ v ∈ G.inc e, ∃ (H : v ∉ S.rmv), ⟨v, H⟩ ∈ Set.range S.vmap} where
+  inc e := edge.pmap Subtype.mk ((edge.pmap Subtype.mk (G.inc e.1) (e.2.2 · · |>.1)).map S.vmap)
+    (fun v h => ⟨ v,
+    let ⟨u, _, hh⟩ := mem_map S.vmap v _ h
+    hh ▸ S.vmap_idem u⟩)
+
+def hasMinor (G : Graph V E) (H : Graph W F): Prop := ∃ (S : Minor G), Nonempty (Isom S.eval H)
+
+
 
 end Graph

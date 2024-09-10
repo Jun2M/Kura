@@ -26,10 +26,12 @@ variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E) (e : 
 @[simp] abbrev goback? (v : V) : Option V := (G.inc e).goback? v
 @[simp] abbrev flip : edge V := (G.inc e).flip
 @[simp] abbrev map (f : V → W) : edge W := (G.inc e).map f
+@[simp] abbrev pmap {P : V → Prop} (f : ∀ a, P a → W) (e : E) :
+  (∀ v ∈ G.inc e, P v) → edge W := ((G.inc e).pmap f ·)
 
 /-- A full graph is one with no half-edges.-/
 class fullGraph : Prop :=
-  no_half : ∀ e, G.isFull e
+  all_full : ∀ e, G.isFull e
 
 /-- An undirected graph is a full graph with no arcs -/
 class undirected extends fullGraph G :=
@@ -40,39 +42,43 @@ class undirected extends fullGraph G :=
 class loopless extends fullGraph G :=
   no_loops : ∀ e, ¬G.isLoop e
 
-class multiGraph extends undirected G :=
-  no_free : ∀ e, ¬G.isFree e
-
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
-class simple extends loopless G, undirected G :=
+class simple extends loopless G, fullGraph G :=
   inc_inj : G.inc.Injective
 
+lemma fullGraph.no_free [fullGraph G] : ∀ e, ¬ G.isFree e := by
+  intro e
+  have := @fullGraph.all_full _ _ _ G _ e
+  match h : G.inc e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all
+  | undir s =>
+    simp_all
 
-def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
-  (@Fintype.elems E _ : Finset E)
-  |>.val
-  |>.map G.inc
+lemma endAt_ne_zero [fullGraph G] : G.endAt e ≠ 0 := by
+  intro h
+  match he : G.inc e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all
+    apply @fullGraph.no_free _ _ _ G _ e
+    simp [he]
+  | undir s =>
+    simp_all only [endAt, edge.endAt]
+    apply_fun Multiset.card at h
+    rw [Sym2.toMultiset_card s] at h
+    simp at h
 
-unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
-  reprPrec G _ := "Graph " ++ repr G.toEdgeMultiset
+@[simp]
+lemma not_dir_none_none [fullGraph G] : G.inc e ≠ dir (none, none) := by
+  intro h
+  apply @fullGraph.no_free _ _ _ G _ e
+  simp [h]
 
+-- lemma 
 
+lemma exist_mem [fullGraph G] : ∃ v, v ∈ G.inc e := Multiset.exists_mem_of_ne_zero (endAt_ne_zero G e)
 
-def Complete (V : Type*) [DecidableEq V] : Graph V {u : Sym2 V // ¬ u.IsDiag} where
-  inc e := undir e.val
-#eval Complete (Fin 5)
-
-def Cycle (n : ℕ+) : Graph (Fin n) (Fin n) where
-  inc e := undir s(e, e+1)
-#eval Cycle 5
-
-def Path (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
-  inc e := undir s(e, e+1)
-
-def BipComplete (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ Fin n₂) (Fin n₁ × Fin n₂) where
-  inc e := undir s(.inl e.1, .inr e.2)
-#eval BipComplete 3 4
 
 def adj : Prop := ∃ e, u ∈ G.startAt e ∧ v ∈ G.finishAt e
 
@@ -94,13 +100,9 @@ def outNeighbors [Fintype E] : Multiset V :=
 
 abbrev neighbors [Fintype E] : Multiset V := G.outNeighbors v
 
-#eval (Complete (Fin 5)).outNeighbors 4
-
 def inDegree [Fintype E] : ℕ := Multiset.card (G.inNeighbors v)
 def outDegree [Fintype E] : ℕ := Multiset.card (G.outNeighbors v)
 abbrev degree [Fintype E] : ℕ := G.outDegree v
-
-#eval (Complete (Fin 5)).outDegree 3
 
 structure Walk [Inhabited E] where
   start : V

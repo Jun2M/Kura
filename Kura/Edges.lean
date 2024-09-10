@@ -9,6 +9,7 @@ import Kura.Dep.Option
 inductive edge (V : Type*) [DecidableEq V]
 | dir : Option V × Option V → edge V
 | undir : Sym2 V → edge V
+deriving Inhabited
 
 -- def edge (V : Type*) [DecidableEq V] := Option V × Option V ⊕ Sym2 V
 
@@ -21,6 +22,8 @@ namespace edge
 
 variable {V : Type*} [DecidableEq V] (e : edge V)
 
+instance instNonempty [Nonempty V] : Nonempty (edge V) :=
+  Nonempty.intro (undir s(Classical.ofNonempty, Classical.ofNonempty))
 
 @[simp]
 def isDir  : Bool := match e with
@@ -119,6 +122,27 @@ def map (f : V → W) : edge V → edge W
 | dir (a, b) => dir (a.map f, b.map f)
 | undir s => undir (s.map f)
 
+lemma mem_map_of_mem (f : V → W) (v : V) (e : edge V) : v ∈ e → f v ∈ e.map f := by
+  intro h
+  match e with
+  | dir (a, b) =>
+    cases a<;> cases b<;> simp_all
+    exact h.imp (by rw [·]) (by rw [·])
+  | undir s =>
+    simp_all only [instMembership, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+      List.foldl_cons, Multiset.cons_zero, List.foldl_nil, Sym2.mem_toMultiset_iff, map,
+      Sym2.mem_map]
+    use v
+
+lemma mem_map (f : V → W) (v : W) (e : edge V) (h : v ∈ e.map f): ∃ y ∈ e, f y = v := by
+  match e with
+  | dir (a, b) =>
+    cases a<;> cases b<;> simp_all
+    rcases h with rfl | rfl <;> simp
+  | undir s =>
+    simp_all only [instMembership, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+      List.foldl_cons, Multiset.cons_zero, List.foldl_nil, map, Sym2.mem_toMultiset_iff,
+      Sym2.mem_map]
 
 def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P v) → edge W := by
   intro H
