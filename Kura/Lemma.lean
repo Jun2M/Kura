@@ -1,4 +1,5 @@
 import Kura.Finite
+import Kura.Dep.BigOperator
 
 namespace Graph
 open edge
@@ -38,7 +39,9 @@ theorem Mader {t : ℕ+} (G : Graph V E) [simple G] [Fintype V] [Fintype E]
         let H := H_.eval
         have hHt : ¬ H.hasMinor (Complete (Fin t)) := sorry
         have hHsimple : simple H := sorry
-        let hfin : Fintype ↑(H_.rmvᶜ) := sorry
-        obtain a := @iht _ _ _ H hHsimple hfin sorry hHt
+        let hvfin : Fintype ↑(H_.rmvᶜ) := sorry
+        let hefin : Fintype { e // ∀ v_1 ∈ G.inc e, v_1 ∉ G.neighbourhood v } := sorry
+        obtain a := @iht _ _ _ H hHsimple hvfin sorry hHt
         simp only at a
-        
+        rw [Fintype.card_eq_sum_ones] at a
+        sorry 

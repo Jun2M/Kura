@@ -101,6 +101,26 @@ theorem mem_equivMultiset_iff_mem (s : Sym2 α) : ∀ a : α, a ∈ (Sym2.equivM
   simp
   sorry
 
+@[simp]
+theorem other'_eq_of_mk_left (u v : α) [DecidableEq α] :
+  Sym2.Mem.other' (mem_mk_left u v) = v := by
+  rw [← Sym2.congr_right, Sym2.other_spec']
+
+@[simp]
+theorem other'_eq_of_mk_right (u v : α) [DecidableEq α] :
+  Sym2.Mem.other' (mem_mk_right u v) = u := by
+  rw [← congr_left, eq_swap, Sym2.other_spec']
+
+@[simp]
+theorem exist_other'_eq (s : Sym2 α) (u v : α) [DecidableEq α] :
+  (∃ (h : u ∈ s), Sym2.Mem.other' h = v) ↔ s = s(u, v) := by
+  constructor
+  · rintro ⟨ h, rfl ⟩
+    exact (other_spec' h).symm
+  · rintro rfl
+    refine ⟨mem_mk_left u v, by simp⟩
+
+
 instance instCanLiftSym2Subtype (p : α → Prop) :
   CanLift (Sym2 α) (Sym2 (Subtype p)) (Sym2.map (·.1)) (fun x => ∀ i ∈ x, p i) where
   prf := by

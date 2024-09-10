@@ -21,7 +21,9 @@ structure QuotientSubgraph (G : Graph V E) extends Subgraph G, QuotientGraph G w
 structure Minor (G : Graph V E) extends QuotientSubgraph G where
   contracted : ↑rmvᶜ → Option rme
   H : ∀ v, vmap v ≠ v → (contracted v).isSome = true
-  h : ∀ v, (hne : vmap v ≠ v) → (G.inc (contracted v|>.get <| H v hne).val).endAt = {v.val, (vmap v).val}
+  h : ∀ v, (hsome : (contracted v).isSome) → G.endAt ((contracted v).get hsome) = {v.val, (vmap v).val}
+  -- h : ∀ v, (hne : vmap v ≠ v) → (G.endAt (contracted v|>.get <| H v hne).val) = {v.val, (vmap v).val}
+
 
 def InducedSubgraph.eval {G : Graph V E} (S : InducedSubgraph G) :
   Graph ↑S.rmvᶜ {e // ∀ v ∈ G.inc e, v ∉ S.rmv} where

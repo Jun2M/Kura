@@ -111,6 +111,25 @@ def goback? (v : V) : Option V := match e with
   | undir s => if h : v ∈ s then (@Sym2.Mem.other' V _ v s h) else none
 
 @[simp]
+def canGo (v w : V) : Bool := w ∈ e.gofrom? v
+
+theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
+  List.TFAE [e.gofrom? u = some v, e.goback? v = some u, e.canGo u v] := by
+  refine List.tfae_of_forall (e.gofrom? u = some v) _ (fun p hp => ?_)
+  fin_cases hp
+  · rfl
+  · match e with
+    | dir (a, b) =>
+      cases a <;> simp_all
+      split <;> simp_all
+    | undir s =>
+      simp [Sym2.eq_swap]
+  · match e with
+    | dir (a, b) => cases a <;> cases b <;> simp_all
+    | undir s => simp
+
+
+@[simp]
 def flip : edge V := match e with
   | dir (a, b) => dir (b, a)
   | s => s

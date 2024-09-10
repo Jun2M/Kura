@@ -1,4 +1,5 @@
 import Kura.Edges
+import Kura.Dep.Biggest
 
 
 @[ext]
@@ -24,6 +25,7 @@ variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E) (e : 
 @[simp] abbrev gofrom (v : V) : Multiset V := (G.inc e).gofrom v
 @[simp] abbrev gofrom? (v : V) : Option V := (G.inc e).gofrom? v
 @[simp] abbrev goback? (v : V) : Option V := (G.inc e).goback? v
+@[simp] abbrev canGo (v : V) (e : E) (w : V) : Bool := (G.inc e).canGo v w
 @[simp] abbrev flip : edge V := (G.inc e).flip
 @[simp] abbrev map (f : V → W) : edge W := (G.inc e).map f
 @[simp] abbrev pmap {P : V → Prop} (f : ∀ a, P a → W) (e : E) :
@@ -44,8 +46,16 @@ class loopless extends fullGraph G :=
 
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
-class simple extends loopless G, fullGraph G :=
+class simple extends loopless G, undirected G :=
   inc_inj : G.inc.Injective
+
+
+lemma exist_Sym2 [undirected G] : ∃ s, G.inc e = undir s := by
+  match h : G.inc e with
+  | dir (a, b) =>
+    have := @undirected.edge_symm _ _ _ G _ e
+    cases a <;> cases b <;> simp_all
+  | undir s => exact ⟨s, rfl⟩
 
 lemma fullGraph.no_free [fullGraph G] : ∀ e, ¬ G.isFree e := by
   intro e
@@ -75,12 +85,12 @@ lemma not_dir_none_none [fullGraph G] : G.inc e ≠ dir (none, none) := by
   apply @fullGraph.no_free _ _ _ G _ e
   simp [h]
 
--- lemma 
+-- lemma
 
 lemma exist_mem [fullGraph G] : ∃ v, v ∈ G.inc e := Multiset.exists_mem_of_ne_zero (endAt_ne_zero G e)
 
 
-def adj : Prop := ∃ e, u ∈ G.startAt e ∧ v ∈ G.finishAt e
+def adj : Prop := ∃ e, G.canGo u e v
 
 def neighbourhood : Set V := {u | G.adj u v}
 
@@ -104,13 +114,17 @@ def inDegree [Fintype E] : ℕ := Multiset.card (G.inNeighbors v)
 def outDegree [Fintype E] : ℕ := Multiset.card (G.outNeighbors v)
 abbrev degree [Fintype E] : ℕ := G.outDegree v
 
-structure Walk [Inhabited E] where
+private def walkAux : V → List (E × V) → Prop
+  | _, [] => True
+  | u, w :: ws => G.canGo u w.fst w.snd ∧ walkAux w.snd ws
+
+structure Walk where
   start : V
   tail : List (E × V)
-  prop : tail.Chain (λ u v => u.snd >>= G.gofrom? v.fst = v.snd) (default, start)
+  prop : walkAux G start tail
 
 namespace Walk
-variable {G : Graph V E} [Inhabited E] (w : Walk G)
+variable {G : Graph V E} (w : Walk G)
 
 def length : ℕ := w.tail.length
 
@@ -132,10 +146,41 @@ def ball (n : ℕ) : Set V :=
 
 end Walk
 
-def conn (G : Graph V E) [Inhabited E] (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.finish = v
+class Path {G : Graph V E} (w : Walk G) : Prop :=
+  vNodup : w.vertices.Nodup
 
-class connected (G : Graph V E) [Inhabited E] : Prop :=
+class Trail {G : Graph V E} (w : Walk G) : Prop :=
+  eNodup : w.edges.Nodup
+
+class Closed {G : Graph V E} (w : Walk G) : Prop :=
+  startFinish : w.start = w.finish
+
+class Cycle {G : Graph V E} (w : Walk G) extends Closed w : Prop :=
+  vNodup' : w.vertices.tail.Nodup
+
+class Tour {G : Graph V E} (w : Walk G) extends Closed w, Trail w: Prop
+
+def Acyclic (G : Graph V E) : Prop := ∀ w : Walk G, ¬ G.Cycle w
+
+
+def conn (G : Graph V E) (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.finish = v
+
+class connected (G : Graph V E) : Prop :=
   all_conn : ∀ u v : V, conn G u v
+
+def connected_component (G : Graph V E) (v : V) : Set V := {u | G.conn u v}
+
+def cut (G : Graph V E) (S : Finset E) : Prop :=
+  ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
+
+def bridge (G : Graph V E) (e : E) : Prop := G.cut {e}
+
+def mincut (G : Graph V E) (S : Finset E) : Prop :=
+  IsSmallest (G.cut ·) S
+
+class Nconnected (G : Graph V E) (n : ℕ) : Prop :=
+  all_conn : ∀ u v : V, conn G u v
+  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.cut S
 
 variable (H : Graph W F)
 
@@ -143,6 +188,8 @@ structure Hom where
   fᵥ : V → W
   fₑ : E → F
   comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
+
+notation:20 lhs:20 " ⊆ᵍ " rhs:20 => Nonempty (Hom lhs rhs)
 
 structure Isom where
   toHom : Hom G H
