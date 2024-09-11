@@ -36,7 +36,7 @@ class fullGraph : Prop :=
   all_full : ∀ e, G.isFull e
 
 /-- An undirected graph is a full graph with no arcs -/
-class undirected extends fullGraph G :=
+class Undirected extends fullGraph G :=
   edge_symm : ∀ e, G.isUndir e
 
 /-- A loopless graph is one with no loops, free edges or half_edges
@@ -46,14 +46,14 @@ class loopless extends fullGraph G :=
 
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
-class simple extends loopless G, undirected G :=
+class simple extends loopless G, Undirected G :=
   inc_inj : G.inc.Injective
 
 
-lemma exist_Sym2 [undirected G] : ∃ s, G.inc e = undir s := by
+lemma exist_Sym2 [Undirected G] : ∃ s, G.inc e = undir s := by
   match h : G.inc e with
   | dir (a, b) =>
-    have := @undirected.edge_symm _ _ _ G _ e
+    have := @Undirected.edge_symm _ _ _ G _ e
     cases a <;> cases b <;> simp_all
   | undir s => exact ⟨s, rfl⟩
 

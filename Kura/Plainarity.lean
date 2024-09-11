@@ -16,7 +16,13 @@ variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] [DecidableEq F]
 
 structure AbstractDual (G : Graph V E) (H : Graph W F) where
   eEquiv : E ≃ F
-  cycle_mincut : ∀ (w : Walk G), w.Cycle → H.cut (w.edges.map eEquiv.toFun).toFinset
+  cycle_mincut : ∀ (w : Walk G), w.Cycle → H.mincut (w.edges.map eEquiv.toFun).toFinset
+  mincut_cycle : ∀ (S : Finset F), H.mincut S → ∃ (w : Walk G), w.Cycle ∧
+    S = (w.edges.map eEquiv.toFun).toFinset
+
+class Planar_by_AbstractDual (G : Graph V E) : Prop :=
+  exists_dual : ∃ (W F : Type*) (_ : DecidableEq W) (_ : DecidableEq F) (H : Graph W F),
+    Nonempty (AbstractDual G H)
 
 
 
