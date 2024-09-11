@@ -144,7 +144,7 @@ def finish : V := w.vertices.getLast (by simp)
 def ball (n : ℕ) : Set V :=
   {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
 
-end Walk
+
 
 class Path {G : Graph V E} (w : Walk G) : Prop :=
   vNodup : w.vertices.Nodup
@@ -160,8 +160,9 @@ class Cycle {G : Graph V E} (w : Walk G) extends Closed w : Prop :=
 
 class Tour {G : Graph V E} (w : Walk G) extends Closed w, Trail w: Prop
 
-def Acyclic (G : Graph V E) : Prop := ∀ w : Walk G, ¬ G.Cycle w
+end Walk
 
+def Acyclic (G : Graph V E) : Prop := ∀ w : Walk G, ¬ w.Cycle
 
 def conn (G : Graph V E) (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.finish = v
 

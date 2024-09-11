@@ -34,7 +34,7 @@ theorem sat_of_isSome_filter (h : isSome (o.filter p)) : p (o.get (isSome_of_isS
 
 theorem isSome_filter_iff : isSome (o.filter p) ↔ ∃ (h : isSome o), p (o.get h) := by
   match o with
-  | none => simp only [Option.filter, isSome_none, IsEmpty.exists_iff]
+  | none => simp only [Option.filter, isSome_none, Bool.false_eq_true, IsEmpty.exists_iff]
   | some a =>
     simp only [filter_ite, some_bind, get_some, isSome_some, exists_const]
     constructor <;> intro h

@@ -16,7 +16,7 @@ variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] [DecidableEq F]
 
 structure AbstractDual (G : Graph V E) (H : Graph W F) where
   eEquiv : E ≃ F
-  cycle_mincut : ∀ (w : Walk G), Cycle w → H.cut (w.edges.map eEquiv.toFun).toFinset
+  cycle_mincut : ∀ (w : Walk G), w.Cycle → H.cut (w.edges.map eEquiv.toFun).toFinset
 
 
 

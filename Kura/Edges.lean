@@ -74,7 +74,7 @@ def endAt : Multiset V := match e with
 
 @[simp]
 instance : Membership V (edge V) where
-  mem v e := v ∈ e.endAt
+  mem e v := v ∈ e.endAt
 
 lemma mem_toMultiset_of_undir (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e.toMultiset := by simp
 
