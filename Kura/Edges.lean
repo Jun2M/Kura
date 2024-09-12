@@ -111,7 +111,7 @@ def goback? (v : V) : Option V := match e with
   | undir s => if h : v ∈ s then (@Sym2.Mem.other' V _ v s h) else none
 
 @[simp]
-def canGo (v w : V) : Bool := w ∈ e.gofrom? v
+def canGo (v : V) (e : edge V) (w : V) : Bool := w ∈ e.gofrom? v
 
 theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
   List.TFAE [e.gofrom? u = some v, e.goback? v = some u, e.canGo u v] := by
@@ -133,6 +133,22 @@ theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
 def flip : edge V := match e with
   | dir (a, b) => dir (b, a)
   | s => s
+
+@[simp]
+lemma flip_gofrom? : e.flip.gofrom? = e.goback? := by
+  sorry
+
+@[simp]
+lemma flip_goback? : e.flip.goback? = e.gofrom? := by
+  sorry
+
+@[simp]
+lemma canGo_flip (v w : V) : e.flip.canGo w v = e.canGo v w  := by
+  sorry
+
+@[simp]
+lemma flip_self (s : Sym2 V) : (undir s).flip = undir s := by
+  sorry
 
 variable {W : Type*} [DecidableEq W]
 

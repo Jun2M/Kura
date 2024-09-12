@@ -89,10 +89,31 @@ lemma not_dir_none_none [fullGraph G] : G.inc e ≠ dir (none, none) := by
 
 lemma exist_mem [fullGraph G] : ∃ v, v ∈ G.inc e := Multiset.exists_mem_of_ne_zero (endAt_ne_zero G e)
 
+def get [Undirected G] : Sym2 V :=
+  match h : G.inc e with
+  | dir (a, b) => by
+    exfalso
+    have := @Undirected.edge_symm _ _ _ G _ e
+    simp [h] at this
+  | undir s => s
+
+@[simp low]
+lemma inc_eq_undir_get [Undirected G] : G.inc e = undir (G.get e) := by
+  match h : G.inc e with
+  | dir (a, b) =>
+    have := @Undirected.edge_symm _ _ _ G _ e
+    cases a <;> cases b <;> simp_all
+  | undir s =>
+    simp only [get, h]
+    split <;> simp_all
+
 
 def adj : Prop := ∃ e, G.canGo u e v
 
 def neighbourhood : Set V := {u | G.adj u v}
+
+def entrance : Set E := {e | u ∈ G.finishAt e}
+def exit : Set E := {e | u ∈ G.startAt e}
 
 def inNeighbors [Fintype E] : Multiset V :=
   @Multiset.fold (Multiset V) (· + ·) _ _ ∅
@@ -114,14 +135,14 @@ def inDegree [Fintype E] : ℕ := Multiset.card (G.inNeighbors v)
 def outDegree [Fintype E] : ℕ := Multiset.card (G.outNeighbors v)
 abbrev degree [Fintype E] : ℕ := G.outDegree v
 
-private def walkAux : V → List (E × V) → Prop
+private def walkAux (P : V → E → V → Prop) : V → List (E × V) → Prop
   | _, [] => True
-  | u, w :: ws => G.canGo u w.fst w.snd ∧ walkAux w.snd ws
+  | u, w :: ws => P u w.fst w.snd ∧ walkAux P w.snd ws
 
 structure Walk where
   start : V
   tail : List (E × V)
-  prop : walkAux G start tail
+  prop : walkAux (G.canGo · · ·) start tail
 
 namespace Walk
 variable {G : Graph V E} (w : Walk G)
@@ -182,6 +203,8 @@ def mincut (G : Graph V E) (S : Finset E) : Prop :=
 class Nconnected (G : Graph V E) (n : ℕ) : Prop :=
   all_conn : ∀ u v : V, conn G u v
   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.cut S
+
+def regular [Fintype E] (G : Graph V E) (k : ℕ) : Prop := ∀ v : V, G.degree v = k
 
 variable (H : Graph W F)
 
