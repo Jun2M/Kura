@@ -1,10 +1,10 @@
-import Kura.Finite
-import Kura.Dep.Finset
-import Mathlib.Algebra.Polynomial.Basic
+import Kura.Subgraph
+import Kura.Dep.CompPoly
 
 namespace Graph
 open edge Sym2
-variable {V W : Type*} [DecidableEq V] (G : Graph V E) (u v w : V) (e e' : E)
+variable {V W E : Type*} [Fintype V] [LinearOrder V] [Fintype E] [LinearOrder E] (G : Graph V E)
+  (u v w : V) (e e' : E)
 
 
 def steps := {uev : V × E × V // G.canGo uev.1 uev.2.1 uev.2.2}
@@ -13,16 +13,14 @@ instance steps.fintype [Fintype V] [Fintype E] : Fintype G.steps := by
   unfold steps
   infer_instance
 
-instance steps.DecEq [DecidableEq E] : DecidableEq G.steps := by
+instance steps.DecEq : DecidableEq G.steps := by
   unfold steps
   infer_instance
 
 def steps.flip [Undirected G] (uevh : G.steps) : G.steps :=
   let ⟨(u, (e, v)), h⟩ := uevh
-  ⟨(v, (e, u)), by simp_all⟩
+  ⟨(v, (e, u)), by rwa [canGo_symm]⟩
 
-
-variable [Fintype V] [Fintype E] {H : Type*} [AddCommGroup H] {G : Graph V E} [Undirected G]
 
 structure Circulation (H : Type*) [AddCommGroup H] (G : Graph V E) [Undirected G] where
   f : G.steps → H
@@ -30,11 +28,13 @@ structure Circulation (H : Type*) [AddCommGroup H] (G : Graph V E) [Undirected G
   consv : ∀ v : V, ∑ uevh ∈ Finset.univ.filter fun (uevh : G.steps) => uevh.1.1 ≠ uevh.1.2.2 ∧ v = uevh.1.1, f uevh = 0
 
 namespace Circulation
+variable {H : Type*} [AddCommGroup H] {G : Graph V E} [Undirected G]
 
-@[simp]
+omit [LinearOrder E] in @[simp]
 lemma flip' (C : Circulation H G) (uevh : G.steps) : C.f uevh.flip = -C.f uevh := by
   rw [← neg_neg (C.f _), C.flip]
 
+omit [LinearOrder E] in
 theorem ext_iff (C₁ C₂ : Circulation H G) : C₁ = C₂ ↔ ∀ uevh, C₁.f uevh = C₂.f uevh := by
   refine ⟨by rintro rfl _; rfl, fun h => ?_⟩
   rcases C₁ with ⟨f₁, flip₁, consv₁⟩
@@ -42,7 +42,7 @@ theorem ext_iff (C₁ C₂ : Circulation H G) : C₁ = C₂ ↔ ∀ uevh, C₁.f
   simp at h ⊢
   exact funext h
 
-@[ext]
+omit [LinearOrder E] in @[ext]
 theorem ext (C₁ C₂ : Circulation H G) (h : ∀ uevh, C₁.f uevh = C₂.f uevh) : C₁ = C₂ :=
   (ext_iff C₁ C₂).mpr h
 
@@ -57,7 +57,7 @@ instance : Add (Circulation H G) where
         simp only [C₁.consv, C₂.consv, add_zero]
     }
 
-@[simp]
+omit [LinearOrder E] in @[simp]
 theorem add_f (C₁ C₂ : Circulation H G) (uevh : G.steps) :
   (C₁ + C₂).f uevh = C₁.f uevh + C₂.f uevh := rfl
 
@@ -65,7 +65,7 @@ instance : Zero (Circulation H G) where
   zero := { f := fun _ => 0, flip := fun _ => by rw [neg_zero], consv := fun _ => by simp only [edge.canGo.eq_1,
     edge.gofrom?, Finset.sum_const_zero] }
 
-@[simp]
+omit [LinearOrder E] in @[simp]
 theorem zero : ({ f := fun _ => 0, flip := fun _ => by rw [neg_zero], consv := fun _ => by simp only [edge.canGo.eq_1,
     edge.gofrom?, Finset.sum_const_zero] } : Circulation H G) = 0 := rfl
 
@@ -149,13 +149,15 @@ def F : H :=
   ∑ uevh ∈ Finset.univ.filter
     fun uevh => uevh.1.1 ≠ uevh.1.2.2 ∧ uevh.1.1 ∈ X ∧ uevh.1.2.2 ∈ Y, C.f uevh
 
+omit [LinearOrder E] in
 lemma consv' : C.F ({v} : Finset V) Finset.univ = 0 := by
   rw [← C.consv v, F]
   congr
   ext ⟨⟨u, e, w⟩, h⟩
   simp [Eq.comm]
 
-lemma F_add_eq_F_disjUnion [DecidableEq E] (X Y₁ Y₂ : Finset V) (h : Disjoint Y₁ Y₂) :
+omit [LinearOrder E] in
+lemma F_add_eq_F_disjUnion (X Y₁ Y₂ : Finset V) (h : Disjoint Y₁ Y₂) :
   C.F X (Y₁.disjUnion Y₂ h) = C.F X Y₁ + C.F X Y₂ := by
   unfold F
   rw [Eq.comm, ← Finset.sum_disjUnion, @Finset.disjUnion_eq_union G.steps (by unfold steps; infer_instance), ← Finset.filter_or]
@@ -168,6 +170,7 @@ lemma F_add_eq_F_disjUnion [DecidableEq E] (X Y₁ Y₂ : Finset V) (h : Disjoin
   sorry
   -- apply Finset.disjoint_of_subset_left
 
+omit [LinearOrder E] in
 lemma within_zero :
   C.F X X = 0 := by
   apply Finset.sum_involution (fun uevh _ => steps.flip G uevh) <;>
@@ -196,7 +199,7 @@ lemma to_all_zero :
   intro v hv
   exact C.consv' v
 
-lemma cut_zero [DecidableEq E] (C : Circulation H G) (X : Finset V) :
+lemma cut_zero (C : Circulation H G) (X : Finset V) :
   C.F X Xᶜ = 0 := by
   have := C.to_all_zero X
   rwa [← Finset.disjUnion_compl_eq_univ X, F_add_eq_F_disjUnion, within_zero, zero_add] at this
@@ -206,7 +209,7 @@ end Circulation
 structure Flow (H : Type*) [AddCommGroup H] (G : Graph V E) [Undirected G] extends Circulation H G where
   nonneg : ∀ uevh : G.steps, f uevh ≠ 0
 
-theorem nonempty_Z2Flow_iff : Nonempty (Flow (ZMod 2) G) ↔ ∀ v, Even (G.degree v) := by
+theorem nonempty_Z2Flow_iff [Undirected G] : Nonempty (Flow (ZMod 2) G) ↔ ∀ v, Even (G.degree v) := by
   constructor
   · intro ⟨⟨f, hflp, hcsv⟩, h0⟩ v
     have h1 : ∀ uevh : G.steps, f uevh = 1 := (Fin.eq_one_of_neq_zero _ $ h0 ·)
@@ -228,34 +231,41 @@ theorem nonempty_Z2Flow_iff : Nonempty (Flow (ZMod 2) G) ↔ ∀ v, Even (G.degr
 
 -- theorem nonempty_Z3Flow_3reg_iff : Nonempty (Flow (ZMod 3) G) ∧ G.regular 3 ↔ G.IsBipartite := by
 
-open Polynomial
-
-def flowPolynomial [Fintype E] : ℤ[X] :=
+def flowPolynomial {V E : Type*} [Fintype V] [LinearOrder V] [Fintype E] [LinearOrder E]
+  (G : Graph V E) [Undirected G] : CompPoly ℤ :=
   if hE : Fintype.card E = 0
-  then { toFinsupp := {support := ∅, toFun := fun _ => 0, mem_support_toFun := by simp} }
+  then CompPoly.ofList []
   else
-    let e : E := by
-      have := Ne.intro hE
-      rw [Nat.ne_zero_iff_zero_lt, Fintype.card_pos_iff] at this
-      exact Classical.choice this
+    have hEne : Finset.univ.Nonempty := by
+      rwa [Finset.univ_nonempty_iff, ← not_isEmpty_iff, ← Fintype.card_eq_zero_iff.not]
+    let e : E := Finset.univ.min' hEne
 
-    let G₁' : Subgraph G := { rmv := ∅, rme := {e}, hv := fun e v hv => (by simp only [Set.mem_empty_iff_false] at hv) }
+    let G₁' : Subgraph G := (Subgraph.init G).erm e
     let G₁ := G₁'.eval
 
-    let G₂' : Minor G := {
-      rmv := ∅,
-      rme := {e},
-      hv := fun e v hv => (by simp only [Set.mem_empty_iff_false] at hv),
-      vmap := fun v => e,
-      vmap_idem := fun v => rfl,
-      contracted := fun v => none, H := fun v => by simp, h := fun v => by simp
-    }
-    { toFinsupp := {support := ∅, toFun := fun _ => 0, mem_support_toFun := by simp} }
+    let G₂' : Minor G := (Minor.init G).ctt e (by sorry)
+    let G₂ := G₂'.eval
 
-theorem flow_poly_exists : ∃ P : ℤ[X], ∀ H : Type*, Fintype H → (_ : AddCommGroup H) →
-  Nat.card (Flow H G) = P.eval ↑(Nat.card H - 1) := by
+    CompPoly.AddCommGroup.sub (flowPolynomial G₂) (flowPolynomial G₁)
+  termination_by (Fintype.card V + Fintype.card E)
+  decreasing_by
+    · apply Nat.add_lt_add_of_lt_of_le
+      · apply Fintype.card_subtype_lt (x := (G.get e).inf) (Minor.inf_not_mem_ctt _ _ _)
+      · exact Fintype.card_subtype_le _
+    · apply Nat.add_lt_add_of_le_of_lt
+      · exact Fintype.card_subtype_le _
+      · apply Fintype.card_subtype_lt (x := e)
+        exact Subgraph.not_mem_erm _ _ sorry
+
+theorem flowPoly_spec [Undirected G] (H : Type*) [Fintype H] [AddCommGroup H] :
+  Nat.card (Flow H G) = (flowPolynomial G).eval ↑(Nat.card H - 1) := by
+  induction Fintype.card V using Nat.strongRec with
+  | _ _ =>
+    rename_i n ih
+    by_cases hAllLoops : ∀ e, (G.inc e).isLoop
+    · 
 
 
-  sorry
+    sorry
 
 end Graph

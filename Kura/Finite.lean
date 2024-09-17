@@ -1,5 +1,10 @@
-import Kura.Subgraph
+import Kura.Defs
 import Kura.Translation
+import Kura.Dep.Finset
+import Mathlib.Data.Fintype.Basic
+
+def subtypeOfFintype [Fintype α] (P : α → Prop) [DecidablePred P] : Fintype {v // P v} :=
+  Fintype.subtype (Finset.univ.filter P) (by simp)
 
 namespace Graph
 open edge

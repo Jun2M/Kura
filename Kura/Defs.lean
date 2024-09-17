@@ -85,8 +85,6 @@ lemma not_dir_none_none [fullGraph G] : G.inc e ≠ dir (none, none) := by
   apply @fullGraph.no_free _ _ _ G _ e
   simp [h]
 
--- lemma
-
 lemma exist_mem [fullGraph G] : ∃ v, v ∈ G.inc e := Multiset.exists_mem_of_ne_zero (endAt_ne_zero G e)
 
 def get [Undirected G] : Sym2 V :=
@@ -107,6 +105,19 @@ lemma inc_eq_undir_get [Undirected G] : G.inc e = undir (G.get e) := by
     simp only [get, h]
     split <;> simp_all
 
+lemma canGo_symm [Undirected G] : G.canGo u e v = G.canGo v e u := by
+  simp only [canGo, inc_eq_undir_get]
+  rw [← canGo_flip, flip_self]
+
+lemma get_inf_mem_inc (G : Graph V E) [Undirected G] [LinearOrder V] : (G.get e).inf ∈ G.inc e := by
+  simp only [instedgeMem, edge.endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+    List.foldl_cons, Multiset.cons_zero, List.foldl_nil, inc_eq_undir_get, Sym2.mem_toMultiset_iff,
+    Sym2.inf_mem]
+
+lemma get_sup_mem_inc (G : Graph V E) [Undirected G] [LinearOrder V] : (G.get e).sup ∈ G.inc e := by
+  simp only [instedgeMem, edge.endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+    List.foldl_cons, Multiset.cons_zero, List.foldl_nil, inc_eq_undir_get, Sym2.mem_toMultiset_iff,
+    Sym2.sup_mem]
 
 def adj : Prop := ∃ e, G.canGo u e v
 
@@ -134,75 +145,6 @@ abbrev neighbors [Fintype E] : Multiset V := G.outNeighbors v
 def inDegree [Fintype E] : ℕ := Multiset.card (G.inNeighbors v)
 def outDegree [Fintype E] : ℕ := Multiset.card (G.outNeighbors v)
 abbrev degree [Fintype E] : ℕ := G.outDegree v
-
-private def walkAux (P : V → E → V → Prop) : V → List (E × V) → Prop
-  | _, [] => True
-  | u, w :: ws => P u w.fst w.snd ∧ walkAux P w.snd ws
-
-structure Walk where
-  start : V
-  tail : List (E × V)
-  prop : walkAux (G.canGo · · ·) start tail
-
-namespace Walk
-variable {G : Graph V E} (w : Walk G)
-
-def length : ℕ := w.tail.length
-
-def isSubpath : Walk G → Walk G → Prop := λ w₁ w₂ => w₁.tail.IsInfix w₂.tail
-
-
-
-@[simp]
-def vertices : List V := w.start :: w.tail.map Prod.snd
-
-@[simp]
-def edges : List E := w.tail.map Prod.fst
-
-@[simp]
-def finish : V := w.vertices.getLast (by simp)
-
-def ball (n : ℕ) : Set V :=
-  {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
-
-
-
-class Path {G : Graph V E} (w : Walk G) : Prop :=
-  vNodup : w.vertices.Nodup
-
-class Trail {G : Graph V E} (w : Walk G) : Prop :=
-  eNodup : w.edges.Nodup
-
-class Closed {G : Graph V E} (w : Walk G) : Prop :=
-  startFinish : w.start = w.finish
-
-class Cycle {G : Graph V E} (w : Walk G) extends Closed w : Prop :=
-  vNodup' : w.vertices.tail.Nodup
-
-class Tour {G : Graph V E} (w : Walk G) extends Closed w, Trail w: Prop
-
-end Walk
-
-def Acyclic (G : Graph V E) : Prop := ∀ w : Walk G, ¬ w.Cycle
-
-def conn (G : Graph V E) (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.finish = v
-
-class connected (G : Graph V E) : Prop :=
-  all_conn : ∀ u v : V, conn G u v
-
-def connected_component (G : Graph V E) (v : V) : Set V := {u | G.conn u v}
-
-def cut (G : Graph V E) (S : Finset E) : Prop :=
-  ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
-
-def bridge (G : Graph V E) (e : E) : Prop := G.cut {e}
-
-def mincut (G : Graph V E) (S : Finset E) : Prop :=
-  IsSmallest (G.cut ·) S
-
-class Nconnected (G : Graph V E) (n : ℕ) : Prop :=
-  all_conn : ∀ u v : V, conn G u v
-  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.cut S
 
 def regular [Fintype E] (G : Graph V E) (k : ℕ) : Prop := ∀ v : V, G.degree v = k
 

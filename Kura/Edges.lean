@@ -72,12 +72,20 @@ def endAt : Multiset V := match e with
     | none => s) ∅
   | undir s => s.toMultiset
 
-@[simp]
-instance : Membership V (edge V) where
+instance instedgeMem : Membership V (edge V) where
   mem e v := v ∈ e.endAt
 
-lemma mem_toMultiset_of_undir (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e.toMultiset := by simp
+instance instMemDecPred : ∀ (u : V), Decidable (u ∈ e) := by
+  cases e <;> simp only [instedgeMem] <;> infer_instance
 
+lemma mem_toMultiset_of_undir (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e.toMultiset := by
+  simp only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
+    Multiset.cons_zero, List.foldl_nil, Sym2.mem_toMultiset_iff]
+
+@[simp]
+lemma mem_undir_iff (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e := by
+  simp only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
+    Multiset.cons_zero, List.foldl_nil, Sym2.mem_toMultiset_iff]
 
 @[simp]
 def startAt : Multiset V := match e with
@@ -110,7 +118,6 @@ def goback? (v : V) : Option V := match e with
   | dir (a, b) => if b = v then a else none
   | undir s => if h : v ∈ s then (@Sym2.Mem.other' V _ v s h) else none
 
-@[simp]
 def canGo (v : V) (e : edge V) (w : V) : Bool := w ∈ e.gofrom? v
 
 theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
@@ -125,8 +132,8 @@ theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
     | undir s =>
       simp [Sym2.eq_swap]
   · match e with
-    | dir (a, b) => cases a <;> cases b <;> simp_all
-    | undir s => simp
+    | dir (a, b) => cases a <;> cases b <;> simp_all [canGo]
+    | undir s => simp [canGo]
 
 
 @[simp]
@@ -150,9 +157,30 @@ lemma canGo_flip (v w : V) : e.flip.canGo w v = e.canGo v w  := by
 lemma flip_self (s : Sym2 V) : (undir s).flip = undir s := by
   sorry
 
-variable {W : Type*} [DecidableEq W]
+def any (P : V → Bool) : Bool := match e with
+  | dir (a, b) => a.any P || b.any P
+  | undir s => s.any P
 
 @[simp]
+lemma any_iff (P : V → Bool) : e.any P ↔ (∃ v ∈ e, P v) := by match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all [instedgeMem, any, Or.comm]
+  | undir s => simp only [any, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+    List.foldl_cons, Multiset.cons_zero, List.foldl_nil, mem_undir_iff, Sym2.any_iff]
+
+def all (P : V → Bool) : Bool := match e with
+  | dir (a, b) => a.all P && b.all P
+  | undir s => s.all P
+
+@[simp]
+lemma all_iff (P : V → Bool) : e.all P ↔ (∀ v ∈ e, P v) := by match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all [instedgeMem, all, And.comm]
+  | undir s => simp only [all, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+    List.foldl_cons, Multiset.cons_zero, List.foldl_nil, mem_undir_iff, Sym2.all_iff]
+
+variable {W : Type*} [DecidableEq W]
+
 def map (f : V → W) : edge V → edge W
 | dir (a, b) => dir (a.map f, b.map f)
 | undir s => undir (s.map f)
@@ -161,10 +189,10 @@ lemma mem_map_of_mem (f : V → W) (v : V) (e : edge V) : v ∈ e → f v ∈ e.
   intro h
   match e with
   | dir (a, b) =>
-    cases a<;> cases b<;> simp_all
+    cases a<;> cases b<;> simp_all [instedgeMem, map]
     exact h.imp (by rw [·]) (by rw [·])
   | undir s =>
-    simp_all only [instMembership, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+    simp_all only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
       List.foldl_cons, Multiset.cons_zero, List.foldl_nil, Sym2.mem_toMultiset_iff, map,
       Sym2.mem_map]
     use v
@@ -172,10 +200,10 @@ lemma mem_map_of_mem (f : V → W) (v : V) (e : edge V) : v ∈ e → f v ∈ e.
 lemma mem_map (f : V → W) (v : W) (e : edge V) (h : v ∈ e.map f): ∃ y ∈ e, f y = v := by
   match e with
   | dir (a, b) =>
-    cases a<;> cases b<;> simp_all
+    cases a<;> cases b<;> simp_all [instedgeMem, map]
     rcases h with rfl | rfl <;> simp
   | undir s =>
-    simp_all only [instMembership, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
+    simp_all only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
       List.foldl_cons, Multiset.cons_zero, List.foldl_nil, map, Sym2.mem_toMultiset_iff,
       Sym2.mem_map]
 
@@ -183,11 +211,12 @@ def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P 
   intro H
   match e with
   | dir (a, b) =>
-    refine dir (a.pmap f fun v h => H v (by cases b <;> simp_all),
-      b.pmap f fun v h => H v (by cases a <;> simp_all))
+    refine dir (a.pmap f fun v h => H v (by cases b <;> simp_all [instedgeMem]),
+      b.pmap f fun v h => H v (by cases a <;> simp_all [instedgeMem]))
   | undir s =>
     refine undir (s.pmap f fun v hv => H v ?_)
-    simp_all
+    simp_all [instedgeMem]
+
 
 
 end edge

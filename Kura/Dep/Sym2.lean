@@ -1,4 +1,4 @@
-import Mathlib.Data.Sym.Sym2
+import Mathlib.Data.Sym.Sym2.Order
 -- import Mathlib
 
 
@@ -221,6 +221,34 @@ theorem mem_toMultiset_iff (a : α) (s : Sym2 α) : a ∈ s.toMultiset ↔ a ∈
   rw [toMultiset, mem_equivMultiset_iff_mem]
 
 def Nodup (s : Sym2 α) : Prop := ¬ s.IsDiag
+
+lemma sup_mem [LinearOrder α] (s : Sym2 α) : s.sup ∈ s := by
+  rw [eq_mk_out s, Sym2.sup_mk, Sym2.mem_iff, sup_eq_left, sup_eq_right]
+  exact le_total _ _
+
+lemma inf_mem [LinearOrder α] (s : Sym2 α) : s.inf ∈ s := by
+  rw [eq_mk_out s, Sym2.inf_mk, Sym2.mem_iff, inf_eq_left, inf_eq_right]
+  exact le_total _ _
+
+def any (s : Sym2 α) (P : α → Bool) : Bool := by
+  refine Sym2.rec (fun ab => P ab.1 || P ab.2) ?_ s
+  intro (a, b) (c, d) hr
+  simp only [rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at hr
+  rcases hr with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp only [eq_rec_constant, Bool.or_comm]
+
+@[simp]
+lemma any_iff (s : Sym2 α) (P : α → Bool) : s.any P ↔ (∃ a ∈ s, P a):= by
+  sorry
+
+def all (s : Sym2 α) (P : α → Bool) : Bool := by
+  refine Sym2.rec (fun ab => P ab.1 && P ab.2) ?_ s
+  intro (a, b) (c, d) hr
+  simp only [rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at hr
+  rcases hr with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp only [eq_rec_constant, Bool.and_comm]
+
+@[simp]
+lemma all_iff (s : Sym2 α) (P : α → Bool) : s.all P ↔ (∀ a ∈ s, P a) := by
+  sorry
 
 -- theorem
 

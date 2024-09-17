@@ -50,4 +50,10 @@ theorem get_filter_eq_get_of_isSome (h : isSome (o.filter p)) :
     obtain ⟨_hsome, hsat⟩ := isSome_filter_iff.mp h
     simp_all
 
+theorem bind_isSome {f : α → Option β} (hbind : isSome (o.bind f)):
+    o.isSome := by match o with
+  | none => simp only [none_bind, isSome_none, Bool.false_eq_true] at hbind
+  | some _ => simp only [isSome_some]
+
+
 end Option
