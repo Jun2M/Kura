@@ -8,14 +8,17 @@ def subtypeOfFintype [Fintype α] (P : α → Prop) [DecidablePred P] : Fintype 
 
 namespace Graph
 open edge
-variable {V E : Type*} [DecidableEq V] [Fintype V] [Fintype E] (G : Graph V E) (u v : V)
+variable {V E : Type*} [LinearOrder V] [Fintype V] [Fintype E] (G : Graph V E) (u v : V)
 
 theorem exist (G : Graph V E) [fullGraph G] : IsEmpty E ∨ Nonempty V := by
   by_cases hE : IsEmpty E
   · exact Or.inl hE
   · simp at hE
-    choose v _ using exist_mem G (@Classical.ofNonempty _ hE)
+    choose v _ using exist_two_mem G (@Classical.ofNonempty _ hE)
     exact Or.inr (Nonempty.intro v)
+
+
+
 
 -- lemma degree_eq_edges_filter_startAt_card [fullGraph G] :
 --   G.degree v = ((@Fintype.elems E _).filter (λ e => v ∈ G.startAt e)).card := by

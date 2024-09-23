@@ -3,7 +3,7 @@ import Kura.Walk
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] [DecidableEq E]
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E]
 
 
 structure InducedSubgraph (G : Graph V E) where
@@ -14,7 +14,7 @@ structure Subgraph (G : Graph V E) extends InducedSubgraph G where
   hrme : ∀ e v, rmv v → v ∈ G.inc e → rme e
 
 structure QuotientGraph (G : Graph V E) extends InducedSubgraph G where
-  vmap : V → Option V
+  vmap : V → WithBot V
   vmap_dom : ∀ v, ¬rmv v ↔ (vmap v).isSome
   vmap_ran : ∀ v, (hdom : ¬rmv v) → ¬ rmv ((vmap v).get ((vmap_dom v).mp hdom))
   vmap_idem : ∀ v, (hdom : ¬rmv v) → vmap ((vmap v).get ((vmap_dom v).mp hdom)) = vmap v
@@ -117,6 +117,16 @@ variable {G : Graph V E}
 def InducedSubgraph.vrm (G' : InducedSubgraph G) (v : V) : InducedSubgraph G where
   rmv u := u = v || G'.rmv u
 
+def InducedSubgraph.vrmFinset (G' : InducedSubgraph G) (S : Finset V) : InducedSubgraph G where
+  rmv u := u ∈ S || G'.rmv u
+
+def InducedSubgraph.OnFinset (G' : InducedSubgraph G) (S : Finset V) : InducedSubgraph G where
+  rmv u := u ∉ S || G'.rmv u
+
+local macro G:term "[" S:term "]" : term => `(InducedSubgraph.eval (InducedSubgraph.OnFinset (InducedSubgraph.init $G) $S))
+
+#eval! (CompleteGraph 4)[({0, 1, 2} : Finset (Fin 4))]
+
 def Subgraph.vrm (G' : Subgraph G) (v : V) : Subgraph G where
   rmv u := u = v || G'.rmv u
   rme e := v ∈ G.inc e || G'.rme e
@@ -142,11 +152,11 @@ lemma Subgraph.not_mem_erm [fullGraph G] (G' : Subgraph G) (e : E) (he : ¬G'.rm
 def QuotientGraph.merge (G' : QuotientGraph G) (v w : V) (hv : ¬G'.rmv v)
   (hw : ∃ w', ∃ (h : (G'.vmap w').isSome = true), (G'.vmap w').get h = w) : QuotientGraph G where
   rmv := G'.rmv
-  vmap u := if G'.vmap u = some v then w else G'.vmap u
+  vmap u := if G'.vmap u = some v then some w else G'.vmap u
   vmap_dom u := by
     beta_reduce
     split_ifs with h <;>
-    simp only [vmap_dom, h, Option.isSome_some]
+    simp only [WithBot, vmap_dom, h, Option.isSome_some]
   vmap_ran u hu := by
     simp only at hu ⊢
     split_ifs with h
@@ -229,7 +239,7 @@ def Minor.erm [fullGraph G] (G' : Minor G) (e : E) : Minor G where
   path_start := G'.path_start
   path_finish := G'.path_finish
 
-def Minor.ctt [Undirected G] [LinearOrder V] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G where
+def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G where
   rmv := G'.rmv
   rme e' := e = e' || G'.rme e'
   hrme e' u hu he' := by
@@ -267,30 +277,64 @@ def Minor.ctt [Undirected G] [LinearOrder V] (G' : Minor G) (e : E) (he : ¬G'.r
           G'.path_finish (G.get e).inf (G'.hrme' e he (G.get e).inf (G.get_inf_mem_inc e))]
         apply_fun some using Option.some_injective _
         rwa [Option.some_get, Option.some_get])
-      if (G.get e).inf = (G.get e).sup then
-        exact AB
+      if hloop : (G.get e).inf = (G.get e).sup then
+        exact AB.append (G'.ctt_path (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e))) (by
+          rw [Path.append_finish, G'.path_start (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)), ←hloop, Path.reverse_finish, G'.path_start (G.get e).inf (G'.hrme' e he (G.get e).inf (G.get_inf_mem_inc e))])
       else
         let C := Path.some (G := G) (G.get e).inf e (G.get e).sup sorry sorry
         let ABC := AB.append C (by
         rw [Path.append_finish, Path.reverse_finish, G'.path_start]
         rfl)
-        exact ABC
+        exact ABC.append (G'.ctt_path (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e))) (by
+          rw [Path.append_finish, G'.path_start (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)), Path.some_finish])
     else
       exact G'.ctt_path u hdom
-  path_rme := fun u hdom e he => by
-    sorry
-  path_start := fun u hdom => by
-    sorry
-  path_finish := fun u hdom => by
-    sorry
+  path_rme := fun u hdom e' he' => by
+    simp at he' ⊢
+    split_ifs at he' with h1 h2
+    · rw [Path.mem_append_edges, Path.mem_append_edges, Path.mem_reverse_edges] at he'
+      rcases he' with (he' | he') | he'
+      · right
+        exact G'.path_rme u hdom e' he'
+      · right
+        exact G'.path_rme (G.get e).inf (G'.hrme' e he (G.get e).inf (G.get_inf_mem_inc e)) e' he'
+      · right
+        exact G'.path_rme (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)) e' he'
+    · simp only [Path.mem_append_edges, Path.mem_reverse_edges] at he'
+      rcases he' with ((he' | he') | he') | he'
+      · right
+        exact G'.path_rme u hdom e' he'
+      · right
+        exact G'.path_rme (G.get e).inf (G'.hrme' e he (G.get e).inf (G.get_inf_mem_inc e)) e' he'
+      · left
+        rwa [Path.mem_some_edges, Eq.comm] at he'
+      · right
+        exact G'.path_rme (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)) e' he'
+    · right
+      exact G'.path_rme u hdom e' he'
+  path_start u hdom := by
+    simp only [dite_eq_ite]
+    split_ifs with h1 h2 <;>
+    try {simp only [Path.append_start]} <;>
+    exact G'.path_start u hdom
+  path_finish u hdom := by
+    simp only [Bool.not_eq_true, dite_eq_ite, Sym2.sortEquiv_apply_coe]
+    split_ifs with h1 h2
+    · simp only [Path.append_finish, Path.reverse_finish]
+      exact G'.path_finish (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e))
+    · simp only [Path.append_finish]
+      exact G'.path_finish (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e))
+    · exact G'.path_finish u hdom
 
-lemma Minor.inf_not_mem_ctt [Undirected G] [LinearOrder V] [fullGraph G] (G' : Minor G) (e : E)
+
+lemma Minor.inf_not_mem_ctt [Undirected G] [fullGraph G] (G' : Minor G) (e : E)
   (he : ¬G'.rme e) : ¬ ∃ u, (G'.ctt e he).vmap u = some ((G.get e).inf) := by
   sorry
 
 
 def hasMinor [Fintype V] (G : Graph V E) [fullGraph G] (H : Graph W F) : Prop := ∃ (S : Minor G), Nonempty (Isom S.eval H)
 
-
+class NConnected (G : Graph V E) [Fintype V] [fullGraph G] (n : ℕ) : Prop where
+  h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ].connected
 
 end Graph

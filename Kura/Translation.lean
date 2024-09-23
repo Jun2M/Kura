@@ -1,9 +1,11 @@
 import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.Prod.Lex
+import Mathlib.Data.Sum.Order
 import Kura.Defs
 
 
 open edge Graph
-variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E) (e : E) (u v w : V)
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
 
 def SimpleGraph.toGraph (G : SimpleGraph V) :
 Graph V {s : Sym2 V // Sym2.lift ⟨G.Adj, (fun _ _ => eq_iff_iff.mpr ⟨(G.symm ·), (G.symm ·)⟩)⟩ s} where
@@ -19,9 +21,11 @@ def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
 unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
   reprPrec G _ := "Graph " ++ repr G.toEdgeMultiset
 
-def CompleteGraph (V : Type*) [DecidableEq V] : Graph V {u : Sym2 V // ¬ u.IsDiag} where
-  inc e := undir e.val
-#eval CompleteGraph (Fin 5)
+-- def CompleteGraph (V : Type*) [LinearOrder V] : Graph V {u : Sym2 V // ¬ u.IsDiag} where
+--   inc e := undir e.val
+def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (List.finRange n |>.sym2.filter (¬·.IsDiag)).length) where
+  inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get e)
+#eval CompleteGraph 4
 
 def CycleGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
@@ -30,9 +34,9 @@ def CycleGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
 def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
   inc e := undir s(e, e+1)
 
-def BipCompleteGraph (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ Fin n₂) (Fin n₁ × Fin n₂) where
+def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Lex $ Fin n₁ ⊕ Fin n₂) (Lex $ Fin n₁ × Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)
-#eval BipCompleteGraph 3 4
+#eval CompleteBipGraph 3 4
 
 def toSimpleGraph [simple G] : SimpleGraph V where
   Adj := λ v w ↦ ∃ e, G.inc e = undir s(v, w)

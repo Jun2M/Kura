@@ -1,26 +1,25 @@
 import Mathlib.Tactic
 import Kura.Dep.Sym2
--- import Kura.Dep.FinE
 import Kura.Dep.Option
 
 
 -- Do I need a separate none (edge not bound) that is not dir (none × none)?
 -- For now, dir (none × none) represents that the edge is not bound
-inductive edge (V : Type*) [DecidableEq V]
+inductive edge (V : Type*) [LinearOrder V]
 | dir : Option V × Option V → edge V
 | undir : Sym2 V → edge V
 deriving Inhabited
 
 -- def edge (V : Type*) [DecidableEq V] := Option V × Option V ⊕ Sym2 V
 
-unsafe instance [Repr V] [DecidableEq V] : Repr (edge V) where
+unsafe instance [Repr V] [LinearOrder V] : Repr (edge V) where
   reprPrec e _ := match e with
     | edge.dir (a, b) => repr a ++ "-→" ++ repr b
     | edge.undir s => repr s
 
 namespace edge
 
-variable {V : Type*} [DecidableEq V] (e : edge V)
+variable {V : Type*} [LinearOrder V] (e : edge V)
 
 instance instNonempty [Nonempty V] : Nonempty (edge V) :=
   Nonempty.intro (undir s(Classical.ofNonempty, Classical.ofNonempty))
@@ -87,7 +86,6 @@ lemma mem_undir_iff (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e := by
   simp only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
     Multiset.cons_zero, List.foldl_nil, Sym2.mem_toMultiset_iff]
 
-@[simp]
 def startAt : Multiset V := match e with
   | dir (a, _) =>
     match a with
@@ -95,7 +93,6 @@ def startAt : Multiset V := match e with
     | none => ∅
   | undir s => s.toMultiset
 
-@[simp]
 def finishAt : Multiset V := match e with
   | dir (_, b) =>
     match b with
@@ -108,7 +105,6 @@ def gofrom (v : V) : Multiset V := match e with
   | dir (a, b) => if v = a then ∅ else b.toMultiset
   | undir s => if h : v ∈ s then {Sym2.Mem.other' h} else ∅
 
-@[simp]
 def gofrom? (v : V) : Option V := match e with
   | dir (a, b) => if a = v then b else none
   | undir s => if h : v ∈ s then (@Sym2.Mem.other' V _ v s h) else none
@@ -127,10 +123,10 @@ theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
   · rfl
   · match e with
     | dir (a, b) =>
-      cases a <;> simp_all
+      cases a <;> simp_all [gofrom?]
       split <;> simp_all
     | undir s =>
-      simp [Sym2.eq_swap]
+      simp [Sym2.eq_swap, gofrom?]
   · match e with
     | dir (a, b) => cases a <;> cases b <;> simp_all [canGo]
     | undir s => simp [canGo]
@@ -179,7 +175,7 @@ lemma all_iff (P : V → Bool) : e.all P ↔ (∀ v ∈ e, P v) := by match e wi
   | undir s => simp only [all, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, mem_undir_iff, Sym2.all_iff]
 
-variable {W : Type*} [DecidableEq W]
+variable {W : Type*} [LinearOrder W]
 
 def map (f : V → W) : edge V → edge W
 | dir (a, b) => dir (a.map f, b.map f)

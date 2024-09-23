@@ -9,7 +9,7 @@ variable {V W E : Type*} [Fintype V] [LinearOrder V] [Fintype E] [LinearOrder E]
 
 def steps := {uev : V × E × V // G.canGo uev.1 uev.2.1 uev.2.2}
 
-instance steps.fintype [Fintype V] [Fintype E] : Fintype G.steps := by
+instance steps.fintype : Fintype G.steps := by
   unfold steps
   infer_instance
 
@@ -156,11 +156,10 @@ lemma consv' : C.F ({v} : Finset V) Finset.univ = 0 := by
   ext ⟨⟨u, e, w⟩, h⟩
   simp [Eq.comm]
 
-omit [LinearOrder E] in
 lemma F_add_eq_F_disjUnion (X Y₁ Y₂ : Finset V) (h : Disjoint Y₁ Y₂) :
   C.F X (Y₁.disjUnion Y₂ h) = C.F X Y₁ + C.F X Y₂ := by
   unfold F
-  rw [Eq.comm, ← Finset.sum_disjUnion, @Finset.disjUnion_eq_union G.steps (by unfold steps; infer_instance), ← Finset.filter_or]
+  rw [Eq.comm, ← Finset.sum_disjUnion, Finset.disjUnion_eq_union, ← Finset.filter_or]
   congr
   ext ⟨⟨u, e, w⟩, h⟩
   simp
@@ -263,9 +262,7 @@ theorem flowPoly_spec [Undirected G] (H : Type*) [Fintype H] [AddCommGroup H] :
   | _ _ =>
     rename_i n ih
     by_cases hAllLoops : ∀ e, (G.inc e).isLoop
-    · 
-
-
-    sorry
+    · sorry
+    · sorry
 
 end Graph

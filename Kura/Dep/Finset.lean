@@ -1,4 +1,5 @@
 import Mathlib.Data.Finset.Slice
+import Mathlib.Data.Finset.Sort
 
 
 -- instance Prod.DecidableEq [DecidableEq α] [DecidableEq β] : DecidableEq (α × β) := by infer_instance

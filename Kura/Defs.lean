@@ -1,14 +1,13 @@
 import Kura.Edges
-import Kura.Dep.Biggest
 
 
 @[ext]
-structure Graph (V E : Type*) [DecidableEq V] where
+structure Graph (V E : Type*) [LinearOrder V] where
   inc : E → edge V
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E) (e : E) (u v w : V)
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
 
 
 /- Carry the defs from Edges to Graph -/
@@ -57,35 +56,45 @@ lemma exist_Sym2 [Undirected G] : ∃ s, G.inc e = undir s := by
     cases a <;> cases b <;> simp_all
   | undir s => exact ⟨s, rfl⟩
 
-lemma fullGraph.no_free [fullGraph G] : ∀ e, ¬ G.isFree e := by
-  intro e
-  have := @fullGraph.all_full _ _ _ G _ e
-  match h : G.inc e with
-  | dir (a, b) =>
-    cases a <;> cases b <;> simp_all
-  | undir s =>
-    simp_all
-
-lemma endAt_ne_zero [fullGraph G] : G.endAt e ≠ 0 := by
-  intro h
-  match he : G.inc e with
-  | dir (a, b) =>
-    cases a <;> cases b <;> simp_all
-    apply @fullGraph.no_free _ _ _ G _ e
-    simp [he]
-  | undir s =>
-    simp_all only [endAt, edge.endAt]
-    apply_fun Multiset.card at h
-    rw [Sym2.toMultiset_card s] at h
-    simp at h
-
 @[simp]
 lemma not_dir_none_none [fullGraph G] : G.inc e ≠ dir (none, none) := by
   intro h
-  apply @fullGraph.no_free _ _ _ G _ e
-  simp [h]
+  have := fullGraph.all_full (G := G) e
+  simp only [isFull, edge.isFull, h, Bool.false_eq_true] at this
 
-lemma exist_mem [fullGraph G] : ∃ v, v ∈ G.inc e := Multiset.exists_mem_of_ne_zero (endAt_ne_zero G e)
+
+@[simp]
+lemma not_dir_some_none [fullGraph G] : G.inc e ≠ dir (some u, none) := by
+  intro h
+  have := fullGraph.all_full (G := G) e
+  simp only [isFull, edge.isFull, h, Bool.false_eq_true] at this
+
+@[simp]
+lemma not_dir_none_some [fullGraph G] : G.inc e ≠ dir (none, some u) := by
+  intro h
+  have := fullGraph.all_full (G := G) e
+  simp only [isFull, edge.isFull, h, Bool.false_eq_true] at this
+
+@[simp]
+lemma endAt_card_two [fullGraph G] : Multiset.card (G.endAt e) = 2 := by
+  match h : G.inc e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all
+  | undir s => simp only [endAt, edge.endAt, h, Sym2.toMultiset_card]
+
+
+lemma exist_two_mem [fullGraph G] : ∃ u v, u ∈ G.inc e ∧ v ∈ G.inc e := by
+  obtain ⟨u, v, h⟩ := Multiset.card_eq_two.mp (endAt_card_two G e)
+  refine ⟨u, v, ?_, ?_⟩ <;> simp only [instedgeMem, h, Multiset.insert_eq_cons,
+    Multiset.mem_cons, Multiset.mem_singleton, true_or, or_true]
+
+@[simp]
+lemma gofrom?_isSome_iff_mem_startAt [fullGraph G] (v : V) (e : E) :
+    (G.gofrom? e v).isSome ↔ v ∈ G.startAt e := by
+  simp [startAt, edge.startAt, gofrom?, edge.gofrom?]
+  match he : G.inc e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all ; rw [Eq.comm]
+  | undir s => simp only [Option.isSome_dite, Sym2.mem_toMultiset_iff]
+
 
 def get [Undirected G] : Sym2 V :=
   match h : G.inc e with
@@ -109,12 +118,12 @@ lemma canGo_symm [Undirected G] : G.canGo u e v = G.canGo v e u := by
   simp only [canGo, inc_eq_undir_get]
   rw [← canGo_flip, flip_self]
 
-lemma get_inf_mem_inc (G : Graph V E) [Undirected G] [LinearOrder V] : (G.get e).inf ∈ G.inc e := by
+lemma get_inf_mem_inc [Undirected G] : (G.get e).inf ∈ G.inc e := by
   simp only [instedgeMem, edge.endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, inc_eq_undir_get, Sym2.mem_toMultiset_iff,
     Sym2.inf_mem]
 
-lemma get_sup_mem_inc (G : Graph V E) [Undirected G] [LinearOrder V] : (G.get e).sup ∈ G.inc e := by
+lemma get_sup_mem_inc [Undirected G] : (G.get e).sup ∈ G.inc e := by
   simp only [instedgeMem, edge.endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, inc_eq_undir_get, Sym2.mem_toMultiset_iff,
     Sym2.sup_mem]
@@ -123,8 +132,9 @@ def adj : Prop := ∃ e, G.canGo u e v
 
 def neighbourhood : Set V := {u | G.adj u v}
 
-def entrance : Set E := {e | u ∈ G.finishAt e}
-def exit : Set E := {e | u ∈ G.startAt e}
+
+def entrance [Fintype E] : Finset E := {e | u ∈ G.finishAt e}
+def exit [Fintype E] : Finset E := {e | u ∈ G.startAt e}
 
 def inNeighbors [Fintype E] : Multiset V :=
   @Multiset.fold (Multiset V) (· + ·) _ _ ∅

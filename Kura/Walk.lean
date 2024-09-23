@@ -2,12 +2,14 @@ import Kura.Finite
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E)
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
+
 
 private def walkAux (P : V → E → V → Prop) : V → List (E × V) → Prop
   | _, [] => True
   | u, w :: ws => P u w.fst w.snd ∧ walkAux P w.snd ws
 
+@[ext]
 structure Walk where
   start : V
   steps : List (V × E × V)
@@ -17,6 +19,9 @@ structure Walk where
 
 namespace Walk
 variable {G : Graph V E} (w : Walk G)
+
+instance instDecidableEqWalk [LinearOrder E] : DecidableEq G.Walk :=
+  fun _ _ => decidable_of_decidable_of_iff Walk.ext_iff.symm
 
 def finish : V := match h : w.steps with
   | [] => w.start
@@ -69,7 +74,30 @@ def nil (u : V) : Walk G where
   next_step := List.chain'_nil
 
 @[simp]
+lemma nil_start (u : V) : (nil (G := G) u).start = u := rfl
+
+@[simp]
+lemma nil_steps (u : V) : (nil (G := G) u).steps = [] := rfl
+
+@[simp]
+lemma nil_length (u : V) : (nil (G := G) u).length = 0 := rfl
+
+@[simp]
 lemma nil_finish (u : V) : (nil (G := G) u).finish = u := by simp only [finish, nil]
+
+lemma nil_of_length_zero (w : Walk G) (h : w.length = 0) : w = nil w.start := by
+  ext n s
+  rfl
+  simp only [length, List.length_eq_zero] at h
+  simp only [h, List.getElem?_nil, Option.mem_def, reduceCtorEq, nil_steps]
+
+@[simp]
+lemma nil_iff_length_zero (w : Walk G) : w = nil w.start ↔ w.length = 0  := by
+  constructor
+  · intro h
+    rw [h]
+    rfl
+  · exact nil_of_length_zero w
 
 def some (u : V) (e : E) (v : V) (h : G.canGo u e v) : Walk G where
   start := u
@@ -81,6 +109,12 @@ def some (u : V) (e : E) (v : V) (h : G.canGo u e v) : Walk G where
     exact h
   next_step := List.chain'_singleton _
 
+@[simp]
+lemma some_start (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).start = u := rfl
+
+@[simp]
+lemma some_finish (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).finish = v := rfl
+
 def append (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) : Walk G where
   start := w₁.start
   steps := w₁.steps ++ w₂.steps
@@ -89,7 +123,7 @@ def append (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) : Walk G wher
     simp only [List.head_append hn, List.isEmpty_eq_true]
     split_ifs with h
     · rw [List.isEmpty_iff] at h
-      simp [h] at hn
+      simp only [h] at hn
       rw [w₁.finish_eq_start h] at hconn
       exact hconn ▸ w₂.start_spec hn
     · simp only [List.isEmpty_eq_true] at h
@@ -137,8 +171,44 @@ lemma append_finish (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
       rw [List.getLast_append]
       simp only [h2, List.isEmpty_cons, Bool.false_eq_true, ↓reduceDIte]
 
-def ball (u : V) (n : ℕ) : Set V :=
-  {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
+@[simp]
+lemma append_length (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
+    (w₁.append w₂ hconn).length = w₁.length + w₂.length := by
+  simp only [length, append, List.length_append]
+
+@[simp]
+lemma some_append_length (u : V) (e : E) (v : V) (h : G.canGo u e v) (w : Walk G)
+  (hconn : v = w.start) :
+    ((some u e v h).append w hconn).length = w.length + 1 := by
+  simp only [length, append, some, List.singleton_append, List.length_cons]
+
+@[simp]
+lemma append_some_length (w : Walk G) (u : V) (e : E) (v : V) (h : G.canGo u e v)
+  (hconn : w.finish = u) :
+    (w.append (some u e v h) hconn).length = w.length + 1 := by
+  simp only [length, append, some, List.length_append, List.length_singleton]
+
+def take (w : Walk G) (n : ℕ) : Walk G where
+  start := w.start
+  steps := w.steps.take n
+  start_spec := by
+    intro hn
+    rw [List.head_take hn]
+    exact w.start_spec (List.ne_nil_of_take_ne_nil hn)
+  step_spec := by
+    intro uev hin
+    refine w.step_spec uev (List.mem_of_mem_take hin)
+  next_step := List.Chain'.take w.next_step _
+
+@[simp]
+lemma take_length_eq_min (w : Walk G) (n : ℕ) : (w.take n).length = min n w.length := by
+  simp only [length, take, List.length_take]
+
+@[simp]
+lemma take_eq_self (w : Walk G) (n : ℕ) (hn : w.length ≤ n): w.take n = w := by
+  rw [Walk.ext_iff]
+  refine ⟨rfl, ?_⟩
+  simp only [take, List.take_of_length_le hn]
 
 def stopAt (w : Walk G) (v : V) : Walk G where
   start := w.start
@@ -251,6 +321,39 @@ lemma reverse_finish [Undirected G] (w : Walk G) : (w.reverse).finish = w.start 
 lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.vertices.reverse := by
   sorry
 
+def extensions (w : Walk G) [Fintype E] [LinearOrder E] : Finset (Walk G) :=
+  let u := w.finish
+  let es : Finset _ := ((G.exit u).filter fun e => (G.gofrom? e u).isSome).attach
+  es.image (fun e => w.append (some u e.val ((G.gofrom? e.val u).get (by
+    obtain ⟨e, he⟩ := e
+    simp only [gofrom?, Finset.mem_filter] at he
+    exact he.2)) sorry) (by rw [some_start]))
+
+lemma mem_extensions_length (w w' : Walk G) [Fintype E] [LinearOrder E] :
+    w' ∈ w.extensions → w'.length = w.length + 1 := by
+  intro h
+  simp only [extensions, Finset.mem_image] at h
+  rcases h with ⟨e, _he, h⟩
+  rw [← h, w.append_some_length]
+
+-- def Nextensions (W : Finset G.Walk) [Fintype E] [LinearOrder E] : Finset G.Walk :=
+--   W.biUnion (·.extensions)
+
+lemma mem_extensions_of_length [Fintype E] [LinearOrder E] (n : ℕ) (w : Walk G)
+  (hwlen : w.length = n) :
+  w ∈ ((Finset.biUnion · (·.extensions))^[n] {Walk.nil w.start}) := by
+  induction n generalizing w with
+  | zero =>
+    simpa only [Function.iterate_zero, id_eq, Finset.mem_singleton, nil_iff_length_zero]
+  | succ n ih =>
+    rw [Function.iterate_succ']
+    simp only [Function.comp_apply, Finset.mem_biUnion]
+    use w.take n
+    specialize ih (w.take n) (by simp only [take_length_eq_min, hwlen, le_add_iff_nonneg_right,
+      zero_le, min_eq_left])
+    use ih
+    sorry
+
 end Walk
 
 structure Path extends Walk G where
@@ -280,8 +383,25 @@ def some (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) : Path
   vNodup := by simp only [Walk.vertices, Walk.some, List.map_cons, List.map_nil, List.nodup_cons,
     List.mem_singleton, hnloop, not_false_eq_true, List.not_mem_nil, List.nodup_nil, and_self]
 
+@[simp]
 lemma some_start (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) :
     (some u e v hgo hnloop).start = u := rfl
+
+@[simp]
+lemma some_finish (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) :
+    (some u e v hgo hnloop).finish = v := rfl
+
+@[simp]
+lemma mem_some_vertices (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) (w : V) :
+    w ∈ (some u e v hgo hnloop).vertices ↔ w = u ∨ w = v := by
+  simp only [Walk.vertices, some, Walk.some, List.map_cons, List.map_nil, List.mem_cons,
+    List.mem_singleton, List.not_mem_nil, or_false]
+
+@[simp]
+lemma mem_some_edges (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) (w : E) :
+    w ∈ (some u e v hgo hnloop).edges ↔ w = e := by
+  simp only [Walk.edges, some, Walk.some, List.map_cons, List.map_nil, List.mem_cons,
+    List.not_mem_nil, or_false]
 
 /-- Append two paths. To keep the result vertex unique, take the second path in the first shared vertex. -/
 def append (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) : Path G where
@@ -336,12 +456,25 @@ def append (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) : Path G where
   vNodup := by
     sorry
 
+@[simp]
 lemma append_start (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
     (p₁.append p₂ hfs).start = p₁.start := rfl
 
+@[simp]
 lemma append_finish (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
     (p₁.append p₂ hfs).finish = p₂.finish := by
   sorry
+
+@[simp]
+lemma mem_append_vertices (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (v : V) :
+    v ∈ (p₁.append p₂ hfs).vertices ↔ v ∈ p₁.vertices ∨ v ∈ p₂.vertices := by
+  sorry
+
+@[simp]
+lemma mem_append_edges (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (e : E) :
+    e ∈ (p₁.append p₂ hfs).edges ↔ e ∈ p₁.edges ∨ e ∈ p₂.edges := by
+  sorry
+
 
 def reverse [Undirected G] (p : Path G) : Path G where
   toWalk := p.toWalk.reverse
@@ -355,6 +488,16 @@ lemma reverse_start [Undirected G] (p : Path G) : (p.reverse).start = p.finish :
 @[simp]
 lemma reverse_finish [Undirected G] (p : Path G) : (p.reverse).finish = p.start := p.toWalk.reverse_finish
 
+@[simp]
+lemma mem_reverse_vertices [Undirected G] (p : Path G) (v : V) :
+    v ∈ p.reverse.vertices ↔ v ∈ p.vertices := by
+  sorry
+
+@[simp]
+lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
+    e ∈ p.reverse.edges ↔ e ∈ p.edges := by
+  sorry
+
 end Path
 
 structure Trail extends Walk G where
@@ -366,6 +509,20 @@ structure Closed extends Walk G where
 structure Cycle extends Closed G where
   vNodup' : toWalk.vertices.tail.Nodup
 
+instance Cycle.instFintype [Fintype E] : Fintype (Cycle G) where
+  elems := by
+
+    sorry
+  complete := sorry
+
+instance Cycle.instPreorder : Preorder (Cycle G) where
+  le := λ c₁ c₂ => c₁.toWalk.length ≤ c₂.toWalk.length
+  le_refl := λ c => Nat.le_refl _
+  le_trans := λ c₁ c₂ c₃ => Nat.le_trans
+
+
+#reduce (Finset.univ : Finset $ Cycle $ CompleteGraph 5)
+
 structure Tour extends Closed G, Trail G
 
 def Acyclic (G : Graph V E) : Prop := IsEmpty (Cycle G)
@@ -375,16 +532,19 @@ def conn (G : Graph V E) (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.f
 class connected (G : Graph V E) : Prop :=
   all_conn : ∀ u v : V, conn G u v
 
-def connected_component (G : Graph V E) (v : V) : Set V := {u | G.conn u v}
+def componentOf (G : Graph V E) (v : V) : Set V := {u | G.conn u v}
 
-def cut (G : Graph V E) (S : Finset E) : Prop :=
+def edgeCut (G : Graph V E) (S : Finset E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
-def bridge (G : Graph V E) (e : E) : Prop := G.cut {e}
+def bridge (G : Graph V E) (e : E) : Prop := G.edgeCut {e}
 
-def mincut (G : Graph V E) (S : Finset E) : Prop :=
-  IsSmallest (G.cut ·) S
+def minEdgeCut (G : Graph V E) (S : Finset E) : Prop :=
+  Minimal (G.edgeCut ·) S
 
-class Nconnected (G : Graph V E) (n : ℕ) : Prop :=
+class NEdgeConnected (G : Graph V E) (n : ℕ) : Prop :=
   all_conn : ∀ u v : V, conn G u v
-  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.cut S
+  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
+
+def ball (u : V) (n : ℕ) : Set V :=
+  {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
