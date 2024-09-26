@@ -99,6 +99,12 @@ lemma nil_iff_length_zero (w : Walk G) : w = nil w.start ↔ w.length = 0  := by
     rfl
   · exact nil_of_length_zero w
 
+@[simp]
+lemma mem_nil_vertices (u v : V) : v ∈ (nil (G := G) u).vertices ↔ v = u := List.mem_singleton
+
+@[simp]
+lemma not_mem_nil_edges (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e
+
 def some (u : V) (e : E) (v : V) (h : G.canGo u e v) : Walk G where
   start := u
   steps := [(u, e, v)]
@@ -356,6 +362,7 @@ lemma mem_extensions_of_length [Fintype E] [LinearOrder E] (n : ℕ) (w : Walk G
 
 end Walk
 
+@[ext]
 structure Path extends Walk G where
   vNodup : toWalk.vertices.Nodup
 
@@ -374,9 +381,37 @@ def nil (u : V) : Path G where
   toWalk := Walk.nil u
   vNodup := List.nodup_singleton _
 
+@[simp]
+lemma nil_start (u : V) : (nil (G := G) u).start = u := rfl
+
+@[simp]
+lemma nil_steps (u : V) : (nil (G := G) u).steps = [] := rfl
+
+@[simp]
+lemma nil_length (u : V) : (nil (G := G) u).length = 0 := rfl
+
+@[simp]
 lemma nil_finish (u : V) : (nil (G := G) u).finish = u := Walk.nil_finish u
 
-lemma not_mem_edges_nil (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e
+lemma nil_of_length_zero (p : Path G) (h : p.length = 0) : p = nil p.start := by
+  ext n s
+  rfl
+  simp only [Walk.length, List.length_eq_zero] at h
+  simp only [h, List.getElem?_nil, Option.mem_def, reduceCtorEq, nil_steps]
+
+@[simp]
+lemma nil_iff_length_zero (p : Path G) : p = nil p.start ↔ p.length = 0  := by
+  constructor
+  · intro h
+    rw [h]
+    rfl
+  · exact nil_of_length_zero p
+
+@[simp]
+lemma mem_nil_vertices (u v : V) : v ∈ (nil (G := G) u).vertices ↔ v = u := List.mem_singleton
+
+@[simp]
+lemma not_mem_nil_edges (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e
 
 def some (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) : Path G where
   toWalk := Walk.some u e v hgo
