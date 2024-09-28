@@ -3,7 +3,8 @@ import Kura.Subgraph
 
 
 namespace Graph
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E] [LinearOrder F] [Fintype V] [Fintype W]
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E] [LinearOrder F]
+  [Fintype V] [Fintype W] (G : Graph V E) [Undirected G]
 
 -- structure PlainarEmbedding (G : Graph V E R) :=
 --   (vertexEmbedding : V → ℝ × ℝ)
@@ -13,23 +14,23 @@ variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E] [Line
 --   (embedding_ends : ∀ e, edgeEmbedding e 0 = vertexEmbedding (G.inc e).val.fst ∧
 --     edgeEmbedding e 1 = vertexEmbedding (G.ends e).snd)
 
-structure AbstractDual (G : Graph V E) (H : Graph W F) where
+structure AbstractDual (H : Graph W F) where
   eEquiv : E ≃ F
   cycle_minEdgeCut (w : Cycle G) : H.minEdgeCut (w.edges.map eEquiv.toFun).toFinset
   minEdgeCut_cycle (S : Finset F) : H.minEdgeCut S → ∃ (w : Cycle G),
     S = (w.edges.map eEquiv.toFun).toFinset
 
-class Planar_by_AbstractDual (G : Graph V E) : Prop :=
+class Planar_by_AbstractDual : Prop :=
   exists_dual : ∃ (n m : ℕ) (H : Graph (Fin n) (Fin m)), Nonempty (AbstractDual G H)
 
-def DualGraph (G : Graph V E) [Planar_by_AbstractDual G] : Graph V E := by
+def DualGraph [Planar_by_AbstractDual G] : Graph V E := by
   sorry
 
-def DualGraph_AbstractDual (G : Graph V E) [Planar_by_AbstractDual G] :
+def DualGraph_AbstractDual [Planar_by_AbstractDual G] :
     AbstractDual G (DualGraph G) := by
   sorry
 
--- class Planar_by_AbstractDual (G : Graph V E) :=
+-- class Planar_by_AbstractDual :=
 --   n : ℕ
 --   m : ℕ
 --   dualGraph : Graph (Fin n) (Fin m)
@@ -62,6 +63,10 @@ lemma CompleteBipGraph33_not_Planar :
     ¬ Planar_by_AbstractDual (CompleteBipGraph 3 3) := by
   sorry
 
-theorem KuraCore (G : Graph V E) (hG3conn : )
+theorem KuraCore [NConnected G 3] (hG5 : ¬ hasMinor G (CompleteGraph 5))
+  (hG33 : ¬ hasMinor G (CompleteBipGraph 3 3)) :
+    Planar_by_AbstractDual G := by
+  
+  sorry
 
 end Graph

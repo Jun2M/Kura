@@ -356,6 +356,9 @@ def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G 
       exact G'.path_finish (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e))
     · exact G'.path_finish u hdom
 
+local macro G:term "/ᵍ" e:term : term => `(Minor.eval (Minor.ctt (Minor.init $G) $e sorry))
+
+#eval! (CompleteGraph 4) /ᵍ ⟨0, Nat.choose_pos (by norm_num)⟩
 
 lemma Minor.inf_not_mem_ctt [Undirected G] [fullGraph G] (G' : Minor G) (e : E)
   (he : ¬G'.rme e) : ¬ ∃ u, (G'.ctt e he).vmap u = some ((G.get e).inf) := by

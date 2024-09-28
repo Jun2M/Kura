@@ -1,4 +1,4 @@
-import Mathlib.Data.List.Basic
+import Mathlib.Data.List.Sym
 
 
 namespace List
@@ -18,25 +18,29 @@ theorem get_zero_eq_head_of_ne_nil {l : List α} (h : l ≠ []) :
   | [] => contradiction
   | a :: as => rfl
 
-theorem head_append_of_ne_nil (hl : l₁ ≠ []) :
-    (l₁ ++ l₂).head (by simp [hl]) = l₁.head hl := by
-  match l₁ with
-  | nil => contradiction
-  | cons x xs => rfl
-
 theorem head_reverse_of_ne_nil (l : List α) (hl : l ≠ []) :
     l.reverse.head ((not_congr List.reverse_eq_nil_iff).mpr hl) = l.getLast hl := by
   have : l.getLast hl = l.reverse.reverse.getLast (by simpa) := by
     simp only [reverse_reverse]
   rw [this, getLast_reverse]
-  exact (get_zero_eq_head_of_ne_nil _).symm
 
 theorem head!_reverse_of_ne_nil [Inhabited α] (l : List α) (hl : l ≠ []) :
     l.reverse.head ((not_congr List.reverse_eq_nil_iff).mpr hl) = l.getLast hl := by
   have : l.getLast hl = l.reverse.reverse.getLast (by simpa) := by
     simp only [reverse_reverse]
   rw [this, getLast_reverse]
-  exact (get_zero_eq_head_of_ne_nil _).symm
+
+lemma getElem_filter {l : List α} {p : α → Bool} {n : ℕ} (h : n < (l.filter p).length) :
+    p (l.filter p)[n] := of_mem_filter ((l.filter p).getElem_mem n h)
+
+lemma getElem_inj {l : List α} {i j : ℕ} (hi : i < l.length) (hj : j < l.length) (hnodup : l.Nodup) (heq : l[i] = l[j]) :
+    i = j := by
+  apply List.getElem?_inj hi hnodup
+  sorry
+
+lemma sym2_notDiag_length [DecidableEq α] {l : List α} (h : l.Nodup) :
+    (l.sym2.filter (¬·.IsDiag)).length = l.length.choose 2 := by
+  sorry
 
 /- ------------------------------------------------------------------------------------ -/
 
@@ -44,7 +48,7 @@ theorem head!_reverse_of_ne_nil [Inhabited α] (l : List α) (hl : l ≠ []) :
 lemma subsingleton_of_tail_eq_nil {l : List α} (h : l.tail = []) :
   l = [] ∨ ∃ x, l = [x] := by
   match l with
-  | [] => simp only [exists_false, or_false]
+  | [] => simp only [ne_cons_self, exists_false, or_false]
   | x :: xs =>
     rw [tail_cons] at h
     simp [h]

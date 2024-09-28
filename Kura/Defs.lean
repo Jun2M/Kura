@@ -45,7 +45,7 @@ class loopless extends fullGraph G :=
 
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
-class simple extends loopless G, Undirected G :=
+class Simple extends loopless G, Undirected G :=
   inc_inj : G.inc.Injective
 
 
