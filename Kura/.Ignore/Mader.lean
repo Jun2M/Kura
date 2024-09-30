@@ -1,4 +1,4 @@
-import Kura.Finite
+import Kura.Searchable.Finite
 import Kura.Dep.BigOperator
 
 namespace Graph
@@ -44,4 +44,4 @@ theorem Mader {t : ℕ+} (G : Graph V E) [simple G] [Fintype V] [Fintype E]
         obtain a := @iht _ _ _ H hHsimple hvfin sorry hHt
         simp only at a
         rw [Fintype.card_eq_sum_ones] at a
-        sorry 
+        sorry

@@ -1,4 +1,4 @@
-import Kura.Subgraph
+import Kura.Searchable.Subgraph
 import Kura.Dep.CompPoly
 
 namespace Graph

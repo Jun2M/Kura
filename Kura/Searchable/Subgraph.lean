@@ -1,4 +1,4 @@
-import Kura.Walk
+import Kura.Searchable.Walk
 
 
 namespace Graph
@@ -125,9 +125,7 @@ def InducedSubgraph.vrmFinset (G' : InducedSubgraph G) (S : Finset V) : InducedS
 def InducedSubgraph.OnFinset (G' : InducedSubgraph G) (S : Finset V) : InducedSubgraph G where
   rmv u := u ∉ S || G'.rmv u
 
-local macro G:term "[" S:term "]" : term => `(InducedSubgraph.eval (InducedSubgraph.OnFinset (InducedSubgraph.init $G) $S))
-
-#eval! (CompleteGraph 4)[({0, 1, 2} : Finset (Fin 4))]
+macro G:term "[" S:term "]" : term => `(InducedSubgraph.eval (InducedSubgraph.OnFinset (InducedSubgraph.init $G) $S))
 
 def Subgraph.vrm (G' : Subgraph G) (v : V) : Subgraph G where
   rmv u := u = v || G'.rmv u
@@ -357,8 +355,6 @@ def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G 
     · exact G'.path_finish u hdom
 
 local macro G:term "/ᵍ" e:term : term => `(Minor.eval (Minor.ctt (Minor.init $G) $e sorry))
-
-#eval! (CompleteGraph 4) /ᵍ ⟨0, Nat.choose_pos (by norm_num)⟩
 
 lemma Minor.inf_not_mem_ctt [Undirected G] [fullGraph G] (G' : Minor G) (e : E)
   (he : ¬G'.rme e) : ¬ ∃ u, (G'.ctt e he).vmap u = some ((G.get e).inf) := by

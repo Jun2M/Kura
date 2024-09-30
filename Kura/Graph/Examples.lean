@@ -1,18 +1,13 @@
-import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Kura.Graph.Defs
+import Kura.Dep.List
 import Mathlib.Data.Prod.Lex
 import Mathlib.Data.Sum.Order
-import Kura.Defs
-import Kura.Dep.List
 
-
-open edge Graph
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
-
-def SimpleGraph.toGraph (G : SimpleGraph V) :
-Graph V {s : Sym2 V // Sym2.lift ⟨G.Adj, (fun _ _ => eq_iff_iff.mpr ⟨(G.symm ·), (G.symm ·)⟩)⟩ s} where
-  inc := λ e => undir e
 
 namespace Graph
+open edge
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
+
 
 def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
   (@Fintype.elems E _ : Finset E)
@@ -22,8 +17,6 @@ def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
 unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
   reprPrec G _ := "Graph " ++ repr G.toEdgeMultiset
 
--- def CompleteGraph (V : Type*) [LinearOrder V] : Graph V {u : Sym2 V // ¬ u.IsDiag} where
---   inc e := undir e.val
 def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
   inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get (e.cast (by rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange])))
 #eval! CompleteGraph 4
@@ -49,9 +42,24 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
     exact e₂.prop
     refine (List.nodup_finRange n).sym2.filter _
 
-def CycleGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
+def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
-#eval CycleGraph 5
+
+instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
+  edge_symm _ := by simp [TourGraph]
+  all_full _ := by simp only [isFull, edge.isFull, TourGraph]
+
+def CycleGraph (n : ℕ+) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph n
+#eval! CycleGraph 5 (by norm_num)
+
+instance instCycleGraphSimple (n : ℕ+) (hn : 1 < n) : Simple (CycleGraph n hn) where
+all_full e := (instTourGraphUndirected ⟨n, Nat.zero_lt_one.trans hn⟩).all_full e
+no_loops e := by
+  simp only [isLoop, CycleGraph, TourGraph, undir_isLoop_iff, Sym2.isDiag_iff_proj_eq,
+    self_eq_add_right, Fin.one_eq_zero_iff, PNat.coe_eq_one_iff]
+  exact ne_of_gt hn
+edge_symm e := (instTourGraphUndirected n).edge_symm e
+inc_inj e₁ e₂ h := sorry
 
 def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
   inc e := undir s(e, e+1)
@@ -59,24 +67,3 @@ def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
 def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Lex $ Fin n₁ ⊕ Fin n₂) (Lex $ Fin n₁ × Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)
 #eval CompleteBipGraph 3 4
-
-def toSimpleGraph [Simple G] : SimpleGraph V where
-  Adj := λ v w ↦ ∃ e, G.inc e = undir s(v, w)
-  symm := by
-    intro v w h
-    convert h using 4
-    apply Sym2.eq_swap
-  loopless := by
-    intro v ⟨e, h⟩
-    have h' : ¬ G.isLoop e := loopless.no_loops e
-    simp [h] at h'
-
-
--- theorem toSimpleGraph_toGraph [simple G] : G.toSimpleGraph.toGraph = G := by
---   ext e
---   cases e with s
---   simp [toSimpleGraph, toGraph]
---   apply Sym2.eq_swap
-
-
-end Graph

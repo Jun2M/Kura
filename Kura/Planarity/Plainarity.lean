@@ -1,5 +1,6 @@
 import Mathlib.Data.Real.Basic
-import Kura.Subgraph
+import Kura.Searchable.Subgraph
+import Kura.Graph.Translation
 
 
 namespace Graph
@@ -36,6 +37,8 @@ def DualGraph_AbstractDual [Planar_by_AbstractDual G] :
 --   dualGraph : Graph (Fin n) (Fin m)
 --   isDual : AbstractDual G dualGraph
 
+def IsFacialCycle (w : Cycle G) : Prop :=
+  G[w.vertices.toFinsetᶜ].connected
 
 lemma CompleteGraph4_Planar : Planar_by_AbstractDual (CompleteGraph 4) where
   exists_dual := by
@@ -66,7 +69,7 @@ lemma CompleteBipGraph33_not_Planar :
 theorem KuraCore [NConnected G 3] (hG5 : ¬ hasMinor G (CompleteGraph 5))
   (hG33 : ¬ hasMinor G (CompleteBipGraph 3 3)) :
     Planar_by_AbstractDual G := by
-  
+
   sorry
 
 end Graph

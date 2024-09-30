@@ -8,6 +8,9 @@ def Multiset.attachWith {α : Type*} (s : Multiset α) (P : α → Prop) (H : �
   Multiset {x // P x} :=
   s.pmap Subtype.mk H
 
+def Multiset.eraseNone {α : Type*} (s : Multiset (Option α)) : Multiset α :=
+  (s.filter (Option.isSome ·)).attach |>.map (fun x => Option.get x.1 (by exact (mem_filter.mp x.2).2))
+
 namespace Finset
 variable {α : Type*}
 
