@@ -1,6 +1,6 @@
 import Mathlib.Data.Real.Basic
-import Kura.Searchable.Subgraph
-import Kura.Graph.Translation
+import Kura.Conn.Conn
+import Kura.Graph.Examples
 
 
 namespace Graph
@@ -56,20 +56,5 @@ lemma CompleteGraph4_Planar : Planar_by_AbstractDual (CompleteGraph 4) where
         sorry
       sorry
 
-lemma CompleteGraph5_not_Planar :
-    ¬ Planar_by_AbstractDual (CompleteGraph 5) := by
-  intro h
-  obtain ⟨H, fE, hcm, hmc⟩ := h.exists_dual
-  sorry
-
-lemma CompleteBipGraph33_not_Planar :
-    ¬ Planar_by_AbstractDual (CompleteBipGraph 3 3) := by
-  sorry
-
-theorem KuraCore [NConnected G 3] (hG5 : ¬ hasMinor G (CompleteGraph 5))
-  (hG33 : ¬ hasMinor G (CompleteBipGraph 3 3)) :
-    Planar_by_AbstractDual G := by
-
-  sorry
 
 end Graph

@@ -129,7 +129,6 @@ instance instCanLiftSym2Subtype (p : α → Prop) :
     simp_rw [Sym2.mem_iff] at h
     use Sym2.mk (⟨ x.out.1, h x.out.1 (by simp) ⟩, ⟨ x.out.2, h x.out.2 (by simp) ⟩)
     simp
-    done
 
 instance instCanLiftSym2CanLift [CanLift α β f p] :
   CanLift (Sym2 α) (Sym2 β) (Sym2.map f) (fun x => ∀ i ∈ x, p i) where
@@ -140,7 +139,6 @@ instance instCanLiftSym2CanLift [CanLift α β f p] :
     obtain ⟨ y2, hy2 ⟩ := this x.out.2 (h x.out.2 (Sym2.out_snd_mem x))
     use s(y1, y2)
     simp [hy1, hy2]
-    done
 
 noncomputable def liftSym2lift [CanLift α β f p] (x : Sym2 α) (h : ∀ i ∈ x, p i) : Sym2 β := by
   let a : ∃ y, map f y = x := CanLift.prf x h
@@ -156,7 +154,6 @@ theorem subtype_iff_mem_sat {p : α → Prop} :
     intro h
     lift x to Sym2 (Subtype p) using h
     use x
-    done
   · -- 2.
     rintro ⟨ x', hx' ⟩ y hy
     rw [Sym2.eq_mk_out x', Sym2.map_pair_eq] at hx'
@@ -165,7 +162,6 @@ theorem subtype_iff_mem_sat {p : α → Prop} :
     rcases hy with rfl | rfl
     exact x'.out.1.2
     exact x'.out.2.2
-    done
 
 
 instance CoeSym2Coercion {β : Type v} [Coe α β] :
@@ -250,31 +246,36 @@ def all (s : Sym2 α) (P : α → Bool) : Bool := by
 lemma all_iff (s : Sym2 α) (P : α → Bool) : s.all P ↔ (∀ a ∈ s, P a) := by
   sorry
 
+@[simp]
+lemma equivMultiset_eq (a b : α) : (Sym2.equivMultiset α) s(a, b) = ⟨{a, b}, by simp⟩ := rfl
+
+
+
 -- theorem
 
-example {α β : Type*} :
-  α × β ≃ { a : Sym2 (α ⊕ β) // a.toMultiset.countP (Sum.isLeft ·) = 1 } where
-  toFun ab := ⟨s(Sum.inl ab.1, Sum.inr ab.2), by simp [Multiset.countP_eq_zero]⟩
-  invFun a := by
-    obtain ⟨a, ha⟩ := a
-    rw [Multiset.countP_eq_card_filter] at ha
-    exact (by
-    obtain b := Sym.oneEquiv.symm ⟨_, ha⟩
-    apply Sum.getLeft b
-    sorry
-    , by
-    have hacard := a.toMultiset_card
-    rw [← Multiset.filter_add_not (·.isLeft = true) a.toMultiset, Multiset.card_add, ha, add_comm] at hacard
-    simp at hacard
-    obtain b := Sym.oneEquiv.symm ⟨_, hacard⟩
-    apply Sum.getRight b
-    sorry)
-  left_inv := by
-    simp
-    sorry
-  right_inv := by
-    simp
-    sorry
+-- example {α β : Type*} :
+--   α × β ≃ { a : Sym2 (α ⊕ β) // a.toMultiset.countP (Sum.isLeft ·) = 1 } where
+--   toFun ab := ⟨s(Sum.inl ab.1, Sum.inr ab.2), by simp [Multiset.countP_eq_zero]⟩
+--   invFun a := by
+--     obtain ⟨a, ha⟩ := a
+--     rw [Multiset.countP_eq_card_filter] at ha
+--     exact (by
+--     obtain b := Sym.oneEquiv.symm ⟨_, ha⟩
+--     apply Sum.getLeft b
+--     sorry
+--     , by
+--     have hacard := a.toMultiset_card
+--     rw [← Multiset.filter_add_not (·.isLeft = true) a.toMultiset, Multiset.card_add, ha, add_comm] at hacard
+--     simp at hacard
+--     obtain b := Sym.oneEquiv.symm ⟨_, hacard⟩
+--     apply Sum.getRight b
+--     sorry)
+--   left_inv := by
+--     simp
+--     sorry
+--   right_inv := by
+--     simp
+--     sorry
 
 
 

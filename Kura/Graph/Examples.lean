@@ -42,12 +42,14 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
     exact e₂.prop
     refine (List.nodup_finRange n).sym2.filter _
 
+
 def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
 
 instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
   edge_symm _ := by simp [TourGraph]
   all_full _ := by simp only [isFull, edge.isFull, TourGraph]
+
 
 def CycleGraph (n : ℕ+) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph n
 #eval! CycleGraph 5 (by norm_num)
@@ -61,8 +63,10 @@ no_loops e := by
 edge_symm e := (instTourGraphUndirected n).edge_symm e
 inc_inj e₁ e₂ h := sorry
 
+
 def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
   inc e := undir s(e, e+1)
+
 
 def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Lex $ Fin n₁ ⊕ Fin n₂) (Lex $ Fin n₁ × Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)

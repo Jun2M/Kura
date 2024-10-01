@@ -1,4 +1,4 @@
-import Kura.Graph.Defs
+import Kura.Graph.Undirected
 
 namespace Graph
 open edge
@@ -327,38 +327,38 @@ lemma reverse_finish [Undirected G] (w : Walk G) : (w.reverse).finish = w.start 
 lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.vertices.reverse := by
   sorry
 
-def extensions (w : Walk G) [Fintype E] [LinearOrder E] : Finset (Walk G) :=
-  let u := w.finish
-  let es : Finset _ := ((G.outEdges u).filter fun e => (G.gofrom? u e).isSome).attach
-  es.image (fun e => w.append (some u e.val ((G.gofrom? u e.val).get (by
-    obtain ⟨e, he⟩ := e
-    simp only [gofrom?, Finset.mem_filter] at he
-    exact he.2)) sorry) (by rw [some_start]))
+-- def extensions (w : Walk G) [Fintype E] [LinearOrder E] : Finset (Walk G) :=
+--   let u := w.finish
+--   let es : Finset _ := ((G.outEdges u).filter fun e => (G.gofrom? u e).isSome).attach
+--   es.image (fun e => w.append (some u e.val ((G.gofrom? u e.val).get (by
+--     obtain ⟨e, he⟩ := e
+--     simp only [gofrom?, Finset.mem_filter] at he
+--     exact he.2)) sorry) (by rw [some_start]))
 
-lemma mem_extensions_length (w w' : Walk G) [Fintype E] [LinearOrder E] :
-    w' ∈ w.extensions → w'.length = w.length + 1 := by
-  intro h
-  simp only [extensions, Finset.mem_image] at h
-  rcases h with ⟨e, _he, h⟩
-  rw [← h, w.append_some_length]
+-- lemma mem_extensions_length (w w' : Walk G) [Fintype E] [LinearOrder E] :
+--     w' ∈ w.extensions → w'.length = w.length + 1 := by
+--   intro h
+--   simp only [extensions, Finset.mem_image] at h
+--   rcases h with ⟨e, _he, h⟩
+--   rw [← h, w.append_some_length]
 
 -- def Nextensions (W : Finset G.Walk) [Fintype E] [LinearOrder E] : Finset G.Walk :=
 --   W.biUnion (·.extensions)
 
-lemma mem_extensions_of_length [Fintype E] [LinearOrder E] (n : ℕ) (w : Walk G)
-  (hwlen : w.length = n) :
-  w ∈ ((Finset.biUnion · (·.extensions))^[n] {Walk.nil w.start}) := by
-  induction n generalizing w with
-  | zero =>
-    simpa only [Function.iterate_zero, id_eq, Finset.mem_singleton, nil_iff_length_zero]
-  | succ n ih =>
-    rw [Function.iterate_succ']
-    simp only [Function.comp_apply, Finset.mem_biUnion]
-    use w.take n
-    specialize ih (w.take n) (by simp only [take_length_eq_min, hwlen, le_add_iff_nonneg_right,
-      zero_le, min_eq_left])
-    use ih
-    sorry
+-- lemma mem_extensions_of_length [Fintype E] [LinearOrder E] (n : ℕ) (w : Walk G)
+--   (hwlen : w.length = n) :
+--   w ∈ ((Finset.biUnion · (·.extensions))^[n] {Walk.nil w.start}) := by
+--   induction n generalizing w with
+--   | zero =>
+--     simpa only [Function.iterate_zero, id_eq, Finset.mem_singleton, nil_iff_length_zero]
+--   | succ n ih =>
+--     rw [Function.iterate_succ']
+--     simp only [Function.comp_apply, Finset.mem_biUnion]
+--     use w.take n
+--     specialize ih (w.take n) (by simp only [take_length_eq_min, hwlen, le_add_iff_nonneg_right,
+--       zero_le, min_eq_left])
+--     use ih
+--     sorry
 
 end Walk
 
@@ -583,26 +583,3 @@ def IsVertexCycle (v : V) (c : G.Cycle) : Prop :=
 
 structure Tour extends Closed G, Trail G
 
-def Acyclic (G : Graph V E) : Prop := IsEmpty (Cycle G)
-
-def conn (G : Graph V E) (u v : V) : Prop := ∃ w : Walk G, w.start = u ∧ w.finish = v
-
-class connected (G : Graph V E) : Prop :=
-  all_conn : ∀ u v : V, conn G u v
-
-def componentOf (G : Graph V E) (v : V) : Set V := {u | G.conn u v}
-
-def edgeCut (G : Graph V E) (S : Finset E) : Prop :=
-  ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
-
-def bridge (G : Graph V E) (e : E) : Prop := G.edgeCut {e}
-
-def minEdgeCut (G : Graph V E) (S : Finset E) : Prop :=
-  Minimal (G.edgeCut ·) S
-
-class NEdgeConnected (G : Graph V E) (n : ℕ) : Prop :=
-  all_conn : ∀ u v : V, conn G u v
-  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
-
-def ball (u : V) (n : ℕ) : Set V :=
-  {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}

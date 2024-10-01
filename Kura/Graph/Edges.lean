@@ -83,6 +83,13 @@ lemma dir_isLoop_iff (a b : V) : isLoop (dir (some a, some b)) ↔ a = b := by
 lemma undir_isLoop_iff (s : Sym2 V) : isLoop (undir s) ↔ s.IsDiag := by
   simp only [isLoop, decide_eq_true_eq]
 
+@[simp]
+lemma undir_isFull (s : Sym2 V) : isFull (undir s) := by
+  unfold isFull
+  rfl
+
+
+
 def endAt : Multiset V := match e with
   | dir (a, b) => [b, a].foldl (λ s x =>
     match x with
@@ -117,12 +124,20 @@ def startAt : Multiset V := match e with
     | none => ∅
   | undir s => s.toMultiset
 
+@[simp]
+lemma mem_startAt_undir (s : Sym2 V) (v : V) : v ∈ startAt (undir s) ↔ v ∈ s := by
+  simp only [startAt, Sym2.mem_toMultiset_iff]
+
 def finishAt : Multiset V := match e with
   | dir (_, b) =>
     match b with
     | some b => {b}
     | none => ∅
   | undir s => s.toMultiset
+
+@[simp]
+lemma mem_finishAt_undir (s : Sym2 V) (v : V) : v ∈ finishAt (undir s) ↔ v ∈ s := by
+  simp only [finishAt, Sym2.mem_toMultiset_iff]
 
 def gofrom? (v : V) : Option V := match e with
   | dir (a, b) => if a = v then b else none

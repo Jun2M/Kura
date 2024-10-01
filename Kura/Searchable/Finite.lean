@@ -1,5 +1,6 @@
-import Kura.Graph.Translation
+import Kura.Searchable.Searchable
 import Mathlib.Data.Fintype.Basic
+import Kura.Graph.FullGraph
 
 -- def subtypeOfFintype [Fintype α] (P : α → Prop) [DecidablePred P] : Fintype {v // P v} :=
 --   Fintype.subtype (Finset.univ.filter P) (by simp)
@@ -7,6 +8,13 @@ import Mathlib.Data.Fintype.Basic
 namespace Graph
 open edge
 variable {V E : Type*} [LinearOrder V] [Fintype V] [Fintype E] (G : Graph V E) (u v : V)
+
+
+instance Searchable_of_FintypeE [Fintype E] : Searchable G where
+  outEdges v := Fintype.elems.filter (λ e => v ∈ G.inc e)
+  outEdges_mem v e := by
+    rw [Finset.mem_filter, and_iff_right_iff_imp]
+    exact fun _ => Fintype.complete e
 
 theorem exist (G : Graph V E) [fullGraph G] : IsEmpty E ∨ Nonempty V := by
   by_cases hE : IsEmpty E
