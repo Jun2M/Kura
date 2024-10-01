@@ -11,8 +11,12 @@ variable {V E : Type*} [LinearOrder V] [Fintype V] [Fintype E] (G : Graph V E) (
 
 
 instance Searchable_of_FintypeE [Fintype E] : Searchable G where
-  outEdges v := Fintype.elems.filter (λ e => v ∈ G.inc e)
-  outEdges_mem v e := by
+  outEdges v := Fintype.elems.filter (λ e => v ∈ G.startAt e)
+  mem_outEdges v e := by
+    rw [Finset.mem_filter, and_iff_right_iff_imp]
+    exact fun _ => Fintype.complete e
+  inEdges v := Fintype.elems.filter (λ e => v ∈ G.finishAt e)
+  mem_inEdges v e := by
     rw [Finset.mem_filter, and_iff_right_iff_imp]
     exact fun _ => Fintype.complete e
 

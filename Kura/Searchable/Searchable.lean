@@ -1,5 +1,6 @@
 import Kura.Graph.Undirected
 import Mathlib.Data.Finset.Basic
+import Mathlib.Logic.OpClass
 
 
 namespace Graph
@@ -44,8 +45,9 @@ class Searchable extends SearchableOut G, SearchableIn G where
 
 variable [Searchable G]
 
-abbrev neighbors : Multiset V := (((G.outEdges v) : Finset E).val.foldl (· + G.endAt ·) sorry ∅)
-abbrev degree : ℕ := G.outDegree v
+def incEdges [DecidableEq E] : Finset E := G.outEdges v ∪ G.inEdges v
+def neighbors : Multiset V := G.outEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅
+def degree : ℕ := Multiset.card <| G.neighbors v
 
 def regular (k : ℕ) : Prop := ∀ v : V, G.degree v = k
 

@@ -16,23 +16,19 @@ instance LawfulFunctor : LawfulFunctor Sym2 where
   map_const := by
     intro α β
     rfl
-    done
   id_map := by
     intro α sa
     change Sym2.map id sa = sa
     simp only [id_eq, map_id']
-    done
   comp_map := by
     intro α β γ f g sa
     change Sym2.map (g ∘ f) sa = Sym2.map g (Sym2.map f sa)
     rw [Sym2.map_map]
-    done
 
 -- lemma FunctorSetLikeCommute {α β : Type u} (f : α → β) :
 --   (SetLike.coe ∘ (f <$> ·) : Sym2 α → Set β) = (f <$> ·) ∘ SetLike.coe := by
 --   ext s b
 --   simp
---   done
 
 
 variable {α : Type*}

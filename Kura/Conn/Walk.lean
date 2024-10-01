@@ -577,9 +577,8 @@ instance Cycle.instFintype [Fintype E] [LinearOrder E] : Fintype (Cycle G) where
     sorry
   complete := sorry
 
-def IsVertexCycle (v : V) (c : G.Cycle) : Prop :=
-  @Minimal _ {le:=fun c1 c2 => (c1 : G.Cycle).toWalk.length ≤ (c2 : G.Cycle).toWalk.length} (∀ u ∈ G.neighbourhood v, u ∈ ·.vertices) c
+-- def IsVertexCycle (v : V) (c : G.Cycle) : Prop :=
+--   @Minimal _ {le:=fun c1 c2 => (c1 : G.Cycle).toWalk.length ≤ (c2 : G.Cycle).toWalk.length} (∀ u ∈ G.neighbourhood v, u ∈ ·.vertices) c
 
 
 structure Tour extends Closed G, Trail G
-
