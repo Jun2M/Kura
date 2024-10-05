@@ -172,19 +172,38 @@ def flip : edge V := match e with
 
 @[simp]
 lemma flip_gofrom? : e.flip.gofrom? = e.goback? := by
-  sorry
+  unfold flip goback? gofrom?
+  rcases e <;> simp only
 
 @[simp]
 lemma flip_goback? : e.flip.goback? = e.gofrom? := by
-  sorry
+  unfold flip goback? gofrom?
+  rcases e <;> simp only
 
 @[simp]
 lemma canGo_flip (v w : V) : e.flip.canGo w v = e.canGo v w  := by
-  sorry
+  unfold flip canGo
+  match e with
+  | dir (a,b) =>
+    simp only [Option.mem_def, decide_eq_decide]
+    rw [← flip_goback?]
+    simp only [flip]
+    apply gofrom?_iff_goback?_iff_canGo (dir (a,b)) v w
+    <;> simp only [List.mem_cons, eq_iff_iff, List.mem_singleton, true_or, or_true]
+
+  | undir s =>
+    simp only [Option.mem_def, decide_eq_decide]
+    nth_rw 1 [← flip_goback?]
+    simp only [flip]
+    apply gofrom?_iff_goback?_iff_canGo (undir s) v w
+    <;> simp only [List.mem_cons, eq_iff_iff, List.mem_singleton, true_or, or_true]
+
+  -- I tried simplifying the above proof by smashing the two cases together
+  -- but there is an issue that I can't identify
 
 @[simp]
 lemma flip_self (s : Sym2 V) : (undir s).flip = undir s := by
-  sorry
+  simp only [flip]
 
 def any (P : V → Bool) : Bool := match e with
   | dir (a, b) => a.any P || b.any P
