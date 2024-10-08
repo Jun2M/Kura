@@ -1,6 +1,6 @@
 import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
 import Kura.Graph.FullGraph
-import Kura.Dep.Irreflexive
+import Kura.Dep.Rel
 
 
 open edge Graph

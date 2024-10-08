@@ -1,6 +1,6 @@
 import Mathlib.Tactic
 import Kura.Dep.Sym2
-import Kura.Dep.Option
+import Kura.Dep.Finset
 
 
 -- Do I need a separate none (edge not bound) that is not dir (none × none)?
@@ -102,6 +102,9 @@ lemma dir_endAt (a b : V) : (dir (some a, some b)).endAt = {a, b} := by
   simp only [endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
     Multiset.cons_zero, List.foldl_nil]
 
+@[simp]
+lemma undir_endAt (s : Sym2 V) : (undir s).endAt = s.toMultiset := by rfl
+
 instance instedgeMem : Membership V (edge V) where
   mem e v := v ∈ e.endAt
 
@@ -125,6 +128,9 @@ def startAt : Multiset V := match e with
   | undir s => s.toMultiset
 
 @[simp]
+lemma undir_startAt (s : Sym2 V) : (undir s).startAt = s.toMultiset := by rfl
+
+@[simp]
 lemma mem_startAt_undir (s : Sym2 V) (v : V) : v ∈ startAt (undir s) ↔ v ∈ s := by
   simp only [startAt, Sym2.mem_toMultiset_iff]
 
@@ -136,8 +142,25 @@ def finishAt : Multiset V := match e with
   | undir s => s.toMultiset
 
 @[simp]
+lemma undir_finishAt (s : Sym2 V) : (undir s).finishAt = s.toMultiset := by rfl
+
+@[simp]
 lemma mem_finishAt_undir (s : Sym2 V) (v : V) : v ∈ finishAt (undir s) ↔ v ∈ s := by
   simp only [finishAt, Sym2.mem_toMultiset_iff]
+
+@[simp]
+lemma startAt_finishAt_not_disjoint_of_isLoop (e : edge V) : e.isLoop → e.startAt ∩ e.finishAt ≠ ∅ := by
+  intro hloop
+  match e with
+  | dir (some a, some b) =>
+    rw [dir_isLoop_iff] at hloop
+    subst hloop
+    simp only [startAt, finishAt, Multiset.inter_self, Multiset.empty_eq_zero, ne_eq,
+      Multiset.singleton_ne_zero, not_false_eq_true]
+  | undir s =>
+    simp only [startAt, finishAt, Multiset.inter_self, Multiset.empty_eq_zero, ne_eq, ←
+      Multiset.card_eq_zero, Sym2.toMultiset_card, OfNat.ofNat_ne_zero, not_false_eq_true]
+
 
 def gofrom? (v : V) : Option V := match e with
   | dir (a, b) => if a = v then b else none
@@ -163,6 +186,26 @@ theorem gofrom?_iff_goback?_iff_canGo (u v : V) :
   · match e with
     | dir (a, b) => cases a <;> cases b <;> simp_all [canGo]
     | undir s => simp [canGo]
+
+lemma mem_startAt_of_canGo (v w : V) : e.canGo v w → v ∈ e.startAt := by
+  intro h
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all [canGo, startAt, gofrom?]
+  | undir s =>
+    simp_all only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, Sym2.exist_other'_eq,
+      decide_eq_true_eq, undir_startAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
+      Multiset.mem_cons, Multiset.mem_singleton, true_or]
+
+lemma mem_finishAt_of_canGo (v w : V) : e.canGo v w → w ∈ e.finishAt := by
+  intro h
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all [canGo, finishAt, gofrom?]
+  | undir s =>
+    simp_all only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, Sym2.exist_other'_eq,
+      decide_eq_true_eq, undir_finishAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
+      Multiset.mem_cons, Multiset.mem_singleton, or_true]
 
 
 @[simp]

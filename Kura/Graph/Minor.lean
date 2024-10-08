@@ -157,6 +157,7 @@ def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G 
         exact ABC.append (G'.ctt_path (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e))) (by
           rw [Path.append_finish, G'.path_start (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)), Path.some_finish])
     else
+      save
       exact G'.ctt_path u hdom
   path_ctv u hdom v' hv' := by
     simp only at hdom
@@ -184,6 +185,7 @@ def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G 
         · subst v'
           rfl
         · exact G'.path_ctv (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)) v' hv'sup
+    save
     · simp [hv'inf, huinf] at hv'
       exact G'.path_ctv u hdom v' hv'
   path_rme := fun u hdom e' he' => by
@@ -201,8 +203,9 @@ def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G 
         rwa [Path.mem_some_edges, Eq.comm] at he'
       · right
         exact G'.path_rme (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)) e' he'
-    · right
-      exact G'.path_rme u hdom e' he'
+    · save
+      right
+      exact G'.path_rme u hdom e' he' 
   path_start u hdom := by
     simp only [dite_eq_ite]
     split_ifs with h1 h2 <;>

@@ -44,4 +44,11 @@ lemma gofrom?_isSome_iff_mem_startAt (v : V) (e : E) :
   | dir (a, b) => cases a <;> cases b <;> simp_all ; rw [Eq.comm]
   | undir s => simp only [Option.isSome_dite, Sym2.mem_toMultiset_iff]
 
+theorem exist (G : Graph V E) [fullGraph G] : IsEmpty E ∨ Nonempty V := by
+  by_cases hE : IsEmpty E
+  · exact Or.inl hE
+  · simp at hE
+    choose v _ using exist_two_mem G (@Classical.ofNonempty _ hE)
+    exact Or.inr (Nonempty.intro v)
+
 end Graph

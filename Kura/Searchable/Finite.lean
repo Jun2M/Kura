@@ -7,7 +7,7 @@ import Kura.Graph.FullGraph
 
 namespace Graph
 open edge
-variable {V E : Type*} [LinearOrder V] [Fintype V] [Fintype E] (G : Graph V E) (u v : V)
+variable {V E : Type*} [LinearOrder V] [DecidableEq E] (G : Graph V E) (u v : V)
 
 
 instance Searchable_of_FintypeE [Fintype E] : Searchable G where
@@ -20,14 +20,28 @@ instance Searchable_of_FintypeE [Fintype E] : Searchable G where
     rw [Finset.mem_filter, and_iff_right_iff_imp]
     exact fun _ => Fintype.complete e
 
-theorem exist (G : Graph V E) [fullGraph G] : IsEmpty E ∨ Nonempty V := by
-  by_cases hE : IsEmpty E
-  · exact Or.inl hE
-  · simp at hE
-    choose v _ using exist_two_mem G (@Classical.ofNonempty _ hE)
-    exact Or.inr (Nonempty.intro v)
+def maxDegree [Fintype V] [G.Searchable]: ℕ := Finset.univ.image (G.degree ·) |>.max |>.getD 0
+macro "Δ(" G:term ")" : term => `(Graph.maxDegree $G)
 
+def maxDegreeVerts [Fintype V] [G.Searchable]: Finset V :=
+  Finset.univ.filter (λ v => G.degree v = G.maxDegree)
 
+@[simp]
+lemma mem_maxDegreeVerts [Fintype V] [G.Searchable] (v : V) :
+    v ∈ G.maxDegreeVerts ↔ G.degree v = G.maxDegree := by
+  simp only [maxDegreeVerts, Finset.mem_filter, Finset.mem_univ, true_and]
+
+lemma maxDegreeVerts_nonempty [Fintype V] [G.Searchable] (hΔ : Δ(G) ≠ 0) :
+    G.maxDegreeVerts.Nonempty := by
+  unfold Graph.maxDegreeVerts Finset.Nonempty maxDegree
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+  have : Finset.univ.image (G.degree ·) |>.Nonempty := sorry
+  obtain ⟨ n, hn ⟩ := Finset.max_of_nonempty this
+  obtain ⟨ x, _, hx ⟩ := Finset.exists_max_image Finset.univ (G.degree ·) sorry
+  use x
+  sorry
+
+end Graph
 
 
 -- lemma degree_eq_edges_filter_startAt_card [fullGraph G] :

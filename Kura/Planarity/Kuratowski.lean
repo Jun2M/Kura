@@ -1,6 +1,6 @@
 import Kura.Searchable.Finite
 import Kura.Planarity.Plainarity
-import Kura.Conn.Minor
+import Kura.Graph.Minor
 
 namespace Graph
 open edge Sym2

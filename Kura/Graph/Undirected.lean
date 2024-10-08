@@ -58,5 +58,33 @@ lemma mem_startAt_iff_mem_get : v ∈ G.startAt e ↔ v ∈ G.get e := by
 lemma mem_finishAt_iff_mem_get : v ∈ G.finishAt e ↔ v ∈ G.get e := by
   simp only [finishAt, inc_eq_undir_get, mem_finishAt_undir]
 
+lemma startAt_eq_endAt : G.startAt e = G.endAt e := by
+  simp only [startAt, inc_eq_undir_get, undir_startAt, endAt, undir_endAt]
+
+lemma finishAt_eq_endAt : G.finishAt e = G.endAt e := by
+  simp only [finishAt, inc_eq_undir_get, undir_finishAt, endAt, undir_endAt]
 
 def goFrom {v : V} {e : E} (h : v ∈ G.get e) : V := Sym2.Mem.other' h
+
+
+lemma mem_incEE_symm (h : e' ∈ G.incEE e) : e ∈ G.incEE e' := by
+  rw [incEE, Set.mem_setOf_eq] at h ⊢
+  obtain ⟨ rfl, h ⟩ | ⟨ h1, h2 ⟩ := h
+  · simp only [isLoop, inc_eq_undir_get, undir_isLoop_iff] at h
+    left
+    simp only [isLoop, inc_eq_undir_get, undir_isLoop_iff, h, and_self]
+  · right
+    rw [Multiset.inter_comm, startAt_eq_endAt, finishAt_eq_endAt] at h2
+    rw [startAt_eq_endAt, finishAt_eq_endAt]
+    refine ⟨ h1.symm, h2 ⟩
+
+lemma mem_incEE_of_both_mem_incVE (hne : e ≠ e') (h : e ∈ G.incVE v) (h' : e' ∈ G.incVE v) :
+    e' ∈ G.incEE e := by
+  simp only [incVE, startAt, inc_eq_undir_get, undir_startAt, Multiset.empty_eq_zero,
+    Set.mem_setOf_eq, incEE, isLoop, undir_isLoop_iff, finishAt, undir_finishAt] at h h' ⊢
+  right
+  refine ⟨ hne, ?_ ⟩
+  exact Multiset.ne_zero_of_mem <| Multiset.mem_inter.mpr ⟨ h, h' ⟩
+
+lemma adj_symmetric : G.adj u v ↔ G.adj v u := by
+  simp only [adj, canGo_symm]

@@ -8,7 +8,7 @@ structure Graph (V E : Type*) [LinearOrder V] where
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
+variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e e' : E) (u v w : V)
 
 
 /- Carry the defs from Edges to Graph -/
@@ -43,6 +43,8 @@ class Undirected extends fullGraph G :=
 class loopless extends fullGraph G :=
   no_loops : ∀ e, ¬G.isLoop e
 
+def no_loops [loopless G] : ∀ e, ¬G.isLoop e := loopless.no_loops
+
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
 class Simple extends loopless G, Undirected G :=
@@ -53,6 +55,25 @@ class Directed extends fullGraph G :=
 
 
 /- Basic functions -/
+-- def split : Multiset (Option V × E × Option V) := match G.inc e with
+--   | dir p => {(p.fst, e, p.snd)}
+--   | undir s => {(some s.inf, e, some s.sup), (some s.sup, e, some s.inf)}
+
+def incEV := λ e => {v | v ∈ G.inc e}
+def incVE := λ v => {e | v ∈ G.startAt e}
+def incVV := λ v => {u | ∃ e, u ≠ v ∧ u ∈ G.inc e ∧ v ∈ G.inc e}
+def incEE := λ e => {e' | (e = e' ∧ G.isLoop e) ∨ (e ≠ e' ∧ G.startAt e ∩ G.finishAt e' ≠ ∅)}
+
+lemma loop_mem_incEE (hloop : G.isLoop e) : e ∈ G.incEE e := by
+  simp only [incEE, Set.mem_setOf_eq, true_and]
+  exact Or.inl hloop
+
+lemma ne_of_mem_incEE_of_notLoop (h : e' ∈ G.incEE e) (hloop : ¬G.isLoop e) : e ≠ e' := by
+  rintro rfl
+  simp only [incEE, isLoop, ne_eq, startAt, finishAt, Multiset.empty_eq_zero, Set.mem_setOf_eq,
+    true_and, not_true_eq_false, false_and, or_false] at h
+  exact hloop h
+
 def adj : Prop := ∃ e, G.canGo u e v
 def neighbourhood : Set V := {u | G.adj u v}
 

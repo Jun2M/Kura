@@ -41,6 +41,12 @@ lemma finish_eq_getLast_ssnd (hn : w.steps ≠ []) : w.finish = (w.steps.getLast
 
 def length : ℕ := w.steps.length
 
+lemma length_eq_zero_iff : w.length = 0 ↔ w.steps = [] := by
+  simp only [length, List.length_eq_zero]
+
+lemma length_ne_zero_iff : w.length ≠ 0 ↔ w.steps ≠ [] := by
+  simp only [length, ne_eq, List.length_eq_zero]
+
 def isSubpath : Walk G → Walk G → Prop := λ w₁ w₂ => w₁.steps.IsInfix w₂.steps
 
 def vertices : List V :=
@@ -63,6 +69,29 @@ lemma steps_fst_vertices : w.steps.map (·.fst) = w.vertices.dropLast := by
 
 lemma steps_ssnd_vertices : w.steps.map (·.snd.snd) = w.vertices.drop 1 := by
   simp only [vertices, List.drop_succ_cons, List.drop_zero]
+
+@[simp]
+lemma vertices_ne_nil : w.vertices ≠ [] := by
+  simp only [vertices, ne_eq, List.cons_ne_nil, not_false_eq_true]
+
+@[simp]
+lemma vertices_head_eq_start : w.vertices.head w.vertices_ne_nil = w.start := rfl
+
+@[simp]
+lemma vertices_getLast_eq_finish : w.vertices.getLast (w.vertices_ne_nil) = w.finish := by
+  unfold finish vertices
+  split
+  next h =>
+    have : [w.start].getLast (List.cons_ne_nil w.start []) = w.start := by rfl
+    convert this
+    simp only [h, List.map_nil]
+  next a as h =>
+    rw [List.getLast_cons (by simp only [h, List.map_cons, ne_eq, reduceCtorEq, not_false_eq_true])]
+    simp only [List.getLast_map]
+
+@[simp]
+lemma vertices_chain'_adj : w.vertices.Chain' G.adj := by
+  sorry
 
 def edges : List E := w.steps.map (·.snd.fst)
 

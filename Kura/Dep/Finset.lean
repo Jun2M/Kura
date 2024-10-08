@@ -30,6 +30,17 @@ instance instMultisetUnionAssociative [DecidableEq α]: Std.Associative (α := M
 instance instMultisetAddCommutative [DecidableEq α]: Std.Commutative (fun (s t : Multiset α) => s + t) := ⟨add_comm⟩
 instance instMultisetAddAssociative [DecidableEq α]: Std.Associative (α := Multiset α) (· + ·) := ⟨add_assoc⟩
 
+@[simp]
+lemma inter_self (s : Multiset α) [DecidableEq α] : s ∩ s = s := by
+  ext a
+  simp only [count_inter]
+  exact min_self _
+
+lemma ne_zero_of_mem {s : Multiset α} {a : α} (h : a ∈ s) : s ≠ 0 := by
+  intro h0
+  rw [h0] at h
+  exact not_mem_zero a h
+
 end Multiset
 
 namespace Finset

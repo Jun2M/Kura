@@ -42,6 +42,9 @@ lemma sym2_notDiag_length [DecidableEq α] {l : List α} (h : l.Nodup) :
     (l.sym2.filter (¬·.IsDiag)).length = l.length.choose 2 := by
   sorry
 
+lemma singlton_ne_nil {a : α} : [a] ≠ [] := by
+  simp only [ne_eq, cons_ne_self, not_false_eq_true]
+
 /- ------------------------------------------------------------------------------------ -/
 
 
