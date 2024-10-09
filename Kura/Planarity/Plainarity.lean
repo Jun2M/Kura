@@ -4,8 +4,8 @@ import Kura.Graph.Examples
 
 
 namespace Graph
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E] [LinearOrder F]
-  [Fintype V] [Fintype W] (G : Graph V E) [Undirected G]
+variable {V E F : Type*} [LinearOrder V] [LinearOrder E] [LinearOrder F] (G : Graph V E)
+  [Undirected G]
 
 -- structure PlainarEmbedding (G : Graph V E R) :=
 --   (vertexEmbedding : V → ℝ × ℝ)
@@ -15,18 +15,17 @@ variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E] [Line
 --   (embedding_ends : ∀ e, edgeEmbedding e 0 = vertexEmbedding (G.inc e).val.fst ∧
 --     edgeEmbedding e 1 = vertexEmbedding (G.ends e).snd)
 
-structure AbstractDual (H : Graph W F) where
-  eEquiv : E ≃ F
-  cycle_minEdgeCut (w : Cycle G) : H.minEdgeCut (w.edges.map eEquiv.toFun).toFinset
+structure AbstractDual (H : Graph F E) where
+  cycle_minEdgeCut (w : Cycle G) : H.minEdgeCut w.edges.toFinset
   minEdgeCut_cycle (S : Finset E) : G.minEdgeCut S → ∃ (w : Cycle H),
-    S = (w.edges.map eEquiv.invFun).toFinset
+    S = w.edges.toFinset
 
 class Planar_by_AbstractDual :=
   F : Type*
   FLinearOrder : LinearOrder F
-  Fintype : Fintype F
   FNonempty : Nonempty F
   dualGraph : Graph F E
+  dualGraphConn : dualGraph.connected
   isDual : AbstractDual G dualGraph
 
 variable [Planar_by_AbstractDual G]
@@ -35,23 +34,26 @@ def Faces := Planar_by_AbstractDual.F (G := G)
 
 instance instPlanar_by_AbstractDualFLinearOrder :
     LinearOrder (Planar_by_AbstractDual.F G) := Planar_by_AbstractDual.FLinearOrder
-
 instance instPlanar_by_AbstractDualFacesLinearOrder :
     LinearOrder G.Faces := Planar_by_AbstractDual.FLinearOrder
+def dualGraph := Planar_by_AbstractDual.dualGraph (G := G)
+def duality : AbstractDual G (dualGraph G) := Planar_by_AbstractDual.isDual
 
-instance instPlanar_by_AbstractDualFintype :
-    Fintype (Planar_by_AbstractDual.F G) := Planar_by_AbstractDual.Fintype
 
-instance instPlanar_by_AbstractDualFacesFintype :
-    Fintype G.Faces := Planar_by_AbstractDual.Fintype
+instance instPlanar_by_AbstractDualFintype [Fintype E]:
+    Fintype (Planar_by_AbstractDual.F G) := by
+  sorry
+instance instPlanar_by_AbstractDualFacesFintype [Fintype E]:
+    Fintype G.Faces := instPlanar_by_AbstractDualFintype G
 
-def dualGraph :=
-  Planar_by_AbstractDual.dualGraph (G := G)
 
-def duality :
-    AbstractDual G (dualGraph G) := Planar_by_AbstractDual.isDual
 
-theorem EulerFormula [Nonempty V] [Fintype E] [G.connected]:
+/--
+Nonempty V is assumed because empty graph is connected but has 0 components
+Hence, n - m + f = 1 not 2
+Thought: Should we redefine connected graph to be the graphs with 1 compoent?
+-/
+theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
     Fintype.card V - Fintype.card E + Fintype.card G.Faces = 2 := by
   have := VSubsingletonofConnectedEcardZero G
   revert this
@@ -71,7 +73,7 @@ theorem EulerFormula [Nonempty V] [Fintype E] [G.connected]:
 
 
 def IsFacialCycle (w : Cycle G) : Prop :=
-  G[w.vertices.toFinsetᶜ].connected
+  ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.isolatingEdgeCut f
 
 
 
