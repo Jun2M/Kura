@@ -77,7 +77,23 @@ lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.
     rw [Fintype.card_eq_zero_iff] at hE
     exact hE.false e
 
+lemma exist_edge [Nonempty E] (G : Graph V E) [fullGraph G] [G.connected] (v : V) :
+    ∃ e, v ∈ G.inc e := by
+  sorry
 
+noncomputable def FintypeVofFintypeEconnected [Fintype E] [fullGraph G] [G.connected] : Fintype V := by
+  by_cases h : IsEmpty E
+  · refine @Fintype.ofSubsingleton V sorry (G.VSubsingletonofConnectedEcardZero ?_)
+    exact Fintype.card_eq_zero
+  · simp at h
+    use Finset.univ.biUnion (G.endAt · |>.toFinset)
+    rintro x
+    simp only [endAt, Finset.mem_biUnion, Finset.mem_univ, Multiset.mem_toFinset, true_and]
+    exact G.exist_edge x
+
+lemma n_pred_le_m_of_connected [Fintype V] [Fintype E] [G.connected] :
+    Fintype.card V - 1 ≤ Fintype.card E := by
+  sorry
 
 def componentOf (v : V) : Set V := {u | G.conn u v}
 
