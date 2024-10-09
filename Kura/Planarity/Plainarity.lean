@@ -55,10 +55,6 @@ Thought: Should we redefine connected graph to be the graphs with 1 compoent?
 -/
 theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
     Fintype.card V - Fintype.card E + Fintype.card G.Faces = 2 := by
-<<<<<<< HEAD
-  induction Fintype.card E with
-  | zero => sorry
-=======
   have := VSubsingletonofConnectedEcardZero G
   revert this
   induction Fintype.card E  with
@@ -70,7 +66,6 @@ theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
     have : Fintype.card V = 1 := Eq.symm (Nat.le_antisymm h0lt hle1)
     rw [this]; clear h hle1 h0lt this
     sorry
->>>>>>> 9250d8074e1d8dc95f513794b9519172c9e34576
 
 
   | succ m => sorry
