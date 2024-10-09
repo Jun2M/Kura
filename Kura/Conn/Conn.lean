@@ -63,13 +63,6 @@ lemma NumberOfComponents_le_card_V [Fintype V] [Fintype E] [Undirected G] :
   unfold NumberOfComponents
   exact @Fintype.card_quotient_le V _ G.connSetoid Relation.ReflTransGenDeciable
 
-
-lemma NumberOfComponents_le_V_sub_E [Fintype V] [Fintype E] [Undirected G] :
-    G.NumberOfComponents ≤ Fintype.card V - Fintype.card E := by
-
-  sorry
-
-
 lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.card E = 0):
   Subsingleton V := by
   apply Subsingleton.intro
