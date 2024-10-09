@@ -53,12 +53,22 @@ def duality :
 theorem EulerFormula [Fintype E] [G.connected]:
     Fintype.card V - Fintype.card E + Fintype.card G.Faces = 2 := by
   induction Fintype.card E with
-  | zero =>
+  | zero => sorry
 
 
   | succ m => sorry
 
 
+
+lemma bridge_iff_loop (G : Graph V E) [Planar_by_AbstractDual G] : (G.bridge e) ↔ G.dualGraph.isLoop e := by
+
+  constructor <;> rintro h
+  · have hmincut := G.bridge_is_minEdgeCut e h
+    have  := G.duality.minEdgeCut_cycle {e} sorry
+    obtain ⟨W, hW⟩ := this
+    sorry
+
+  · sorry
 
 def IsFacialCycle (w : Cycle G) : Prop :=
   G[w.vertices.toFinsetᶜ].connected

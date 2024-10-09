@@ -54,14 +54,30 @@ instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
 def CycleGraph (n : ℕ+) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph n
 #eval! CycleGraph 5 (by norm_num)
 
-instance instCycleGraphSimple (n : ℕ+) (hn : 1 < n) : Simple (CycleGraph n hn) where
-all_full e := (instTourGraphUndirected ⟨n, Nat.zero_lt_one.trans hn⟩).all_full e
+instance instCycleGraphSimple (n : ℕ+) (hn : 2 < n) : Simple (CycleGraph n sorry) where
+all_full e := (instTourGraphUndirected ⟨n, PNat.pos n⟩).all_full e
 no_loops e := by
   simp only [isLoop, CycleGraph, TourGraph, undir_isLoop_iff, Sym2.isDiag_iff_proj_eq,
     self_eq_add_right, Fin.one_eq_zero_iff, PNat.coe_eq_one_iff]
-  exact ne_of_gt hn
+  sorry
 edge_symm e := (instTourGraphUndirected n).edge_symm e
-inc_inj e₁ e₂ h := sorry
+inc_inj e₁ e₂ h := by
+  unfold CycleGraph TourGraph at h
+  simp only [undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, add_left_inj, and_self,
+    Prod.swap_prod_mk] at h
+  rcases h with (rfl | ⟨h₁,h₂⟩)
+  · rfl
+  · rw [← h₂] at h₁
+    have h' : e₁.1 = (e₁ +1 +1).1 := sorry
+
+    rw [show e₁ + 1 = e₁.add 1 from rfl] at h'
+    rw [show e₁.add 1 + 1 = (e₁.add 1).add 1 from rfl] at h'
+    unfold Fin.add at h'
+    simp only [Nat.add_mod_mod, Nat.mod_add_mod] at h'
+    sorry
+
+    -- want to conclude that since `x = x+2 mod n`, that `n = 2`,
+    -- therefore this is not a valid cycle.
 
 
 def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where

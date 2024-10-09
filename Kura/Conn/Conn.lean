@@ -84,6 +84,10 @@ def componentOf (v : V) : Set V := {u | G.conn u v}
 def edgeCut (S : Set E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
+def edgeCut' (S : Set E) [DecidablePred (· ∈ S)] : Prop :=
+  ¬(G.deleteEdges S).eval.connected
+
+
 def bridge (e : E) : Prop := G.edgeCut {e}
 
 def minEdgeCut (S : Set E) : Prop :=
@@ -97,6 +101,18 @@ lemma isolatingEdgeCut_is_edgeCut (v : V) [Nontrivial V] : G.edgeCut (G.isolatin
 
   sorry
 
+lemma bridge_is_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
+  unfold minEdgeCut Minimal
+  constructor
+  · simp only
+    exact h
+  · rintro S hS Sle
+    simp_all only [Set.le_eq_subset, Set.subset_singleton_iff, Set.singleton_subset_iff]
+    obtain ⟨u,v,hconn,hwalk⟩ := hS
+    obtain ⟨P, hpath⟩ := hconn.path
+    obtain ⟨f, fS, _⟩  := hwalk P.toWalk hpath
+    obtain rfl := Sle f fS
+    exact fS
 
 class NEdgeConnected (n : ℕ) : Prop :=
   all_conn : ∀ u v : V, conn G u v

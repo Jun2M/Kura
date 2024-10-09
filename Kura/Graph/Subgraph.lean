@@ -21,6 +21,13 @@ structure QuotientGraph (G : Graph V E) extends InducedSubgraph G where
 
 structure QuotientSubgraph (G : Graph V E) extends Subgraph G, QuotientGraph G where
 
+def deleteEdges (G: Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : Subgraph G where
+  rmv := fun _ ↦ false
+  rme := fun e : E ↦ if (e ∈ S) then true else false
+  hrme := by
+    simp only [Bool.false_eq_true, Bool.if_false_right, Bool.and_true, decide_eq_true_eq,
+      false_implies, implies_true]
+
 
 lemma Subgraph.hrme' {G : Graph V E} (S : Subgraph G) (e : E) (he : ¬S.rme e) :
     ∀ v ∈ G.inc e, ¬S.rmv v := fun _ hv hvrm => he (S.hrme _ _ hvrm hv)
