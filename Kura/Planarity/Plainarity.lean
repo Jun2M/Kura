@@ -25,6 +25,7 @@ class Planar_by_AbstractDual :=
   F : Type*
   FLinearOrder : LinearOrder F
   Fintype : Fintype F
+  FNonempty : Nonempty F
   dualGraph : Graph F E
   isDual : AbstractDual G dualGraph
 
@@ -50,10 +51,19 @@ def dualGraph :=
 def duality :
     AbstractDual G (dualGraph G) := Planar_by_AbstractDual.isDual
 
-theorem EulerFormula [Fintype E] [G.connected]:
+theorem EulerFormula [Nonempty V] [Fintype E] [G.connected]:
     Fintype.card V - Fintype.card E + Fintype.card G.Faces = 2 := by
-  induction Fintype.card E with
+  have := VSubsingletonofConnectedEcardZero G
+  revert this
+  induction Fintype.card E  with
   | zero =>
+    rintro h
+    simp only [true_implies] at h
+    have hle1: Fintype.card V ≤ 1 := Fintype.card_le_one_iff_subsingleton.mpr h
+    have h0lt: Fintype.card V > 0 := Fintype.card_pos
+    have : Fintype.card V = 1 := Eq.symm (Nat.le_antisymm h0lt hle1)
+    rw [this]; clear h hle1 h0lt this
+    sorry
 
 
   | succ m => sorry
