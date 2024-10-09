@@ -207,6 +207,12 @@ lemma mem_finishAt_of_canGo (v w : V) : e.canGo v w → w ∈ e.finishAt := by
       decide_eq_true_eq, undir_finishAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
       Multiset.mem_cons, Multiset.mem_singleton, or_true]
 
+lemma undir_gofrom?_comm (s : Sym2 V) (v w : V) :
+    (undir s).gofrom? v = some w ↔ (undir s).gofrom? w = some v := by
+  simp only [gofrom?, dite_some_none_eq_some, Sym2.exist_other'_eq]
+  refine Eq.congr_right ?h
+  exact Sym2.eq_swap
+
 
 @[simp]
 def flip : edge V := match e with
@@ -228,21 +234,12 @@ lemma canGo_flip (v w : V) : e.flip.canGo w v = e.canGo v w  := by
   unfold flip canGo
   match e with
   | dir (a,b) =>
-    simp only [Option.mem_def, decide_eq_decide]
-    rw [← flip_goback?]
-    simp only [flip]
-    apply gofrom?_iff_goback?_iff_canGo (dir (a,b)) v w
-    <;> simp only [List.mem_cons, eq_iff_iff, List.mem_singleton, true_or, or_true]
-
+    simp only [gofrom?, Option.mem_def, decide_eq_decide]
+    cases a <;> cases b <;> simp only [ite_some_none_eq_some, Option.some.injEq, ite_self] <;> tauto
   | undir s =>
     simp only [Option.mem_def, decide_eq_decide]
-    nth_rw 1 [← flip_goback?]
-    simp only [flip]
-    apply gofrom?_iff_goback?_iff_canGo (undir s) v w
-    <;> simp only [List.mem_cons, eq_iff_iff, List.mem_singleton, true_or, or_true]
+    refine undir_gofrom?_comm s _ _
 
-  -- I tried simplifying the above proof by smashing the two cases together
-  -- but there is an issue that I can't identify
 
 @[simp]
 lemma flip_self (s : Sym2 V) : (undir s).flip = undir s := by
