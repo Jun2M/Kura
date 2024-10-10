@@ -100,8 +100,7 @@ def componentOf (v : V) : Set V := {u | G.conn u v}
 def edgeCut (S : Set E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
-def edgeCut' (S : Set E) [DecidablePred (· ∈ S)] : Prop :=
-  ¬(G.deleteEdges S).eval.connected
+def edgeCut' (S : Set E) [DecidablePred (· ∈ S)] : Prop := ¬ G{Sᶜ}.connected
 
 
 def bridge (e : E) : Prop := G.edgeCut {e}

@@ -72,7 +72,8 @@ theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
 
 
 
-lemma bridge_iff_loop (G : Graph V E) [Planar_by_AbstractDual G] : (G.bridge e) ↔ G.dualGraph.isLoop e := by
+lemma bridge_iff_loop (G : Graph V E) [Planar_by_AbstractDual G] :
+    (G.bridge e) ↔ G.dualGraph.isLoop e := by
 
   constructor <;> rintro h
   · have hmincut := G.bridge_is_minEdgeCut e h

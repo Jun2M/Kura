@@ -26,6 +26,8 @@ variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e e'
 @[simp] abbrev goback? (v : V) (e : E) : Option V := (G.inc e).goback? v
 @[simp] abbrev canGo (v : V) (e : E) (w : V) : Bool := (G.inc e).canGo v w
 @[simp] abbrev flip : edge V := (G.inc e).flip
+@[simp] abbrev any := (G.inc e).any
+@[simp] abbrev all := (G.inc e).all
 @[simp] abbrev map (f : V → W) : edge W := (G.inc e).map f
 @[simp] abbrev pmap {P : V → Prop} (f : ∀ a, P a → W) (e : E) :
   (∀ v ∈ G.inc e, P v) → edge W := ((G.inc e).pmap f ·)
