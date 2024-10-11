@@ -41,6 +41,20 @@ lemma maxDegreeVerts_nonempty [Fintype V] [G.Searchable] (hΔ : Δ(G) ≠ 0) :
   use x
   sorry
 
+def minDegree [Fintype V] [G.Searchable]: ℕ := Finset.univ.image (G.degree ·) |>.min |>.getD 0
+macro "δ(" G:term ")" : term => `(Graph.minDegree $G)
+
+def minDegreeVerts [Fintype V] [G.Searchable]: Finset V :=
+  Finset.univ.filter (λ v => G.degree v = G.minDegree)
+
+@[simp]
+lemma mem_minDegreeVerts [Fintype V] [G.Searchable] (v : V) :
+    v ∈ G.minDegreeVerts ↔ G.degree v = G.minDegree := by
+  simp only [minDegreeVerts, Finset.mem_filter, Finset.mem_univ, true_and]
+
+lemma minDegreeVerts_nonempty [Fintype V] [G.Searchable] (hδ : δ(G) ≠ 0) :
+    G.minDegreeVerts.Nonempty := by sorry
+
 end Graph
 
 
