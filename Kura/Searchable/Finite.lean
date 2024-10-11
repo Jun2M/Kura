@@ -1,6 +1,7 @@
 import Kura.Searchable.Searchable
 import Mathlib.Data.Fintype.Basic
 import Kura.Graph.FullGraph
+import Kura.Graph.Bipartite
 
 -- def subtypeOfFintype [Fintype α] (P : α → Prop) [DecidablePred P] : Fintype {v // P v} :=
 --   Fintype.subtype (Finset.univ.filter P) (by simp)
@@ -54,6 +55,13 @@ lemma mem_minDegreeVerts [Fintype V] [G.Searchable] (v : V) :
 
 lemma minDegreeVerts_nonempty [Fintype V] [G.Searchable] (hδ : δ(G) ≠ 0) :
     G.minDegreeVerts.Nonempty := by sorry
+
+
+lemma three_le_minDegree [Fintype V] [G.Simple] [G.Searchable] : 3 ≤ G.minDegree := by
+  sorry
+
+lemma four_le_minDegree_of_bipartite [Fintype V] [G.Bipartite] [G.Searchable] : 4 ≤ G.minDegree := by
+  sorry
 
 end Graph
 

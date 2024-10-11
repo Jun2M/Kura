@@ -10,11 +10,28 @@ class nEdgeConnected (n : ℕ) : Prop :=
   all_conn : ∀ u v : V, conn G u v
   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
 
-class nConnected [fullGraph G] (n : ℕ) : Prop where
+class nConnected [Fintype V] [fullGraph G] (n : ℕ) : Prop where
   h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected
 
-lemma conn_le_minDegree [Fintype V] [fullGraph G] [Searchable G] (k : ℕ) [nConnected G k] (v : V) :
+variable [Fintype V] [fullGraph G]
+
+lemma cnt_le_minDegree [Searchable G] (k : ℕ) [nConnected G k] (v : V) :
     k ≤ G.minDegree := by
   sorry
 
-def isolatingCut [nConnected G 2]
+lemma maxDegree_le_cnt [Searchable G] (k : ℕ) [nConnected G k] :
+    G.maxDegree ≤ k := by
+  sorry
+
+instance instConnected [nConnected G 0] : connected G := by
+  sorry
+
+lemma connected_of_nConnected (k : ℕ) [nConnected G k] :
+    connected G := by
+  sorry
+
+lemma nConnected_downward_closed (k : ℕ) [nConnected G k] (k' : ℕ) (h : k' ≤ k) :
+    nConnected G k' := by
+  sorry
+
+end Graph

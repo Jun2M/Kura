@@ -1,5 +1,5 @@
 import Mathlib.Data.Real.Basic
-import Kura.Conn.Conn
+import Kura.Conn.nConn
 import Kura.Graph.Examples
 
 
@@ -47,6 +47,27 @@ instance instPlanar_by_AbstractDualFacesFintype [Fintype E]:
     Fintype G.Faces := instPlanar_by_AbstractDualFintype G
 
 
+lemma bridge_iff_loop [Planar_by_AbstractDual G] :
+    G.bridge e ↔ G.dualGraph.isLoop e := by
+
+  constructor <;> rintro h
+  · have hmincut := G.bridge_is_minEdgeCut e h
+    have  := G.duality.minEdgeCut_cycle {e} sorry
+    obtain ⟨W, hW⟩ := this
+    sorry
+
+  · sorry
+
+instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConnected 3] :
+    Planar_by_AbstractDual (dualGraph G) where
+  F := V
+  FLinearOrder := by assumption
+  FNonempty := by assumption
+  dualGraph := G
+  dualGraphConn := G.connected_of_nConnected 3
+  isDual := sorry
+
+
 
 /--
 Nonempty V is assumed because empty graph is connected but has 0 components
@@ -65,22 +86,12 @@ theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
     have h0lt: Fintype.card V > 0 := Fintype.card_pos
     have : Fintype.card V = 1 := Eq.symm (Nat.le_antisymm h0lt hle1)
     rw [this]; clear h hle1 h0lt this
+    
     sorry
 
 
   | succ m => sorry
 
-
-
-lemma bridge_iff_loop (G : Graph V E) [Planar_by_AbstractDual G] : (G.bridge e) ↔ G.dualGraph.isLoop e := by
-
-  constructor <;> rintro h
-  · have hmincut := G.bridge_is_minEdgeCut e h
-    have  := G.duality.minEdgeCut_cycle {e} sorry
-    obtain ⟨W, hW⟩ := this
-    sorry
-
-  · sorry
 
 def IsFacialCycle (w : Cycle G) : Prop :=
   ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.isolatingEdgeCut f
