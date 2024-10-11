@@ -245,7 +245,13 @@ lemma all_iff (s : Sym2 α) (P : α → Bool) : s.all P ↔ (∀ a ∈ s, P a) :
 @[simp]
 lemma equivMultiset_eq (a b : α) : (Sym2.equivMultiset α) s(a, b) = ⟨{a, b}, by simp⟩ := rfl
 
+@[simp]
+lemma isDiag_iff_inf_eq_sup [LinearOrder α] (s : Sym2 α) : s.IsDiag ↔ s.inf = s.sup := by
+  sorry
 
+@[simp]
+lemma inf_sup_eq_self [LinearOrder α] (s : Sym2 α) : s(s.inf, s.sup) = s := by
+  sorry
 
 -- theorem
 

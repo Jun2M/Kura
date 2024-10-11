@@ -46,6 +46,25 @@ instance instFintype [Fintype E] [LinearOrder E] : Fintype (Cycle G) where
     sorry
   complete := sorry
 
+def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
+  start := (G.inc e).v1 ((G.inc e).isFull_of_isLoop he)
+  steps := [((G.inc e).v1 ((G.inc e).isFull_of_isLoop he), e, (G.inc e).v2 ((G.inc e).isFull_of_isLoop he))]
+  start_spec _hn := rfl
+  step_spec uev huev := by
+    rw [List.mem_singleton] at huev
+    subst huev
+    exact canGo_v1_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)
+  next_step :=
+    List.chain'_singleton
+      ((G.inc e).v1 (isFull_of_isLoop (G.inc e) he), e,
+        (G.inc e).v2 (isFull_of_isLoop (G.inc e) he))
+  startFinish := by
+    simp only [Walk.finish, List.getLast_singleton]
+    exact (isLoop_iff_v1_eq_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)).mp he
+  vNodup' := by simp only [Walk.vertices, List.map_cons, List.map_nil, List.tail_cons,
+    List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
+
+
 /-- Cycle has some start point by the definition. rotate it. -/
 def rotate (C : G.Cycle) (n : ℕ) : G.Cycle := sorry
 
@@ -57,6 +76,15 @@ def split (C : G.Cycle) (u v : V) (hu : u ∈ C.vertices) (hv : v ∈ C.vertices
   sorry
 
 def symmDiff (C1 C2 : G.Cycle) : G.Cycle := sorry
+
+lemma isLoop_of_edges_singleton (C : G.Cycle) (e : E) (he : C.edges = [e]) : G.isLoop e := by
+  unfold Walk.edges at he
+  have : C.steps = [(C.start, e, C.finish)] := by
+    sorry
+  rw [← C.startFinish] at this
+  refine isLoop_of_canGo_self (G.inc e) ⟨ C.start, ?_ ⟩
+  exact C.step_spec (C.start, e, C.start) (by rw [this]; exact List.mem_singleton_self _)
+
 
 end Cycle
 

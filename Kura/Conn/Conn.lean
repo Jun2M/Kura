@@ -108,6 +108,11 @@ def bridge (e : E) : Prop := G.edgeCut {e}
 def minEdgeCut (S : Set E) : Prop :=
   Minimal (G.edgeCut ·) S
 
+lemma edgeCut_of_minEdgeCut (S : Set E) (h : G.minEdgeCut S) : G.edgeCut S := by
+  unfold minEdgeCut Minimal at h
+  exact h.1
+
+
 def isolatingEdgeCut (v : V) : Set E := {e | v ∈ G.endAt e}
 
 lemma isolatingEdgeCut_is_edgeCut (v : V) [Nontrivial V] : G.edgeCut (G.isolatingEdgeCut v) := by
@@ -116,7 +121,7 @@ lemma isolatingEdgeCut_is_edgeCut (v : V) [Nontrivial V] : G.edgeCut (G.isolatin
 
   sorry
 
-lemma bridge_is_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
+lemma bridge_is_minEdgeCut (e : E) (h: G.bridge e) : G.minEdgeCut {e} := by
   unfold minEdgeCut Minimal
   constructor
   · simp only

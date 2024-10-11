@@ -51,4 +51,37 @@ theorem exist (G : Graph V E) [fullGraph G] : IsEmpty E ∨ Nonempty V := by
     choose v _ using exist_two_mem G (@Classical.ofNonempty _ hE)
     exact Or.inr (Nonempty.intro v)
 
+lemma NonemptyV_of_e (G : Graph V E) [fullGraph G] (e : E) : Nonempty V := by
+  obtain h | h := G.exist
+  · exfalso
+    exact IsEmpty.false e
+  · assumption
+
+def v1 : V := ((G.inc e).toFullEdge (G.all_full e)).v1
+
+def v2 : V := ((G.inc e).toFullEdge (G.all_full e)).v2
+
+@[simp]
+lemma dir_v1 {e} {u v} (h : G.inc e = dir (some u, some v)) : v1 G e = u := by
+  unfold v1
+  simp only [h, edge.dir_v1]
+
+@[simp]
+lemma dir_v2 {e} {u v} (h : G.inc e = dir (some u, some v)) : v2 G e = v := by
+  unfold v2
+  simp only [h, edge.dir_v2]
+
+@[simp]
+lemma isLoop_iff_v1_eq_v2 : G.isLoop e ↔ v1 G e = v2 G e := by
+  match h : G.inc e with
+  | dir (a, b) =>
+    cases a <;> cases b
+    · simp only [not_dir_none_none] at h
+    · simp only [not_dir_none_some] at h
+    · simp only [not_dir_some_none] at h
+    · rw [G.dir_v1 h, G.dir_v2 h]
+      simp only [isLoop, h, dir_isLoop_iff]
+  | undir s => simp only [isLoop, edge.isLoop, h, Sym2.isDiag_iff_inf_eq_sup, decide_eq_true_eq, v1,
+    undir_v1, v2, undir_v2]
+
 end Graph
