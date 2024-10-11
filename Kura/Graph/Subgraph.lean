@@ -137,7 +137,7 @@ def InducedSubgraph.vrmFinset (G' : InducedSubgraph G) (S : Finset V) : InducedS
 def InducedSubgraph.OnFinset (G' : InducedSubgraph G) (S : Finset V) : InducedSubgraph G where
   rmv u := u ∉ S || G'.rmv u
 
-macro G:term "[" S:term "]" : term => `(InducedSubgraph.eval (InducedSubgraph.OnFinset (InducedSubgraph.init $G) $S))
+macro G:term "[" S:term "]ᴳ" : term => `(InducedSubgraph.eval (InducedSubgraph.OnFinset (InducedSubgraph.init $G) $S))
 
 def Subgraph.vrm (G' : Subgraph G) (v : V) : Subgraph G where
   rmv u := u = v || G'.rmv u
