@@ -8,7 +8,6 @@ namespace Graph
 open edge
 variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
 
-def Acyclic : Prop := IsEmpty (Cycle G)
 
 def conn : V → V → Prop := Relation.ReflTransGen G.adj
 
@@ -130,12 +129,5 @@ lemma bridge_is_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
     obtain rfl := Sle f fS
     exact fS
 
-class NEdgeConnected (n : ℕ) : Prop :=
-  all_conn : ∀ u v : V, conn G u v
-  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
-
 def ball (u : V) (n : ℕ) : Set V :=
   {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
-
-class NConnected [Fintype V] [fullGraph G] (n : ℕ) : Prop where
-  h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ].connected
