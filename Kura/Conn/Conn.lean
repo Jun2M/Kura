@@ -100,7 +100,7 @@ def componentOf (v : V) : Set V := {u | G.conn u v}
 def edgeCut (S : Set E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
-def edgeCut' (S : Set E) [DecidablePred (· ∈ S)] : Prop := ¬ G{Sᶜ}.connected
+def edgeCut' (S : Set E) [DecidablePred (· ∈ S)] : Prop := ¬ G{Sᶜ}ᴳ.connected
 
 
 def bridge (e : E) : Prop := G.edgeCut {e}
@@ -137,4 +137,4 @@ def ball (u : V) (n : ℕ) : Set V :=
   {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
 
 class NConnected [Fintype V] [fullGraph G] (n : ℕ) : Prop where
-  h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ].connected
+  h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected

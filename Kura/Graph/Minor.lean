@@ -8,19 +8,21 @@ variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [LinearOrder E] (G : 
 
 
 structure Minor extends QuotientSubgraph G where
-  ctt_path (v) (hdom : ¬rmv v) : G.Path
-  path_rme (v : V) (hdom : ¬rmv v) : ∀ e ∈ (ctt_path v hdom).edges, rme e
-  path_ctv (v : V) (hdom : ¬rmv v) : ∀ u ∈ (ctt_path v hdom).vertices, vmap u = vmap v
-  path_start (v : V) (hdom : ¬rmv v) : (ctt_path v hdom).start = v
-  path_finish (v : V) (hdom : ¬rmv v) :
-    (ctt_path v hdom).finish = (vmap v).get ((vmap_dom v).mp hdom)
+  ctt_path (v) (hdom : (vmap' v).isSome ) : G.Path
+  path_E (v : V) (hdom : (vmap' v).isSome ) : ∀ e ∈ (ctt_path v hdom).edges, e ∉ Eset
+  path_V (v : V) (hdom : (vmap' v).isSome ) : ∀ u ∈ (ctt_path v hdom).vertices, vmap' u = vmap' v
+  path_start (v : V) (hdom : (vmap' v).isSome ) : (ctt_path v hdom).start = v
+  path_finish (v : V) (hdom : (vmap' v).isSome ) : (ctt_path v hdom).finish = (vmap' v).get hdom
 
 def Minor.eval [Fintype V] (S : Minor G) :
-  Graph {v : V // ∃ u, S.vmap u = some v}
-    {e // ¬S.rme e ∧ (G.inc e).all (fun v => ∃ u, S.vmap u = some v)} where
-  inc e :=
-    let ⟨e, _hrme, hran⟩ := e
-    edge.pmap Subtype.mk (G.inc e) (by simpa only [all_iff, decide_eq_true_eq] using hran)
+  Graph S.ran S.Eset where
+  inc e := by
+
+    exact edge.pmap Subtype.mk (G.inc e) (fun v hv => by
+      unfold QuotientSubgraph.ran
+      simp only [Set.mem_setOf_eq]
+      
+      sorry)
 
 instance MinorFullgraph [Fintype V] (S : Minor G) :
   fullGraph (V := {v : V // ∃ u, S.vmap u = some v}) S.eval where
@@ -205,7 +207,7 @@ def Minor.ctt [Undirected G] (G' : Minor G) (e : E) (he : ¬G'.rme e) : Minor G 
         exact G'.path_rme (G.get e).sup (G'.hrme' e he (G.get e).sup (G.get_sup_mem_inc e)) e' he'
     · save
       right
-      exact G'.path_rme u hdom e' he' 
+      exact G'.path_rme u hdom e' he'
   path_start u hdom := by
     simp only [dite_eq_ite]
     split_ifs with h1 h2 <;>
