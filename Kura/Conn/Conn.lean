@@ -119,12 +119,12 @@ lemma edgeCut_upward_closed [DecidableEq E] (S T : Finset E) (hST : S ⊆ T) (hC
   rw [← hP'start, ← hP'finish]
   exact conn.ofPath _ P'
 
-def bridge [DecidableEq E] (e : E) : Prop := G.edgeCut {e}
+def bridge [DecidableEq E] (e : E) : Prop := G.connected ∧ G.edgeCut {e}
 
 def minEdgeCut [DecidableEq E] (S : Finset E) : Prop :=
   Minimal (G.edgeCut ·) S
 
-lemma edgeCut_of_minEdgeCut (S : Set E) (h : G.minEdgeCut S) : G.edgeCut S := by
+lemma edgeCut_of_minEdgeCut [DecidableEq E] (S : Finset E) (h : G.minEdgeCut S) : G.edgeCut S := by
   unfold minEdgeCut Minimal at h
   exact h.1
 
@@ -137,10 +137,11 @@ lemma incEdges_edgeCut (v : V) [Nontrivial V] [DecidableEq E] [Searchable G] :
 
   sorry
 
-lemma bridge_minEdgeCut [G.connected] [DecidableEq E] (e: E) (h: G.bridge e) :
+lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
     G.minEdgeCut {e} := by
   unfold minEdgeCut Minimal
-  refine ⟨ h, ?_ ⟩
+  obtain ⟨ _, hCut⟩ := h
+  refine ⟨ hCut, ?_ ⟩
   rintro S hS Sle
   simp_all only [Finset.le_eq_subset, Finset.subset_singleton_iff, Finset.singleton_subset_iff]
   obtain hS | hS := Sle <;> subst hS
@@ -162,4 +163,3 @@ def ball (u : V) (n : ℕ) : Set V :=
 
 class NConnected [Fintype V] [fullGraph G] (n : ℕ) : Prop where
   h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected
-

@@ -16,7 +16,7 @@ variable {V E F : Type*} [LinearOrder V] [LinearOrder E] [LinearOrder F] (G : Gr
 --     edgeEmbedding e 1 = vertexEmbedding (G.ends e).snd)
 
 structure AbstractDual (H : Graph F E) where
-  minEdgeCut_cycle (S : Set E) : G.minEdgeCut S ↔ ∃ (w : Cycle H), S = w.edges.toFinset
+  minEdgeCut_cycle (S : Finset E) : G.minEdgeCut S ↔ ∃ (w : Cycle H), S = w.edges.toFinset
 
 class Planar_by_AbstractDual :=
   F : Type*
@@ -50,10 +50,10 @@ instance instPlanar_by_AbstractDualFacesFintype [Fintype E]:
     Fintype G.Faces := instPlanar_by_AbstractDualFintype G
 
 
-lemma bridge_iff_loop [Planar_by_AbstractDual G] :
+lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
     G.bridge e ↔ G.dualGraph.isLoop e := by
   constructor <;> rintro h
-  · have hmincut := G.bridge_is_minEdgeCut e h
+  · have hmincut := G.bridge_minEdgeCut e h
     have  := (G.duality.minEdgeCut_cycle {e}).mp hmincut
     obtain ⟨W, hW⟩ := this
     have : W.edges = [e] := sorry
@@ -64,7 +64,7 @@ lemma bridge_iff_loop [Planar_by_AbstractDual G] :
     have hmincut := (G.duality.minEdgeCut_cycle C.edges.toFinset).mpr ⟨C, rfl⟩
     have : C.edges.toFinset = {e} := sorry
     simp only [this, Finset.coe_singleton] at hmincut
-    exact edgeCut_of_minEdgeCut G {e} hmincut
+    exact ⟨ by assumption, edgeCut_of_minEdgeCut G {e} hmincut ⟩
 
 
 instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConnected 3] :
@@ -104,20 +104,8 @@ theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
 
 
 
-lemma bridge_iff_loop (G : Graph V E) [Planar_by_AbstractDual G] :
-    (G.bridge e) ↔ G.dualGraph.isLoop e := by
-
-  constructor <;> rintro h
-  · have hmincut := G.bridge_is_minEdgeCut e h
-    have  := G.duality.minEdgeCut_cycle {e} sorry
-    obtain ⟨W, hW⟩ := this
-    sorry
-
-  · sorry
-
-
-def IsFacialCycle (w : Cycle G) : Prop :=
-  ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.isolatingEdgeCut f
+def IsFacialCycle (w : Cycle G) [Searchable G.dualGraph] : Prop :=
+  ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.incEdges f
 
 
 
