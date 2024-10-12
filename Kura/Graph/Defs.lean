@@ -88,19 +88,21 @@ structure Hom where
   fₑ : E → F
   comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
 
-notation:20 lhs:20 " ⊆ᵍ " rhs:20 => Nonempty (Hom lhs rhs)
-
-structure Isom where
-  toHom : Hom G H
-  toInv : Hom H G
-  left_cancelᵥ : ∀ v, toHom.fᵥ (toInv.fᵥ v) = v
-  right_cancelᵥ : ∀ v, toInv.fᵥ (toHom.fᵥ v) = v
-  left_cancelₑ : ∀ e, toHom.fₑ (toInv.fₑ e) = e
-  right_cancelₑ : ∀ e, toInv.fₑ (toHom.fₑ e) = e
-
 def Hom.inj (a : Hom G H) : Prop := a.fᵥ.Injective ∧ a.fₑ.Injective
 
 def Hom.surj (a : Hom G H) : Prop := a.fᵥ.Surjective ∧ a.fₑ.Surjective
 
+structure Emb where
+  fᵥ : V ↪ W
+  fₑ : E ↪ F
+  comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
+
+macro G:term "⊆ᴳ" H:term :term => `(Graph.Emb $G $H)
+
+structure Isom where
+  toEmb : G ⊆ᴳ H
+  invEmb : H ⊆ᴳ G
+
+macro G:term "≅ᴳ" H:term :term => `(Graph.Isom $G $H)
 
 end Graph

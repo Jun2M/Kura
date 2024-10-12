@@ -295,6 +295,17 @@ lemma mem_map (f : V → W) (v : W) (e : edge V) (h : v ∈ e.map f): ∃ y ∈ 
       List.foldl_cons, Multiset.cons_zero, List.foldl_nil, map, Sym2.mem_toMultiset_iff,
       Sym2.mem_map]
 
+@[simp]
+lemma mem_map_iff (f : V → W) (v : W) (e : edge V) : v ∈ e.map f ↔ ∃ y ∈ e, f y = v := by
+  refine ⟨mem_map f v e, ?_⟩
+  rintro ⟨y, hy, rfl⟩
+  exact mem_map_of_mem f y e hy
+
+lemma mem_map_sat {P : W → Prop} (f : V → W) (hf : ∀ v, P (f v)) (v : W) (e : edge V)
+  (h : v ∈ e.map f) : P v := by
+  obtain ⟨y, _hymem, rfl⟩ := mem_map f v e h
+  exact hf y
+
 def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P v) → edge W := by
   intro H
   match e with

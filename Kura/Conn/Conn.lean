@@ -97,39 +97,60 @@ lemma n_pred_le_m_of_connected [Fintype V] [Fintype E] [G.connected] :
 
 def componentOf (v : V) : Set V := {u | G.conn u v}
 
-def edgeCut (S : Set E) : Prop :=
+def edgeCut' (S : Set E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
-def edgeCut' (S : Set E) [DecidablePred (· ∈ S)] : Prop := ¬ G{Sᶜ}ᴳ.connected
+def edgeCut [DecidableEq E] (S : Finset E) : Prop := ¬ G{Sᶜ}ᴳ.connected
 
+lemma edgeCut_of_not_conn [DecidableEq E] (S : Finset E) (u v : V) (h : ¬ G{Sᶜ}ᴳ.conn u v) :
+    G.edgeCut S := by
+  unfold edgeCut
+  by_contra! hConn
+  exact h <| hConn.all_conn u v
 
-def bridge (e : E) : Prop := G.edgeCut {e}
+lemma edgeCut_upward_closed [DecidableEq E] (S T : Finset E) (hST : S ⊆ T) (hCut : G.edgeCut S) :
+     G.edgeCut T := by
+  unfold edgeCut at hCut ⊢
+  contrapose! hCut
+  refine ⟨?_⟩
+  intro u v
+  obtain ⟨P, hPstart, hPfinish⟩ := (hCut.all_conn u v).path
+  obtain ⟨P', hP'start, hP'finish⟩ : ∃ P' : (G.Es Sᶜ).Path, P'.start = u ∧ P'.finish = v := by
+    sorry
+  rw [← hP'start, ← hP'finish]
+  exact conn.ofPath _ P'
 
-def minEdgeCut (S : Set E) : Prop :=
+def bridge [DecidableEq E] (e : E) : Prop := G.edgeCut {e}
+
+def minEdgeCut [DecidableEq E] (S : Finset E) : Prop :=
   Minimal (G.edgeCut ·) S
 
-def isolatingEdgeCut (v : V) : Set E := {e | v ∈ G.endAt e}
+-- def isolatingEdgeCut [DecidableEq E] [Searchable G] (v : V) := G.incEdges v
 
-lemma isolatingEdgeCut_is_edgeCut (v : V) [Nontrivial V] : G.edgeCut (G.isolatingEdgeCut v) := by
-  simp [isolatingEdgeCut, edgeCut]
+lemma incEdges_edgeCut (v : V) [Nontrivial V] [DecidableEq E] [Searchable G] :
+    G.edgeCut (G.incEdges v) := by
+  simp only [edgeCut]
   obtain ⟨w, hw⟩ := exists_ne v
 
   sorry
 
-lemma bridge_is_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
+lemma bridge_minEdgeCut [G.connected] [DecidableEq E] (e: E) (h: G.bridge e) :
+    G.minEdgeCut {e} := by
   unfold minEdgeCut Minimal
-  constructor
-  · simp only
-    exact h
-  · rintro S hS Sle
-    simp_all only [Set.le_eq_subset, Set.subset_singleton_iff, Set.singleton_subset_iff]
-    obtain ⟨u,v,hconn,hwalk⟩ := hS
-    obtain ⟨P, hpath⟩ := hconn.path
-    obtain ⟨f, fS, _⟩  := hwalk P.toWalk hpath
-    obtain rfl := Sle f fS
-    exact fS
+  refine ⟨ h, ?_ ⟩
+  rintro S hS Sle
+  simp_all only [Finset.le_eq_subset, Finset.subset_singleton_iff, Finset.singleton_subset_iff]
+  obtain hS | hS := Sle <;> subst hS
+  · unfold edgeCut at hS
+    absurd hS
+    refine ⟨ ?_ ⟩
+    intro u v
+    sorry
+    -- requires some Isom theorems
+  · simp only [Finset.mem_singleton]
 
-class NEdgeConnected (n : ℕ) : Prop :=
+
+class NEdgeConnected [DecidableEq E] (n : ℕ) : Prop :=
   all_conn : ∀ u v : V, conn G u v
   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
 
