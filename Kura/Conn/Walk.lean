@@ -398,6 +398,9 @@ structure Path extends Walk G where
 namespace Path
 variable {G : Graph V E}
 
+lemma start_not_mem_vertices_tail (P : Path G): P.start ∉ P.vertices.tail :=
+  List.Nodup.not_mem P.vNodup
+
 def stopAt (p : Path G) (v : V) : Path G where
   toWalk := p.toWalk.stopAt v
   vNodup := (p.toWalk.stopAt_vertices_IsPrefix v).sublist.nodup p.vNodup

@@ -55,5 +55,8 @@ theorem bind_isSome {f : α → Option β} (hbind : isSome (o.bind f)):
   | none => simp only [none_bind, isSome_none, Bool.false_eq_true] at hbind
   | some _ => simp only [isSome_some]
 
+lemma isSome_bind {f : α → Option β} (h : isSome o) : o.bind f = f (o.get h) := by
+  nth_rewrite 1 [← Option.some_get h]
+  rw [some_bind]
 
 end Option
