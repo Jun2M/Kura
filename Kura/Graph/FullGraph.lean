@@ -61,17 +61,17 @@ def v1 : V := ((G.inc e).toFullEdge (G.all_full e)).v1
 
 def v2 : V := ((G.inc e).toFullEdge (G.all_full e)).v2
 
-@[simp]
+@[simp↓ 101]
 lemma dir_v1 {e} {u v} (h : G.inc e = dir (some u, some v)) : v1 G e = u := by
   unfold v1
   simp only [h, edge.dir_v1]
 
-@[simp]
+@[simp↓ 101]
 lemma dir_v2 {e} {u v} (h : G.inc e = dir (some u, some v)) : v2 G e = v := by
   unfold v2
   simp only [h, edge.dir_v2]
 
-@[simp]
+@[simp↓ 101]
 lemma isLoop_iff_v1_eq_v2 : G.isLoop e ↔ v1 G e = v2 G e := by
   match h : G.inc e with
   | dir (a, b) =>

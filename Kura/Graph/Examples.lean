@@ -1,7 +1,9 @@
-import Kura.Graph.Defs
+import Kura.Conn.Conn
 import Kura.Dep.List
 import Mathlib.Data.Prod.Lex
 import Mathlib.Data.Sum.Order
+import Kura.Dep.Toss
+import Kura.Graph.Bipartite
 
 
 namespace Graph
@@ -42,6 +44,8 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
     exact e₂.prop
     refine (List.nodup_finRange n).sym2.filter _
 
+instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected := by
+  sorry
 
 def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
@@ -51,39 +55,56 @@ instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
   all_full _ := by simp only [isFull, edge.isFull, TourGraph]
 
 
-def CycleGraph (n : ℕ+) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph n
+def CycleGraph (n : ℕ) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph ⟨n, by omega⟩
 #eval! CycleGraph 5 (by norm_num)
 
-instance instCycleGraphSimple (n : ℕ+) (hn : 2 < n) : Simple (CycleGraph n sorry) where
-all_full e := (instTourGraphUndirected ⟨n, PNat.pos n⟩).all_full e
+
+instance instCycleGraphSimple (n : ℕ) (hn : 2 < n) : Simple (CycleGraph n (by omega)) where
+all_full e := (instTourGraphUndirected ⟨n, by omega⟩).all_full e
 no_loops e := by
-  simp only [isLoop, CycleGraph, TourGraph, undir_isLoop_iff, Sym2.isDiag_iff_proj_eq,
-    self_eq_add_right, Fin.one_eq_zero_iff, PNat.coe_eq_one_iff]
-  sorry
-edge_symm e := (instTourGraphUndirected n).edge_symm e
+  have : NeZero n := {out := by omega}
+  simp only [isLoop, CycleGraph, TourGraph, id_eq, Int.reduceNeg, Int.Nat.cast_ofNat_Int,
+    Nat.cast_ofNat, Int.reduceAdd, PNat.mk_coe, undir_isLoop_iff', self_eq_add_right,
+    Fin.one_eq_zero_iff, ne_eq]
+  omega
+edge_symm e := (instTourGraphUndirected ⟨n, by omega⟩).edge_symm e
 inc_inj e₁ e₂ h := by
-  unfold CycleGraph TourGraph at h
-  simp only [undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, add_left_inj, and_self,
-    Prod.swap_prod_mk] at h
+  simp only [CycleGraph, TourGraph, id_eq, Int.reduceNeg, Int.Nat.cast_ofNat_Int, Nat.cast_ofNat,
+    Int.reduceAdd, PNat.mk_coe, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, add_left_inj,
+    and_self, Prod.swap_prod_mk] at h
   rcases h with (rfl | ⟨h₁,h₂⟩)
   · rfl
-  · rw [← h₂] at h₁
-    have h' : e₁.1 = (e₁ +1 +1).1 := sorry
-
-    rw [show e₁ + 1 = e₁.add 1 from rfl] at h'
-    rw [show e₁.add 1 + 1 = (e₁.add 1).add 1 from rfl] at h'
-    unfold Fin.add at h'
-    simp only [Nat.add_mod_mod, Nat.mod_add_mod] at h'
-    sorry
-
-    -- want to conclude that since `x = x+2 mod n`, that `n = 2`,
-    -- therefore this is not a valid cycle.
-
+  · have : Fact (2 < n) := ⟨hn⟩
+    have : NeZero n := {out := by omega}
+    subst h₂
+    rw [← sub_toss_eq, sub_eq_add_neg, add_left_cancel_iff] at h₁
+    absurd h₁
+    exact CharP.neg_one_ne_one (Fin n) n
 
 def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
   inc e := undir s(e, e+1)
 
 
-def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Lex $ Fin n₁ ⊕ Fin n₂) (Lex $ Fin n₁ × Fin n₂) where
+def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ₗ Fin n₂) (Fin n₁ ×ₗ Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)
 #eval CompleteBipGraph 3 4
+
+instance instCompleteBipGraphSimple (n₁ n₂ : ℕ+) : Simple (CompleteBipGraph n₁ n₂) where
+  all_full _e := by simp only [isFull, edge.isFull, CompleteBipGraph]
+  no_loops e := by simp only [isLoop, edge.isLoop, CompleteBipGraph, Sym2.isDiag_iff_inf_eq_sup,
+    Sym2.inf_mk, Sym2.sup_mk, inf_eq_sup, reduceCtorEq, decide_False, Bool.false_eq_true,
+    not_false_eq_true]
+  edge_symm _e := by simp only [isUndir, edge.isUndir, CompleteBipGraph]
+  inc_inj e₁ e₂ h := by
+    simp only [CompleteBipGraph, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
+      Prod.swap_prod_mk, reduceCtorEq, and_self, or_false] at h
+    rw [Sum.inl.inj_iff, Sum.inr.inj_iff] at h
+    exact Prod.ext_iff.mpr h
+
+instance instCompleteBipGraphConnected (n₁ n₂ : ℕ+) : (CompleteBipGraph n₁ n₂).connected := by
+  sorry
+
+instance instCompleteBipGraphBip (n₁ n₂ : ℕ+) : Bipartite (CompleteBipGraph n₁ n₂) where
+  L := sorry
+  hLDec := sorry
+  distinguishes := sorry

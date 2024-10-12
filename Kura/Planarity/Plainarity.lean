@@ -85,7 +85,7 @@ Hence, n - m + f = 1 not 2
 Thought: Should we redefine connected graph to be the graphs with 1 compoent?
 -/
 theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
-    Fintype.card V - Fintype.card E + Fintype.card G.Faces = 2 := by
+    Fintype.card V + Fintype.card G.Faces - Fintype.card E = 2 := by
   have := VSubsingletonofConnectedEcardZero G
   revert this
   induction Fintype.card E  with
@@ -107,6 +107,13 @@ theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
 def IsFacialCycle (w : Cycle G) [Searchable G.dualGraph] : Prop :=
   ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.incEdges f
 
+
+lemma three_le_dualGraph_minDegree [Fintype E] [G.Simple] : 3 ≤ G.dualGraph.minDegree := by
+  sorry
+
+lemma four_le_dualGraph_minDegree_of_bipartite [Fintype E] [G.Simple] [G.Bipartite] :
+    4 ≤ G.dualGraph.minDegree := by
+  sorry
 
 
 end Graph

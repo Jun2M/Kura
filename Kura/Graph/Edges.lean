@@ -98,6 +98,10 @@ lemma dir_isLoop_iff (a b : V) : isLoop (dir (some a, some b)) ↔ a = b := by
 lemma undir_isLoop_iff (s : Sym2 V) : isLoop (undir s) ↔ s.IsDiag := by
   simp only [isLoop, decide_eq_true_eq]
 
+@[simp high]
+lemma undir_isLoop_iff' (a b : V) : isLoop (undir s(a, b)) ↔ a = b := by
+  rw [undir_isLoop_iff, Sym2.isDiag_iff_proj_eq]
+
 @[simp]
 lemma dir_isFull_iff (a b : Option V) : isFull (dir (a, b)) ↔ a.isSome ∧ b.isSome := by
   cases a <;> cases b <;> simp [isFull, Bool.false_eq_true, Option.isSome_some,
