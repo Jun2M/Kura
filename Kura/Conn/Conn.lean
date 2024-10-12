@@ -8,7 +8,6 @@ namespace Graph
 open edge
 variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
 
-def Acyclic : Prop := IsEmpty (Cycle G)
 
 def conn : V → V → Prop := Relation.ReflTransGen G.adj
 
@@ -125,6 +124,10 @@ def bridge [DecidableEq E] (e : E) : Prop := G.edgeCut {e}
 def minEdgeCut [DecidableEq E] (S : Finset E) : Prop :=
   Minimal (G.edgeCut ·) S
 
+lemma edgeCut_of_minEdgeCut (S : Set E) (h : G.minEdgeCut S) : G.edgeCut S := by
+  unfold minEdgeCut Minimal at h
+  exact h.1
+
 -- def isolatingEdgeCut [DecidableEq E] [Searchable G] (v : V) := G.incEdges v
 
 lemma incEdges_edgeCut (v : V) [Nontrivial V] [DecidableEq E] [Searchable G] :
@@ -159,3 +162,4 @@ def ball (u : V) (n : ℕ) : Set V :=
 
 class NConnected [Fintype V] [fullGraph G] (n : ℕ) : Prop where
   h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected
+

@@ -45,7 +45,6 @@ class Undirected extends fullGraph G :=
 class loopless extends fullGraph G :=
   no_loops : ∀ e, ¬G.isLoop e
 
-def no_loops [loopless G] : ∀ e, ¬G.isLoop e := loopless.no_loops
 
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
@@ -54,6 +53,13 @@ class Simple extends loopless G, Undirected G :=
 
 class Directed extends fullGraph G :=
   no_undir : ∀ e, ¬G.isUndir e
+
+
+lemma all_full [fullGraph G] : ∀ e, G.isFull e := fullGraph.all_full
+lemma no_undir [Directed G] : ∀ e, ¬G.isUndir e := Directed.no_undir
+lemma edge_symm [Undirected G] : ∀ e, G.isUndir e := Undirected.edge_symm
+lemma no_loops [loopless G] : ∀ e, ¬G.isLoop e := loopless.no_loops
+lemma inc_inj [Simple G] : G.inc.Injective := Simple.inc_inj
 
 
 /- Basic functions -/

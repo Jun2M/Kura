@@ -1,6 +1,7 @@
 import Kura.Searchable.Searchable
 import Mathlib.Data.Fintype.Basic
 import Kura.Graph.FullGraph
+import Kura.Graph.Bipartite
 
 -- def subtypeOfFintype [Fintype α] (P : α → Prop) [DecidablePred P] : Fintype {v // P v} :=
 --   Fintype.subtype (Finset.univ.filter P) (by simp)
@@ -39,6 +40,27 @@ lemma maxDegreeVerts_nonempty [Fintype V] [G.Searchable] (hΔ : Δ(G) ≠ 0) :
   obtain ⟨ n, hn ⟩ := Finset.max_of_nonempty this
   obtain ⟨ x, _, hx ⟩ := Finset.exists_max_image Finset.univ (G.degree ·) sorry
   use x
+  sorry
+
+def minDegree [Fintype V] [G.Searchable]: ℕ := Finset.univ.image (G.degree ·) |>.min |>.getD 0
+macro "δ(" G:term ")" : term => `(Graph.minDegree $G)
+
+def minDegreeVerts [Fintype V] [G.Searchable]: Finset V :=
+  Finset.univ.filter (λ v => G.degree v = G.minDegree)
+
+@[simp]
+lemma mem_minDegreeVerts [Fintype V] [G.Searchable] (v : V) :
+    v ∈ G.minDegreeVerts ↔ G.degree v = G.minDegree := by
+  simp only [minDegreeVerts, Finset.mem_filter, Finset.mem_univ, true_and]
+
+lemma minDegreeVerts_nonempty [Fintype V] [G.Searchable] (hδ : δ(G) ≠ 0) :
+    G.minDegreeVerts.Nonempty := by sorry
+
+
+lemma three_le_minDegree [Fintype V] [G.Simple] [G.Searchable] : 3 ≤ G.minDegree := by
+  sorry
+
+lemma four_le_minDegree_of_bipartite [Fintype V] [G.Bipartite] [G.Searchable] : 4 ≤ G.minDegree := by
   sorry
 
 end Graph

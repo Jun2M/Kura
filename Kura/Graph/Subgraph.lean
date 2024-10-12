@@ -6,7 +6,7 @@ open edge
 variable {V W E F : Type*} [LinearOrder V] [LinearOrder W]
 
 
--- one op?
+
 def Vs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : Graph S {e // G.all e (· ∈ S) } where
   inc e :=
     let ⟨e, he⟩ := e
@@ -43,3 +43,5 @@ def Ms (G : Graph V E) [DecidableEq E] (P : G.Path) :
     |>.inc e
 
 -- contraction by a rooted tree?
+
+end Graph

@@ -75,6 +75,21 @@ lemma not_isDir_of_undir (s : Sym2 V) : ¬ isDir (undir s) := by
   unfold isDir
   tauto
 
+-- @[simp]
+-- lemma dir_not_isLoop_none_none : ¬ isLoop (dir (none, none) : edge V) := by
+--   unfold isLoop
+--   tauto
+
+-- @[simp]
+-- lemma dir_not_isLoop_none_some (a : V) : ¬ isLoop (dir (none, some a) : edge V) := by
+--   unfold isLoop
+--   tauto
+
+-- @[simp]
+-- lemma dir_not_isLoop_some_none (a : V) : ¬ isLoop (dir (some a, none) : edge V) := by
+--   unfold isLoop
+--   tauto
+
 @[simp]
 lemma dir_isLoop_iff (a b : V) : isLoop (dir (some a, some b)) ↔ a = b := by
   simp only [isLoop, decide_eq_true_eq]
@@ -84,9 +99,22 @@ lemma undir_isLoop_iff (s : Sym2 V) : isLoop (undir s) ↔ s.IsDiag := by
   simp only [isLoop, decide_eq_true_eq]
 
 @[simp]
+lemma dir_isFull_iff (a b : Option V) : isFull (dir (a, b)) ↔ a.isSome ∧ b.isSome := by
+  cases a <;> cases b <;> simp [isFull, Bool.false_eq_true, Option.isSome_some,
+    Option.isSome_none, and_false]
+
+@[simp]
 lemma undir_isFull (s : Sym2 V) : isFull (undir s) := by
   unfold isFull
   rfl
+
+lemma isFull_of_isLoop (hloop : e.isLoop) : e.isFull := by
+  match e with
+  | dir (some a, some b) =>
+    rw [dir_isLoop_iff] at hloop
+    subst hloop
+    simp only [isFull]
+  | undir s => exact undir_isFull s
 
 
 
@@ -207,11 +235,39 @@ lemma mem_finishAt_of_canGo (v w : V) : e.canGo v w → w ∈ e.finishAt := by
       decide_eq_true_eq, undir_finishAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
       Multiset.mem_cons, Multiset.mem_singleton, or_true]
 
+lemma isLoop_of_canGo_self : (∃ u, e.canGo u u) → e.isLoop := by
+  match e with
+  | dir (a, b) =>
+    rintro ⟨ u, hu ⟩
+    simp only [canGo, gofrom?, Option.mem_def, decide_eq_true_eq] at hu
+    cases a <;> cases b <;> simp_all [Option.some.injEq, ite_some_none_eq_some, dir_isLoop_iff]
+  | undir s =>
+    rintro ⟨ u, hu ⟩
+    simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, Sym2.exist_other'_eq,
+      decide_eq_true_eq] at hu
+    subst hu
+    simp only [undir_isLoop_iff, Sym2.isDiag_iff_proj_eq]
+
+
 lemma undir_gofrom?_comm (s : Sym2 V) (v w : V) :
     (undir s).gofrom? v = some w ↔ (undir s).gofrom? w = some v := by
   simp only [gofrom?, dite_some_none_eq_some, Sym2.exist_other'_eq]
   refine Eq.congr_right ?h
   exact Sym2.eq_swap
+
+@[simp]
+lemma dir_canGo (a b : V) : (dir (some a, some b)).canGo a b := by
+  simp only [canGo, gofrom?, ↓reduceIte, Option.mem_def, decide_True]
+
+@[simp]
+lemma undir_canGo (a b : V) : (undir s(a, b)).canGo a b := by
+  simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, Sym2.exist_other'_eq,
+    decide_eq_true_eq]
+
+@[simp]
+lemma undir_canGo_inf_sup (s : Sym2 V) : (undir s).canGo s.inf s.sup := by
+  simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, Sym2.exist_other'_eq,
+    Sym2.inf_sup_eq_self, decide_True]
 
 
 @[simp]
@@ -317,5 +373,70 @@ def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P 
     simp_all [instedgeMem]
 
 
+
+end edge
+
+inductive fullEdge (V : Type*) [LinearOrder V]
+| dir : V × V → fullEdge V
+| undir : Sym2 V → fullEdge V
+
+variable {V : Type*} [LinearOrder V]
+namespace fullEdge
+
+def v1 : fullEdge V → V
+| dir (a, _) => a
+| undir s => s.inf
+
+def v2 : fullEdge V → V
+| dir (_, b) => b
+| undir s => s.sup
+
+end fullEdge
+
+namespace edge
+
+def toFullEdge (e : edge V) (he : e.isFull) : fullEdge V :=
+  match e, he with
+  | edge.dir (some a, some b), _ => fullEdge.dir (a, b)
+  | edge.undir s, _ => fullEdge.undir s
+
+def v1 (e : edge V) (he : e.isFull) : V := (toFullEdge e he).v1
+def v2 (e : edge V) (he : e.isFull) : V := (toFullEdge e he).v2
+
+-- @[simp]
+-- lemma edge.toFullEdge_eq_dir (a b : V) (he : (edge.dir (some a, some b)).isFull) :
+--   edge.toFullEdge (edge.dir (some a, some b)) he = fullEdge.dir (a, b) := rfl
+
+-- @[simp]
+-- lemma edge.toFullEdge_eq_undir (s : Sym2 V) (he : (edge.undir s).isFull) :
+--   edge.toFullEdge (edge.undir s) he = fullEdge.undir s := rfl
+
+@[simp]
+lemma dir_v1 (a b : V) (he : (dir (some a, some b)).isFull) :
+  (toFullEdge (dir (some a, some b)) he).v1 = a := rfl
+
+@[simp]
+lemma undir_v1 (s : Sym2 V) (he : (undir s).isFull) :
+  (toFullEdge (undir s) he).v1 = s.inf := rfl
+
+@[simp]
+lemma dir_v2 (a b : V) (he : (dir (some a, some b)).isFull) :
+  (toFullEdge (dir (some a, some b)) he).v2 = b := rfl
+
+@[simp]
+lemma undir_v2 (s : Sym2 V) (he : (undir s).isFull) :
+  (toFullEdge (undir s) he).v2 = s.sup := rfl
+
+lemma canGo_v1_v2 (e : edge V) (he : e.isFull) : canGo (e.v1 he) e (e.v2 he) := by
+  match e, he with
+  | edge.dir (some a, some b), _ => simp only [v1, dir_v1, v2, dir_v2, dir_canGo]
+  | edge.undir s, _ => simp [v1, v2]
+
+@[simp]
+lemma isLoop_iff_v1_eq_v2 (e : edge V) (he : e.isFull) : e.isLoop ↔ e.v1 he = e.v2 he := by
+  match e, he with
+  | edge.dir (some a, some b), _ => simp only [v1, dir_v1, v2, dir_v2, dir_isLoop_iff]
+  | edge.undir s, _ => simp only [undir_isLoop_iff, Sym2.isDiag_iff_inf_eq_sup, v1, undir_v1, v2,
+    undir_v2]
 
 end edge
