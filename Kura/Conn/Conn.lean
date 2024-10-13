@@ -11,6 +11,9 @@ variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
 
 def conn : V → V → Prop := Relation.ReflTransGen G.adj
 
+@[simp]
+lemma conn_refl (v : V) : G.conn v v := Relation.ReflTransGen.refl
+
 lemma conn.path (u v : V) (huv : G.conn u v) : ∃ P : G.Path, P.start = u ∧ P.finish = v := by
   unfold conn at huv
   induction huv with
@@ -42,6 +45,15 @@ class connected : Prop where
 
 def all_conn (u v : V) [G.connected] : conn G u v := connected.all_conn u v
 
+@[simp]
+lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
+  refine ⟨ ?_, ?_ ⟩
+  · intro h
+    by_contra! h'
+    exact h (connected.mk h')
+  · rintro ⟨u, v, h⟩ h'
+    exact h (h'.all_conn u v)
+
 def connSetoid [Undirected G] : Setoid V where
   r := conn G
   iseqv := by
@@ -61,6 +73,14 @@ lemma NumberOfComponents_le_card_V [Fintype V] [Fintype E] [Undirected G] :
     G.NumberOfComponents ≤ Fintype.card V := by
   unfold NumberOfComponents
   exact @Fintype.card_quotient_le V _ G.connSetoid Relation.ReflTransGenDeciable
+
+lemma NumberOfComponents_eq_card_V [Fintype V] [IsEmpty E] [Fintype E] [Undirected G] :
+    G.NumberOfComponents = Fintype.card V := by
+  sorry
+
+lemma NumberOfComponents_eq_one [Fintype V] [Fintype E] [Undirected G] [G.connected] :
+    G.NumberOfComponents = 1 := by
+  sorry
 
 lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.card E = 0):
   Subsingleton V := by
@@ -99,22 +119,25 @@ def componentOf (v : V) : Set V := {u | G.conn u v}
 def edgeCut' (S : Set E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
-def edgeCut [DecidableEq E] (S : Finset E) : Prop := ¬ G{Sᶜ}ᴳ.connected
+@[simp]
+def edgeCut [DecidableEq E] (S : Finset E) : Prop := ∃ u v, G.conn u v ∧ ¬ G{Sᶜ}ᴳ.conn u v
 
-lemma edgeCut_of_not_conn [DecidableEq E] (S : Finset E) (u v : V) (h : ¬ G{Sᶜ}ᴳ.conn u v) :
-    G.edgeCut S := by
-  unfold edgeCut
-  by_contra! hConn
-  exact h <| hConn.all_conn u v
+lemma edgeCut_of_not_conn [DecidableEq E] (S : Finset E) (u v : V) (hG : G.conn u v)
+  (hGS : ¬ G{Sᶜ}ᴳ.conn u v) : G.edgeCut S := ⟨ u, v, hG, hGS ⟩
+
+lemma empty_not_edgeCut [DecidableEq E]: ¬ G.edgeCut ∅ := by
+  rintro ⟨ u', v', hG', hGS ⟩
+  -- Isom theorems...
+  sorry
 
 lemma edgeCut_upward_closed [DecidableEq E] (S T : Finset E) (hST : S ⊆ T) (hCut : G.edgeCut S) :
      G.edgeCut T := by
   unfold edgeCut at hCut ⊢
   contrapose! hCut
-  refine ⟨?_⟩
-  intro u v
-  obtain ⟨P, hPstart, hPfinish⟩ := (hCut.all_conn u v).path
+  intro u v hG
+  obtain ⟨P, hPstart, hPfinish⟩ := (hCut u v hG).path
   obtain ⟨P', hP'start, hP'finish⟩ : ∃ P' : (G.Es Sᶜ).Path, P'.start = u ∧ P'.finish = v := by
+    -- Subtype theorems...
     sorry
   rw [← hP'start, ← hP'finish]
   exact conn.ofPath _ P'
@@ -127,6 +150,10 @@ def minEdgeCut [DecidableEq E] (S : Finset E) : Prop :=
 lemma edgeCut_of_minEdgeCut [DecidableEq E] (S : Finset E) (h : G.minEdgeCut S) : G.edgeCut S := by
   unfold minEdgeCut Minimal at h
   exact h.1
+
+lemma empty_not_minEdgeCut [DecidableEq E] : ¬ G.minEdgeCut ∅ := by
+  rintro ⟨ hCut, _hMin ⟩
+  exact empty_not_edgeCut _ hCut
 
 -- def isolatingEdgeCut [DecidableEq E] [Searchable G] (v : V) := G.incEdges v
 
@@ -147,8 +174,8 @@ lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
   obtain hS | hS := Sle <;> subst hS
   · unfold edgeCut at hS
     absurd hS
-    refine ⟨ ?_ ⟩
-    intro u v
+    push_neg
+    intro u v hG
     sorry
     -- requires some Isom theorems
   · simp only [Finset.mem_singleton]
