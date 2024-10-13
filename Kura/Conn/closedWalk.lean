@@ -17,6 +17,7 @@ lemma Closed.ext (c1 c2 : G.Closed) : c1.toWalk = c2.toWalk → c1 = c2 := by
 
 structure Cycle extends Closed G where
   vNodup' : toWalk.vertices.tail.Nodup
+  eNonempty : toWalk.edges ≠ []
 
 namespace Cycle
 
@@ -60,9 +61,11 @@ def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
         (G.inc e).v2 (isFull_of_isLoop (G.inc e) he))
   startFinish := by
     simp only [Walk.finish, List.getLast_singleton]
-    exact (isLoop_iff_v1_eq_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)).mp he
+    exact (edge.isLoop_iff_v1_eq_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)).mp he
   vNodup' := by simp only [Walk.vertices, List.map_cons, List.map_nil, List.tail_cons,
     List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
+  eNonempty := by simp only [Walk.edges, List.map_cons, List.map_nil, ne_eq, List.cons_ne_self,
+    not_false_eq_true]
 
 
 /-- Cycle has some start point by the definition. rotate it. -/
