@@ -1,4 +1,5 @@
 import Mathlib.Data.Sym.Sym2
+import Kura.Dep.Embedding
 
 
 namespace Option
@@ -58,5 +59,37 @@ theorem bind_isSome {f : α → Option β} (hbind : isSome (o.bind f)):
 lemma isSome_bind {f : α → Option β} (h : isSome o) : o.bind f = f (o.get h) := by
   nth_rewrite 1 [← Option.some_get h]
   rw [some_bind]
+
+@[simp]
+lemma map_eq_none_iff : o.map f = none ↔ o = none := by
+  match o with
+  | none => simp only [map_none']
+  | some a => simp only [map_some', reduceCtorEq]
+
+@[simp]
+lemma none_eq_map_iff : none = o.map f ↔ o = none := by
+  match o with
+  | none => simp only [map_none']
+  | some a => simp only [map_some', reduceCtorEq]
+
+@[simp]
+lemma map_eq_some_iff : o.map f = some b ↔ ∃ a, o = some a ∧ f a = b := by
+  match o with
+  | none => simp only [map_none', reduceCtorEq, false_and, exists_false]
+  | some a => simp only [map_some', some.injEq, exists_eq_left']
+
+@[simp]
+lemma some_eq_map_iff : some b = o.map f ↔ ∃ a, o = some a ∧ f a = b := by
+  match o with
+  | none => simp only [map_none', reduceCtorEq, false_and, exists_false]
+  | some a => simp only [map_some', some.injEq, eq_comm, exists_eq_left']
+
+@[simp]
+lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Option α) :
+  Option.map f.rangeFactorization a = (a.map f).pmap Subtype.mk (fun a ha => by
+    simp_all [mem_map, Set.mem_range]; obtain ⟨y, _hy, hyy⟩ := ha; exact ⟨y, hyy⟩) := by
+  match a with
+  | none => rfl
+  | some a => rfl
 
 end Option

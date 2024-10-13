@@ -1,4 +1,5 @@
 import Mathlib.Data.Sym.Sym2.Order
+import Kura.Dep.Embedding
 -- import Mathlib
 
 
@@ -73,6 +74,56 @@ def pmap {P : α → Prop} (f : ∀ a, P a → β) (s : Sym2 α):
       (fun s => (∀ a ∈ s, P a) → Sym2 β) _ s₂ e H = _).trans (Quot.sound (?_) : g p Hp = g q Hq)
     rw [rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
     apply hpq.imp <;> rintro rfl <;> simp
+
+@[simp]
+lemma pmap_pair (P : α → Prop) (f : ∀ a, P a → β) (a b : α) (h : P a) (h' : P b) :
+    pmap f s(a, b) (by simp only [mem_iff, forall_eq_or_imp, h, forall_eq, h', and_self]) =
+    s(f a h, f b h') := by
+  simp only [pmap]
+
+@[simp]
+lemma mem_pmap_iff {P : α → Prop} (f : ∀ a, P a → β) (x y : α) (h : ∀ a ∈ s(x, y), P a) (b : β) :
+  b ∈ s(x, y).pmap f h ↔ ∃ (a : α) (ha : a ∈ s(x, y)), b = f a (h a ha) := by
+  rw [pmap_pair _ _ _ _ (h x (by simp only [mem_iff, true_or])) (h y (by simp only [mem_iff, or_true]))]
+  simp only [mem_iff]
+  constructor
+  · rintro (rfl | rfl)
+    · use x, Or.inl rfl
+    · use y, Or.inr rfl
+  · rintro ⟨a, (rfl | rfl), rfl⟩
+    exact Or.inl rfl
+    exact Or.inr rfl
+
+@[simp]
+lemma pmap_subtype_map_val (P : α → Prop) (s : Sym2 α) (h : ∀ a ∈ s, P a) :
+    (s.pmap Subtype.mk h).map Subtype.val = s := by
+  ext x
+  simp only [mem_map, Subtype.exists, exists_and_right, exists_eq_right]
+  constructor
+  · rintro ⟨y, hy⟩
+
+    sorry
+  ·
+    sorry
+
+lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Sym2 α) :
+  Sym2.map f.rangeFactorization a = (a.map f).pmap Subtype.mk (fun a ha => by
+    simp_all [mem_map, Set.mem_range]; obtain ⟨y, hy, hyy⟩ := ha; exact ⟨y, hyy⟩) := by
+  simp [Function.Embedding.rangeFactorization_coe]
+  ext ⟨x, hx⟩
+  obtain ⟨x, rfl⟩ := hx
+  constructor
+  · rintro ⟨⟨y, hy⟩, heq⟩
+    obtain ⟨y, rfl⟩ := hy
+    have : a = s(x, y) := by
+      sorry
+    subst a
+    simp only [map_pair_eq, Set.mem_range, EmbeddingLike.apply_eq_iff_eq, exists_eq, pmap_pair,
+      mem_iff, Subtype.mk.injEq, true_or]
+  · rintro h
+    simp only [mem_map, Subtype.mk.injEq]
+    simp at h
+    sorry
 
 def attachWith (s : Sym2 α) (P : α → Prop) (f : ∀ a ∈ s, P a) :
   Sym2 {a // P a} :=
@@ -211,6 +262,21 @@ theorem toMultiset_card (s : Sym2 α) : Multiset.card s.toMultiset = 2 := by sim
 @[simp]
 theorem mem_toMultiset_iff (a : α) (s : Sym2 α) : a ∈ s.toMultiset ↔ a ∈ s := by
   rw [toMultiset, mem_equivMultiset_iff_mem]
+
+theorem equivSym_map (f : α → β) (s : Sym2 α) :
+  (Sym2.equivSym β) (s.map f) = (Sym2.equivSym _ s).map f := by
+  simp only [equivSym, sym2EquivSym', Quot.map, Sym.symEquivSym', Equiv.trans_apply,
+    Equiv.coe_fn_mk, Sym.map, Multiset.map, Quot.liftOn, Sym.val_eq_coe]
+  -- rw [Equiv.subtypeQuotientEquivQuotientSubtype_symm_mk (fun (l : List α) => l.length = 2) (fun s ↦ Multiset.card s = 2) (fun _ => by rfl) (fun _ => by rfl) _]
+  sorry
+
+@[simp]
+theorem toMultiset_map [DecidableEq β] (f : α → β) (s : Sym2 α) :
+    (s.map f).toMultiset = s.toMultiset.map f := by
+  have := equivSym_map f s
+  apply_fun (·.val) at this
+  exact this
+
 
 def Nodup (s : Sym2 α) : Prop := ¬ s.IsDiag
 

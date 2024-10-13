@@ -8,8 +8,16 @@ structure Graph (V E : Type*) [LinearOrder V] where
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e e' : E) (u v w : V)
+variable {U V W E F E' : Type*} [LinearOrder U] [LinearOrder V] [LinearOrder W] (G : Graph V E)
+  (e e' : E) (u v w : V)
 
+def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
+  (@Fintype.elems E _ : Finset E)
+  |>.val
+  |>.map G.inc
+
+unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
+  reprPrec G _ := "Graph " ++ repr G.toEdgeMultiset
 
 /- Carry the defs from Edges to Graph -/
 @[simp] abbrev isDir : Bool := (G.inc e).isDir
@@ -87,7 +95,7 @@ def neighbourhood : Set V := {u | G.adj u v}
 
 macro u:term "--" e:term "--" v:term : term => `(G.canGo $u $e $v)
 
-variable (H : Graph W F)
+variable (H : Graph W F) (I : Graph U E')
 
 structure Hom where
   fᵥ : V → W
@@ -98,17 +106,31 @@ def Hom.inj (a : Hom G H) : Prop := a.fᵥ.Injective ∧ a.fₑ.Injective
 
 def Hom.surj (a : Hom G H) : Prop := a.fᵥ.Surjective ∧ a.fₑ.Surjective
 
-structure Emb where
+structure SubgraphOf where
   fᵥ : V ↪ W
   fₑ : E ↪ F
   comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
 
-macro G:term "⊆ᴳ" H:term :term => `(Graph.Emb $G $H)
+macro G:term "⊆ᴳ" H:term :term => `(Graph.SubgraphOf $G $H)
+
+unsafe instance [Repr W] [Repr V] [Fintype E] [Fintype F] : Repr (G ⊆ᴳ H) where
+  reprPrec _SubgraphOf _ := repr G ++ " ⊆ᴳ " ++ repr H
+
+def SubgraphOf.refl : G ⊆ᴳ G := ⟨Function.Embedding.refl V, Function.Embedding.refl E,
+  fun _ => (map_id _).symm ⟩
+
+def SubgraphOf.trans {H : Graph W F} {I : Graph U E'} (a : G ⊆ᴳ H) (b : H ⊆ᴳ I) : G ⊆ᴳ I where
+  fᵥ := a.fᵥ.trans b.fᵥ
+  fₑ := a.fₑ.trans b.fₑ
+  comm := by
+    intro e
+    simp only [Function.Embedding.trans_apply, b.comm, map, a.comm]
+    exact (map_comp a.fᵥ b.fᵥ (G.inc e)).symm
 
 structure Isom where
-  toEmb : G ⊆ᴳ H
-  invEmb : H ⊆ᴳ G
+  toSubgraphOf : G ⊆ᴳ H
+  invSubgraphOf : H ⊆ᴳ G
 
-macro G:term "≅ᴳ" H:term :term => `(Graph.Isom $G $H)
+macro G:term "≃ᴳ" H:term :term => `(Graph.Isom $G $H)
 
 end Graph

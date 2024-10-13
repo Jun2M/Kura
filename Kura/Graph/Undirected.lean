@@ -11,7 +11,7 @@ def get : Sym2 V :=
   | dir (a, b) => by
     have := Undirected.edge_symm (G := G) e
     rw [isUndir, h] at this
-    exact (not_isUndir_of_dir _ _ this).elim
+    exact (not_isUndir_of_dir _ this).elim
   | undir s => s
 
 @[simp]

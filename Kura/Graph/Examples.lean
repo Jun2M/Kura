@@ -11,14 +11,6 @@ open edge
 variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
 
 
-def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
-  (@Fintype.elems E _ : Finset E)
-  |>.val
-  |>.map G.inc
-
-unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
-  reprPrec G _ := "Graph " ++ repr G.toEdgeMultiset
-
 def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
   inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get (e.cast (by rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange])))
 #eval! CompleteGraph 4
