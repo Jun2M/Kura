@@ -24,9 +24,10 @@ lemma mem_outEdges [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ G.startAt e 
 -- def outNeighbors [SearchableOut G] : Multiset V := (G.outEdges v |>.val |>.map (G.gofrom? v ·)).eraseNone
 -- def outDegree [SearchableOut G] : ℕ := Multiset.card (G.outNeighbors v)
 
-lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ G.get e := by
+lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ s(G.v1 e, G.v2 e) := by
   rw [mem_outEdges]
-  simp only [startAt, inc_eq_undir_get, mem_startAt_undir]
+  simp only [startAt, inc_eq_undir_v12, undir_startAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
+    Multiset.mem_cons, Multiset.mem_singleton, Sym2.mem_iff]
 
 -- There is a finset of edges that leads into a vertex
 class SearchableIn where
