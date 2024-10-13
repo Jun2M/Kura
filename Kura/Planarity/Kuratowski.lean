@@ -19,7 +19,7 @@ lemma CompleteGraph5_not_Planar :
     refine (Nat.mul_le_mul_left l G.three_le_dualGraph_minDegree).trans ?_
     convert G.dualGraph.n_minDegree_le_two_m
 
-  have hEuler : 5 + l - 10 = 2 := EulerFormula G
+  have hEuler : 5 + l - 10 = 2 := EulerFormula_of_connected G
   rw [Nat.sub_toss_eq' (by omega), Nat.toss_add_eq (by omega)] at hEuler
   rw [hEuler] at h1; clear hEuler
   omega
@@ -37,7 +37,7 @@ lemma CompleteBipGraph33_not_Planar :
     refine (Nat.mul_le_mul_left l G.four_le_dualGraph_minDegree_of_bipartite).trans ?_
     convert G.dualGraph.n_minDegree_le_two_m
 
-  have hEuler : 6 + l - 9 = 2 := EulerFormula G
+  have hEuler : 6 + l - 9 = 2 := EulerFormula_of_connected G
   rw [Nat.sub_toss_eq' (by omega), Nat.toss_add_eq (by omega)] at hEuler
   rw [hEuler] at h1; clear hEuler
   omega

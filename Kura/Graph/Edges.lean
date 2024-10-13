@@ -660,16 +660,22 @@ lemma dir_v1 (a b : V) (he : (dir (some a, some b)).isFull) :
   (toFullEdge (dir (some a, some b)) he).v1 = a := rfl
 
 @[simp]
-lemma undir_v1 (s : Sym2 V) (he : (undir s).isFull) :
-  (toFullEdge (undir s) he).v1 = s.inf := rfl
+lemma undir_v1 (s : Sym2 V) :
+  (toFullEdge (undir s) (undir_isFull s)).v1 = s.inf := rfl
 
 @[simp]
 lemma dir_v2 (a b : V) (he : (dir (some a, some b)).isFull) :
   (toFullEdge (dir (some a, some b)) he).v2 = b := rfl
 
 @[simp]
-lemma undir_v2 (s : Sym2 V) (he : (undir s).isFull) :
-  (toFullEdge (undir s) he).v2 = s.sup := rfl
+lemma undir_v2 (s : Sym2 V) :
+  (toFullEdge (undir s) (undir_isFull s)).v2 = s.sup := rfl
+
+@[simp]
+lemma undir_v12_eq (s : Sym2 V) :
+  undir s((toFullEdge (undir s) (undir_isFull s)).v1,
+    (toFullEdge (undir s) (undir_isFull s)).v2) = undir s := by
+  simp only [undir_v1, undir_v2, Sym2.inf_sup_eq_self]
 
 lemma canGo_v1_v2 (e : edge V) (he : e.isFull) : canGo (e.v1 he) e (e.v2 he) := by
   match e, he with

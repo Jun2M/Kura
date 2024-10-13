@@ -1,4 +1,5 @@
 import Kura.Graph.Undirected
+import Kura.Dep.List
 
 namespace Graph
 open edge
@@ -95,6 +96,9 @@ lemma vertices_chain'_adj : w.vertices.Chain' G.adj := by
 
 def edges : List E := w.steps.map (·.snd.fst)
 
+lemma length_ne_zero_iff_edges_ne_nil : w.length ≠ 0 ↔ w.edges ≠ [] := by
+  simp only [ne_eq, length_ne_zero_iff, edges, List.map_eq_nil]
+
 def nil (u : V) : Walk G where
   start := u
   steps := []
@@ -121,18 +125,42 @@ lemma nil_of_length_zero (w : Walk G) (h : w.length = 0) : w = nil w.start := by
   simp only [h, List.getElem?_nil, Option.mem_def, reduceCtorEq, nil_steps]
 
 @[simp]
-lemma nil_iff_length_zero (w : Walk G) : w = nil w.start ↔ w.length = 0  := by
+lemma length_zero_iff_eq_nil (w : Walk G) : w.length = 0 ↔ w = nil w.start  := by
   constructor
+  · exact nil_of_length_zero w
   · intro h
     rw [h]
     rfl
-  · exact nil_of_length_zero w
+
+@[simp]
+lemma nil_vertices (u : V) : (nil (G := G) u).vertices = [u] := by
+  simp only [vertices, nil_start, nil_steps, List.map_nil]
 
 @[simp]
 lemma mem_nil_vertices (u v : V) : v ∈ (nil (G := G) u).vertices ↔ v = u := List.mem_singleton
 
 @[simp]
+lemma nil_edges (u : V) : (nil (G := G) u).edges = [] := by
+  simp only [edges, nil_steps, List.map_nil]
+
+@[simp]
 lemma not_mem_nil_edges (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e
+
+lemma eq_nil_iff_edges_nil (w : Walk G) : w = nil w.start ↔ w.edges = [] := by
+  constructor
+  · intro h
+    rw [h]
+    exact nil_edges _
+  · intro h
+    simp [edges] at h
+    ext1
+    · rfl
+    · rw [h]
+      rfl
+
+lemma eq_nil [IsEmpty E] (w : Walk G) : w = nil w.start := by
+  rw [eq_nil_iff_edges_nil]
+  exact List.eq_nil_of_IsEmpty w.edges
 
 def some (u : V) (e : E) (v : V) (h : G.canGo u e v) : Walk G where
   start := u
@@ -432,15 +460,23 @@ lemma nil_of_length_zero (p : Path G) (h : p.length = 0) : p = nil p.start := by
   simp only [h, List.getElem?_nil, Option.mem_def, reduceCtorEq, nil_steps]
 
 @[simp]
-lemma nil_iff_length_zero (p : Path G) : p = nil p.start ↔ p.length = 0  := by
+lemma length_zero_iff_eq_nil (p : Path G) : p.length = 0 ↔ p = nil p.start  := by
   constructor
+  · exact nil_of_length_zero p
   · intro h
     rw [h]
     rfl
-  · exact nil_of_length_zero p
+
+@[simp]
+lemma nil_vertices (u : V) : (nil (G := G) u).vertices = [u] := by
+  simp only [Walk.vertices, nil_start, nil_steps, List.map_nil]
 
 @[simp]
 lemma mem_nil_vertices (u v : V) : v ∈ (nil (G := G) u).vertices ↔ v = u := List.mem_singleton
+
+@[simp]
+lemma nil_edges (u : V) : (nil (G := G) u).edges = [] := by
+  simp only [Walk.edges, nil_steps, List.map_nil]
 
 @[simp]
 lemma not_mem_nil_edges (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e

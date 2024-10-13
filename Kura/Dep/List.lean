@@ -45,6 +45,11 @@ lemma sym2_notDiag_length [DecidableEq α] {l : List α} (h : l.Nodup) :
 lemma singlton_ne_nil {a : α} : [a] ≠ [] := by
   simp only [ne_eq, cons_ne_self, not_false_eq_true]
 
+lemma eq_nil_of_IsEmpty [IsEmpty α] (l : List α) : l = [] := by
+  rcases l with _ | ⟨h, t⟩
+  rfl
+  exact IsEmpty.elim (by assumption) h
+
 /- ------------------------------------------------------------------------------------ -/
 
 

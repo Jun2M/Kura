@@ -17,6 +17,10 @@ theorem add_toss_eq {α : Type} [AddGroup α] {a b c : α} : a + b = c ↔ a = c
     ← eq_sub_iff_add_eq
   ]
 
+theorem Nat.add_toss_eq {a b c : ℕ} (hc : b ≤ c) : a + b = c ↔ a = c - b := by omega
+
+theorem Nat.add_toss_eq' {a b c : ℕ} (hc : 0 < a) : a + b = c ↔ a = c - b := by omega
+
 theorem eq_toss_add {α : Type} [AddGroup α] {a b c : α} : a = b + c ↔ -b + a = c := by
   rw [
     ← neg_add_eq_iff_eq_add

@@ -11,6 +11,45 @@ open edge
 variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
 
 
+instance LinearOrderEmpty : LinearOrder Empty where
+  le := fun _ _ => True
+  le_refl a := a.elim
+  le_trans a := a.elim
+  le_antisymm a := a.elim
+  le_total a := a.elim
+  decidableLE a := a.elim
+  compare a := a.elim
+  decidableEq a := a.elim
+
+def EdgelessGraph (n : ℕ): Graph (Fin n) Empty where
+  inc e := e.elim
+#eval! EdgelessGraph 5
+
+instance instEdgelessGraphSimple (n : ℕ) : Simple (EdgelessGraph n) where
+  all_full e := e.elim
+  no_loops e := e.elim
+  edge_symm e := e.elim
+  inc_inj e := e.elim
+
+instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph n).connected where
+  all_conn u v := by have : n < 2 := Fact.out; interval_cases n <;> rw [Subsingleton.allEq u v] <;>
+    apply conn_refl
+
+lemma EdgelessGraph_not_connected (n : ℕ) (hn : n ≠ 1) : ¬ (EdgelessGraph n).connected := by
+  intro h
+  by_cases hNontrivial : Nontrivial (Fin n)
+  · obtain ⟨u, v, huv⟩ := hNontrivial
+    obtain ⟨P, rfl, rfl⟩ := (h.all_conn u v).path
+    by_cases hPlen : P.length = 0
+    · rw [P.length_zero_iff_eq_nil] at hPlen
+      rw [hPlen] at huv
+      simp only [Path.nil_start, Path.nil_finish, ne_eq, not_true_eq_false] at huv
+    · obtain e := P.edges.head ((Walk.length_ne_zero_iff_edges_ne_nil P.toWalk).mp hPlen)
+      exact e.elim
+  ·
+    sorry
+
+
 def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
   inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get (e.cast (by rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange])))
 #eval! CompleteGraph 4

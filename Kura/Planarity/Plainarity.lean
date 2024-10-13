@@ -21,7 +21,6 @@ structure AbstractDual (H : Graph F E) where
 class Planar_by_AbstractDual :=
   F : Type*
   FLinearOrder : LinearOrder F
-  FNonempty : Nonempty F
   dualGraph : Graph F E
   dualGraphUndir : dualGraph.Undirected
   dualGraphConn : dualGraph.connected
@@ -58,9 +57,7 @@ lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
     obtain ⟨W, hW⟩ := this
     have : W.edges = [e] := sorry
     exact W.isLoop_of_edges_singleton G.dualGraph e this
-  · let v := (G.dualGraph.get e).inf
-    obtain C : G.dualGraph.Cycle := Cycle.ofLoop G.dualGraph e h
-
+  · obtain C : G.dualGraph.Cycle := Cycle.ofLoop G.dualGraph e h
     have hmincut := (G.duality.minEdgeCut_cycle C.edges.toFinset).mpr ⟨C, rfl⟩
     have : C.edges.toFinset = {e} := sorry
     simp only [this, Finset.coe_singleton] at hmincut
@@ -71,38 +68,96 @@ instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConn
     Planar_by_AbstractDual (dualGraph G) where
   F := V
   FLinearOrder := by assumption
-  FNonempty := by assumption
   dualGraph := G
   dualGraphUndir := by assumption
   dualGraphConn := G.connected_of_nConnected 3
   isDual := sorry
 
+instance instEdgelessGraphPlanar_by_AbstractDual (n : ℕ) :
+    Planar_by_AbstractDual (EdgelessGraph n) where
+  F := Fin 1
+  FLinearOrder := by infer_instance
+  dualGraph := EdgelessGraph 1
+  dualGraphUndir := by infer_instance
+  dualGraphConn := by have : Fact (1 < 2) := Fact.mk (by omega); infer_instance
+  isDual := by
+    refine ⟨λ S => ⟨λ h => ?_, λ ⟨c, _hc⟩ => ?_⟩⟩
+    · have : S = ∅ := S.eq_empty_of_isEmpty
+      subst this
+      exfalso
+      exact empty_not_minEdgeCut _ h
+    · have : c.edges = [] := List.eq_nil_of_IsEmpty c.edges
+      exfalso
+      exact c.eNonempty this
 
+instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
+    Planar_by_AbstractDual G where
+  F := Fin 1
+  FLinearOrder := by infer_instance
+  dualGraph := {inc := (IsEmpty.elim (by assumption) ·)}
+  dualGraphUndir := by sorry
+  dualGraphConn := by
+    refine ⟨λ u v => ?_⟩
+    have := Subsingleton.allEq u v
+    subst u
+    apply conn_refl
+  isDual := by
+    refine ⟨λ S => ⟨λ h => ?_, λ ⟨c, hc⟩ => ?_⟩⟩
+    · have : S = ∅ := S.eq_empty_of_isEmpty
+      subst this
+      exfalso
+      exact empty_not_minEdgeCut _ h
+    · have : c.edges = [] := List.eq_nil_of_IsEmpty c.edges
+      exfalso
+      exact c.eNonempty this
 
-/--
-Nonempty V is assumed because empty graph is connected but has 0 components
-Hence, n - m + f = 1 not 2
-Thought: Should we redefine connected graph to be the graphs with 1 compoent?
--/
-theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E] [G.connected]:
-    Fintype.card V + Fintype.card G.Faces - Fintype.card E = 2 := by
-  have := VSubsingletonofConnectedEcardZero G
-  revert this
-  induction Fintype.card E  with
+lemma Faces_card_eq_one_of_no_edges [IsEmpty E] :
+    @Fintype.card G.Faces (by have := Fintype.ofIsEmpty (α := E); infer_instance) = 1 := by
+  sorry
+
+lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
+    Fintype.card E = n →
+      Fintype.card V + Fintype.card G.Faces - Fintype.card E = 1 + NumberOfComponents G := by
+  have hVpos : Fintype.card V > 0 := Fintype.card_pos
+  induction n generalizing E with
   | zero =>
-    rintro h
-    simp only [true_implies] at h
-    have hle1: Fintype.card V ≤ 1 := Fintype.card_le_one_iff_subsingleton.mpr h
-    have h0lt: Fintype.card V > 0 := Fintype.card_pos
-    have : Fintype.card V = 1 := Eq.symm (Nat.le_antisymm h0lt hle1)
-    rw [this]; clear h hle1 h0lt this
+    intro hE0
+    have hE := (Fintype.card_eq_zero_iff (α := E)).mp hE0
+    have hV := NumberOfComponents_eq_card_V G
+    rw [hV, hE0, Faces_card_eq_one_of_no_edges]
+    omega
+  | succ m ih =>
+    intro hEcard
+    have : Nonempty E := by
+      rw [← Fintype.card_pos_iff]
+      omega
+    obtain e : E := Classical.choice this
+    obtain G' := G{{e}ᶜ}ᴳ
+    have hG'Undir : G'.Undirected := by sorry
+    have hG'Planar : Planar_by_AbstractDual G' := by sorry
+    specialize @ih ({e}ᶜ : Set E) _ G' hG'Undir hG'Planar _ (by simp only [compl,
+      Set.mem_singleton_iff, Set.coe_setOf, Fintype.card_subtype_compl, hEcard,
+      Fintype.card_ofSubsingleton, add_tsub_cancel_right])
+    simp only [compl, Set.coe_setOf, Set.mem_setOf_eq, Set.mem_singleton_iff,
+      Fintype.card_subtype_compl, hEcard, Fintype.card_ofSubsingleton, add_tsub_cancel_right] at ih
+    rw [Nat.sub_toss_eq' (by omega), Nat.add_toss_eq' hVpos] at ih ⊢
+    rw [ih]; clear ih
 
+    suffices h: G'.NumberOfComponents + Fintype.card G.Faces =
+      1 + G.NumberOfComponents + Fintype.card G'.Faces by
+      omega
+
+    obtain u := G.v1 e
+    obtain v := G.v2 e
     sorry
 
+theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E]:
+    Fintype.card V + Fintype.card G.Faces - Fintype.card E = 1 + NumberOfComponents G :=
+  EulerFormula_aux G rfl
 
-  | succ m => sorry
-
-
+theorem EulerFormula_of_connected [Nonempty V] [Fintype V] [Fintype E] [G.connected] :
+    Fintype.card V + Fintype.card G.Faces - Fintype.card E = 2 := by
+  rw [EulerFormula G, NumberOfComponents_eq_one G]
 
 def IsFacialCycle (w : Cycle G) [Searchable G.dualGraph] : Prop :=
   ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.incEdges f
