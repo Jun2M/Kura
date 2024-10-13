@@ -1,6 +1,13 @@
 import Mathlib.Logic.Embedding.Set
 
 
+@[simp]
+lemma Function.Embedding.coe_trans {α β γ : Type*} (f : α ↪ β) (g : β ↪ γ) :
+    ⇑(f.trans g) = g ∘ f := rfl
+
+@[simp]
+lemma Function.Embedding.coe_eq_coe {α β : Type*} (f : α ↪ β) : ⇑f = ↑f := rfl
+
 def Function.Embedding.rangeFactorization {α β : Type*} (f : α ↪ β) : α ↪ Set.range f where
   toFun := Set.rangeFactorization f
   inj' := by

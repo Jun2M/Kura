@@ -38,14 +38,18 @@ def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v �
       · assumption)
 
 -- Merges to the start of the path
-def Ms (G : Graph V E) [DecidableEq E] (P : G.Path) :
+def Mp (G : Graph V E) [DecidableEq E] (P : G.Path) :
     Graph {v : V // v ∉ P.vertices.tail} {e : E // e ∉ P.edges} where
   inc e := G
     |>.Qs {v : V | v ∈ P.vertices.tail} P.start P.start_not_mem_vertices_tail
     |>.Es {e : E | e ∉ P.edges}
     |>.inc e
 
--- contraction by a rooted tree?
+-- contraction by a rooted forest?
+
+structure MinorOf (G : Graph V E) (H : Graph W F) [DecidableEq E] [DecidableEq F] where
+  Ps : List (H.Path)
+-- definition not completed!!!!!!!
 
 --------------------------------------------------------------------------------
 @[simp]
@@ -125,7 +129,20 @@ lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype
       rintro ⟨e, ⟨e, rfl⟩⟩
       simp only [Equiv.coe_toEmbedding, map, EVs_inc, pmap]
       sorry
-  ·
-    sorry
+
+  · rintro ⟨Sv, hSv, Se, hSe, hSve, ⟨⟨hGH, hHG⟩⟩⟩
+    refine ⟨⟨hGH.fᵥ.trans (Function.Embedding.subtype _), hGH.fₑ.trans (Function.Embedding.subtype _), ?_⟩⟩
+    intro e
+    have := hGH.comm e
+    rw [EVs_inc, pmap, map] at this
+    simp only [Function.Embedding.trans_apply, Function.Embedding.coe_subtype, map,
+      Function.Embedding.coe_trans, map_comp]
+    rw [← this, pmap_subtype_map_val]
+
+@[simp]
+lemma Qs_inc (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v ∉ S) (e : E) :
+    (G.Qs S v hv).map e Subtype.val = G.map e (fun u => if u ∈ S then v else u) := by
+  simp only [map, Qs, pmap_subtype_map_val]
+
 
 end Graph

@@ -604,6 +604,15 @@ lemma pmap_eq_undir_iff {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h 
     · rintro ⟨s', rfl, rfl⟩
       rfl
 
+@[simp]
+lemma pmap_subtype_map_val {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) :
+    (e.pmap Subtype.mk h).map Subtype.val = e  := by
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [map, pmap, Option.pmap, Option.map_some',
+      Option.map_none']
+  | undir s => simp only [map, pmap, Sym2.pmap_subtype_map_val]
+
 -- lemma pmap_id {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) : e.pmap (λ a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]
 
