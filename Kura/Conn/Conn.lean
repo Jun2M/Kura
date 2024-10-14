@@ -1,7 +1,7 @@
 import Kura.Conn.Walk
 import Kura.Graph.Subgraph
-import Kura.Searchable.Finite
 import Kura.Dep.Rel
+import Kura.Graph.Searchable
 
 
 namespace Graph
