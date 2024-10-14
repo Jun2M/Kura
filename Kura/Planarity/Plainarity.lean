@@ -149,7 +149,17 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
 
     obtain u := G.v1 e
     obtain v := G.v2 e
-    sorry
+    by_cases hG'conn : G'.conn u v
+    · have hNC : G'.NumberOfComponents = G.NumberOfComponents := by
+        sorry
+      have hF : Fintype.card G'.Faces + 1 = Fintype.card G.Faces := by
+        sorry
+      omega
+    · have hNC : G'.NumberOfComponents = G.NumberOfComponents + 1 := by
+        sorry
+      have hF : Fintype.card G'.Faces = Fintype.card G.Faces := by
+        sorry
+      omega
 
 theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E]:
     Fintype.card V + Fintype.card G.Faces - Fintype.card E = 1 + NumberOfComponents G :=

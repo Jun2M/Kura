@@ -3,6 +3,8 @@ import Kura.Dep.Embedding
 -- import Mathlib
 
 
+
+
 namespace Sym2
 
 instance Functor : Functor Sym2 where
@@ -271,12 +273,17 @@ theorem equivSym_map (f : α → β) (s : Sym2 α) :
   sorry
 
 @[simp]
-theorem toMultiset_map [DecidableEq β] (f : α → β) (s : Sym2 α) :
+theorem map_toMultiset [DecidableEq β] (f : α → β) (s : Sym2 α) :
     (s.map f).toMultiset = s.toMultiset.map f := by
   have := equivSym_map f s
   apply_fun (·.val) at this
   exact this
 
+@[simp]
+lemma pmap_toMultiset (P : α → Prop) (f : ∀ a, P a → β) (s : Sym2 α) (h : ∀ a ∈ s, P a) :
+    (s.pmap f h).toMultiset = s.toMultiset.pmap f (fun a ha => h a ((mem_toMultiset_iff a s).mp ha)) := by
+  simp [toMultiset, equivSym_map]
+  sorry
 
 def Nodup (s : Sym2 α) : Prop := ¬ s.IsDiag
 

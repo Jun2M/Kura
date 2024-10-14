@@ -1,5 +1,6 @@
 import Kura.Graph.Edges
-import Kura.Dep.Finset
+import Kura.Dep.Embedding
+
 
 
 @[ext]
@@ -36,9 +37,7 @@ unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
 @[simp] abbrev flip : edge V := (G.inc e).flip
 @[simp] abbrev any := (G.inc e).any
 @[simp] abbrev all := (G.inc e).all
-@[simp] abbrev map (f : V → W) : edge W := (G.inc e).map f
-@[simp] abbrev pmap {P : V → Prop} (f : ∀ a, P a → W) (e : E) :
-  (∀ v ∈ G.inc e, P v) → edge W := ((G.inc e).pmap f ·)
+
 
 /-- A full graph is one with no half-edges.-/
 class fullGraph : Prop :=
@@ -95,12 +94,24 @@ def neighbourhood : Set V := {u | G.adj u v}
 
 macro u:term "--" e:term "--" v:term : term => `(G.canGo $u $e $v)
 
+
+def Vmap (f : V → W) : Graph (Set.range f) E where
+  inc e := G.inc e |>.map f
+    |>.pmap Subtype.mk (fun v hv => by
+      rw [mem_map_iff] at hv
+      obtain ⟨u, _hu, rfl⟩ := hv
+      exact Set.mem_range_self u)
+
+noncomputable def Emap (f : E ↪ F) : Graph V (Set.range f) where
+  inc e := G.inc ((Equiv.ofEmbedding f).symm e)
+
+
 variable (H : Graph W F) (I : Graph U E')
 
 structure Hom where
   fᵥ : V → W
   fₑ : E → F
-  comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
+  comm : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
 
 def Hom.inj (a : Hom G H) : Prop := a.fᵥ.Injective ∧ a.fₑ.Injective
 
@@ -109,7 +120,7 @@ def Hom.surj (a : Hom G H) : Prop := a.fᵥ.Surjective ∧ a.fₑ.Surjective
 structure SubgraphOf where
   fᵥ : V ↪ W
   fₑ : E ↪ F
-  comm : ∀ e, H.inc (fₑ e) = G.map e fᵥ
+  comm : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
 
 macro G:term "⊆ᴳ" H:term :term => `(Graph.SubgraphOf $G $H)
 

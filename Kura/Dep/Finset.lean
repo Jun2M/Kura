@@ -1,5 +1,6 @@
 import Mathlib.Data.Finset.Slice
 import Mathlib.Data.Finset.Sort
+import Kura.Dep.List
 
 
 namespace Multiset
@@ -40,6 +41,20 @@ lemma ne_zero_of_mem {s : Multiset α} {a : α} (h : a ∈ s) : s ≠ 0 := by
   intro h0
   rw [h0] at h
   exact not_mem_zero a h
+
+lemma attachWith_map_val' [DecidableEq α] {s : Multiset α} {P : α → Prop}
+  (H : ∀ (x : α), x ∈ s → P x) (f : α → β) :
+    (s.attachWith P H).map (f ·.val) = s.map f := by
+  apply Quot.inductionOn
+  rintro l
+  -- have := List.attachWith_map_val
+  sorry
+
+@[simp]
+lemma attachWith_map_val [DecidableEq α] (s : Multiset α) {P : α → Prop}
+  (H : ∀ (x : α), x ∈ s → P x) : (s.attachWith P H).map Subtype.val = s := by
+  -- exact Quot.induction (fun l => (attachWith_map_val' H Subtype.val).symm) s
+  sorry
 
 end Multiset
 

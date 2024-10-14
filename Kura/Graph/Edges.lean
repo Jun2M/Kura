@@ -162,6 +162,8 @@ instance instedgeMem : Membership V (edge V) where
 instance instMemDecPred : ∀ (u : V), Decidable (u ∈ e) := by
   cases e <;> simp only [instedgeMem] <;> infer_instance
 
+lemma mem_endAt_iff_mem (e : edge V) (v : V) : v ∈ e.endAt ↔ v ∈ e := by rfl
+
 @[simp]
 lemma mem_dir_some_fst (a : V) (b : Option V) : a ∈ dir (some a, b) := by
   simp only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
@@ -219,6 +221,21 @@ lemma dir_undir_startAt_not_eq (x : Option V × Option V) (s : Sym2 V) :
   rw [undir_startAt_card] at h
   exact (dir_startAt_card x).ne h
 
+@[simp]
+lemma startAt_subset_endAt (e : edge V) : e.startAt ⊆ e.endAt := by
+  intro v hv
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [startAt, Multiset.mem_singleton, endAt,
+      Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons, Multiset.cons_zero,
+      List.foldl_nil, Multiset.mem_cons, true_or, Multiset.not_mem_zero]
+  | undir s =>
+    simp_all only [undir_startAt, Sym2.mem_toMultiset_iff, undir_endAt]
+
+lemma mem_of_mem_startAt : ∀ v, v ∈ e.startAt → v ∈ e := by
+  unfold instedgeMem
+  exact startAt_subset_endAt e
+
 def finishAt : Multiset V := match e with
   | dir (_, b) =>
     match b with
@@ -256,6 +273,20 @@ lemma dir_undir_finishAt_not_eq (x : Option V × Option V) (s : Sym2 V) :
   intro h
   rw [undir_finishAt_card] at h
   exact (dir_finishAt_card x).ne h
+
+lemma finishAt_subset_endAt (e : edge V) : e.finishAt ⊆ e.endAt := by
+  intro v hv
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [finishAt, Multiset.mem_singleton, endAt,
+      Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons, Multiset.cons_zero,
+      List.foldl_nil, Multiset.mem_cons, or_true, Multiset.not_mem_zero]
+  | undir s =>
+    simp_all only [undir_finishAt, Sym2.mem_toMultiset_iff, undir_endAt]
+
+lemma mem_of_mem_finishAt : ∀ v, v ∈ e.finishAt → v ∈ e := by
+  unfold instedgeMem
+  exact finishAt_subset_endAt e
 
 @[simp]
 lemma startAt_finishAt_not_disjoint_of_isLoop (e : edge V) : e.isLoop → e.startAt ∩ e.finishAt ≠ ∅ := by
@@ -530,14 +561,14 @@ lemma map_startAt (f : V → W) (e : edge V) : (e.map f).startAt = e.startAt.map
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [startAt, map, Multiset.map_cons, Multiset.map_zero]
-  | undir s => simp only [map, undir_startAt, Sym2.toMultiset_map]
+  | undir s => simp only [map, undir_startAt, Sym2.map_toMultiset]
 
 @[simp]
 lemma map_finishAt (f : V → W) (e : edge V) : (e.map f).finishAt = e.finishAt.map f := by
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [finishAt, map, Multiset.map_cons, Multiset.map_zero]
-  | undir s => simp only [map, undir_finishAt, Sym2.toMultiset_map]
+  | undir s => simp only [map, undir_finishAt, Sym2.map_toMultiset]
 
 @[simp]
 lemma map_id : e.map id = e := by
@@ -613,6 +644,21 @@ lemma pmap_subtype_map_val {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) 
       Option.map_none']
   | undir s => simp only [map, pmap, Sym2.pmap_subtype_map_val]
 
+@[simp]
+lemma pmap_startAt {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) :
+    (e.pmap f h).startAt = e.startAt.pmap f (λ v hv => h v (mem_of_mem_startAt e v hv)) := by
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [pmap, Option.pmap, dir_startAt, Option.isSome_some,
+      Option.get_some, Multiset.empty_eq_zero, dite_eq_ite, ite_true] <;> rfl
+  | undir s => simp only [startAt, pmap, Sym2.pmap_toMultiset]
+
+@[simp]
+lemma pmap_finishAt {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) :
+    (e.pmap f h).finishAt = e.finishAt.pmap f (λ v hv => h v (mem_of_mem_finishAt e v hv)) := by
+  sorry
+
+  
 -- lemma pmap_id {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) : e.pmap (λ a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]
 

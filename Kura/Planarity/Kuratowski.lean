@@ -1,4 +1,3 @@
-import Kura.Searchable.Finite
 import Kura.Planarity.Plainarity
 import Kura.Dep.Toss
 

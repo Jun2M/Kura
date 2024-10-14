@@ -1,4 +1,5 @@
 import Kura.Conn.Walk
+import Kura.Dep.Finset
 
 
 namespace Graph
@@ -16,6 +17,14 @@ def Vs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : Graph S {e // G.
     exact he v hv)
 
 macro G:term "[" S:term "]ᴳ" : term => `(Graph.Vs $G $S)
+
+def Vsp (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] {P : E → Prop}
+  (hP : ∀ e, G.all e (· ∈ S) ↔ P e) : Graph S {e // P e} where
+  inc e := G.inc e.val
+    |>.pmap Subtype.mk (fun v hv => by
+      obtain ⟨e, he⟩ := e
+      simp only [← hP e, all, all_iff, decide_eq_true_eq] at he
+      exact he v hv)
 
 def Es (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : Graph V S where
   inc := (G.inc ·.val)
@@ -37,6 +46,24 @@ def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v �
       · exact hv
       · assumption)
 
+def Qf (G : Graph V E) (f : V → V) (hf : Function.Involutive f) : Graph (Set.range f) E where
+  inc e := G.inc e
+    |>.map f
+    |>.pmap Subtype.mk (fun v hv => by
+      simp only [mem_map_iff] at hv
+      obtain ⟨u, _hu, rfl⟩ := hv
+      simp only [Set.mem_range, exists_apply_eq_apply])
+
+def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : Function.Involutive f)
+  (hfRange : ∀ v, v ∈ Set.range f ↔ P v) : Graph (Subtype P) E where
+  inc e := G.inc e
+    |>.map f
+    |>.pmap Subtype.mk (fun v hv => by
+      simp only [mem_map_iff] at hv
+      obtain ⟨u, _hu, rfl⟩ := hv
+      specialize hfRange (f u)
+      simpa only [Set.mem_range, exists_apply_eq_apply, true_iff] using hfRange)
+
 -- Merges to the start of the path
 def Mp (G : Graph V E) [DecidableEq E] (P : G.Path) :
     Graph {v : V // v ∉ P.vertices.tail} {e : E // e ∉ P.edges} where
@@ -47,9 +74,10 @@ def Mp (G : Graph V E) [DecidableEq E] (P : G.Path) :
 
 -- contraction by a rooted forest?
 
+/-- definition not completed!!!!!!! -/
 structure MinorOf (G : Graph V E) (H : Graph W F) [DecidableEq E] [DecidableEq F] where
   Ps : List (H.Path)
--- definition not completed!!!!!!!
+
 
 --------------------------------------------------------------------------------
 @[simp]
@@ -62,7 +90,7 @@ def Vs_subgraph (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : G[S]ᴳ
   fₑ := { toFun := (·.val), inj' := fun e₁ e₂ h => SetCoe.ext h }
   comm := by
     rintro ⟨e, he⟩
-    simp only [all, Function.Embedding.coeFn_mk, map, Vs_inc]
+    simp only [all, Function.Embedding.coeFn_mk, Vs_inc]
 
 @[simp]
 lemma Es_inc (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] (e : S) :
@@ -73,36 +101,13 @@ def Es_subgraph (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : G{S}ᴳ
   fₑ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
   comm := by
     rintro ⟨e, _he⟩
-    simp only [Function.Embedding.coeFn_mk, map, Es_inc, map_id]
+    simp only [Function.Embedding.coeFn_mk, Es_inc, map_id]
 
 @[simp]
 lemma EVs_inc (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
   [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) (e : Se) :
-    (G.EVs Sv Se he).inc e = G.pmap Subtype.mk e (by
+    (G.EVs Sv Se he).inc e = (G.inc e).pmap Subtype.mk (by
       specialize he e.val e.prop; simpa only [all, all_iff, decide_eq_true_eq] using he) := by rfl
-
-lemma aux (G : Graph V E) (H : Graph W F) (S : G ⊆ᴳ H) (e : E)
-  (hcomm : H.inc (S.fₑ e) = G.map e S.fᵥ) :
-    H.pmap Subtype.mk ↑(S.fₑ.rangeFactorization e) sorry = G.map e S.fᵥ.rangeFactorization := by
-  by_cases h : (G.map e S.fᵥ).isDir
-  · obtain ⟨a, b, hab⟩ := exist_of_isDir _ h
-    rw [eq_comm] at hcomm
-    change G.map e S.fᵥ = dir (a, b) at hab
-    simp only [map, map_eq_dir] at hab
-    obtain ⟨a', b', hab', rfl, rfl⟩ := hab
-    simp only [pmap, Function.Embedding.rangeFactorization_apply, map, hab', map_dir, pmap_eq_dir]
-    use a'.map S.fᵥ, b'.map S.fᵥ, by rw [← hcomm]; simp only [map, hab', map_dir]
-    constructor
-    · exact (Option.map_rangeFactorization S.fᵥ a').symm
-    · exact (Option.map_rangeFactorization S.fᵥ b').symm
-  · rw [not_isDir_iff_isUndir] at h
-    obtain ⟨s, hs⟩ := exist_of_isUndir _ h
-    clear h
-    simp at hs
-    obtain ⟨s', hs', rfl⟩ := hs
-    simp only [map, hs', map_undir, pmap, pmap_eq_undir_iff] at hcomm ⊢
-    use s'.map (S.fᵥ), (by rwa [Function.Embedding.rangeFactorization_coe])
-    exact (Sym2.map_rangeFactorization S.fᵥ s').symm
 
 lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype W] [Fintype E]
   [Fintype F] [DecidableEq E] [DecidableEq F] :
@@ -117,32 +122,46 @@ lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype
       intro w hw
       obtain ⟨e, he, rfl⟩ := he
       rw [hcomm e, mem_map_iff] at hw
-      obtain ⟨v, hv, rfl⟩ := hw
+      obtain ⟨v, _hv, rfl⟩ := hw
       use v
     · refine ⟨fᵥ.rangeFactorization, fₑ.rangeFactorization, ?_⟩
       intro e
       rw [EVs_inc]
-      apply aux G H ⟨fᵥ, fₑ, hcomm⟩ e (hcomm e)
+      simp only [Function.Embedding.rangeFactorization_apply]
+      have : (Multiset.map (↑·: { x // x ∈ Set.range ⇑fᵥ } → W)).Injective :=
+        Multiset.map_injective Subtype.val_injective
+      ext1 <;> simp only [Function.Embedding.rangeSplitting_apply, map_startAt, pmap_startAt,
+        map_finishAt, pmap_finishAt] <;> apply_fun (Multiset.map Subtype.val) using this <;>
+      simp only [hcomm e, Function.Embedding.rangeFactorization_apply, ← map_startAt,
+        ← map_finishAt] <;> clear this <;>
+      change Multiset.map Subtype.val (Multiset.attachWith _ _ _) = _ <;>
+      simp only [map_startAt, map_finishAt, Multiset.attachWith_map_val, Multiset.map_map,
+        Function.comp_apply]
 
-    · refine ⟨(fᵥ.rangeFactorization.equivOfSurjective fᵥ.rangeFactorization_surj).symm.toEmbedding,
-        (fₑ.rangeFactorization.equivOfSurjective fₑ.rangeFactorization_surj).symm.toEmbedding, ?_⟩
+    · refine ⟨fᵥ.rangeSplitting, fₑ.rangeSplitting, ?_⟩
       rintro ⟨e, ⟨e, rfl⟩⟩
-      simp only [Equiv.coe_toEmbedding, map, EVs_inc, pmap]
-      sorry
+      rw [EVs_inc]
+      have : Function.Injective (Multiset.map ⇑fᵥ) := Multiset.map_injective fᵥ.inj'
+      ext1 <;> simp only [Function.Embedding.rangeSplitting_apply, map_startAt, pmap_startAt,
+        map_finishAt, pmap_finishAt] <;> apply_fun (Multiset.map fᵥ) using this <;>
+      simp only [← map_startAt, ← map_finishAt, ← hcomm e, Multiset.map_map, Function.comp_apply,
+        Function.Embedding.rangeSplitting_eq_val] <;> clear this <;>
+      change _ = Multiset.map Subtype.val (Multiset.attachWith _ _ _) <;>
+      rw [Multiset.attachWith_map_val ]
 
-  · rintro ⟨Sv, hSv, Se, hSe, hSve, ⟨⟨hGH, hHG⟩⟩⟩
+  · rintro ⟨Sv, hSv, Se, hSe, hSve, ⟨⟨hGH, _hHG⟩⟩⟩
     refine ⟨⟨hGH.fᵥ.trans (Function.Embedding.subtype _), hGH.fₑ.trans (Function.Embedding.subtype _), ?_⟩⟩
     intro e
     have := hGH.comm e
-    rw [EVs_inc, pmap, map] at this
-    simp only [Function.Embedding.trans_apply, Function.Embedding.coe_subtype, map,
+    rw [EVs_inc] at this
+    simp only [Function.Embedding.trans_apply, Function.Embedding.coe_subtype,
       Function.Embedding.coe_trans, map_comp]
     rw [← this, pmap_subtype_map_val]
 
 @[simp]
 lemma Qs_inc (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v ∉ S) (e : E) :
-    (G.Qs S v hv).map e Subtype.val = G.map e (fun u => if u ∈ S then v else u) := by
-  simp only [map, Qs, pmap_subtype_map_val]
+    ((G.Qs S v hv).inc e).map Subtype.val = (G.inc e).map (fun u => if u ∈ S then v else u) := by
+  simp only [Qs, pmap_subtype_map_val]
 
 
 end Graph
