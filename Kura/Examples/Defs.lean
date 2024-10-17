@@ -1,4 +1,4 @@
-import Kura.Conn.Conn
+import Kura.Graph.Undirected
 import Kura.Dep.List
 import Mathlib.Data.Prod.Lex
 import Mathlib.Data.Sum.Order
@@ -31,20 +31,7 @@ instance instEdgelessGraphSimple (n : ℕ) : Simple (EdgelessGraph n) where
   edge_symm e := e.elim
   inc_inj e := e.elim
 
-instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph n).connected where
-  all_conn u v := by have : n < 2 := Fact.out; interval_cases n <;> rw [Subsingleton.allEq u v] <;>
-    apply conn_refl
 
-lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph n).connected := by
-  intro h
-  obtain ⟨u, v, huv⟩ := Fin.nontrivial_iff_two_le.mpr hn
-  obtain ⟨P, rfl, rfl⟩ := (h.all_conn u v).path
-  by_cases hPlen : P.length = 0
-  · rw [P.length_zero_iff_eq_nil] at hPlen
-    rw [hPlen] at huv
-    simp only [Path.nil_start, Path.nil_finish, ne_eq, not_true_eq_false] at huv
-  · obtain e := P.edges.head ((Walk.length_ne_zero_iff_edges_ne_nil P.toWalk).mp hPlen)
-    exact e.elim
 
 
 def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
@@ -72,8 +59,7 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
     exact e₂.prop
     refine (List.nodup_finRange n).sym2.filter _
 
-instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected := by
-  sorry
+
 
 def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
@@ -129,8 +115,6 @@ instance instCompleteBipGraphSimple (n₁ n₂ : ℕ+) : Simple (CompleteBipGrap
     rw [Sum.inl.inj_iff, Sum.inr.inj_iff] at h
     exact Prod.ext_iff.mpr h
 
-instance instCompleteBipGraphConnected (n₁ n₂ : ℕ+) : (CompleteBipGraph n₁ n₂).connected := by
-  sorry
 
 instance instCompleteBipGraphBip (n₁ n₂ : ℕ+) : Bipartite (CompleteBipGraph n₁ n₂) where
   L := sorry

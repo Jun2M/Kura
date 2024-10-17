@@ -1,4 +1,4 @@
-import Kura.Graph.Undirected
+import Kura.Graph.Add
 import Kura.Dep.List
 
 namespace Graph
@@ -417,6 +417,39 @@ lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.ve
 --     use ih
 --     sorry
 
+
+def SubgraphOf {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) : Walk H where
+  start := h.fᵥ w.start
+  steps := w.steps.map (fun ⟨u, e, v⟩ => (h.fᵥ u, h.fₑ e, h.fᵥ v))
+  start_spec hn := by
+    simp only [List.head_map, EmbeddingLike.apply_eq_iff_eq]
+    apply w.start_spec
+  step_spec := by
+    simp only [List.mem_map, Prod.exists, canGo, forall_exists_index, and_imp, Prod.forall,
+      Prod.mk.injEq]
+    rintro w₁ f w₂ v₁ e v₂ hve rfl rfl rfl
+    exact h.CanGo _ _ _ _ _ (w.step_spec (v₁, e, v₂) hve)
+  next_step := by
+    refine List.chain'_map_of_chain' _ ?_ w.next_step
+    rintro ⟨u, e, v⟩ ⟨u', e', v'⟩ h
+    simpa only [EmbeddingLike.apply_eq_iff_eq] using h
+
+@[simp]
+lemma SubgraphOf_start {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+    (w.SubgraphOf h).start = h.fᵥ w.start := rfl
+
+@[simp]
+lemma SubgraphOf_vertices {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+    (w.SubgraphOf h).vertices = w.vertices.map h.fᵥ := by
+  simp only [vertices, SubgraphOf, List.map_map, List.map_cons, List.cons.injEq, List.map_inj_left,
+    Function.comp_apply, implies_true, and_self]
+
+@[simp]
+lemma SubgraphOf_finish {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+    (w.SubgraphOf h).finish = h.fᵥ w.finish := by
+  rw [← vertices_getLast_eq_finish, ← vertices_getLast_eq_finish]
+  simp only [SubgraphOf_vertices, List.getLast_map, vertices_getLast_eq_finish]
+
 end Walk
 
 @[ext]
@@ -600,6 +633,13 @@ lemma mem_reverse_vertices [Undirected G] (p : Path G) (v : V) :
 lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
     e ∈ p.reverse.edges ↔ e ∈ p.edges := by
   sorry
+
+def SubgraphOf {G : Graph V E} {H : Graph W F} (p : Path G) (h : G.SubgraphOf H) : Path H where
+  toWalk := p.toWalk.SubgraphOf h
+  vNodup := by
+    simp only [Walk.SubgraphOf_vertices]
+    apply p.vNodup.map h.fᵥ.inj'
+
 
 end Path
 

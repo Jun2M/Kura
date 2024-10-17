@@ -92,18 +92,7 @@ lemma ne_of_mem_incEE_of_notLoop (h : e' ∈ G.incEE e) (hloop : ¬G.isLoop e) :
 def adj : Prop := ∃ e, G.canGo u e v
 def neighbourhood : Set V := {u | G.adj u v}
 
-macro u:term "--" e:term "--" v:term : term => `(G.canGo $u $e $v)
-
-
-def Vmap (f : V → W) : Graph (Set.range f) E where
-  inc e := G.inc e |>.map f
-    |>.pmap Subtype.mk (fun v hv => by
-      rw [mem_map_iff] at hv
-      obtain ⟨u, _hu, rfl⟩ := hv
-      exact Set.mem_range_self u)
-
-noncomputable def Emap (f : E ↪ F) : Graph V (Set.range f) where
-  inc e := G.inc ((Equiv.ofEmbedding f).symm e)
+macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 
 
 variable (H : Graph W F) (I : Graph U E')
@@ -130,18 +119,30 @@ unsafe instance [Repr W] [Repr V] [Fintype E] [Fintype F] : Repr (G ⊆ᴳ H) wh
 def SubgraphOf.refl : G ⊆ᴳ G := ⟨Function.Embedding.refl V, Function.Embedding.refl E,
   fun _ => (map_id _).symm ⟩
 
-def SubgraphOf.trans {H : Graph W F} {I : Graph U E'} (a : G ⊆ᴳ H) (b : H ⊆ᴳ I) : G ⊆ᴳ I where
+def SubgraphOf.trans {G : Graph V E} {H : Graph W F} {I : Graph U E'} (a : G ⊆ᴳ H) (b : H ⊆ᴳ I) :
+    G ⊆ᴳ I where
   fᵥ := a.fᵥ.trans b.fᵥ
   fₑ := a.fₑ.trans b.fₑ
-  comm := by
-    intro e
+  comm e := by
     simp only [Function.Embedding.trans_apply, b.comm, map, a.comm]
     exact (map_comp a.fᵥ b.fᵥ (G.inc e)).symm
+
+lemma SubgraphOf.CanGo (A : G ⊆ᴳ H) (u v : V) (e : E) : G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
+  intro h
+  simpa only [canGo, A.comm, map_canGo]
 
 structure Isom where
   toSubgraphOf : G ⊆ᴳ H
   invSubgraphOf : H ⊆ᴳ G
 
 macro G:term "≃ᴳ" H:term :term => `(Graph.Isom $G $H)
+
+def Isom.refl : G ≃ᴳ G := ⟨SubgraphOf.refl G, SubgraphOf.refl G⟩
+
+def Isom.symm (A : G ≃ᴳ H) : H ≃ᴳ G := ⟨A.invSubgraphOf, A.toSubgraphOf⟩
+
+def Isom.trans (A₁ : G ≃ᴳ H) (A₂ : H ≃ᴳ I) : G ≃ᴳ I :=
+  ⟨A₁.toSubgraphOf.trans A₂.toSubgraphOf, A₂.invSubgraphOf.trans A₁.invSubgraphOf⟩
+
 
 end Graph

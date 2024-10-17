@@ -1,12 +1,23 @@
 import Mathlib.Data.Sym.Sym2.Order
 
 
-def Vector.unpackSingleton {α : Type u} (v : Mathlib.Vector α 1) : α :=
+def Mathlib.Vector.unpackSingleton {α : Type u} (v : Mathlib.Vector α 1) : α :=
   v.get ⟨0, Nat.zero_lt_succ 0⟩
 
+lemma Mathlib.Vector.unpackSingleton_eq {α : Type u} (v : Mathlib.Vector α 1) :
+    Mathlib.Vector.unpackSingleton v = v.head := by
+  match v with
+  | ⟨[a], h⟩ => rfl
+
+-- @[simp]
+-- lemma Mathlib.Vector.unpackSingleton_mem {α : Type u} (v : Mathlib.Vector α 1) :
+--     Mathlib.Vector.unpackSingleton v ∈ v := by
+--   simp only [Mathlib.Vector.unpackSingleton, Mathlib.Vector.get]
+--   exact Mathlib.Vector.mem_singleton_self _
+
 def Sym.Sym'.unpackSingleton {α : Type u} (s : Sym.Sym' α 1) : α :=
-  Quot.lift Vector.unpackSingleton (fun u v h ↦ by
-    simp only [Vector.unpackSingleton, Fin.zero_eta, Fin.isValue, Mathlib.Vector.get_zero]
+  Quot.lift Mathlib.Vector.unpackSingleton (fun u v h ↦ by
+    simp only [Mathlib.Vector.unpackSingleton, Fin.zero_eta, Fin.isValue, Mathlib.Vector.get_zero]
     obtain ⟨x, hx⟩ := List.length_eq_one.mp u.prop
     obtain ⟨y, hy⟩ := List.length_eq_one.mp v.prop
     have : u = v := by
@@ -28,5 +39,23 @@ lemma Sym.apply_oneEquiv_symm_comm {α : Type u} (s : Sym α 1) (f : α → β) 
 def Multiset.unpackSingleton {α : Type u} (s : Multiset α) (h : Multiset.card s = 1) : α :=
   Sym.oneEquiv.symm ⟨s, h⟩
 
+@[simp]
+lemma Multiset.unpackSingleton_cancel {α : Type u} (s : Multiset α) (h : Multiset.card s = 1) :
+    {Multiset.unpackSingleton s h} = s := by
+  change Sym.oneEquiv (Sym.oneEquiv.symm ⟨s, h⟩) = s
+  simp only [Equiv.apply_symm_apply, Sym.coe_mk]
+
+lemma Multiset.unpackSingleton_mem {α : Type u} (s : Multiset α) (h : Multiset.card s = 1) :
+    Multiset.unpackSingleton s h ∈ s := by
+  have : Multiset.unpackSingleton s h ∈ ({Multiset.unpackSingleton s h} : Multiset _) := by
+    rw [mem_singleton]
+  convert this
+  exact Eq.symm (unpackSingleton_cancel s h)
+
 def Finset.unpackSingleton {α : Type u} (s : Finset α) (h : s.card = 1) : α :=
   Multiset.unpackSingleton s.val h
+
+lemma Finset.unpackSingleton_mem {α : Type u} (s : Finset α) (h : s.card = 1) :
+    Finset.unpackSingleton s h ∈ s := by
+  simp only [unpackSingleton]
+  exact Multiset.unpackSingleton_mem s.val h

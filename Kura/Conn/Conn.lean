@@ -1,5 +1,5 @@
 import Kura.Conn.Walk
-import Kura.Graph.Subgraph
+import Kura.Graph.Remove
 import Kura.Dep.Rel
 import Kura.Graph.Searchable
 
@@ -179,6 +179,10 @@ lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
     sorry
     -- requires some Isom theorems
   · simp only [Finset.mem_singleton]
+
+lemma symdiff_minEdgeCut [DecidableEq E] (S T : Finset E) (hS : G.minEdgeCut S) (hT : G.minEdgeCut T) :
+    G.minEdgeCut ((S ∪ T) \ (S ∩ T)) := by
+  sorry
 
 
 class NEdgeConnected [DecidableEq E] (n : ℕ) : Prop :=

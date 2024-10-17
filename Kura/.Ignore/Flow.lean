@@ -1,4 +1,4 @@
-import Kura.Graph.Subgraph
+import Kura.Graph.Remove
 import Kura.Dep.CompPoly
 
 namespace Graph

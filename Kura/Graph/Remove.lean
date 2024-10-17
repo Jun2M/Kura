@@ -1,4 +1,4 @@
-import Kura.Conn.Walk
+import Kura.Graph.Undirected
 import Kura.Dep.Finset
 
 
@@ -31,6 +31,15 @@ def Es (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : Graph V S where
 
 macro G:term "{" S:term "}ᴳ" : term => `(Graph.Es $G $S)
 
+def EsSubtype {P P' : E → Prop} (G : Graph V (Subtype P)) (S : Set E) [DecidablePred (· ∈ S)]
+  (hP' : ∀ e, (P e ∧ e ∈ S) ↔ P' e) : Graph V (Subtype P') where
+  inc e := by
+    obtain ⟨e, he⟩ := e
+    specialize hP' e
+    rw [← hP'] at he; clear hP'
+    obtain ⟨hP, _hS⟩ := he
+    exact G.inc ⟨e, hP⟩
+
 def EVs (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
   [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : Graph Sv Se where
   inc e := G{Se}ᴳ[Sv]ᴳ.inc ⟨e, he e.val e.prop⟩
@@ -46,7 +55,7 @@ def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v �
       · exact hv
       · assumption)
 
-def Qf (G : Graph V E) (f : V → V) (hf : Function.Involutive f) : Graph (Set.range f) E where
+def Qf (G : Graph V E) (f : V → V) (hf : ∀ v, f (f v) = f v) : Graph (Set.range f) E where
   inc e := G.inc e
     |>.map f
     |>.pmap Subtype.mk (fun v hv => by
@@ -54,7 +63,7 @@ def Qf (G : Graph V E) (f : V → V) (hf : Function.Involutive f) : Graph (Set.r
       obtain ⟨u, _hu, rfl⟩ := hv
       simp only [Set.mem_range, exists_apply_eq_apply])
 
-def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : Function.Involutive f)
+def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : ∀ v, f (f v) = f v)
   (hfRange : ∀ v, v ∈ Set.range f ↔ P v) : Graph (Subtype P) E where
   inc e := G.inc e
     |>.map f
@@ -63,20 +72,6 @@ def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : Function.Involutive
       obtain ⟨u, _hu, rfl⟩ := hv
       specialize hfRange (f u)
       simpa only [Set.mem_range, exists_apply_eq_apply, true_iff] using hfRange)
-
--- Merges to the start of the path
-def Mp (G : Graph V E) [DecidableEq E] (P : G.Path) :
-    Graph {v : V // v ∉ P.vertices.tail} {e : E // e ∉ P.edges} where
-  inc e := G
-    |>.Qs {v : V | v ∈ P.vertices.tail} P.start P.start_not_mem_vertices_tail
-    |>.Es {e : E | e ∉ P.edges}
-    |>.inc e
-
--- contraction by a rooted forest?
-
-/-- definition not completed!!!!!!! -/
-structure MinorOf (G : Graph V E) (H : Graph W F) [DecidableEq E] [DecidableEq F] where
-  Ps : List (H.Path)
 
 
 --------------------------------------------------------------------------------

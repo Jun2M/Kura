@@ -5,11 +5,11 @@ import Kura.Dep.UnpackSingleton
 
 
 @[simp]
-theorem Function.Embedding.coe_trans {α β γ : Type*} (f : α ↪ β) (g : β ↪ γ) :
-    ⇑(f.trans g) = g ∘ f := rfl
+theorem Function.Embedding.coe_refl {α : Type*} : (Function.Embedding.refl α : α → α) = id := rfl
 
 @[simp]
-theorem Function.Embedding.coe_eq_coe {α β : Type*} (f : α ↪ β) : ⇑f = ↑f := rfl
+theorem Function.Embedding.coe_trans {α β γ : Type*} (f : α ↪ β) (g : β ↪ γ) :
+    ⇑(f.trans g) = g ∘ f := rfl
 
 def Function.Embedding.rangeFactorization {α β : Type*} (f : α ↪ β) : α ↪ Set.range f where
   toFun := Set.rangeFactorization f
@@ -102,3 +102,32 @@ def Function.Embedding.rangeSplitting' {α β : Type*} [Fintype α] [DecidableEq
     rw [h] at this
     simp at this
     sorry
+
+@[simp]
+lemma Function.Embedding.rangeSplitting'_cancel {α β : Type*} [Fintype α] [DecidableEq β]
+    (f : α ↪ β) (x : Set.range f) : f (f.rangeSplitting' x) = x := by
+  unfold Function.Embedding.rangeSplitting' Set.rangeSplitting'
+  have := Finset.unpackSingleton_mem (Finset.univ.filter (fun a => f a = x)) (by
+    apply le_antisymm
+    · by_contra! h
+      rw [Finset.one_lt_card_iff] at h
+      obtain ⟨a, b, ha, hb, hab⟩ := h
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha hb
+      rw [← hb] at ha
+      exact hab $ f.inj' ha
+    · by_contra! h
+      simp only [Nat.lt_one_iff, Finset.card_eq_zero] at h
+      rw [Finset.filter_eq_empty_iff] at h
+      obtain ⟨b, hb⟩ := x
+      simp only [Set.mem_range] at hb
+      obtain ⟨a, ha⟩ := hb
+      specialize h (Finset.mem_univ a)
+      exact h ha)
+  simpa using this
+
+
+@[simp]
+lemma Function.Embedding.rangeSplitting'_eq_rangeSplitting {α β : Type*} [Fintype α] [DecidableEq β]
+  (f : α ↪ β) (x : Set.range f) : f.rangeSplitting' x = f.rangeSplitting x := by
+  apply_fun f using f.inj'
+  simp only [rangeSplitting'_cancel, rangeSplitting_eq_val]

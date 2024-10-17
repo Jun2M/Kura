@@ -1,10 +1,10 @@
 import Mathlib.Data.Real.Basic
 import Kura.Conn.nConn
-import Kura.Graph.Examples
+import Kura.Examples.Conn
 
 
 namespace Graph
-variable {V E F : Type*} [LinearOrder V] [LinearOrder E] [LinearOrder F] (G : Graph V E)
+variable {V E F : Type*} [LinearOrder V] [DecidableEq E] [LinearOrder F] (G : Graph V E)
   [Undirected G]
 
 -- structure PlainarEmbedding (G : Graph V E R) :=
@@ -56,7 +56,7 @@ lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
     have  := (G.duality.minEdgeCut_cycle {e}).mp hmincut
     obtain ⟨W, hW⟩ := this
     have : W.edges = [e] := sorry
-    exact W.isLoop_of_edges_singleton G.dualGraph e this
+    exact W.isLoop_of_edges_singleton e this
   · obtain C : G.dualGraph.Cycle := Cycle.ofLoop G.dualGraph e h
     have hmincut := (G.duality.minEdgeCut_cycle C.edges.toFinset).mpr ⟨C, rfl⟩
     have : C.edges.toFinset = {e} := sorry
@@ -169,7 +169,7 @@ theorem EulerFormula_of_connected [Nonempty V] [Fintype V] [Fintype E] [G.connec
     Fintype.card V + Fintype.card G.Faces - Fintype.card E = 2 := by
   rw [EulerFormula G, NumberOfComponents_eq_one G]
 
-def IsFacialCycle (w : Cycle G) [Searchable G.dualGraph] : Prop :=
+def FacialCycleOf (w : Cycle G) [Searchable G.dualGraph] : Prop :=
   ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.incEdges f
 
 

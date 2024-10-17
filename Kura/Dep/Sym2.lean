@@ -326,6 +326,8 @@ lemma isDiag_iff_inf_eq_sup [LinearOrder α] (s : Sym2 α) : s.IsDiag ↔ s.inf 
 lemma inf_sup_eq_self [LinearOrder α] (s : Sym2 α) : s(s.inf, s.sup) = s := by
   sorry
 
+
+
 -- theorem
 
 -- example {α β : Type*} :

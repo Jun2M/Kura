@@ -68,14 +68,30 @@ def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
     not_false_eq_true]
 
 
+variable {G}
+
 /-- Cycle has some start point by the definition. rotate it. -/
-def rotate (C : G.Cycle) (n : ℕ) : G.Cycle := sorry
+def rotate (C : G.Cycle) (n : ℕ) : G.Cycle where
+  start :=
+    match hsteps : C.steps with
+    | [] => C.start
+    | _ :: _ => ((C.steps.rotate n).head
+      (List.rotate_eq_nil_iff.not.mpr (hsteps ▸ List.cons_ne_nil _ _))).fst
+  steps := C.steps.rotate n
+  start_spec _ := by sorry
+  step_spec := by sorry
+  next_step := by sorry
+  startFinish := by sorry
+  vNodup' := by sorry
+  eNonempty := by sorry
 
 /-- Pick a vertex, v, in a cycle. Get a walk from v to v along the cycle -/
-def cut (C : G.Cycle) (v : V) (hv : v ∈ C.vertices) : G.Walk := sorry
+def cut (C : G.Cycle) {v : V} (hv : v ∈ C.vertices) : G.Walk :=
+  let i := C.vertices.indexOf v
+  (C.rotate i).toWalk
 
 /-- Pick 2 vertices, u & v, in a cycle. Get edge-disjoint paths u to v and v to u -/
-def split (C : G.Cycle) (u v : V) (hu : u ∈ C.vertices) (hv : v ∈ C.vertices) : G.Path × G.Path :=
+def split (C : G.Cycle) {u v : V} (hu : u ∈ C.vertices) (hv : v ∈ C.vertices) : G.Path × G.Path :=
   sorry
 
 def symmDiff (C1 C2 : G.Cycle) : G.Cycle := sorry

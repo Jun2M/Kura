@@ -578,6 +578,27 @@ lemma map_id : e.map id = e := by
 lemma map_comp (f : V → W) (g : W → U) (e : edge V) : e.map (g ∘ f) = (e.map f).map g := by
   cases e <;> simp only [map, Option.map_map, Sym2.map_map]
 
+@[simp]
+lemma map_canGo (f : V ↪ W) (v w : V) : (e.map f).canGo (f v) (f w) ↔ e.canGo v w := by
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all [canGo, gofrom?, map, Option.map_none', Option.map_some',
+      Option.mem_def, ite_some_none_eq_some, EmbeddingLike.apply_eq_iff_eq, Bool.decide_and,
+      Bool.and_eq_true, decide_eq_true_eq, and_congr_left_iff]
+  | undir s =>
+    simp only [canGo, gofrom?, map_undir, Option.mem_def, dite_some_none_eq_some,
+      Sym2.exist_other'_eq, decide_eq_true_eq]
+    constructor
+    · rintro h
+      ext x
+      rw [Sym2.eq_mk_out s, Sym2.map_pair_eq, Sym2.ext_iff] at h
+      specialize h (f x)
+      rw [Sym2.eq_mk_out s, Sym2.mem_iff]
+      simpa only [Sym2.mem_iff, EmbeddingLike.apply_eq_iff_eq, Prod.mk.eta, Quot.out_eq] using h
+    · rintro rfl
+      simp only [Sym2.map_pair_eq]
+
+
 def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P v) → edge W := by
   intro H
   match e with
@@ -658,7 +679,7 @@ lemma pmap_finishAt {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h : �
     (e.pmap f h).finishAt = e.finishAt.pmap f (λ v hv => h v (mem_of_mem_finishAt e v hv)) := by
   sorry
 
-  
+
 -- lemma pmap_id {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) : e.pmap (λ a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]
 
