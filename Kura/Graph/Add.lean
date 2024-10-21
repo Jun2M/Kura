@@ -49,6 +49,14 @@ def SubgraphOf.addUndirEdge (s : Sym2 V₁) : G₁ ⊆ᴳ G₁.addUndirEdge s :=
     unfold addUndirEdge Lex
     simp only [Function.Embedding.inl_apply, Function.Embedding.coe_refl, map_id]⟩
 
+@[simp]
+lemma SubgraphOf.addUndirEdge_fᵥ (s : Sym2 V₁) :
+    ⇑(SubgraphOf.addUndirEdge G₁ s).fᵥ = id := rfl
+
+@[simp]
+lemma Subgraphof.addUndirEdge_fₑ (s : Sym2 V₁) :
+    ⇑(SubgraphOf.addUndirEdge G₁ s).fₑ = Sum.inl := rfl
+
 instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
     Undirected (G₁.addUndirEdge s) where
   all_full e := match e with

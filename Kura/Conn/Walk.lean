@@ -450,6 +450,11 @@ lemma SubgraphOf_finish {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.Subg
   rw [← vertices_getLast_eq_finish, ← vertices_getLast_eq_finish]
   simp only [SubgraphOf_vertices, List.getLast_map, vertices_getLast_eq_finish]
 
+@[simp]
+lemma SubgraphOf_edges {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+    (w.SubgraphOf h).edges = w.edges.map h.fₑ := by
+  simp only [edges, SubgraphOf, List.map_map, List.map_inj_left, Function.comp_apply, implies_true]
+
 end Walk
 
 @[ext]

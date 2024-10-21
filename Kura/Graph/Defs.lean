@@ -44,21 +44,21 @@ class fullGraph : Prop :=
   all_full : ∀ e, G.isFull e
 
 /-- An undirected graph is a full graph with no arcs -/
-class Undirected extends fullGraph G :=
+class Undirected extends fullGraph G : Prop :=
   edge_symm : ∀ e, G.isUndir e
 
 /-- A loopless graph is one with no loops, free edges or half_edges
   (so every edge is an arc or edge ) -/
-class loopless extends fullGraph G :=
+class loopless extends fullGraph G : Prop :=
   no_loops : ∀ e, ¬G.isLoop e
 
 
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
-class Simple extends loopless G, Undirected G :=
+class Simple extends loopless G, Undirected G : Prop :=
   inc_inj : G.inc.Injective
 
-class Directed extends fullGraph G :=
+class Directed extends fullGraph G : Prop :=
   no_undir : ∀ e, ¬G.isUndir e
 
 
@@ -127,9 +127,21 @@ def SubgraphOf.trans {G : Graph V E} {H : Graph W F} {I : Graph U E'} (a : G ⊆
     simp only [Function.Embedding.trans_apply, b.comm, map, a.comm]
     exact (map_comp a.fᵥ b.fᵥ (G.inc e)).symm
 
-lemma SubgraphOf.CanGo (A : G ⊆ᴳ H) (u v : V) (e : E) : G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
+lemma SubgraphOf.CanGo (A : G ⊆ᴳ H) (u v : V) (e : E) :
+    G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
   intro h
   simpa only [canGo, A.comm, map_canGo]
+
+lemma SubgraphOf.adj (A : G ⊆ᴳ H) (u v : V) : G.adj u v → H.adj (A.fᵥ u) (A.fᵥ v) := by
+  intro h
+  obtain ⟨e, he⟩ := h
+  exact ⟨A.fₑ e, A.CanGo _ _ u v e he⟩
+
+noncomputable def SubgraphOf.FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
+  exact Fintype.ofInjective A.fᵥ A.fᵥ.inj'
+
+noncomputable def SubgraphOf.FintypeE [Fintype F] (A : G ⊆ᴳ H) : Fintype E := by
+  exact Fintype.ofInjective A.fₑ A.fₑ.inj'
 
 structure Isom where
   toSubgraphOf : G ⊆ᴳ H
