@@ -1,5 +1,5 @@
 import Kura.Graph.Undirected
-import Kura.Searchable.Finite
+import Kura.Graph.Searchable
 
 namespace Graph
 open edge Sym2
@@ -34,8 +34,8 @@ lemma no_edge_coloring_lt_maxDegree [Fintype V] [G.Searchable] [Undirected G]:
   sorry
 
 private partial def rungs [Fintype V] [Fintype E] [G.Searchable] [G.Simple] (x : V) (e : E)
-  (he : x ∈ G.get e) (c : E → Fin (Δ(G) + 1)) (m : V → Fin (Δ(G) + 1))
-  (l : List E) (hlnil : l ≠ []) (hl : ∀ e' ∈ l, x ∈ G.get e') : List E :=
+  (he : x = G.v1 e ∨ x = G.v2 e) (c : E → Fin (Δ(G) + 1)) (m : V → Fin (Δ(G) + 1))
+  (l : List E) (hlnil : l ≠ []) (hl : ∀ e' ∈ l, x = G.v1 e' ∨ x = G.v2 e') : List E :=
   let y0 := G.goFrom he
   let N := G.outEdges x
     |>.sort (· ≤ ·)
@@ -49,8 +49,8 @@ partial def Vizing' [Fintype V] [Fintype E] [G.Searchable] [G.Simple] : E → Fi
   let mut C : E → Fin (Δ(G) + 1) := λ e => 0
   let El := Finset.univ.sort (· ≤ · : E → E → Prop)
   for e in El do
-    let x := G.get e |>.inf
-    let y₀ := G.get e |>.sup
+    let x := G.v1 e
+    let y₀ := G.v2 e
     let y := G.neighbors x |>.sort (· ≤ ·) |>.filter (· ≠ y₀)
     let m : V → Finset (Fin (Δ(G) + 1)) := λ v =>
       Finset.univ.filter (λ c => ∀ e ∈ G.outEdges v, C e ≠ c)
