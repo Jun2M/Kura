@@ -1,6 +1,6 @@
-import Mathlib.Data.Real.Basic
 import Kura.Conn.nConn
 import Kura.Examples.Conn
+import Kura.Conn.Minor
 
 
 namespace Graph
@@ -132,9 +132,10 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
       rw [← Fintype.card_pos_iff]
       omega
     obtain e : E := Classical.choice this
-    obtain G' := G{{e}ᶜ}ᴳ
+    let G' := G{{e}ᶜ}ᴳ
     have hG'Undir : G'.Undirected := by sorry
     have hG'Planar : Planar_by_AbstractDual G' := by sorry
+    -- let hG'SubgraphOf : G'.SubgraphOf G :=
     specialize @ih ({e}ᶜ : Set E) _ G' hG'Undir hG'Planar _ (by simp only [compl,
       Set.mem_singleton_iff, Set.coe_setOf, Fintype.card_subtype_compl, hEcard,
       Fintype.card_ofSubsingleton, add_tsub_cancel_right])
@@ -151,7 +152,28 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
     obtain v := G.v2 e
     by_cases hG'conn : G'.conn u v
     · have hNC : G'.NumberOfComponents = G.NumberOfComponents := by
-        sorry
+        unfold Graph.NumberOfComponents
+        have hconnEq : G'.connSetoid = G.connSetoid := by
+          unfold Graph.connSetoid
+          ext x y
+          unfold Setoid.Rel
+          simp only
+          constructor
+          · intro h
+            have := h.SubgraphOf (Es_subgraph G {e}ᶜ)
+            simpa only [Es_subgraph_fᵥ, id_eq] using this
+          · intro h
+            induction h with
+            | refl => exact conn_refl G' x
+            | tail h1 h2 IH => sorry
+        have := hconnEq
+        apply_fun Quotient at hconnEq
+        have : Fintype (Quotient G'.connSetoid) :=
+          @Quotient.fintype _ _  G'.connSetoid (by rintro u v; apply Relation.ReflTransGenDeciable)
+        have : Fintype (Quotient G.connSetoid) :=
+          @Quotient.fintype _ _ G.connSetoid (by rintro u v; apply Relation.ReflTransGenDeciable)
+        apply_fun Fintype.card at hconnEq
+        convert hconnEq
       have hF : Fintype.card G'.Faces + 1 = Fintype.card G.Faces := by
         sorry
       omega
@@ -174,6 +196,9 @@ def FacialCycleOf (w : Cycle G) [Searchable G.dualGraph] : Prop :=
 
 
 lemma three_le_dualGraph_minDegree [Fintype E] [G.Simple] : 3 ≤ G.dualGraph.minDegree := by
+  by_contra! h
+  unfold minDegree at h
+  have := G.dualGraph.minDegreeVerts_nonempty
   sorry
 
 lemma four_le_dualGraph_minDegree_of_bipartite [Fintype E] [G.Simple] [G.Bipartite] :

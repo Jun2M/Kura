@@ -100,9 +100,18 @@ theorem KuraCore1 {V E : Type*} [LinearOrder V] [Fintype V] [LinearOrder E] [Fin
   simp only at hP1P2
   obtain ⟨hP1, hP2⟩ := hP1P2
 
-  wlog hau : G.adj a u generalizing a u E
+  wlog hau : G.adj a u generalizing a u v E
   · let G' := G.addUndirEdge s(a, u)
-    obtain hau' := this G'
+    let C' := C.SubgraphOf (SubgraphOf.addUndirEdge G s(a, u))
+    have huNinC' : u ∉ C'.vertices := by
+      unfold_let; clear this
+      simp only [Cycle.SubgraphOf_vertices, List.mem_map, not_exists, not_and]
+      rintro z hz
+      
+      have h' := C'.vNodup' h ha
+      simp only [List.erase_cons_head, List.erase_cons_tail] at h'
+      exact h'.left
+    obtain hau' := this G' huNev.symm
 
 
     sorry
