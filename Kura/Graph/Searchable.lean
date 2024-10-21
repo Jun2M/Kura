@@ -21,14 +21,20 @@ lemma mem_outEdges [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ G.startAt e 
   rw [← SearchableOut.mem_outEdges (G := G) v e]
   rfl
 
--- Rethink about how to define this again
--- def outNeighbors [SearchableOut G] : Multiset V := (G.outEdges v |>.val |>.map (G.gofrom? v ·)).eraseNone
--- def outDegree [SearchableOut G] : ℕ := Multiset.card (G.outNeighbors v)
+def outNeighbors [SearchableOut G] : Multiset V :=
+  G.outEdges v |>.val |>.map (G.endAt ·) |>.sum |>.filter (· ≠ v)
+def outDegree [SearchableOut G] : ℕ :=
+  G.outEdges v |>.val |>.map (G.endAt ·) |>.sum |>.count v
 
-lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ s(G.v1 e, G.v2 e) := by
+lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] :
+  e ∈ G.outEdges v ↔ v ∈ s(G.v1 e, G.v2 e) := by
   rw [mem_outEdges]
   simp only [startAt, inc_eq_undir_v12, undir_startAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
     Multiset.mem_cons, Multiset.mem_singleton, Sym2.mem_iff]
+
+lemma adj_iff_exist_outEdge_canGo [SearchableOut G] :
+    G.adj u v ↔ ∃ e ∈ G.outEdges u, G.canGo u e v := by
+  sorry
 
 -- There is a finset of edges that leads into a vertex
 class SearchableIn where
@@ -43,8 +49,10 @@ lemma mem_inEdges [SearchableIn G] : e ∈ G.inEdges v ↔ v ∈ G.finishAt e :=
   rw [← SearchableIn.mem_inEdges (G := G) v e]
   rfl
 
--- def inNeighbors [SearchableIn G] : Multiset V := (G.inEdges v |>.val |>.map (G.gofrom? v ·)).eraseNone
--- def inDegree [SearchableIn G] : ℕ := Multiset.card (G.inNeighbors v)
+def inNeighbors [SearchableIn G] : Multiset V :=
+  G.inEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.filter (· ≠ v)
+def inDegree [SearchableIn G] : ℕ :=
+  G.inEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.count v
 
 
 -- There is a finset of edges that are incident to a vertex
@@ -66,7 +74,9 @@ lemma incEdges_card_eq_degree [G.loopless] : (G.incEdges v).card = G.degree v :=
 lemma incEdges_eq_outEdges [G.Undirected] : G.incEdges v = G.outEdges v := by
   sorry
 
-
+instance instAdjDecidable [SearchableOut G] : ∀ u, DecidablePred (G.adj u ·) := by
+  rintro u v
+  apply decidable_of_iff _ (G.adj_iff_exist_outEdge_canGo u v).symm
 
 def regular (k : ℕ) : Prop := ∀ v : V, G.degree v = k
 
