@@ -56,8 +56,8 @@ theorem McDiarmid_Reed (G : Graph V E) [Searchable G] (t : ℕ) (ht : t! > Finty
   wlog h : G.connected ∧ not complete ∧ not an odd cycle by
     sorry
 
-  obtain ⟨ce, hce⟩ : EdgeColoring G (ChromaticIndex G) := sorry
-  obtain ⟨cv, hcv⟩ : Coloring G (ChromaticIndex G) := by
+  obtain ce : EdgeColoring G (ChromaticIndex G) := sorry
+  obtain cv : Coloring G (ChromaticIndex G) := by
     have : (ChromaticIndex G) ≥ Δ(G) := sorry
     sorry
 
