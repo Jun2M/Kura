@@ -67,6 +67,44 @@ def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
   eNonempty := by simp only [Walk.edges, List.map_cons, List.map_nil, ne_eq, List.cons_ne_self,
     not_false_eq_true]
 
+lemma isLoop_of_length_one (C : G.Cycle) (hC : C.length = 1) :
+    G.isLoop (C.edges.head (by rw [← Walk.length_ne_zero_iff_edges_ne_nil]; omega)) := by
+  sorry
+
+lemma not_simple_of_length_two (C : G.Cycle) (hC : C.length = 2) :
+    ¬ G.Simple := by
+  sorry
+
+def SubgraphOf {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) : H.Cycle where
+  toWalk := C.toWalk.SubgraphOf A
+  startFinish := by
+    simp only [Walk.SubgraphOf_start, Walk.SubgraphOf_finish, C.startFinish]
+  vNodup' := by
+    simp only [Walk.SubgraphOf_vertices]
+    exact C.vNodup'.map A.fᵥ.inj'
+  eNonempty := by
+    simp only [Walk.SubgraphOf_edges, ne_eq, List.map_eq_nil]
+    exact C.eNonempty
+
+@[simp]
+lemma SubgraphOf_start {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (SubgraphOf A C).start = A.fᵥ C.start := by
+  simp only [SubgraphOf, Walk.SubgraphOf_start]
+
+@[simp]
+lemma SubgraphOf_finish {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (SubgraphOf A C).finish = A.fᵥ C.finish := by
+  simp only [SubgraphOf, Walk.SubgraphOf_finish]
+
+@[simp]
+lemma SubgraphOf_vertices {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (SubgraphOf A C).vertices = C.vertices.map A.fᵥ := by
+  simp only [SubgraphOf, Walk.SubgraphOf_vertices]
+
+@[simp]
+lemma SubgraphOf_edges {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (SubgraphOf A C).edges = C.edges.map A.fₑ := by
+  simp only [SubgraphOf, Walk.SubgraphOf_edges]
 
 variable {G}
 

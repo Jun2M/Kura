@@ -40,6 +40,9 @@ lemma conn.ofPath (P : G.Path) : G.conn P.start P.finish := by
   · simp only [← Walk.vertices_head_eq_start, List.head_cons_tail, Walk.vertices_getLast_eq_finish]
 
 
+instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=
+  Relation.ReflTransGenDeciable
+
 class connected : Prop where
   all_conn : ∀ u v : V, conn G u v
 
@@ -53,6 +56,12 @@ lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
     exact h (connected.mk h')
   · rintro ⟨u, v, h⟩ h'
     exact h (h'.all_conn u v)
+
+lemma conn.SubgraphOf {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
+    H.conn (h.fᵥ u) (h.fᵥ v) := by
+  induction huv with
+  | refl => exact conn_refl _ _
+  | tail _h1 h2 IH => exact IH.tail (h.adj G H _ _ h2)
 
 def connSetoid [Undirected G] : Setoid V where
   r := conn G
