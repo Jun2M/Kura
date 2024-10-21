@@ -88,6 +88,15 @@ def Vs_subgraph (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : G[S]ᴳ
     simp only [all, Function.Embedding.coeFn_mk, Vs_inc]
 
 @[simp]
+lemma Vs_subgraph_fᵥ {G : Graph V E} (S : Set V) [DecidablePred (· ∈ S)] :
+    (Vs_subgraph G S).fᵥ.toFun = Subtype.val := rfl
+
+@[simp]
+lemma Vs_subgraph_fₑ {G : Graph V E} (S : Set V) [DecidablePred (· ∈ S)] :
+    (Vs_subgraph G S).fₑ.toFun = Subtype.val := rfl
+
+
+@[simp]
 lemma Es_inc (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] (e : S) :
     (G{S}ᴳ).inc e = G.inc e := by rfl
 
@@ -99,10 +108,38 @@ def Es_subgraph (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : G{S}ᴳ
     simp only [Function.Embedding.coeFn_mk, Es_inc, map_id]
 
 @[simp]
+lemma Es_subgraph_fᵥ {G : Graph V E} (S : Set E) [DecidablePred (· ∈ S)] :
+    ⇑(Es_subgraph G S).fᵥ = id := rfl
+
+@[simp]
+lemma Es_subgraph_fₑ {G : Graph V E} (S : Set E) [DecidablePred (· ∈ S)] :
+    ⇑(Es_subgraph G S).fₑ = Subtype.val := rfl
+
+
+@[simp]
 lemma EVs_inc (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
   [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) (e : Se) :
     (G.EVs Sv Se he).inc e = (G.inc e).pmap Subtype.mk (by
       specialize he e.val e.prop; simpa only [all, all_iff, decide_eq_true_eq] using he) := by rfl
+
+def EVs_subgraph (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
+  [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : G.EVs Sv Se he ⊆ᴳ G where
+  fᵥ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
+  fₑ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
+  comm := by
+    rintro ⟨e, he⟩
+    simp only [Function.Embedding.coeFn_mk, EVs_inc, pmap_subtype_map_val]
+
+@[simp]
+lemma EVs_subgraph_fᵥ {G : Graph V E} (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
+  [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    (EVs_subgraph G Sv Se he).fᵥ.toFun = Subtype.val := rfl
+
+@[simp]
+lemma EVs_subgraph_fₑ {G : Graph V E} (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
+  [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    (EVs_subgraph G Sv Se he).fₑ.toFun = Subtype.val := rfl
+
 
 lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype W] [Fintype E]
   [Fintype F] [DecidableEq E] [DecidableEq F] :
