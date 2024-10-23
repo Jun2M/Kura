@@ -18,4 +18,3 @@ def ListChromaticIndex (G : Graph V E) [Simple G] [Searchable G] : ℕ :=
   @Nat.find (λ n : ℕ => ∀ l : V → List ℕ, (∀ v, n ≤ (l v).length) → ∃ c, IsListColoring G l c) sorry (by
     use Fintype.card V
     sorry)
-
