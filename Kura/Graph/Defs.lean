@@ -95,6 +95,7 @@ def neighbourhood : Set V := {u | G.adj u v}
 macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 
 
+
 variable (H : Graph W F) (I : Graph U E')
 
 structure Hom where

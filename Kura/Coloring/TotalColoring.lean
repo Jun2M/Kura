@@ -1,4 +1,6 @@
 import Kura.Coloring.EdgeColoring
+import Kura.Examples.Defs
+import Kura.Graph.Searchable
 -- import Kura.Coloring.Coloring
 
 namespace Graph
@@ -7,10 +9,9 @@ variable {V E W F : Type*} [LinearOrder V] [Fintype V] [LinearOrder E] [Fintype 
   [Fintype F] [LinearOrder W] [Fintype W]
 
 
-structure TotalColoring (G : Graph V E) [Searchable G] where
-  c : V ⊕ E → ℕ
+structure IsTotalColoring (G : Graph V E) [Searchable G] (c : V ⊕ E → ℕ) where
   hvv : ∀ u v : V, G.adj u v → c (Sum.inl u) ≠ c (Sum.inl v)
-  hve : ∀ (v : V) (e : E), e ∈ G.incEdges v → c (Sum.inl v) ≠ c (Sum.inr e) ∧
+  hve : ∀ (v : V) (e : E), e ∈ G.incEdges v → c (Sum.inl v) ≠ c (Sum.inr e)
   hee : ∀ e e' : E, G.adj e e' → c (Sum.inr e) ≠ c (Sum.inr e')
 
 def TotalChromaticNumber (G : Graph V E) [Searchable G] : ℕ := sorry
