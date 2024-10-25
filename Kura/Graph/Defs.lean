@@ -4,13 +4,12 @@ import Kura.Dep.Embedding
 
 
 @[ext]
-structure Graph (V E : Type*) [LinearOrder V] where
+structure Graph (V E : Type*) where
   inc : E → edge V
 
 namespace Graph
 open edge
-variable {U V W E F E' : Type*} [LinearOrder U] [LinearOrder V] [LinearOrder W] (G : Graph V E)
-  (e e' : E) (u v w : V)
+variable {U V W E F E' : Type*} (G : Graph V E) (e e' : E) (u v w : V)
 
 def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
   (@Fintype.elems E _ : Finset E)
@@ -21,19 +20,19 @@ unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
   reprPrec G _ := "Graph " ++ repr G.toEdgeMultiset
 
 /- Carry the defs from Edges to Graph -/
-@[simp] abbrev isDir : Bool := (G.inc e).isDir
-@[simp] abbrev isUndir : Bool := (G.inc e).isUndir
-@[simp] abbrev isFull : Bool := (G.inc e).isFull
-@[simp] abbrev isHalf : Bool := (G.inc e).isHalf
-@[simp] abbrev isFree : Bool := (G.inc e).isFree
-@[simp] abbrev isLoop : Bool := (G.inc e).isLoop
-@[simp] abbrev isArc : Bool := (G.inc e).isArc
+@[simp] abbrev isDir : Prop := (G.inc e).isDir
+@[simp] abbrev isUndir : Prop := (G.inc e).isUndir
+@[simp] abbrev isFull : Prop := (G.inc e).isFull
+@[simp] abbrev isHalf : Prop := (G.inc e).isHalf
+@[simp] abbrev isFree : Prop := (G.inc e).isFree
+@[simp] abbrev isLoop : Prop := (G.inc e).isLoop
+@[simp] abbrev isArc : Prop := (G.inc e).isArc
 @[simp] abbrev endAt : Multiset V := (G.inc e).endAt
 @[simp] abbrev startAt : Multiset V := (G.inc e).startAt
 @[simp] abbrev finishAt : Multiset V := (G.inc e).finishAt
-@[simp] abbrev gofrom? (v : V) (e : E): Option V := (G.inc e).gofrom? v
-@[simp] abbrev goback? (v : V) (e : E) : Option V := (G.inc e).goback? v
-@[simp] abbrev canGo (v : V) (e : E) (w : V) : Bool := (G.inc e).canGo v w
+@[simp] abbrev gofrom? [DecidableEq V] (v : V) (e : E): Option V := (G.inc e).gofrom? v
+@[simp] abbrev goback? [DecidableEq V] (v : V) (e : E) : Option V := (G.inc e).goback? v
+@[simp] abbrev canGo [DecidableEq V] (v : V) (e : E) (w : V) : Bool := (G.inc e).canGo v w
 @[simp] abbrev flip : edge V := (G.inc e).flip
 @[simp] abbrev any := (G.inc e).any
 @[simp] abbrev all := (G.inc e).all
@@ -77,20 +76,21 @@ lemma inc_inj [Simple G] : G.inc.Injective := Simple.inc_inj
 def incEV := λ e => {v | v ∈ G.inc e}
 def incVE := λ v => {e | v ∈ G.startAt e}
 def incVV := λ v => {u | ∃ e, u ≠ v ∧ u ∈ G.inc e ∧ v ∈ G.inc e}
-def incEE := λ e => {e' | (e = e' ∧ G.isLoop e) ∨ (e ≠ e' ∧ G.startAt e ∩ G.finishAt e' ≠ ∅)}
+def incEE [DecidableEq V] := λ e => {e' | (e = e' ∧ G.isLoop e) ∨ (e ≠ e' ∧ G.startAt e ∩ G.finishAt e' ≠ ∅)}
 
-lemma loop_mem_incEE (hloop : G.isLoop e) : e ∈ G.incEE e := by
+lemma loop_mem_incEE [DecidableEq V] (hloop : G.isLoop e) : e ∈ G.incEE e := by
   simp only [incEE, Set.mem_setOf_eq, true_and]
   exact Or.inl hloop
 
-lemma ne_of_mem_incEE_of_notLoop (h : e' ∈ G.incEE e) (hloop : ¬G.isLoop e) : e ≠ e' := by
+lemma ne_of_mem_incEE_of_notLoop [DecidableEq V] (h : e' ∈ G.incEE e) (hloop : ¬G.isLoop e) :
+    e ≠ e' := by
   rintro rfl
   simp only [incEE, isLoop, ne_eq, startAt, finishAt, Multiset.empty_eq_zero, Set.mem_setOf_eq,
     true_and, not_true_eq_false, false_and, or_false] at h
   exact hloop h
 
-def adj : Prop := ∃ e, G.canGo u e v
-def neighbourhood : Set V := {u | G.adj u v}
+def adj [DecidableEq V] (u v : V) : Prop := ∃ e, G.canGo u e v
+def neighbourhood [DecidableEq V] : Set V := {u | G.adj u v}
 
 macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 
@@ -127,12 +127,13 @@ def SubgraphOf.trans {G : Graph V E} {H : Graph W F} {I : Graph U E'} (a : G ⊆
     simp only [Function.Embedding.trans_apply, b.comm, map, a.comm]
     exact (map_comp a.fᵥ b.fᵥ (G.inc e)).symm
 
-lemma SubgraphOf.CanGo (A : G ⊆ᴳ H) (u v : V) (e : E) :
+lemma SubgraphOf.CanGo [DecidableEq V] [DecidableEq W] (A : G ⊆ᴳ H) (u v : V) (e : E) :
     G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
   intro h
   simpa only [canGo, A.comm, map_canGo]
 
-lemma SubgraphOf.adj (A : G ⊆ᴳ H) (u v : V) : G.adj u v → H.adj (A.fᵥ u) (A.fᵥ v) := by
+lemma SubgraphOf.adj [DecidableEq V] [DecidableEq W] (A : G ⊆ᴳ H) (u v : V) :
+    G.adj u v → H.adj (A.fᵥ u) (A.fᵥ v) := by
   intro h
   obtain ⟨e, he⟩ := h
   exact ⟨A.fₑ e, A.CanGo _ _ u v e he⟩

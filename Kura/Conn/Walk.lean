@@ -3,7 +3,7 @@ import Kura.Dep.List
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] (G : Graph V E)
 
 
 private def walkAux (P : V → E → V → Prop) : V → List (E × V) → Prop
@@ -417,8 +417,8 @@ lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.ve
 --     use ih
 --     sorry
 
-
-def SubgraphOf {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) : Walk H where
+def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+    Walk H where
   start := h.fᵥ w.start
   steps := w.steps.map (fun ⟨u, e, v⟩ => (h.fᵥ u, h.fₑ e, h.fᵥ v))
   start_spec hn := by
@@ -435,23 +435,23 @@ def SubgraphOf {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H)
     simpa only [EmbeddingLike.apply_eq_iff_eq] using h
 
 @[simp]
-lemma SubgraphOf_start {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_start [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).start = h.fᵥ w.start := rfl
 
 @[simp]
-lemma SubgraphOf_vertices {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_vertices [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).vertices = w.vertices.map h.fᵥ := by
   simp only [vertices, SubgraphOf, List.map_map, List.map_cons, List.cons.injEq, List.map_inj_left,
     Function.comp_apply, implies_true, and_self]
 
 @[simp]
-lemma SubgraphOf_finish {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_finish [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).finish = h.fᵥ w.finish := by
   rw [← vertices_getLast_eq_finish, ← vertices_getLast_eq_finish]
   simp only [SubgraphOf_vertices, List.getLast_map, vertices_getLast_eq_finish]
 
 @[simp]
-lemma SubgraphOf_edges {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_edges [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).edges = w.edges.map h.fₑ := by
   simp only [edges, SubgraphOf, List.map_map, List.map_inj_left, Function.comp_apply, implies_true]
 
@@ -639,7 +639,7 @@ lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
     e ∈ p.reverse.edges ↔ e ∈ p.edges := by
   sorry
 
-def SubgraphOf {G : Graph V E} {H : Graph W F} (p : Path G) (h : G.SubgraphOf H) : Path H where
+def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (p : Path G) (h : G.SubgraphOf H) : Path H where
   toWalk := p.toWalk.SubgraphOf h
   vNodup := by
     simp only [Walk.SubgraphOf_vertices]

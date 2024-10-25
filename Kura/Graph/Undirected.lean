@@ -3,7 +3,7 @@ import Kura.Graph.FullGraph
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] {G : Graph V E} [Undirected G] (e : E) (u v w : V)
+variable {V W E F : Type*} {G : Graph V E} [Undirected G] (e : E) (u v w : V)
 
 
 -- def get : Sym2 V :=
@@ -62,9 +62,9 @@ lemma inc_eq_undir_v12 : G.inc e = undir s(G.v1 e, G.v2 e) := by
     rw [isUndir, h] at this
     exact (not_isUndir_of_dir _ this).elim
   | undir s =>
-    simp only [v1, h, undir_v1, v2, undir_v2, Sym2.inf_sup_eq_self]
+    simp only [v1, h, undir_v1, v2, undir_v2, Prod.mk.eta, Quot.out_eq]
 
-lemma canGo_symm : G.canGo u e v = G.canGo v e u := by
+lemma canGo_symm [DecidableEq V] : G.canGo u e v = G.canGo v e u := by
   simp only [canGo, inc_eq_undir_v12]
   rw [← canGo_flip, flip_self]
 
@@ -74,10 +74,11 @@ lemma startAt_eq_endAt : G.startAt e = G.endAt e := by
 lemma finishAt_eq_endAt : G.finishAt e = G.endAt e := by
   simp only [finishAt, inc_eq_undir_v12, undir_finishAt, endAt, undir_endAt]
 
-def goFrom {v : V} {e : E} (h : v ∈ s(G.v1 e, G.v2 e)) : V := Sym2.Mem.other' h
+noncomputable def goFrom [DecidableEq V] {v : V} {e : E} (h : v ∈ s(G.v1 e, G.v2 e)) : V :=
+  Sym2.Mem.other' h
 
 
-lemma mem_incEE_symm (h : e' ∈ G.incEE e) : e ∈ G.incEE e' := by
+lemma mem_incEE_symm [DecidableEq V] (h : e' ∈ G.incEE e) : e ∈ G.incEE e' := by
   rw [incEE, Set.mem_setOf_eq] at h ⊢
   obtain ⟨ rfl, h ⟩ | ⟨ h1, h2 ⟩ := h
   · simp only [isLoop, inc_eq_undir_v12, undir_isLoop_iff] at h
@@ -88,13 +89,13 @@ lemma mem_incEE_symm (h : e' ∈ G.incEE e) : e ∈ G.incEE e' := by
     rw [startAt_eq_endAt, finishAt_eq_endAt]
     refine ⟨ h1.symm, h2 ⟩
 
-lemma mem_incEE_of_both_mem_incVE (hne : e ≠ e') (h : e ∈ G.incVE v) (h' : e' ∈ G.incVE v) :
-    e' ∈ G.incEE e := by
+lemma mem_incEE_of_both_mem_incVE [DecidableEq V] (hne : e ≠ e') (h : e ∈ G.incVE v)
+  (h' : e' ∈ G.incVE v) : e' ∈ G.incEE e := by
   simp only [incVE, startAt, inc_eq_undir_v12, undir_startAt, Multiset.empty_eq_zero,
     Set.mem_setOf_eq, incEE, isLoop, undir_isLoop_iff, finishAt, undir_finishAt] at h h' ⊢
   right
   refine ⟨ hne, ?_ ⟩
   exact Multiset.ne_zero_of_mem <| Multiset.mem_inter.mpr ⟨ h, h' ⟩
 
-lemma adj_symmetric : G.adj u v ↔ G.adj v u := by
+lemma adj_symmetric [DecidableEq V] : G.adj u v ↔ G.adj v u := by
   simp only [adj, canGo_symm]

@@ -5,7 +5,7 @@ import Mathlib.Logic.OpClass
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
+variable {V W E F : Type*} (G : Graph V E) (e : E) (u v w : V)
 
 
 -- There is a finset of edges that leads out of a vertex
