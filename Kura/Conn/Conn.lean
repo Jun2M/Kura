@@ -6,7 +6,7 @@ import Kura.Graph.Searchable
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E)
 
 
 def conn : V → V → Prop := Relation.ReflTransClosure G.adj

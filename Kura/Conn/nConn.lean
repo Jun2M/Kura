@@ -4,7 +4,7 @@ import Kura.Conn.closedWalk
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] [DecidableEq E] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] [DecidableEq E] (G : Graph V E)
 
 class nEdgeConnected (n : ℕ) : Prop :=
   all_conn : ∀ u v : V, conn G u v

@@ -4,7 +4,7 @@ import Kura.Conn.Minor
 
 
 namespace Graph
-variable {V E F : Type*} [LinearOrder V] [DecidableEq E] [LinearOrder F] (G : Graph V E)
+variable {V E F : Type*} [DecidableEq V] [DecidableEq E] [DecidableEq F] (G : Graph V E)
   [Undirected G]
 
 -- structure PlainarEmbedding (G : Graph V E R) :=
@@ -20,7 +20,7 @@ structure AbstractDual (H : Graph F E) where
 
 class Planar_by_AbstractDual :=
   F : Type*
-  FLinearOrder : LinearOrder F
+  FDecidableEq : DecidableEq F
   dualGraph : Graph F E
   dualGraphUndir : dualGraph.Undirected
   dualGraphConn : dualGraph.connected
@@ -30,10 +30,10 @@ variable [Planar_by_AbstractDual G]
 
 def Faces := Planar_by_AbstractDual.F (G := G)
 
-instance instPlanar_by_AbstractDualFLinearOrder :
-    LinearOrder (Planar_by_AbstractDual.F G) := Planar_by_AbstractDual.FLinearOrder
-instance instPlanar_by_AbstractDualFacesLinearOrder :
-    LinearOrder G.Faces := Planar_by_AbstractDual.FLinearOrder
+instance instPlanar_by_AbstractDualFDecidableEq :
+    DecidableEq (Planar_by_AbstractDual.F G) := Planar_by_AbstractDual.FDecidableEq
+instance instPlanar_by_AbstractDualFacesDecidableEq :
+    DecidableEq G.Faces := Planar_by_AbstractDual.FDecidableEq
 def dualGraph := Planar_by_AbstractDual.dualGraph (G := G)
 instance instPlanar_by_AbstractDualdualGraphUndirected :
     Undirected G.dualGraph := Planar_by_AbstractDual.dualGraphUndir
@@ -67,7 +67,7 @@ lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
 instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConnected 3] :
     Planar_by_AbstractDual (dualGraph G) where
   F := V
-  FLinearOrder := by assumption
+  FDecidableEq := by assumption
   dualGraph := G
   dualGraphUndir := by assumption
   dualGraphConn := G.connected_of_nConnected 3
@@ -76,7 +76,7 @@ instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConn
 instance instEdgelessGraphPlanar_by_AbstractDual (n : ℕ) :
     Planar_by_AbstractDual (EdgelessGraph n) where
   F := Fin 1
-  FLinearOrder := by infer_instance
+  FDecidableEq := by infer_instance
   dualGraph := EdgelessGraph 1
   dualGraphUndir := by infer_instance
   dualGraphConn := by have : Fact (1 < 2) := Fact.mk (by omega); infer_instance
@@ -93,7 +93,7 @@ instance instEdgelessGraphPlanar_by_AbstractDual (n : ℕ) :
 instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
     Planar_by_AbstractDual G where
   F := Fin 1
-  FLinearOrder := by infer_instance
+  FDecidableEq := by infer_instance
   dualGraph := {inc := (IsEmpty.elim (by assumption) ·)}
   dualGraphUndir := by sorry
   dualGraphConn := by
@@ -173,7 +173,7 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
           @Quotient.fintype _ _ G.connSetoid (fun u v ↦ Relation.ReflTransGenDeciable _ _)
         apply_fun Fintype.card at hconnEq
         convert hconnEq
-      
+
       have hF : Fintype.card G'.Faces + 1 = Fintype.card G.Faces := by
         sorry
       omega

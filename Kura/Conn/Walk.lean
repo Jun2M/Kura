@@ -3,7 +3,7 @@ import Kura.Dep.List
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] (G : Graph V E)
 
 
 private def walkAux (P : V → E → V → Prop) : V → List (E × V) → Prop
@@ -21,7 +21,7 @@ structure Walk where
 namespace Walk
 variable {G : Graph V E} (w : Walk G)
 
-instance instDecidableEqWalk [LinearOrder E] : DecidableEq G.Walk :=
+instance instDecidableEqWalk [DecidableEq E] : DecidableEq G.Walk :=
   fun _ _ => decidable_of_decidable_of_iff Walk.ext_iff.symm
 
 def finish : V := match h : w.steps with
@@ -384,7 +384,7 @@ lemma reverse_finish [Undirected G] (w : Walk G) : (w.reverse).finish = w.start 
 lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.vertices.reverse := by
   sorry
 
--- def extensions (w : Walk G) [Fintype E] [LinearOrder E] : Finset (Walk G) :=
+-- def extensions (w : Walk G) [Fintype E] [DecidableEq E] : Finset (Walk G) :=
 --   let u := w.finish
 --   let es : Finset _ := ((G.outEdges u).filter fun e => (G.gofrom? u e).isSome).attach
 --   es.image (fun e => w.append (some u e.val ((G.gofrom? u e.val).get (by
@@ -392,17 +392,17 @@ lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.ve
 --     simp only [gofrom?, Finset.mem_filter] at he
 --     exact he.2)) sorry) (by rw [some_start]))
 
--- lemma mem_extensions_length (w w' : Walk G) [Fintype E] [LinearOrder E] :
+-- lemma mem_extensions_length (w w' : Walk G) [Fintype E] [DecidableEq E] :
 --     w' ∈ w.extensions → w'.length = w.length + 1 := by
 --   intro h
 --   simp only [extensions, Finset.mem_image] at h
 --   rcases h with ⟨e, _he, h⟩
 --   rw [← h, w.append_some_length]
 
--- def Nextensions (W : Finset G.Walk) [Fintype E] [LinearOrder E] : Finset G.Walk :=
+-- def Nextensions (W : Finset G.Walk) [Fintype E] [DecidableEq E] : Finset G.Walk :=
 --   W.biUnion (·.extensions)
 
--- lemma mem_extensions_of_length [Fintype E] [LinearOrder E] (n : ℕ) (w : Walk G)
+-- lemma mem_extensions_of_length [Fintype E] [DecidableEq E] (n : ℕ) (w : Walk G)
 --   (hwlen : w.length = n) :
 --   w ∈ ((Finset.biUnion · (·.extensions))^[n] {Walk.nil w.start}) := by
 --   induction n generalizing w with
@@ -417,7 +417,7 @@ lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.ve
 --     use ih
 --     sorry
 
-def SubgraphOf [LinearOrder W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     Walk H where
   start := h.fᵥ w.start
   steps := w.steps.map (fun ⟨u, e, v⟩ => (h.fᵥ u, h.fₑ e, h.fᵥ v))
@@ -435,23 +435,23 @@ def SubgraphOf [LinearOrder W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h :
     simpa only [EmbeddingLike.apply_eq_iff_eq] using h
 
 @[simp]
-lemma SubgraphOf_start [LinearOrder W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_start [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).start = h.fᵥ w.start := rfl
 
 @[simp]
-lemma SubgraphOf_vertices [LinearOrder W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_vertices [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).vertices = w.vertices.map h.fᵥ := by
   simp only [vertices, SubgraphOf, List.map_map, List.map_cons, List.cons.injEq, List.map_inj_left,
     Function.comp_apply, implies_true, and_self]
 
 @[simp]
-lemma SubgraphOf_finish [LinearOrder W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_finish [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).finish = h.fᵥ w.finish := by
   rw [← vertices_getLast_eq_finish, ← vertices_getLast_eq_finish]
   simp only [SubgraphOf_vertices, List.getLast_map, vertices_getLast_eq_finish]
 
 @[simp]
-lemma SubgraphOf_edges [LinearOrder W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
+lemma SubgraphOf_edges [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
     (w.SubgraphOf h).edges = w.edges.map h.fₑ := by
   simp only [edges, SubgraphOf, List.map_map, List.map_inj_left, Function.comp_apply, implies_true]
 
@@ -639,7 +639,7 @@ lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
     e ∈ p.reverse.edges ↔ e ∈ p.edges := by
   sorry
 
-def SubgraphOf [LinearOrder W] {G : Graph V E} {H : Graph W F} (p : Path G) (h : G.SubgraphOf H) : Path H where
+def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (p : Path G) (h : G.SubgraphOf H) : Path H where
   toWalk := p.toWalk.SubgraphOf h
   vNodup := by
     simp only [Walk.SubgraphOf_vertices]

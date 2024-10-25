@@ -5,7 +5,7 @@ import Mathlib.Logic.OpClass
 
 namespace Graph
 open edge
-variable {V W E F : Type*} (G : Graph V E) [LinearOrder V] (e : E) (u v w : V)
+variable {V W E F : Type*} (G : Graph V E) [DecidableEq V] (e : E) (u v w : V)
 
 
 -- There is a finset of edges that leads out of a vertex
@@ -32,7 +32,7 @@ lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] :
   simp only [startAt, inc_eq_undir_v12, undir_startAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
     Multiset.mem_cons, Multiset.mem_singleton, Sym2.mem_iff]
 
-lemma adj_iff_exist_outEdge_canGo [SearchableOut G] :
+lemma adj_iff_exist_outEdge_canGo [DecidableEq V] [SearchableOut G] :
     G.adj u v ↔ ∃ e ∈ G.outEdges u, G.canGo u e v := by
   sorry
 
@@ -74,7 +74,7 @@ lemma incEdges_card_eq_degree [G.loopless] : (G.incEdges v).card = G.degree v :=
 lemma incEdges_eq_outEdges [G.Undirected] : G.incEdges v = G.outEdges v := by
   sorry
 
-instance instAdjDecidable [SearchableOut G] : ∀ u, DecidablePred (G.adj u ·) := by
+instance instAdjDecidable [DecidableEq V] [SearchableOut G] : ∀ u, DecidablePred (G.adj u ·) := by
   rintro u v
   apply decidable_of_iff _ (G.adj_iff_exist_outEdge_canGo u v).symm
 
@@ -94,7 +94,7 @@ instance DecidableRelAdjOfFintypeE [Searchable G] : DecidableRel (G.adj : V → 
   exact mem_startAt_of_canGo _ _ _ h
 
 
-instance Searchable_of_FintypeE [Fintype E] : Searchable G where
+instance Searchable_of_FintypeE [DecidableEq V] [Fintype E] : Searchable G where
   outEdges v := Fintype.elems.filter (λ e => v ∈ G.startAt e)
   mem_outEdges v e := by
     rw [Finset.mem_filter, and_iff_right_iff_imp]
