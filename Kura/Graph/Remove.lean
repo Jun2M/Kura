@@ -7,30 +7,37 @@ open edge
 variable {V W E F : Type*}
 
 
-def Vs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : Graph S {e // G.all e (· ∈ S) } where
+def Vp (G : Graph V E) (P : V → Prop) [DecidablePred P] : Graph {v // P v} {e // G.all e P} where
   inc e :=
     let ⟨e, he⟩ := e
-    edge.pmap Subtype.mk (G.inc e) (by
-    intro v hv
-    simp only [all, all_iff, decide_eq_true_eq] at he
-    exact he v hv)
+    edge.pmap Subtype.mk (G.inc e) (by simpa only [all, all_iff, decide_eq_true_eq] using he)
+
+def Vs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : Graph S {e // G.all e (· ∈ S) } :=
+  G.Vp (· ∈ S)
 
 macro G:term "[" S:term "]ᴳ" : term => `(Graph.Vs $G $S)
 
-def Vsp (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] {P : E → Prop}
-  (hP : ∀ e, G.all e (· ∈ S) ↔ P e) : Graph S {e // P e} where
-  inc e := G.inc e.val
-    |>.pmap Subtype.mk (fun v hv => by
-      obtain ⟨e, he⟩ := e
-      simp only [← hP e, all, all_iff, decide_eq_true_eq] at he
-      exact he v hv)
+def VpSubtype {Pᵥ Pᵥ' : V → Prop} {Pₑ Pₑ' : E → Prop} [DecidablePred Pᵥ]
+  (G : Graph (Subtype Pᵥ) (Subtype Pₑ)) (S : Set V) [DecidablePred (· ∈ S)]
+  (hPᵥ' : ∀ v, (Pᵥ v ∧ v ∈ S) ↔ Pᵥ' v) (hPₑ' : ∀ e, (∃ (he : Pₑ e), G.all ⟨e, he⟩ (· ∈ S)) ↔ Pₑ' e):
+    Graph (Subtype Pᵥ') (Subtype Pₑ') where
+  inc e := by
+    choose he' hS using (hPₑ' e).mpr e.prop
+    apply edge.pmap Subtype.mk ((G.inc ⟨e.val, he'⟩).map Subtype.val)
+    simp only [all, all_iff, decide_eq_true_eq, Subtype.forall, mem_map_iff, Subtype.exists,
+      exists_and_right, exists_eq_right, forall_exists_index] at hS ⊢
+    rintro v hv hvG
+    rw [← hPᵥ']
+    refine ⟨hv, hS v hv hvG⟩
 
-def Es (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : Graph V S where
+def Ep (G : Graph V E) (P : E → Prop) : Graph V {e // P e} where
   inc := (G.inc ·.val)
+
+def Es (G : Graph V E) (S : Set E) : Graph V S := G.Ep (· ∈ S)
 
 macro G:term "{" S:term "}ᴳ" : term => `(Graph.Es $G $S)
 
-def EsSubtype {P P' : E → Prop} (G : Graph V (Subtype P)) (S : Set E) [DecidablePred (· ∈ S)]
+def EsSubtype {P P' : E → Prop} (G : Graph V (Subtype P)) (S : Set E)
   (hP' : ∀ e, (P e ∧ e ∈ S) ↔ P' e) : Graph V (Subtype P') where
   inc e := by
     obtain ⟨e, he⟩ := e
@@ -40,7 +47,7 @@ def EsSubtype {P P' : E → Prop} (G : Graph V (Subtype P)) (S : Set E) [Decidab
     exact G.inc ⟨e, hP⟩
 
 def EVs (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
-  [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : Graph Sv Se where
+  (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : Graph Sv Se where
   inc e := G{Se}ᴳ[Sv]ᴳ.inc ⟨e, he e.val e.prop⟩
 
 def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v ∉ S) :
