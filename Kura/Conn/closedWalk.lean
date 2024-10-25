@@ -2,7 +2,7 @@ import Kura.Conn.Walk
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E)
 
 
 structure Closed extends Walk G where
@@ -33,13 +33,13 @@ instance instPreorder : Preorder (Cycle G) where
   le_refl := λ c => Nat.le_refl _
   le_trans := λ c₁ c₂ c₃ => Nat.le_trans
 
-instance DecEq [LinearOrder E] : DecidableEq G.Cycle := by
+instance DecEq [DecidableEq E] : DecidableEq G.Cycle := by
   intro C1 C2
   refine @decidable_of_decidable_of_iff (C1.toWalk = C2.toWalk) (C1 = C2) ?_ ?_
   infer_instance
   rw [Cycle.ext_iff]
 
-instance instFintype [Fintype E] [LinearOrder E] : Fintype (Cycle G) where
+instance instFintype [Fintype E] [DecidableEq E] : Fintype (Cycle G) where
   elems := by
     -- exact (Finset.univ : Finset E)
     --   |>.image Walk.nil
