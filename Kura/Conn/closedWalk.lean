@@ -132,8 +132,6 @@ def cut (C : G.Cycle) {v : V} (hv : v ∈ C.vertices) : G.Walk :=
 def split (C : G.Cycle) {u v : V} (hu : u ∈ C.vertices) (hv : v ∈ C.vertices) : G.Path × G.Path :=
   sorry
 
-def symmDiff (C1 C2 : G.Cycle) : G.Cycle := sorry
-
 lemma isLoop_of_edges_singleton (C : G.Cycle) (e : E) (he : C.edges = [e]) : G.isLoop e := by
   unfold Walk.edges at he
   have : C.steps = [(C.start, e, C.finish)] := by

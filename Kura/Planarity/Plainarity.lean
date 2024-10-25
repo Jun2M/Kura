@@ -154,26 +154,26 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
     · have hNC : G'.NumberOfComponents = G.NumberOfComponents := by
         unfold Graph.NumberOfComponents
         have hconnEq : G'.connSetoid = G.connSetoid := by
-          unfold Graph.connSetoid
           ext x y
-          unfold Setoid.Rel
-          simp only
-          constructor
-          · intro h
-            have := h.SubgraphOf (Es_subgraph G {e}ᶜ)
-            simpa only [Es_subgraph_fᵥ, id_eq] using this
-          · intro h
-            induction h with
-            | refl => exact conn_refl G' x
-            | tail h1 h2 IH => sorry
-        have := hconnEq
+          simp only [Setoid.Rel, Graph.connSetoid]
+          have hadj : G'.adj ≤ G.adj := sorry
+          have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
+          have hadj' : G.adj ≤ G'.conn := sorry
+          have hconn' : G.conn ≤ G'.conn := by
+            conv_rhs =>
+              change Relation.ReflTransClosure G'.adj
+              rw [← Relation.ReflTransClosure.idempotent]
+            exact Relation.ReflTransClosure.monotone hadj'
+          rw [le_antisymm hconn hconn']
+
         apply_fun Quotient at hconnEq
         have : Fintype (Quotient G'.connSetoid) :=
-          @Quotient.fintype _ _  G'.connSetoid (by rintro u v; apply Relation.ReflTransGenDeciable)
+          @Quotient.fintype _ _  G'.connSetoid (fun u v ↦ Relation.ReflTransGenDeciable _ _)
         have : Fintype (Quotient G.connSetoid) :=
-          @Quotient.fintype _ _ G.connSetoid (by rintro u v; apply Relation.ReflTransGenDeciable)
+          @Quotient.fintype _ _ G.connSetoid (fun u v ↦ Relation.ReflTransGenDeciable _ _)
         apply_fun Fintype.card at hconnEq
         convert hconnEq
+      
       have hF : Fintype.card G'.Faces + 1 = Fintype.card G.Faces := by
         sorry
       omega
