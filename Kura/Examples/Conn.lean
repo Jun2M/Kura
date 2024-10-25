@@ -3,7 +3,7 @@ import Kura.Conn.Conn
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
+variable {V W E F : Type*} (G : Graph V E) (e : E) (u v w : V)
 
 
 instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph n).connected where

@@ -107,10 +107,11 @@ theorem KuraCore1 {V E : Type*} [LinearOrder V] [Fintype V] [LinearOrder E] [Fin
       unfold_let; clear this
       simp only [Cycle.SubgraphOf_vertices, List.mem_map, not_exists, not_and]
       rintro z hz
-      
-      have h' := C'.vNodup' h ha
-      simp only [List.erase_cons_head, List.erase_cons_tail] at h'
-      exact h'.left
+
+      -- have h' := C'.vNodup' h ha
+      -- simp only [List.erase_cons_head, List.erase_cons_tail] at h'
+      -- exact h'.left
+      sorry
     obtain hau' := this G' huNev.symm
 
 

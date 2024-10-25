@@ -9,7 +9,7 @@ open edge
 variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E)
 
 
-def conn : V → V → Prop := Relation.ReflTransGen G.adj
+def conn : V → V → Prop := Relation.ReflTransClosure G.adj
 
 @[simp]
 lemma conn_refl (v : V) : G.conn v v := Relation.ReflTransGen.refl
@@ -170,7 +170,6 @@ lemma incEdges_edgeCut (v : V) [Nontrivial V] [DecidableEq E] [Searchable G] :
     G.edgeCut (G.incEdges v) := by
   simp only [edgeCut]
   obtain ⟨w, hw⟩ := exists_ne v
-
   sorry
 
 lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
@@ -188,10 +187,6 @@ lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
     sorry
     -- requires some Isom theorems
   · simp only [Finset.mem_singleton]
-
-lemma symdiff_minEdgeCut [DecidableEq E] (S T : Finset E) (hS : G.minEdgeCut S) (hT : G.minEdgeCut T) :
-    G.minEdgeCut ((S ∪ T) \ (S ∩ T)) := by
-  sorry
 
 
 class NEdgeConnected [DecidableEq E] (n : ℕ) : Prop :=
