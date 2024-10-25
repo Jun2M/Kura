@@ -5,8 +5,6 @@ import Kura.Examples.Defs
 namespace Graph
 open edge
 variable {V₁ V₂ V₃ V₄ E₁ E₂ E₃ E₄ : Type*}
-  [LinearOrder V₁] [LinearOrder V₂] [LinearOrder V₃] [LinearOrder V₄]
-  [DecidableEq E₁] [DecidableEq E₂] [DecidableEq E₃] [DecidableEq E₄]
   (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) (G₃ : Graph V₃ E₃)
 
 
@@ -79,7 +77,7 @@ def add : Graph (Lex $ V₁ ⊕ V₂) (E₁ ⊕ E₂) where
     | Sum.inr e₂ => (G₂.inc e₂).map Sum.inr
 
 
-def MergeOnMultualSubgraph {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁) (H₂ : H ⊆ᴳ G₂) [Fintype V₃] [Fintype E₃] :
+def MergeOnMultualSubgraph [DecidableEq V₂] {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁) (H₂ : H ⊆ᴳ G₂) [Fintype V₃] [Fintype E₃] :
     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)} (E₁ ⊕ E₂) :=
   G₁.add G₂
   |>.Qfp (λ v => match v with
@@ -136,14 +134,16 @@ def MergeOnMultualSubgraph {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁) (H₂ : 
 
 
 -- Gluing two graphs along a common subgraph
-def gluing {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁) (H₂ : H ⊆ᴳ G₂) [Fintype V₃] [Fintype E₃] :
+def gluing [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁)
+  (H₂ : H ⊆ᴳ G₂) [Fintype V₃] [Fintype E₃] :
     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)}
           {e : E₁ ⊕ E₂ // e ∉ (Finset.univ.map H₂.fₑ).image Sum.inr} :=
   (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es {e | e ∉ (Finset.univ.map H₂.fₑ).image Sum.inr}
 
 
 -- Clique sum
-def cliqueSum (n : ℕ) (H₁ : (CompleteGraph n) ⊆ᴳ G₁) (H₂ : (CompleteGraph n) ⊆ᴳ G₂) :
+def cliqueSum [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] (n : ℕ)
+  (H₁ : (CompleteGraph n) ⊆ᴳ G₁) (H₂ : (CompleteGraph n) ⊆ᴳ G₂) :
     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)}
           {e : E₁ ⊕ E₂ // e ∉ ((Finset.univ.map H₂.fₑ).image Sum.inr ∪ (Finset.univ.map H₁.fₑ).image Sum.inl)} :=
   (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es

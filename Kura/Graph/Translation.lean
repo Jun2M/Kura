@@ -4,7 +4,7 @@ import Kura.Dep.Rel
 
 
 open edge Graph
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W]
+variable {V W E F : Type*}
 
 
 def SimpleGraph.toGraph (G : SimpleGraph V) :

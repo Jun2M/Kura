@@ -3,7 +3,7 @@ import Kura.Graph.Defs
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) [fullGraph G] (e : E) (u v w : V)
+variable {V W E F : Type*} (G : Graph V E) [fullGraph G] (e : E) (u v w : V)
 
 
 @[simp]
@@ -37,7 +37,7 @@ lemma exist_two_mem : ∃ u v, u ∈ G.inc e ∧ v ∈ G.inc e := by
     Multiset.mem_cons, Multiset.mem_singleton, true_or, or_true]
 
 @[simp]
-lemma gofrom?_isSome_iff_mem_startAt (v : V) (e : E) :
+lemma gofrom?_isSome_iff_mem_startAt [DecidableEq V] (v : V) (e : E) :
     (G.gofrom? v e).isSome ↔ v ∈ G.startAt e := by
   simp [startAt, edge.startAt, gofrom?, edge.gofrom?]
   match he : G.inc e with
@@ -57,9 +57,9 @@ lemma NonemptyV_of_e (G : Graph V E) [fullGraph G] (e : E) : Nonempty V := by
     exact IsEmpty.false e
   · assumption
 
-def v1 : V := ((G.inc e).toFullEdge (G.all_full e)).v1
+noncomputable def v1 : V := ((G.inc e).toFullEdge (G.all_full e)).v1
 
-def v2 : V := ((G.inc e).toFullEdge (G.all_full e)).v2
+noncomputable def v2 : V := ((G.inc e).toFullEdge (G.all_full e)).v2
 
 @[simp↓ 101]
 lemma dir_v1 {e} {u v} (h : G.inc e = dir (some u, some v)) : v1 G e = u := by
@@ -81,7 +81,7 @@ lemma isLoop_iff_v1_eq_v2 : G.isLoop e ↔ v1 G e = v2 G e := by
     · simp only [not_dir_some_none] at h
     · rw [G.dir_v1 h, G.dir_v2 h]
       simp only [isLoop, h, dir_isLoop_iff]
-  | undir s => simp only [isLoop, edge.isLoop, h, Sym2.isDiag_iff_inf_eq_sup, decide_eq_true_eq, v1,
-    undir_v1, v2, undir_v2]
+  | undir s => simp only [isLoop, edge.isLoop, h, Sym2.isDiag_iff_out_fst_eq_out_snd, v1, undir_v1,
+    v2, undir_v2]
 
 end Graph

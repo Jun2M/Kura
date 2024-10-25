@@ -4,8 +4,7 @@ import Kura.Dep.Finset
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W]
-
+variable {V W E F : Type*}
 
 
 def Vs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : Graph S {e // G.all e (· ∈ S) } where
@@ -142,7 +141,7 @@ lemma EVs_subgraph_fₑ {G : Graph V E} (Sv : Set V) [DecidablePred (· ∈ Sv)]
 
 
 lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype W] [Fintype E]
-  [Fintype F] [DecidableEq E] [DecidableEq F] :
+  [Fintype F] [DecidableEq V] [DecidableEq W] [DecidableEq E] [DecidableEq F] :
     Nonempty (G ⊆ᴳ H) ↔ ∃ (Sv : Set W) (hSv : DecidablePred (· ∈ Sv)) (Se : Set F)
     (hSe : DecidablePred (· ∈ Se)) (hSve : ∀ e ∈ Se, (H.all e (· ∈ Sv))),
     Nonempty (G ≃ᴳ H.EVs Sv Se hSve) := by

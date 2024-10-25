@@ -47,7 +47,7 @@ instance instFintype [Fintype E] [LinearOrder E] : Fintype (Cycle G) where
     sorry
   complete := sorry
 
-def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
+noncomputable def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
   start := (G.inc e).v1 ((G.inc e).isFull_of_isLoop he)
   steps := [((G.inc e).v1 ((G.inc e).isFull_of_isLoop he), e, (G.inc e).v2 ((G.inc e).isFull_of_isLoop he))]
   start_spec _hn := rfl

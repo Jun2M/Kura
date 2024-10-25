@@ -8,18 +8,8 @@ import Kura.Graph.Bipartite
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [LinearOrder V] [LinearOrder W] (G : Graph V E) (e : E) (u v w : V)
+variable {V W E F : Type*} (G : Graph V E) (e : E) (u v w : V)
 
-
-instance LinearOrderEmpty : LinearOrder Empty where
-  le := fun _ _ => True
-  le_refl a := a.elim
-  le_trans a := a.elim
-  le_antisymm a := a.elim
-  le_total a := a.elim
-  decidableLE a := a.elim
-  compare a := a.elim
-  decidableEq a := a.elim
 
 def EdgelessGraph (n : ℕ): Graph (Fin n) Empty where
   inc e := e.elim
@@ -105,8 +95,7 @@ def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ₗ Fin n₂) (Fin 
 
 instance instCompleteBipGraphSimple (n₁ n₂ : ℕ+) : Simple (CompleteBipGraph n₁ n₂) where
   all_full _e := by simp only [isFull, edge.isFull, CompleteBipGraph]
-  no_loops e := by simp only [isLoop, edge.isLoop, CompleteBipGraph, Sym2.isDiag_iff_inf_eq_sup,
-    Sym2.inf_mk, Sym2.sup_mk, inf_eq_sup, reduceCtorEq, decide_False, Bool.false_eq_true,
+  no_loops e := by simp only [isLoop, edge.isLoop, CompleteBipGraph, Sym2.mk_isDiag_iff]; simp only [reduceCtorEq,
     not_false_eq_true]
   edge_symm _e := by simp only [isUndir, edge.isUndir, CompleteBipGraph]
   inc_inj e₁ e₂ h := by
