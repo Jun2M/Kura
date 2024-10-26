@@ -4,6 +4,11 @@ import Mathlib.Tactic
 import Kura.Dep.UnpackSingleton
 
 
+lemma Set.rangeSplitting_apply' {α β : Type*} (f : α ↪ β) (x : α) :
+    Set.rangeSplitting f ⟨f x, Set.mem_range_self x⟩ = x := by
+  change Set.rangeSplitting f.toFun (Set.rangeFactorization f.toFun x) = x
+  rw [Set.rightInverse_rangeSplitting f.inj' x]
+
 @[simp]
 theorem Function.Embedding.coe_refl {α : Type*} : (Function.Embedding.refl α : α → α) = id := rfl
 

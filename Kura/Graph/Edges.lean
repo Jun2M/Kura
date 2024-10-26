@@ -96,21 +96,6 @@ lemma exist_of_isUndir (e : edge V) (he : e.isUndir) : ∃ s, e = undir s := by
   match e, he with
   | undir s, _ => exact ⟨s, rfl⟩
 
--- @[simp]
--- lemma dir_not_isLoop_none_none : ¬ isLoop (dir (none, none) : edge V) := by
---   unfold isLoop
---   tauto
-
--- @[simp]
--- lemma dir_not_isLoop_none_some (a : V) : ¬ isLoop (dir (none, some a) : edge V) := by
---   unfold isLoop
---   tauto
-
--- @[simp]
--- lemma dir_not_isLoop_some_none (a : V) : ¬ isLoop (dir (some a, none) : edge V) := by
---   unfold isLoop
---   tauto
-
 @[simp]
 lemma dir_isLoop_iff (a b : V) : isLoop (dir (some a, some b)) ↔ a = b := by
   simp only [isLoop, decide_eq_true_eq]
@@ -150,14 +135,6 @@ def endAt : Multiset V := match e with
     | none => s) ∅
   | undir s => s.toMultiset
 
-@[simp]
-lemma dir_endAt (a b : V) : (dir (some a, some b)).endAt = {a, b} := by
-  simp only [endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
-    Multiset.cons_zero, List.foldl_nil]
-
-@[simp]
-lemma undir_endAt (s : Sym2 V) : (undir s).endAt = s.toMultiset := by rfl
-
 instance instedgeMem : Membership V (edge V) where
   mem e v := v ∈ e.endAt
 
@@ -165,6 +142,14 @@ instance instMemDecPred [DecidableEq V] : ∀ (u : V), Decidable (u ∈ e) := by
   cases e <;> simp only [instedgeMem] <;> infer_instance
 
 lemma mem_endAt_iff_mem (e : edge V) (v : V) : v ∈ e.endAt ↔ v ∈ e := by rfl
+
+@[simp]
+lemma dir_endAt (a b : V) : (dir (some a, some b)).endAt = {a, b} := by
+  simp only [endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
+    Multiset.cons_zero, List.foldl_nil]
+
+@[simp]
+lemma undir_endAt (s : Sym2 V) : (undir s).endAt = s.toMultiset := by rfl
 
 @[simp]
 lemma mem_dir_some_fst (a : V) (b : Option V) : a ∈ dir (some a, b) := by
@@ -177,7 +162,7 @@ lemma mem_dir_some_snd (a : Option V) (b : V) : b ∈ dir (a, some b) := by
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, Multiset.mem_cons, Multiset.mem_singleton,
     or_true]
 
-lemma mem_toMultiset_of_undir (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e.toMultiset := by
+lemma mem_undir_iff_toMultiset (e : Sym2 V) (v : V) : v ∈ undir e ↔ v ∈ e.toMultiset := by
   simp only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
     Multiset.cons_zero, List.foldl_nil, mem_toMultiset_iff]
 
@@ -206,14 +191,14 @@ lemma undir_startAt (s : Sym2 V) : (undir s).startAt = s.toMultiset := by rfl
 lemma mem_startAt_undir (s : Sym2 V) (v : V) : v ∈ startAt (undir s) ↔ v ∈ s := by
   simp only [startAt, mem_toMultiset_iff]
 
-@[simp]
-lemma undir_startAt_card (s : Sym2 V) : Multiset.card (undir s).startAt = 2 := by
-  simp only [startAt, toMultiset_card]
-
 lemma dir_startAt_card (x : Option V × Option V) : Multiset.card (dir x : edge V).startAt < 2 := by
   obtain ⟨a, b⟩ := x
   cases a <;> cases b <;> simp only [startAt, Multiset.empty_eq_zero, Multiset.card_zero,
     Nat.ofNat_pos, Multiset.card_singleton, Nat.one_lt_ofNat]
+
+@[simp]
+lemma undir_startAt_card (s : Sym2 V) : Multiset.card (undir s).startAt = 2 := by
+  simp only [startAt, toMultiset_card]
 
 @[simp]
 lemma dir_undir_startAt_not_eq (x : Option V × Option V) (s : Sym2 V) :
@@ -234,9 +219,7 @@ lemma startAt_subset_endAt (e : edge V) : e.startAt ⊆ e.endAt := by
   | undir s =>
     simp_all only [undir_startAt, mem_toMultiset_iff, undir_endAt]
 
-lemma mem_of_mem_startAt : ∀ v, v ∈ e.startAt → v ∈ e := by
-  unfold instedgeMem
-  exact startAt_subset_endAt e
+lemma mem_of_mem_startAt : ∀ v, v ∈ e.startAt → v ∈ e := startAt_subset_endAt e
 
 def finishAt : Multiset V := match e with
   | dir (_, b) =>
@@ -252,21 +235,21 @@ lemma dir_finishAt (a b : Option V) :
     ↓reduceDIte, Option.isSome_some, Option.get_some]
 
 @[simp]
-lemma undir_finishAt (s : Sym2 V) : (undir s).finishAt = s.toMultiset := by rfl
+lemma undir_finishAt (s : Sym2 V) : (undir s).finishAt = s.toMultiset := rfl
 
 @[simp]
 lemma mem_finishAt_undir (s : Sym2 V) (v : V) : v ∈ finishAt (undir s) ↔ v ∈ s := by
   simp only [finishAt, mem_toMultiset_iff]
 
 @[simp]
-lemma undir_finishAt_card (s : Sym2 V) : Multiset.card (undir s).finishAt = 2 := by
-  simp only [finishAt, toMultiset_card]
-
-@[simp]
 lemma dir_finishAt_card (x : Option V × Option V) : Multiset.card (dir x : edge V).finishAt < 2 := by
   obtain ⟨a, b⟩ := x
   cases a <;> cases b <;> simp only [finishAt, Multiset.empty_eq_zero, Multiset.card_zero,
     Nat.ofNat_pos, Multiset.card_singleton, Nat.one_lt_ofNat]
+
+@[simp]
+lemma undir_finishAt_card (s : Sym2 V) : Multiset.card (undir s).finishAt = 2 := by
+  simp only [finishAt, toMultiset_card]
 
 @[simp]
 lemma dir_undir_finishAt_not_eq (x : Option V × Option V) (s : Sym2 V) :
@@ -310,17 +293,15 @@ lemma ext (e e' : edge V) (hstart : e.startAt = e'.startAt) (hfin : e.finishAt =
   match e, e' with
   | dir (a, b), dir (a', b') =>
     simp_all only [dir_startAt, Multiset.empty_eq_zero, dir_finishAt, dir.injEq, Prod.mk.injEq]
-    cases a <;> cases b <;> cases a' <;> cases b' <;> simp_all
+    cases a <;> cases b <;> cases a' <;> cases b' <;> simp_all [Option.isSome_none,
+      Bool.false_eq_true, dite_false, Option.isSome_some, Option.get_some, dite_eq_ite, ite_true,
+      Multiset.zero_ne_singleton]
   | undir s, undir s' =>
     simp_all only [undir_startAt, undir_finishAt, undir.injEq]
     ext v
     rw [← mem_toMultiset_iff, hstart, mem_toMultiset_iff]
-  | dir (a, b), undir s =>
-    exfalso
-    apply dir_undir_finishAt_not_eq (a, b) s hfin
-  | undir s, dir (a, b) =>
-    exfalso
-    apply dir_undir_finishAt_not_eq (a, b) s hfin.symm
+  | dir (a, b), undir s => exact (dir_undir_finishAt_not_eq (a, b) s hfin).elim
+  | undir s, dir (a, b) => exact (dir_undir_finishAt_not_eq (a, b) s hfin.symm).elim
 
 
 def gofrom? [DecidableEq V] (v : V) : Option V := match e with
@@ -398,9 +379,31 @@ lemma undir_canGo [DecidableEq V] (a b : V) : (undir s(a, b)).canGo a b := by
     decide_eq_true_eq]
 
 @[simp]
-lemma undir_canGo_inf_sup [DecidableEq V] (s : Sym2 V) : (undir s).canGo s.out.1 s.out.2 := by
+lemma undir_canGo_v12 [DecidableEq V] (s : Sym2 V) : (undir s).canGo s.out.1 s.out.2 := by
   simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, exist_other'_eq,
     Prod.mk.eta, Quot.out_eq, decide_True]
+
+@[simp]
+lemma canGo_iff_eq_of_undir [DecidableEq V] (v w : V) :
+    edge.canGo v (undir s) w ↔ s = s(v, w) := by
+  constructor
+  · rintro h'
+    unfold canGo gofrom? at h'
+    simpa only [Option.mem_def, dite_some_none_eq_some, exist_other'_eq, decide_eq_true_eq] using h'
+  · rintro rfl
+    exact undir_canGo v w
+
+@[simp]
+lemma canGo_iff_eq_of_dir [DecidableEq V] (v w : V) :
+    edge.canGo v (dir d) w ↔ d = (some v, some w) := by
+  constructor
+  · rintro h'
+    unfold canGo gofrom? at h'
+    simp only [Option.mem_def, decide_eq_true_eq] at h'
+    split_ifs at h' with h
+    · exact Prod.ext h h'
+  · rintro rfl
+    exact dir_canGo v w
 
 
 @[simp]

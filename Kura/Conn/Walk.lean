@@ -428,7 +428,7 @@ def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h :
     simp only [List.mem_map, Prod.exists, canGo, forall_exists_index, and_imp, Prod.forall,
       Prod.mk.injEq]
     rintro w₁ f w₂ v₁ e v₂ hve rfl rfl rfl
-    exact h.CanGo _ _ _ _ _ (w.step_spec (v₁, e, v₂) hve)
+    exact h.CanGo _ _ _ (w.step_spec (v₁, e, v₂) hve)
   next_step := by
     refine List.chain'_map_of_chain' _ ?_ w.next_step
     rintro ⟨u, e, v⟩ ⟨u', e', v'⟩ h

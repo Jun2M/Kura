@@ -42,8 +42,7 @@ lemma out_mk_eq_or_swap (v w : α) : Quot.out s(v, w) = (v, w) ∨ Quot.out s(v,
   simp only [Sym2.eq, Sym2.rel_iff', Prod.swap_prod_mk, or_self] at h ⊢
   exact h
 
-lemma eq_mk_out (x : Sym2 α) : x = s(x.out.1, x.out.2) := by
-  simp only [Prod.mk.eta, Quot.out_eq]
+lemma eq_mk_out (x : Sym2 α) : x = s(x.out.1, x.out.2) := (Quot.out_eq _).symm
 
 lemma eq_iff_out_eq_or_out_swap (x : Sym2 α) (v w : α) :
   x = s(v, w) ↔ x.out = (v, w) ∨ x.out = (w, v) := by
@@ -199,12 +198,10 @@ theorem subtype_iff_mem_sat {p : α → Prop} :
   ∀ x : Sym2 α, (∀ y ∈ x, p y) ↔ ∃ x' : Sym2 {x // p x}, x'.map (·.1) = x := by
   intro x
   constructor
-  · -- 1.
-    intro h
+  · intro h
     lift x to Sym2 (Subtype p) using h
     use x
-  · -- 2.
-    rintro ⟨ x', hx' ⟩ y hy
+  · rintro ⟨ x', hx' ⟩ y hy
     rw [Sym2.eq_mk_out x', Sym2.map_pair_eq] at hx'
     rw [← hx'] at hy
     simp at hy
@@ -251,6 +248,17 @@ theorem other'_eq_left [DecidableEq α] (a b : α) : Mem.other' (by simp : b ∈
   have hb : b ∈ s(a, b) := by simp
   obtain this := Sym2.other_spec' hb
   rwa [Sym2.eq_swap, Sym2.congr_left] at this
+
+lemma map_eq_iff {α β : Type*} (f : α ↪ β) (s : Sym2 α) (a b : α) :
+  (s.map f = s(f a, f b)) ↔ s = s(a, b) := by
+  constructor <;> rintro h
+  · conv_lhs at h => rw [eq_mk_out s, map_pair_eq]
+    simp only [Sym2.eq, rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at h
+    rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> rw [← f.inj' h1, ← f.inj' h2]
+    on_goal 2 => rw [eq_swap]
+    all_goals exact eq_mk_out s
+  · rw [h]
+    simp only [map_pair_eq]
 
 
 def toMultiset (s : Sym2 α) : Multiset α := (Sym2.equivMultiset _ s).val
