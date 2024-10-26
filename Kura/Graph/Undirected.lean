@@ -68,6 +68,15 @@ lemma canGo_symm [DecidableEq V] : G.canGo u e v = G.canGo v e u := by
   simp only [canGo, inc_eq_undir_v12]
   rw [← canGo_flip, flip_self]
 
+lemma canGo_iff_eq_v12 [DecidableEq V] : G.canGo u e v ↔ (u = G.v1 e ∧ v = G.v2 e) ∨ (u = G.v2 e ∧ v = G.v1 e) := by
+  simp only [canGo, inc_eq_undir_v12]
+  constructor
+  · rintro h
+
+    sorry
+  ·
+    sorry
+
 lemma startAt_eq_endAt : G.startAt e = G.endAt e := by
   simp only [startAt, inc_eq_undir_v12, undir_startAt, endAt, undir_endAt]
 
@@ -97,5 +106,5 @@ lemma mem_incEE_of_both_mem_incVE [DecidableEq V] (hne : e ≠ e') (h : e ∈ G.
   refine ⟨ hne, ?_ ⟩
   exact Multiset.ne_zero_of_mem <| Multiset.mem_inter.mpr ⟨ h, h' ⟩
 
-lemma adj_symmetric [DecidableEq V] : G.adj u v ↔ G.adj v u := by
+lemma adj_comm [DecidableEq V] : G.adj u v ↔ G.adj v u := by
   simp only [adj, canGo_symm]

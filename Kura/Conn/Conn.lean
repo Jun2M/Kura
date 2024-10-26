@@ -14,6 +14,14 @@ def conn : V → V → Prop := Relation.ReflTransClosure G.adj
 @[simp]
 lemma conn_refl (v : V) : G.conn v v := Relation.ReflTransGen.refl
 
+lemma conn_symm [Undirected G] (u v : V) : G.conn u v → G.conn v u := by
+  apply Relation.ReflTransGen.symmetric
+  rintro u v h
+  rwa [G.adj_comm]
+
+lemma conn_comm [Undirected G] (u v : V) : G.conn u v ↔ G.conn v u :=
+  ⟨ G.conn_symm u v, G.conn_symm v u ⟩
+
 lemma conn.path (u v : V) (huv : G.conn u v) : ∃ P : G.Path, P.start = u ∧ P.finish = v := by
   unfold conn at huv
   induction huv with
@@ -61,7 +69,7 @@ lemma conn.SubgraphOf {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V}
     H.conn (h.fᵥ u) (h.fᵥ v) := by
   induction huv with
   | refl => exact conn_refl _ _
-  | tail _h1 h2 IH => exact IH.tail (h.adj G H _ _ h2)
+  | tail _h1 h2 IH => exact IH.tail (h.Adj _ _ h2)
 
 def connSetoid [Undirected G] : Setoid V where
   r := conn G
@@ -71,7 +79,7 @@ def connSetoid [Undirected G] : Setoid V where
       exact Relation.ReflTransGen.refl
     · apply Relation.ReflTransGen.symmetric
       intro x y hxy
-      exact (G.adj_symmetric x y).mp hxy
+      exact (G.adj_comm x y).mp hxy
     · intro a b c hab hbc
       exact Relation.ReflTransGen.trans hab hbc
 

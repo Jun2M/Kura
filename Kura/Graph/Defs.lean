@@ -127,16 +127,38 @@ def SubgraphOf.trans {G : Graph V E} {H : Graph W F} {I : Graph U E'} (a : G ⊆
     simp only [Function.Embedding.trans_apply, b.comm, map, a.comm]
     exact (map_comp a.fᵥ b.fᵥ (G.inc e)).symm
 
-lemma SubgraphOf.CanGo [DecidableEq V] [DecidableEq W] (A : G ⊆ᴳ H) (u v : V) (e : E) :
-    G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
+lemma SubgraphOf.CanGo {G : Graph V E} {H : Graph W F} [DecidableEq V] [DecidableEq W] (A : G ⊆ᴳ H)
+  (u v : V) (e : E) : G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
   intro h
   simpa only [canGo, A.comm, map_canGo]
 
-lemma SubgraphOf.adj [DecidableEq V] [DecidableEq W] (A : G ⊆ᴳ H) (u v : V) :
-    G.adj u v → H.adj (A.fᵥ u) (A.fᵥ v) := by
+lemma SubgraphOf.canGo_iff [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H)
+  (u v : V) (e : E) : G.canGo u e v ↔ H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
+  refine ⟨A.CanGo u v e, ?_⟩
+  rintro h
+  match h' : H.inc (A.fₑ e) with
+  | dir d =>
+    simp only [canGo, h', canGo_iff_eq_of_dir] at h
+    subst h
+    simp only [A.comm e, map_eq_dir, Option.map_eq_some', EmbeddingLike.apply_eq_iff_eq,
+      exists_eq_right, exists_eq_right_right] at h'
+    unfold canGo
+    simp only [h', dir_canGo]
+  | undir s =>
+    simp only [canGo, h', canGo_iff_eq_of_undir] at h
+    subst h
+    simp only [A.comm e, map_eq_undir] at h'
+    obtain ⟨s, hs, h'⟩ := h'
+    rw [Sym2.map_eq_iff] at h'
+    subst h'
+    unfold canGo
+    simp only [hs, canGo_iff_eq_of_undir]
+
+lemma SubgraphOf.Adj [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H)
+  (u v : V) : G.adj u v → H.adj (A.fᵥ u) (A.fᵥ v) := by
   intro h
   obtain ⟨e, he⟩ := h
-  exact ⟨A.fₑ e, A.CanGo _ _ u v e he⟩
+  exact ⟨A.fₑ e, A.CanGo u v e he⟩
 
 noncomputable def SubgraphOf.FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
   exact Fintype.ofInjective A.fᵥ A.fᵥ.inj'
