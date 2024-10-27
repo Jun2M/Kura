@@ -607,6 +607,34 @@ lemma map_canGo [DecidableEq V] [DecidableEq W] (f : V ↪ W) (v w : V) :
     · rintro rfl
       simp only [map_pair_eq]
 
+@[simp]
+lemma map_isDir_iff (f : V → W) (e : edge V) : (e.map f).isDir ↔ e.isDir := by
+  match e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all only [isDir, map, Option.map_none',
+    Option.map_some']
+  | undir _ => simp only [isDir, map]
+
+@[simp]
+lemma map_isUndir_iff (f : V → W) (e : edge V) : (e.map f).isUndir ↔ e.isUndir := by
+  match e with
+  | dir _ => simp only [isUndir, map]
+  | undir _ => simp only [isUndir, map]
+
+@[simp]
+lemma map_isLoop_iff (f : V ↪ W) (e : edge V) : (e.map f).isLoop ↔ e.isLoop := by
+  match e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all only [isLoop, map, Option.map_some',
+    Option.map_none', EmbeddingLike.apply_eq_iff_eq]
+  | undir _ => simp only [isLoop, map, map_IsDiag_iff]
+
+@[simp]
+lemma map_isFull_iff (f : V → W) (e : edge V) : (e.map f).isFull ↔ e.isFull := by
+  match e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all only [isFull, map, Option.map_none',
+    Option.map_some', Bool.false_eq_true]
+  | undir _ => simp only [isFull, map]
+
+
 
 def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P v) → edge W := by
   intro H

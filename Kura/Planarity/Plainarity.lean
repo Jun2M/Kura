@@ -133,9 +133,9 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
       omega
     obtain e : E := Classical.choice this
     let G' := G{{e}ᶜ}ᴳ
-    have hG'Undir : G'.Undirected := by sorry
-    have hG'Planar : Planar_by_AbstractDual G' := by sorry
     let hSubgraph : G'.SubgraphOf G := Es_subgraph G {e}ᶜ
+    have hG'Undir : G'.Undirected := Undirected_SubgraphOf hSubgraph
+    have hG'Planar : Planar_by_AbstractDual G' := by sorry
     specialize @ih ({e}ᶜ : Set E) _ G' hG'Undir hG'Planar _ (by simp only [compl,
       Set.mem_singleton_iff, Set.coe_setOf, Fintype.card_subtype_compl, hEcard,
       Fintype.card_ofSubsingleton, add_tsub_cancel_right])
@@ -155,41 +155,11 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
         unfold Graph.NumberOfComponents
         have hconnEq : G'.connSetoid = G.connSetoid := by
           ext x y
-          simp only [Setoid.Rel, Graph.connSetoid]
-          have hadj : G'.adj ≤ G.adj := by
-            intro a b hSub
-            have := hSubgraph.Adj a b hSub
-            unfold_let at this
-            simpa only [Es_subgraph_fᵥ, id_eq] using this
-          have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
-          have hadj' : G.adj ≤ G'.conn := by
-            rintro a b h
-            obtain ⟨e', he'⟩ := h
-            by_cases h : e' = e
-            · subst e'
-              simp only [canGo, inc_eq_undir_v12, edge.canGo_iff_eq_of_undir, Sym2.eq,
-                Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at he'
-              rcases he' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-              · change G'.conn u v
-                assumption
-              · change G'.conn v u
-                rw [conn_comm]
-                assumption
-            · have : G'.adj a b := by
-                let e'' : ({e}ᶜ : Set E) := ⟨e', by simp only [Set.mem_compl_iff,
-                  Set.mem_singleton_iff, h, not_false_eq_true]⟩
-                use e''
-                have := hSubgraph.canGo_iff a b e''
-                rw [Es_subgraph_fᵥ, Es_subgraph_fₑ, id_eq, id_eq] at this
-                rw [this]
-                exact he'
-              exact Relation.ReflTransGen.single this
-          have hconn' : G.conn ≤ G'.conn := by
-            conv_rhs =>
-              change Relation.ReflTransClosure G'.adj
-              rw [← Relation.ReflTransClosure.idempotent]
-            exact Relation.ReflTransClosure.monotone hadj'
-          rw [le_antisymm hconn hconn']
+          refine Es_subgraph_conn_eq_conn_iff ?_ x y
+          rintro e' h
+          simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Decidable.not_not] at h
+          subst e'
+          exact hG'conn
 
         apply_fun Quotient at hconnEq
         have : Fintype (Quotient G'.connSetoid) :=

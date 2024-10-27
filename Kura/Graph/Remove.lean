@@ -103,10 +103,10 @@ lemma Vs_subgraph_fₑ {G : Graph V E} (S : Set V) [DecidablePred (· ∈ S)] :
 
 
 @[simp]
-lemma Es_inc (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] (e : S) :
+lemma Es_inc (G : Graph V E) (S : Set E) (e : S) :
     (G{S}ᴳ).inc e = G.inc e := by rfl
 
-def Es_subgraph (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : G{S}ᴳ ⊆ᴳ G where
+def Es_subgraph (G : Graph V E) (S : Set E) : G{S}ᴳ ⊆ᴳ G where
   fᵥ := { toFun := id, inj' := fun e₁ e₂ h => h }
   fₑ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
   comm := by
@@ -114,12 +114,14 @@ def Es_subgraph (G : Graph V E) (S : Set E) [DecidablePred (· ∈ S)] : G{S}ᴳ
     simp only [Function.Embedding.coeFn_mk, Es_inc, map_id]
 
 @[simp]
-lemma Es_subgraph_fᵥ {G : Graph V E} (S : Set E) [DecidablePred (· ∈ S)] :
+lemma Es_subgraph_fᵥ {G : Graph V E} (S : Set E) :
     ⇑(Es_subgraph G S).fᵥ = id := rfl
 
 @[simp]
-lemma Es_subgraph_fₑ {G : Graph V E} (S : Set E) [DecidablePred (· ∈ S)] :
+lemma Es_subgraph_fₑ {G : Graph V E} (S : Set E) :
     ⇑(Es_subgraph G S).fₑ = Subtype.val := rfl
+
+
 
 
 @[simp]

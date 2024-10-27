@@ -113,6 +113,47 @@ lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.
     rw [Fintype.card_eq_zero_iff] at hE
     exact hE.false e
 
+lemma Es_subgraph_conn_eq_conn_iff [DecidableEq E] {G : Graph V E} [Undirected G] {S : Set E}
+  (hS : ∀ e ∉ S, G{S}ᴳ.conn (G.v1 e) (G.v2 e)) (u v : V) :
+    G{S}ᴳ.conn u v ↔ G.conn u v := by
+  let G' := G{S}ᴳ
+  let hSubgraph : G' ⊆ᴳ G := Es_subgraph G S
+  have := Undirected_SubgraphOf hSubgraph
+
+  have hadj : G'.adj ≤ G.adj := by
+    intro a b hSub
+    have := hSubgraph.Adj a b hSub
+    unfold_let at this
+    simpa only [Es_subgraph_fᵥ, id_eq] using this
+
+  have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
+
+  have hadj' : G.adj ≤ G'.conn := by
+    rintro a b h
+    obtain ⟨e', he'⟩ := h
+    by_cases h : e' ∈ S
+    · have : G'.adj a b := ⟨⟨e', by simp only [Set.mem_compl_iff, h, not_false_eq_true]⟩, he'⟩
+      exact Relation.ReflTransGen.single this
+    · specialize hS e' h
+      simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff',
+        Prod.mk.injEq, Prod.swap_prod_mk] at he'
+      rcases he' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      on_goal 2 => rw [conn_comm]
+      all_goals exact hS
+
+  have hconn' : G.conn ≤ G'.conn := by
+    conv_rhs =>
+      change Relation.ReflTransClosure G'.adj
+      rw [← Relation.ReflTransClosure.idempotent]
+    exact Relation.ReflTransClosure.monotone hadj'
+
+  rw [le_antisymm hconn hconn']
+
+-- lemma Es_singleton_compliment_NumberOfComponents_eq_NumberOfComponents_or_NumberOfComponents_pred
+--   [Fintype V] [Fintype E] [Searchable G] [Undirected G] (e : E) :
+--     G{{e}ᶜ}ᴳ.NumberOfComponents = G.NumberOfComponents ∨ G{e}ᴳ.NumberOfComponents = G.NumberOfComponents - 1 := by
+--   sorry
+
 lemma exist_edge [Nonempty E] (G : Graph V E) [fullGraph G] [G.connected] (v : V) :
     ∃ e, v ∈ G.inc e := by
   sorry
