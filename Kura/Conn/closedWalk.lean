@@ -17,6 +17,7 @@ lemma Closed.ext (c1 c2 : G.Closed) : c1.toWalk = c2.toWalk → c1 = c2 := by
 
 structure Cycle extends Closed G where
   vNodup' : toWalk.vertices.tail.Nodup
+  eNodup' : toWalk.edges.Nodup
   eNonempty : toWalk.edges ≠ []
 
 namespace Cycle
@@ -64,6 +65,8 @@ noncomputable def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
     exact (edge.isLoop_iff_v1_eq_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)).mp he
   vNodup' := by simp only [Walk.vertices, List.map_cons, List.map_nil, List.tail_cons,
     List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
+  eNodup' := by simp only [Walk.edges, List.map_cons, List.map_nil, List.nodup_cons,
+    List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
   eNonempty := by simp only [Walk.edges, List.map_cons, List.map_nil, ne_eq, List.cons_ne_self,
     not_false_eq_true]
 
@@ -82,6 +85,9 @@ def SubgraphOf {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) : 
   vNodup' := by
     simp only [Walk.SubgraphOf_vertices]
     exact C.vNodup'.map A.fᵥ.inj'
+  eNodup' := by
+    simp only [Walk.SubgraphOf_edges]
+    exact (List.nodup_map_iff_inj_on C.eNodup').mpr (fun _ _ _ _ hxy ↦ A.fₑ.inj' hxy)
   eNonempty := by
     simp only [Walk.SubgraphOf_edges, ne_eq, List.map_eq_nil]
     exact C.eNonempty
@@ -121,6 +127,7 @@ def rotate (C : G.Cycle) (n : ℕ) : G.Cycle where
   next_step := by sorry
   startFinish := by sorry
   vNodup' := by sorry
+  eNodup' := by sorry
   eNonempty := by sorry
 
 /-- Pick a vertex, v, in a cycle. Get a walk from v to v along the cycle -/
