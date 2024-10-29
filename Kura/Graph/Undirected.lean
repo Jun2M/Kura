@@ -109,7 +109,7 @@ lemma mem_incEE_of_both_mem_incVE [DecidableEq V] (hne : e ≠ e') (h : e ∈ G.
 lemma adj_comm [DecidableEq V] : G.adj u v ↔ G.adj v u := by
   simp only [adj, canGo_symm]
 
-lemma Undirected_SubgraphOf (hGH : H ⊆ᴳ G) : Undirected H where
+lemma SubgraphOf.Undirected (hGH : H ⊆ᴳ G) : Undirected H where
   all_full e := by
     unfold isFull
     rw [← map_isFull_iff hGH.fᵥ, ← hGH.comm e]

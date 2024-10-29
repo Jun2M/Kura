@@ -54,5 +54,3 @@ noncomputable def MinorOf.OfSubgraph {G : Graph V E} {H : Graph W F} (hGH : G �
       subst huv
       simp only [Function.Embedding.rangeSplitting_eq_val, conn_refl]
     · simp only [hv, ↓reduceDIte, reduceCtorEq] at huv
-
-

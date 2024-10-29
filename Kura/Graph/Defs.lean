@@ -160,6 +160,11 @@ lemma SubgraphOf.Adj [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph 
   obtain ⟨e, he⟩ := h
   exact ⟨A.fₑ e, A.CanGo u v e he⟩
 
+lemma SubgraphOf.adj_le [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph W F}
+  (A : G ⊆ᴳ H) : Relation.Map G.adj A.fᵥ A.fᵥ ≤ H.adj := by
+  rintro u v ⟨x, y, hxy, rfl, rfl⟩
+  exact A.Adj x y hxy
+
 noncomputable def SubgraphOf.FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
   exact Fintype.ofInjective A.fᵥ A.fᵥ.inj'
 

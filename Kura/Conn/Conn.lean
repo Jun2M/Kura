@@ -65,7 +65,7 @@ lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
   · rintro ⟨u, v, h⟩ h'
     exact h (h'.all_conn u v)
 
-lemma conn.SubgraphOf {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
+lemma SubgraphOf.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
     H.conn (h.fᵥ u) (h.fᵥ v) := by
   induction huv with
   | refl => exact conn_refl _ _
@@ -118,34 +118,24 @@ lemma Es_subgraph_conn_eq_conn_iff [DecidableEq E] {G : Graph V E} [Undirected G
     G{S}ᴳ.conn u v ↔ G.conn u v := by
   let G' := G{S}ᴳ
   let hSubgraph : G' ⊆ᴳ G := Es_subgraph G S
-  have := Undirected_SubgraphOf hSubgraph
-
-  have hadj : G'.adj ≤ G.adj := by
-    intro a b hSub
-    have := hSubgraph.Adj a b hSub
-    unfold_let at this
-    simpa only [Es_subgraph_fᵥ, id_eq] using this
-
+  have := hSubgraph.Undirected
+  have hadj : G'.adj ≤ G.adj := hSubgraph.Adj
   have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
 
   have hadj' : G.adj ≤ G'.conn := by
-    rintro a b h
-    obtain ⟨e', he'⟩ := h
+    rintro a b ⟨e', he'⟩
     by_cases h : e' ∈ S
     · have : G'.adj a b := ⟨⟨e', by simp only [Set.mem_compl_iff, h, not_false_eq_true]⟩, he'⟩
       exact Relation.ReflTransGen.single this
-    · specialize hS e' h
-      simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff',
+    · simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff',
         Prod.mk.injEq, Prod.swap_prod_mk] at he'
       rcases he' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       on_goal 2 => rw [conn_comm]
-      all_goals exact hS
+      all_goals exact hS e' h
 
   have hconn' : G.conn ≤ G'.conn := by
-    conv_rhs =>
-      change Relation.ReflTransClosure G'.adj
-      rw [← Relation.ReflTransClosure.idempotent]
-    exact Relation.ReflTransClosure.monotone hadj'
+    convert Relation.ReflTransClosure.monotone hadj'
+    exact (Relation.ReflTransClosure.idempotent _).symm
 
   rw [le_antisymm hconn hconn']
 
