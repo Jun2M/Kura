@@ -17,8 +17,9 @@ lemma ne_of_card_ne (s t : Multiset α) (h : Multiset.card s ≠ Multiset.card t
   intro hst
   exact (hst ▸ h) rfl
 
-@[simp]
-lemma zero_ne_singleton (a : α) : (0 : Multiset α) ≠ {a} := (singleton_ne_zero a).symm
+-- @[simp]
+-- lemma zero_ne_singleton (a : α) : (0 : Multiset α) ≠ {a} := (singleton_ne_zero a).symm
+-- appearently added to the Mathlib
 
 lemma union_assoc [DecidableEq α] (s t u : Multiset α) : s ∪ t ∪ u = s ∪ (t ∪ u) := by
   ext a

@@ -31,7 +31,7 @@ theorem head!_reverse_of_ne_nil [Inhabited α] (l : List α) (hl : l ≠ []) :
   rw [this, getLast_reverse]
 
 lemma getElem_filter {l : List α} {p : α → Bool} {n : ℕ} (h : n < (l.filter p).length) :
-    p (l.filter p)[n] := of_mem_filter ((l.filter p).getElem_mem n h)
+    p (l.filter p)[n] := of_mem_filter ((l.filter p).getElem_mem h)
 
 lemma getElem_inj {l : List α} {i j : ℕ} (hi : i < l.length) (hj : j < l.length) (hnodup : l.Nodup) (heq : l[i] = l[j]) :
     i = j := by

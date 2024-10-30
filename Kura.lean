@@ -14,6 +14,7 @@ import Kura.Conn.Walk
 import Kura.Conn.closedWalk
 import Kura.Conn.nConn
 import Kura.Conn.Minor
+import Kura.Conn.Tree
 import Kura.Examples.Defs
 import Kura.Examples.Conn
 import Kura.Planarity.Plainarity

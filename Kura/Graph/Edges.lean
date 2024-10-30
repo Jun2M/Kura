@@ -321,8 +321,10 @@ theorem gofrom?_iff_goback?_iff_canGo [DecidableEq V] (u v : V) :
   · rfl
   · match e with
     | dir (a, b) =>
-      cases a <;> simp_all [gofrom?, goback?]
-      split <;> simp_all
+      cases a <;> simp_all only [goback?, ite_self, gofrom?, Option.ite_none_right_eq_some,
+        iff_self_and, Option.some.injEq]
+      simp only [reduceCtorEq, false_implies]
+      constructor <;> rintro h <;> simp only [h.2, h.1, and_self]
     | undir s =>
       simp [eq_swap, gofrom?, goback?]
   · match e with
@@ -335,9 +337,9 @@ lemma mem_startAt_of_canGo [DecidableEq V] (v w : V) : e.canGo v w → v ∈ e.s
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [canGo, startAt, gofrom?]
   | undir s =>
-    simp_all only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, exist_other'_eq,
-      decide_eq_true_eq, undir_startAt, toMultiset_eq, Multiset.insert_eq_cons,
-      Multiset.mem_cons, Multiset.mem_singleton, true_or]
+    simp_all only [canGo, gofrom?, Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq, decide_eq_true_eq, undir_startAt, toMultiset_eq,
+      Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, true_or]
 
 lemma mem_finishAt_of_canGo [DecidableEq V] (v w : V) : e.canGo v w → w ∈ e.finishAt := by
   intro h
@@ -345,19 +347,21 @@ lemma mem_finishAt_of_canGo [DecidableEq V] (v w : V) : e.canGo v w → w ∈ e.
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [canGo, finishAt, gofrom?]
   | undir s =>
-    simp_all only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, exist_other'_eq,
-      decide_eq_true_eq, undir_finishAt, toMultiset_eq, Multiset.insert_eq_cons,
-      Multiset.mem_cons, Multiset.mem_singleton, or_true]
+    simp_all only [canGo, gofrom?, Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq, decide_eq_true_eq, undir_finishAt, toMultiset_eq,
+      Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, or_true]
 
 lemma isLoop_of_canGo_self [DecidableEq V] : (∃ u, e.canGo u u) → e.isLoop := by
   match e with
   | dir (a, b) =>
     rintro ⟨ u, hu ⟩
     simp only [canGo, gofrom?, Option.mem_def, decide_eq_true_eq] at hu
-    cases a <;> cases b <;> simp_all [Option.some.injEq, ite_some_none_eq_some, dir_isLoop_iff]
+    cases a <;> cases b <;> simp_all only [Option.ite_none_right_eq_some, Option.some.injEq,
+      dir_isLoop_iff]
   | undir s =>
     rintro ⟨ u, hu ⟩
-    simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, exist_other'_eq,
+    simp only [canGo, gofrom?, Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq,
       decide_eq_true_eq] at hu
     subst hu
     simp only [undir_isLoop_iff, isDiag_iff_proj_eq]
@@ -365,7 +369,8 @@ lemma isLoop_of_canGo_self [DecidableEq V] : (∃ u, e.canGo u u) → e.isLoop :
 
 lemma undir_gofrom?_comm [DecidableEq V] (s : Sym2 V) (v w : V) :
     (undir s).gofrom? v = some w ↔ (undir s).gofrom? w = some v := by
-  simp only [gofrom?, dite_some_none_eq_some, exist_other'_eq]
+  simp only [gofrom?, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq]
   refine Eq.congr_right ?h
   exact eq_swap
 
@@ -375,12 +380,14 @@ lemma dir_canGo [DecidableEq V] (a b : V) : (dir (some a, some b)).canGo a b := 
 
 @[simp]
 lemma undir_canGo [DecidableEq V] (a b : V) : (undir s(a, b)).canGo a b := by
-  simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, exist_other'_eq,
+  simp only [canGo, gofrom?, Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq,
     decide_eq_true_eq]
 
 @[simp]
 lemma undir_canGo_v12 [DecidableEq V] (s : Sym2 V) : (undir s).canGo s.out.1 s.out.2 := by
-  simp only [canGo, gofrom?, Option.mem_def, dite_some_none_eq_some, exist_other'_eq,
+  simp only [canGo, gofrom?, Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq,
     Prod.mk.eta, Quot.out_eq, decide_True]
 
 @[simp]
@@ -389,7 +396,8 @@ lemma canGo_iff_eq_of_undir [DecidableEq V] (v w : V) :
   constructor
   · rintro h'
     unfold canGo gofrom? at h'
-    simpa only [Option.mem_def, dite_some_none_eq_some, exist_other'_eq, decide_eq_true_eq] using h'
+    simpa only [Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq, decide_eq_true_eq] using h'
   · rintro rfl
     exact undir_canGo v w
 
@@ -427,7 +435,8 @@ lemma canGo_flip [DecidableEq V] (v w : V) : e.flip.canGo w v = e.canGo v w  := 
   match e with
   | dir (a,b) =>
     simp only [gofrom?, Option.mem_def, decide_eq_decide]
-    cases a <;> cases b <;> simp only [ite_some_none_eq_some, Option.some.injEq, ite_self] <;> tauto
+    cases a <;> cases b <;> simp only [Option.ite_none_right_eq_some, Option.some.injEq, ite_self]
+    <;> tauto
   | undir s =>
     simp only [Option.mem_def, decide_eq_decide]
     refine undir_gofrom?_comm s _ _
@@ -592,11 +601,11 @@ lemma map_canGo [DecidableEq V] [DecidableEq W] (f : V ↪ W) (v w : V) :
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [canGo, gofrom?, map, Option.map_none', Option.map_some',
-      Option.mem_def, ite_some_none_eq_some, EmbeddingLike.apply_eq_iff_eq, Bool.decide_and,
+      Option.mem_def, Option.ite_none_right_eq_some, EmbeddingLike.apply_eq_iff_eq, Bool.decide_and,
       Bool.and_eq_true, decide_eq_true_eq, and_congr_left_iff]
   | undir s =>
-    simp only [canGo, gofrom?, map_undir, Option.mem_def, dite_some_none_eq_some,
-      exist_other'_eq, decide_eq_true_eq]
+    simp only [canGo, gofrom?, map_undir, Option.mem_def, Option.dite_none_right_eq_some,
+      Option.some.injEq, exist_other'_eq, decide_eq_true_eq]
     constructor
     · rintro h
       ext x

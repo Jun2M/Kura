@@ -44,7 +44,7 @@ def addUndirEdge (s : Sym2 V₁) : Graph V₁ (Lex $ E₁ ⊕ Unit) where
 
 def SubgraphOf.addUndirEdge (s : Sym2 V₁) : G₁ ⊆ᴳ G₁.addUndirEdge s :=
   ⟨Function.Embedding.refl V₁, Function.Embedding.inl, fun _e ↦ by
-    unfold addUndirEdge Lex
+    delta addUndirEdge Lex
     simp only [Function.Embedding.inl_apply, Function.Embedding.coe_refl, map_id]⟩
 
 @[simp]
