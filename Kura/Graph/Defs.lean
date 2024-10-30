@@ -171,6 +171,9 @@ noncomputable def SubgraphOf.FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V :
 noncomputable def SubgraphOf.FintypeE [Fintype F] (A : G ⊆ᴳ H) : Fintype E := by
   exact Fintype.ofInjective A.fₑ A.fₑ.inj'
 
+structure SpanningSubgraphOf extends G ⊆ᴳ H where
+  surj : fᵥ.toFun.Surjective
+
 structure Isom where
   toSubgraphOf : G ⊆ᴳ H
   invSubgraphOf : H ⊆ᴳ G

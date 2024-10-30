@@ -132,6 +132,12 @@ lemma length_zero_iff_eq_nil (w : Walk G) : w.length = 0 ↔ w = nil w.start  :=
     rw [h]
     rfl
 
+lemma length_pos_of_start_ne_finish (w : Walk G) (h : w.start ≠ w.finish) : w.length ≠ 0 := by
+  rintro hlen
+  have hnil := w.length_zero_iff_eq_nil.mp hlen
+  rw [hnil] at h
+  simp only [nil_start, nil_finish, ne_eq, not_true_eq_false] at h
+
 @[simp]
 lemma nil_vertices (u : V) : (nil (G := G) u).vertices = [u] := by
   simp only [vertices, nil_start, nil_steps, List.map_nil]
