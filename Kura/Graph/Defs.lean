@@ -90,7 +90,12 @@ lemma ne_of_mem_incEE_of_notLoop [DecidableEq V] (h : e' ∈ G.incEE e) (hloop :
   exact hloop h
 
 def adj [DecidableEq V] (u v : V) : Prop := ∃ e, G.canGo u e v
-def neighbourhood [DecidableEq V] : Set V := {u | G.adj u v}
+def adjE [DecidableEq V] (e₁ e₂ : E) : Prop := by
+  by_cases e₁ = e₂
+  · exact G.isLoop e₁
+  · exact G.startAt e₁ ∩ G.finishAt e₂ ≠ ∅
+    
+def N [DecidableEq V] : Set V := {u | G.adj u v}
 
 macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 
@@ -119,6 +124,12 @@ unsafe instance [Repr W] [Repr V] [Fintype E] [Fintype F] : Repr (G ⊆ᴳ H) wh
 
 def SubgraphOf.refl : G ⊆ᴳ G := ⟨Function.Embedding.refl V, Function.Embedding.refl E,
   fun _ => (map_id _).symm ⟩
+
+@[simp]
+lemma SubgraphOf.refl_fᵥ : (SubgraphOf.refl G).fᵥ = Function.Embedding.refl V := rfl
+
+@[simp]
+lemma SubgraphOf.refl_fₑ : (SubgraphOf.refl G).fₑ = Function.Embedding.refl E := rfl
 
 def SubgraphOf.trans {G : Graph V E} {H : Graph W F} {I : Graph U E'} (a : G ⊆ᴳ H) (b : H ⊆ᴳ I) :
     G ⊆ᴳ I where
