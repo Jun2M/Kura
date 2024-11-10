@@ -709,7 +709,9 @@ lemma pmap_subtype_map_val {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) 
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all only [map, pmap, Option.pmap, Option.map_some',
       Option.map_none']
-  | undir s => simp only [map, pmap, Sym2.pmap_subtype_map_val]
+  | undir s =>
+    induction' s with x y
+    simp only [pmap_undir, map_undir, pmap_subtype_map_subtypeVal]
 
 @[simp]
 lemma pmap_startAt {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) :
@@ -723,8 +725,11 @@ lemma pmap_startAt {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h : ∀
 @[simp]
 lemma pmap_finishAt {P : V → Prop} (e : edge V) (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) :
     (e.pmap f h).finishAt = e.finishAt.pmap f (λ v hv => h v (mem_of_mem_finishAt e v hv)) := by
-  sorry
-
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [pmap, Option.pmap, dir_finishAt, Option.isSome_some,
+      Option.get_some, Multiset.empty_eq_zero, dite_eq_ite, ite_true] <;> rfl
+  | undir s => simp only [finishAt, pmap, pmap_toMultiset]
 
 -- lemma pmap_id {P : V → Prop} (e : edge V) (h : ∀ v ∈ e, P v) : e.pmap (λ a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]

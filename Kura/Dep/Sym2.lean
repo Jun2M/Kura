@@ -60,52 +60,89 @@ lemma eq_iff_out_eq_or_out_swap (x : Sym2 α) (v w : α) :
 --   simp
 --   done
 
-theorem mem_sat {p : α → Prop} (a b : α) : (∀ x ∈ s(a, b), p x) ↔ p a ∧ p b := by simp
-
-def pmap {P : α → Prop} (f : ∀ a, P a → β) (s : Sym2 α):
-  (∀ a ∈ s, P a) → Sym2 β :=
+/--
+Partial map. If `f : ∀ a, p a → β` is a partial function defined on `a : α` satisfying `p`,
+then `pmap f s h` is essentially the same as `map f s` but is defined only when all members of `s`
+satisfy `p`, using the proof to apply `f`.
+-/
+def pmap {P : α → Prop} (f : ∀ a, P a → β) (s : Sym2 α) : (∀ a ∈ s, P a) → Sym2 β :=
   let g : (p : α × α) → (∀ a ∈ Sym2.mk p, P a) → Sym2 β :=
     fun p H => s(f p.1 (H p.1 <| mem_mk_left _ _), f p.2 (H p.2 <| mem_mk_right _ _))
-  Quot.recOn (motive := fun (x : Sym2 α) => (∀ a ∈ x, P a) → Sym2 β)
-    s g fun p q hpq => funext fun Hq => by
+  Quot.recOn s g fun p q hpq => funext fun Hq => by
     rw [rel_iff'] at hpq
     have Hp : ∀ a ∈ Sym2.mk p, P a := fun a hmem =>
       Hq a ((Sym2.mk_eq_mk_iff.2 hpq) ▸ hmem : a ∈ Sym2.mk q)
-    refine (by rintro s₂ rfl _; rfl : ∀ {s₂ e H}, @Eq.ndrec (Sym2 α) (Sym2.mk p)
-      (fun s => (∀ a ∈ s, P a) → Sym2 β) _ s₂ e H = _).trans (Quot.sound (?_) : g p Hp = g q Hq)
+    have h : ∀ {s₂ e H}, Eq.ndrec (motive := fun s => (∀ a ∈ s, P a) → Sym2 β) (g p) (b := s₂) e H =
+      g p Hp := by
+      rintro s₂ rfl _
+      rfl
+    refine h.trans (Quot.sound ?_)
     rw [rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
     apply hpq.imp <;> rintro rfl <;> simp
 
-@[simp]
-lemma pmap_pair (P : α → Prop) (f : ∀ a, P a → β) (a b : α) (h : P a) (h' : P b) :
-    pmap f s(a, b) (by simp only [mem_iff, forall_eq_or_imp, h, forall_eq, h', and_self]) =
-    s(f a h, f b h') := by
-  simp only [pmap]
+theorem forall_mem_pair {P : α → Prop} {a b : α} : (∀ x ∈ s(a, b), P x) ↔ P a ∧ P b := by
+  simp only [mem_iff, forall_eq_or_imp, forall_eq]
+
+lemma pair_eq_pmap {P : α → Prop} (f : ∀ a, P a → β) (a b : α) (h : P a) (h' : P b) :
+    s(f a h, f b h') = pmap f s(a, b) (forall_mem_pair.mpr ⟨h, h'⟩) := rfl
+
+lemma pmap_pair {P : α → Prop} (f : ∀ a, P a → β) (a b : α) (h : ∀ x ∈ s(a, b), P x) :
+    pmap f s(a, b) h = s(f a (h a (mem_mk_left a b)), f b (h b (mem_mk_right a b))) := rfl
 
 @[simp]
-lemma mem_pmap_iff {P : α → Prop} (f : ∀ a, P a → β) (x y : α) (h : ∀ a ∈ s(x, y), P a) (b : β) :
-  b ∈ s(x, y).pmap f h ↔ ∃ (a : α) (ha : a ∈ s(x, y)), b = f a (h a ha) := by
-  rw [pmap_pair _ _ _ _ (h x (by simp only [mem_iff, true_or])) (h y (by simp only [mem_iff, or_true]))]
+lemma mem_pmap_iff {P : α → Prop} (f : ∀ a, P a → β) (z : Sym2 α) (h : ∀ a ∈ z, P a) (b : β) :
+    b ∈ z.pmap f h ↔ ∃ (a : α) (ha : a ∈ z), b = f a (h a ha) := by
+  induction' z with x y
+  rw [pmap_pair f x y h]
   simp only [mem_iff]
   constructor
   · rintro (rfl | rfl)
     · use x, Or.inl rfl
     · use y, Or.inr rfl
-  · rintro ⟨a, (rfl | rfl), rfl⟩
-    exact Or.inl rfl
-    exact Or.inr rfl
+  · rintro ⟨a, (rfl | rfl), rfl⟩ <;> tauto
+
+lemma pmap_eq_map {P : α → Prop} (f : α → β) (z : Sym2 α) (h : ∀ a ∈ z, P a) :
+    z.pmap (fun a _ => f a) h = z.map f := by
+  induction' z with x y
+  rfl
+
+lemma map_pmap {Q : β → Prop} (f : α → β) (g : ∀ b, Q b → γ) (z : Sym2 α) (h : ∀ b ∈ z.map f, Q b):
+    (z.map f).pmap g h =
+    z.pmap (fun a ha => g (f a) (h (f a) (mem_map.mpr ⟨a, ha, rfl⟩))) (fun _ ha => ha) := by
+  induction' z with x y
+  rfl
+
+lemma pmap_map {P : α → Prop} {Q : β → Prop} (f : ∀ a, P a → β) (g : β → γ)
+    (z : Sym2 α) (h : ∀ a ∈ z, P a) (h' : ∀ b ∈ z.pmap f h, Q b) :
+    (z.pmap f h).map g = z.pmap (fun a ha => g (f a (h a ha))) (fun _ ha ↦ ha) := by
+  induction' z with x y
+  rfl
+
+lemma pmap_pmap {P : α → Prop} {Q : β → Prop} (f : ∀ a, P a → β) (g : ∀ b, Q b → γ)
+    (z : Sym2 α) (h : ∀ a ∈ z, P a) (h' : ∀ b ∈ z.pmap f h, Q b) :
+    (z.pmap f h).pmap g h' = z.pmap (fun a ha => g (f a (h a ha))
+    (h' _ ((mem_pmap_iff f z h _).mpr ⟨a, ha, rfl⟩))) (fun _ ha ↦ ha) := by
+  induction' z with x y
+  rfl
 
 @[simp]
-lemma pmap_subtype_map_val (P : α → Prop) (s : Sym2 α) (h : ∀ a ∈ s, P a) :
+lemma pmap_subtype_map_subtypeVal {P : α → Prop} (s : Sym2 α) (h : ∀ a ∈ s, P a) :
     (s.pmap Subtype.mk h).map Subtype.val = s := by
-  ext x
-  simp only [mem_map, Subtype.exists, exists_and_right, exists_eq_right]
-  constructor
-  · rintro ⟨y, hy⟩
+  induction' s with x y
+  rfl
 
-    sorry
-  ·
-    sorry
+/--
+"Attach" a proof `P a` that holds for all the elements of `s` to produce a new Sym2 object
+with the same elements but in the type `{x // P x}`.
+-/
+def attachWith {P : α → Prop} (s : Sym2 α)  (h : ∀ a ∈ s, P a) : Sym2 {a // P a} :=
+  pmap Subtype.mk s h
+
+@[simp]
+lemma attachWith_map_subtypeVal {s : Sym2 α} {P : α → Prop} (h : ∀ a ∈ s, P a) :
+    (s.attachWith h).map Subtype.val = s := by
+  induction' s with x y
+  rfl
 
 lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Sym2 α) :
   Sym2.map f.rangeFactorization a = (a.map f).pmap Subtype.mk (fun a ha => by
@@ -126,28 +163,20 @@ lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Sym2 α) :
     simp at h
     sorry
 
-def attachWith (s : Sym2 α) (P : α → Prop) (f : ∀ a ∈ s, P a) :
-  Sym2 {a // P a} :=
-  pmap Subtype.mk s f
+@[simp]
+theorem equivSym_pair_eq {a b : α} : (equivSym α) s(a, b) = ⟨{a, b}, rfl⟩ := rfl
 
-theorem equivSym_eq (a b : α) : (Sym2.equivSym α) s(a, b) = ⟨{a, b}, sorry⟩ := by
-  simp [equivSym, sym2EquivSym']
-  sorry
+@[simp]
+theorem mem_equivSym_iff_mem (s : Sym2 α) (a : α) : a ∈ equivSym α s ↔ a ∈ s := by
+  induction' s with x y
+  rw [equivSym_pair_eq]
+  simp only [Multiset.insert_eq_cons, Sym.mem_mk, Multiset.mem_cons, Multiset.mem_singleton,
+    mem_iff]
 
-theorem mem_equivSym_iff_mem (s : Sym2 α) : ∀ a : α, a ∈ (Sym2.equivSym α s) ↔ a ∈ s := by
-  intro a
-  constructor
-  · intro h
-    sorry
-  · intro h
-    rw [← Sym2.mem_iff_mem, Sym2.Mem] at h
-    obtain ⟨b, rfl⟩ := h
-    sorry
-
-theorem mem_equivMultiset_iff_mem (s : Sym2 α) : ∀ a : α, a ∈ (Sym2.equivMultiset α s).val ↔ a ∈ s := by
-  intro a
-  simp
-  sorry
+@[simp]
+theorem mem_equivMultiset_iff_mem (s : Sym2 α) (a : α) : a ∈ (equivMultiset α s).val ↔ a ∈ s := by
+  simp only [equivMultiset, Sym.val_eq_coe, Sym.mem_coe]
+  exact mem_equivSym_iff_mem s a
 
 @[simp]
 theorem other'_eq_of_mk_left (u v : α) [DecidableEq α] :
@@ -219,15 +248,21 @@ theorem equivMultisetsymmEq (a b : α):
   (Sym2.equivMultiset α).symm ⟨{a, b}, rfl⟩ = s(a, b) := by
   rfl
 
-theorem mem_equivMultisetsymm_mem (a : α) (m : { s // Multiset.card s = 2 }) :
-  a ∈ (Sym2.equivMultiset α).symm m ↔ a ∈ m.val:= by
-  simp
-  sorry
+private theorem mem_equivMultisetsymm_mem_of_eq (a : α) (m : { s // Multiset.card s = 2 })
+    (s : Sym2 α) : s = (Sym2.equivMultiset α).symm m → (a ∈ s ↔ a ∈ m.val) := by
+  induction' s with x y
+  intro h
+  rw [Equiv.eq_symm_apply] at h
+  exact h ▸ (mem_equivMultiset_iff_mem s(x, y) a).symm
 
-theorem mem_equivMultiset_mem (a : α) (m : Sym2 α) :
-  a ∈ (Sym2.equivMultiset α m).val ↔ a ∈ m := by
-  simp
-  sorry
+@[simp]
+theorem mem_equivMultisetsymm_mem (a : α) (m : { s // Multiset.card s = 2 }) :
+  a ∈ (Sym2.equivMultiset α).symm m ↔ a ∈ m.val := mem_equivMultisetsymm_mem_of_eq a m _ rfl
+
+theorem mem_equivMultiset_mem (a : α) (s : Sym2 α) :
+  a ∈ (Sym2.equivMultiset α s).val ↔ a ∈ s := by
+  induction' s with x y
+  rw [mem_equivMultiset_iff_mem]
 
 theorem other_eq_right (a b : α) : Mem.other (by simp : a ∈ s(a, b)) = b := by
   have ha : a ∈ s(a, b) := by simp
@@ -251,15 +286,9 @@ theorem other'_eq_left [DecidableEq α] (a b : α) : Mem.other' (by simp : b ∈
 
 lemma map_eq_iff {α β : Type*} (f : α ↪ β) (s : Sym2 α) (a b : α) :
   (s.map f = s(f a, f b)) ↔ s = s(a, b) := by
-  constructor <;> rintro h
-  · conv_lhs at h => rw [eq_mk_out s, map_pair_eq]
-    simp only [Sym2.eq, rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at h
-    rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩ <;> rw [← f.inj' h1, ← f.inj' h2]
-    on_goal 2 => rw [eq_swap]
-    all_goals exact eq_mk_out s
-  · rw [h]
-    simp only [map_pair_eq]
-
+  induction' s with x y
+  simp only [map_pair_eq, Sym2.eq, rel_iff', Prod.mk.injEq, EmbeddingLike.apply_eq_iff_eq,
+    Prod.swap_prod_mk]
 
 def toMultiset (s : Sym2 α) : Multiset α := (Sym2.equivMultiset _ s).val
 
@@ -273,25 +302,23 @@ theorem toMultiset_card (s : Sym2 α) : Multiset.card s.toMultiset = 2 := by sim
 theorem mem_toMultiset_iff (a : α) (s : Sym2 α) : a ∈ s.toMultiset ↔ a ∈ s := by
   rw [toMultiset, mem_equivMultiset_iff_mem]
 
-theorem equivSym_map (f : α → β) (s : Sym2 α) :
+theorem equivSym_map_comm (f : α → β) (s : Sym2 α) :
   (Sym2.equivSym β) (s.map f) = (Sym2.equivSym _ s).map f := by
-  simp only [equivSym, sym2EquivSym', Quot.map, Sym.symEquivSym', Equiv.trans_apply,
-    Equiv.coe_fn_mk, Sym.map, Multiset.map, Quot.liftOn, Sym.val_eq_coe]
-  -- rw [Equiv.subtypeQuotientEquivQuotientSubtype_symm_mk (fun (l : List α) => l.length = 2) (fun s ↦ Multiset.card s = 2) (fun _ => by rfl) (fun _ => by rfl) _]
-  sorry
+  induction' s with x y
+  rfl
 
 @[simp]
 theorem map_toMultiset [DecidableEq β] (f : α → β) (s : Sym2 α) :
     (s.map f).toMultiset = s.toMultiset.map f := by
-  have := equivSym_map f s
+  have := equivSym_map_comm f s
   apply_fun (·.val) at this
   exact this
 
 @[simp]
 lemma pmap_toMultiset (P : α → Prop) (f : ∀ a, P a → β) (s : Sym2 α) (h : ∀ a ∈ s, P a) :
     (s.pmap f h).toMultiset = s.toMultiset.pmap f (fun a ha => h a ((mem_toMultiset_iff a s).mp ha)) := by
-  simp [toMultiset, equivSym_map]
-  sorry
+  induction' s with x y
+  rfl
 
 def Nodup (s : Sym2 α) : Prop := ¬ s.IsDiag
 
@@ -334,9 +361,10 @@ lemma isDiag_iff_out_fst_eq_out_snd (s : Sym2 α) :
 
 @[simp]
 lemma map_IsDiag_iff (f : α ↪ β) (s : Sym2 α) :
-    (s.map f).IsDiag ↔ s.IsDiag := sorry
+    (s.map f).IsDiag ↔ s.IsDiag := by
+  induction' s with x y
+  simp only [map_pair_eq, isDiag_iff_proj_eq, EmbeddingLike.apply_eq_iff_eq]
 
--- theorem
 
 -- example {α β : Type*} :
 --   α × β ≃ { a : Sym2 (α ⊕ β) // a.toMultiset.countP (Sum.isLeft ·) = 1 } where

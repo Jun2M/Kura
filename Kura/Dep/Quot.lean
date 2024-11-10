@@ -55,7 +55,7 @@ lemma card_submodular [Fintype α] [DecidableEq α] (r s : α → α → Prop) :
     Fintype.card (Quotient <| EqvGen.setoid r) + Fintype.card (Quotient <| EqvGen.setoid s) ≤
     Fintype.card (Quotient <| EqvGen.setoid <| r ⊓ s) +
     Fintype.card (Quotient <| EqvGen.setoid <| r ⊔ s) := by
-  
+
   sorry
 
 end Quotient
@@ -93,7 +93,6 @@ noncomputable def eqvGen_eqv  : Quot r ≃ Quotient (Relation.EqvGen.setoid r) :
       simp only
       rw [← Quotient.out_eq (s := Relation.EqvGen.setoid r) x,
         Quotient.eq (r := Relation.EqvGen.setoid r)]
-      exact Quotient.out_equiv_out.mpr rfl
 
 
 noncomputable instance instFintype [Fintype α] [DecidableRel r] : Fintype (Quot r) := by

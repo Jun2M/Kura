@@ -21,7 +21,7 @@ def Sym.Sym'.unpackSingleton {α : Type u} (s : Sym.Sym' α 1) : α :=
     obtain ⟨x, hx⟩ := List.length_eq_one.mp u.prop
     obtain ⟨y, hy⟩ := List.length_eq_one.mp v.prop
     have : u = v := by
-      simp only [Setoid.r, Function.onFun, Setoid.Rel, hx, hy, List.perm_singleton, List.cons.injEq,
+      simp only [Setoid.r, Function.onFun, Setoid.r, hx, hy, List.perm_singleton, List.cons.injEq,
         and_true] at h
       subst h
       apply_fun Subtype.val using Subtype.val_injective

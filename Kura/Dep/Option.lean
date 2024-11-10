@@ -40,7 +40,7 @@ theorem isSome_filter_iff : isSome (o.filter p) ↔ ∃ (h : isSome o), p (o.get
     simp only [filter_ite, some_bind, get_some, isSome_some, exists_const]
     constructor <;> intro h
     · obtain ⟨b, hb⟩ := Option.isSome_iff_exists.mp h
-      exact (ite_some_none_eq_some.mp hb).1
+      exact (ite_none_right_eq_some.mp hb).1
     · simp_all
 
 theorem get_filter_eq_get_of_isSome (h : isSome (o.filter p)) :
