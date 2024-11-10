@@ -39,25 +39,25 @@ unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
 
 
 /-- A full graph is one with no half-edges.-/
-class fullGraph : Prop :=
+class fullGraph : Prop where
   all_full : ∀ e, G.isFull e
 
 /-- An undirected graph is a full graph with no arcs -/
-class Undirected extends fullGraph G : Prop :=
+class Undirected extends fullGraph G : Prop where
   edge_symm : ∀ e, G.isUndir e
 
 /-- A loopless graph is one with no loops, free edges or half_edges
   (so every edge is an arc or edge ) -/
-class loopless extends fullGraph G : Prop :=
+class loopless extends fullGraph G : Prop where
   no_loops : ∀ e, ¬G.isLoop e
 
 
 /-- A simple graph is one where every edge is a actual undirected 'edge'
   and no two edges have the same ends.  -/
-class Simple extends loopless G, Undirected G : Prop :=
+class Simple extends loopless G, Undirected G : Prop where
   inc_inj : G.inc.Injective
 
-class Directed extends fullGraph G : Prop :=
+class Directed extends fullGraph G : Prop where
   no_undir : ∀ e, ¬G.isUndir e
 
 

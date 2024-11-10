@@ -18,7 +18,7 @@ variable {V E F : Type*} [DecidableEq V] [DecidableEq E] [DecidableEq F] (G : Gr
 structure AbstractDual (H : Graph F E) where
   minEdgeCut_cycle (S : Finset E) : G.minEdgeCut S ↔ ∃ (w : Cycle H), S = w.edges.toFinset
 
-class Planar_by_AbstractDual :=
+class Planar_by_AbstractDual where
   F : Type*
   FDecidableEq : DecidableEq F
   dualGraph : Graph F E
@@ -173,7 +173,7 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
         sorry
       omega
     · have hNC : G'.NumberOfComponents = G.NumberOfComponents + 1 := by
-        
+
 
         sorry
       have hF : Fintype.card G'.Faces = Fintype.card G.Faces := by

@@ -16,6 +16,7 @@ class SearchableOut where
 
 def outEdges [SearchableOut G] (v : V) : Finset E := SearchableOut.outEdges G v
 
+omit [DecidableEq V] in
 @[simp]
 lemma mem_outEdges [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ G.startAt e := by
   rw [← SearchableOut.mem_outEdges (G := G) v e]
@@ -26,6 +27,7 @@ def outNeighbors [SearchableOut G] : Multiset V :=
 def outDegree [SearchableOut G] : ℕ :=
   G.outEdges v |>.val |>.map (G.endAt ·) |>.sum |>.count v
 
+omit [DecidableEq V] in
 lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] :
   e ∈ G.outEdges v ↔ v ∈ s(G.v1 e, G.v2 e) := by
   rw [mem_outEdges]
@@ -44,6 +46,7 @@ class SearchableIn where
 
 def inEdges [SearchableIn G] (v : V) : Finset E := SearchableIn.inEdges G v
 
+omit [DecidableEq V] in
 @[simp]
 lemma mem_inEdges [SearchableIn G] : e ∈ G.inEdges v ↔ v ∈ G.finishAt e := by
   rw [← SearchableIn.mem_inEdges (G := G) v e]
