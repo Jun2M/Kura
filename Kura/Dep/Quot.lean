@@ -47,7 +47,7 @@ lemma card_quotient_le_card_quotient_of_le [Fintype α] [DecidableEq α] (hrs : 
   let f : Quotient r → Quotient s := (Quotient.mk s ·.out)
   apply Fintype.card_le_of_injective f
   rintro x y h
-  unfold_let at h
+  unfold f at h
   rw [eq (r := s)] at h
   exact out_equiv_out.mp (hrs x.out y.out h)
 
