@@ -89,7 +89,7 @@ def SubgraphOf {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) : 
     simp only [Walk.SubgraphOf_edges]
     exact (List.nodup_map_iff_inj_on C.eNodup').mpr (fun _ _ _ _ hxy ↦ A.fₑ.inj' hxy)
   eNonempty := by
-    simp only [Walk.SubgraphOf_edges, ne_eq, List.map_eq_nil]
+    simp only [Walk.SubgraphOf_edges, ne_eq, List.map_eq_nil_iff]
     exact C.eNonempty
 
 @[simp]
@@ -131,7 +131,7 @@ def rotate (C : G.Cycle) (n : ℕ) : G.Cycle where
   eNonempty := by sorry
 
 /-- Pick a vertex, v, in a cycle. Get a walk from v to v along the cycle -/
-def cut (C : G.Cycle) {v : V} (hv : v ∈ C.vertices) : G.Walk :=
+def cut (C : G.Cycle) {v : V} (_ : v ∈ C.vertices) : G.Walk :=
   let i := C.vertices.indexOf v
   (C.rotate i).toWalk
 

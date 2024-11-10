@@ -4,6 +4,20 @@ import Mathlib.Data.List.Sym
 namespace List
 variable {α : Type _}
 
+@[simp]
+theorem indexOf_eq_zero_iff [BEq α] [LawfulBEq α] {l : List α} (hl : l ≠ []) {a : α} :
+    indexOf a l = 0 ↔ l.head hl = a := by
+  match l, hl with
+  | x :: xs, h =>
+    simp only [indexOf, head_cons]
+    rw [findIdx_cons]
+    by_cases h' : x == a
+    · simp only [h', cond_true, true_iff]
+      exact beq_iff_eq.mp h'
+    · simp only [h', cond_false, AddLeftCancelMonoid.add_eq_zero, one_ne_zero, and_false,
+      false_iff, ne_eq]
+      exact beq_iff_eq.not.mp h'
+
 theorem getLast_tail_eq_getLast {l : List α} (h : l.tail ≠ []) :
     l.tail.getLast h = l.getLast (ne_nil_of_drop_ne_nil ((drop_one l).symm ▸ h)) := by
   match l with

@@ -228,7 +228,7 @@ lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
   · simp only [Finset.mem_singleton]
 
 
-class NEdgeConnected [DecidableEq E] (n : ℕ) : Prop :=
+class NEdgeConnected [DecidableEq E] (n : ℕ) : Prop where
   all_conn : ∀ u v : V, conn G u v
   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
 

@@ -85,9 +85,28 @@ inc_inj e₁ e₂ h := by
     absurd h₁
     exact CharP.neg_one_ne_one (Fin n) n
 
-def PathGraph (n : ℕ+) : Graph (Fin n) (Fin (n-1)) where
+def PathGraph (n : ℕ) : Graph (Fin (n+1)) (Fin n) where
   inc e := undir s(e, e+1)
 
+lemma PathGraph_adj {n : ℕ+} {u v : Fin n} (huv : u < v) :
+    (PathGraph n).adj u v ↔ u + 1 = v := by
+  constructor <;> intro h
+  · obtain ⟨e, he⟩ := h
+    unfold PathGraph canGo at he
+    simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, canGo_iff_eq_of_undir, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Prod.swap_prod_mk] at he
+    obtain ⟨rfl, h⟩ | ⟨rfl, h⟩ := he
+    · sorry
+    · sorry
+  · subst v
+    use ⟨u.val,
+    sorry⟩
+    unfold PathGraph canGo
+    simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, canGo_iff_eq_of_undir, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, true_and, Prod.swap_prod_mk, Fin.castSucc_inj,
+      self_eq_add_right, Fin.one_eq_zero_iff, PNat.coe_eq_one_iff]
+    
+    sorry
 
 def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ₗ Fin n₂) (Fin n₁ ×ₗ Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)

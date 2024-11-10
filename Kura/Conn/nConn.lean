@@ -6,7 +6,7 @@ namespace Graph
 open edge
 variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] [DecidableEq E] (G : Graph V E)
 
-class nEdgeConnected (n : ℕ) : Prop :=
+class nEdgeConnected (n : ℕ) : Prop where
   all_conn : ∀ u v : V, conn G u v
   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
 

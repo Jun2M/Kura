@@ -15,6 +15,17 @@ structure Tree (V E : Type*) [DecidableEq V] extends Forest V E where
 
 instance instTreeConnected (T : Tree V E) : T.connected := T.conn
 
+def PathTree (n : ℕ+) : Tree (Fin n) (Fin (n-1)) where
+  toGraph := PathGraph n
+  no_cycle := by
+    sorry
+  conn := by
+    simp only
+    refine connected.mk ?_
+    rintro u v
+    
+
+
 lemma existSpanningTree_aux [Fintype V] (G : Graph V E) [G.connected] :
     Fintype.card V = n → ∃ T : Tree W F, Nonempty (T.SpanningSubgraphOf G) := by
   by_cases h : n = 0

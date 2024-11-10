@@ -32,7 +32,7 @@ lemma finish_eq_start (h : w.steps = []) : w.finish = w.start := by
   unfold finish
   split
   next h => exact rfl
-  next a as has => exfalso; simp [has] at h
+  next a as has => exfalso; simp only [has, reduceCtorEq] at h
 
 lemma finish_eq_getLast_ssnd (hn : w.steps ≠ []) : w.finish = (w.steps.getLast hn).snd.snd := by
   unfold finish
@@ -97,7 +97,7 @@ lemma vertices_chain'_adj : w.vertices.Chain' G.adj := by
 def edges : List E := w.steps.map (·.snd.fst)
 
 lemma length_ne_zero_iff_edges_ne_nil : w.length ≠ 0 ↔ w.edges ≠ [] := by
-  simp only [ne_eq, length_ne_zero_iff, edges, List.map_eq_nil]
+  simp only [ne_eq, length_ne_zero_iff, edges, List.map_eq_nil_iff]
 
 def nil (u : V) : Walk G where
   start := u
@@ -291,23 +291,35 @@ def stopAt (w : Walk G) (v : V) : Walk G where
     refine w.step_spec uev (List.mem_of_mem_take hin)
   next_step := List.Chain'.take w.next_step _
 
-lemma stopAt_vertices_IsPrefix (w : Walk G) (v : V) :
+lemma stopAt_vertices_IsPrefix (v : V) :
   (w.stopAt v).vertices.IsPrefix w.vertices := by
   sorry
 
 @[simp]
-lemma stopAt_start (w : Walk G) (v : V) :
+lemma stopAt_start (v : V) :
   (w.stopAt v).start = w.start := rfl
 
 @[simp]
-lemma stopAt_finish (w : Walk G) (v : V) :
+lemma stopAt_finish (v : V) :
   (w.stopAt v).finish = v := by
   sorry
 
-def startFrom (w : Walk G) (v : V) : Walk G where
+lemma stopAt_steps_eq_nil_iff (hw : w.steps ≠ []) (v : V) :
+    (w.stopAt v).steps = [] ↔ v = w.start := by
+  constructor <;> rintro h
+  · simp only [stopAt, vertices, List.take_eq_nil_iff, ne_eq, reduceCtorEq, not_false_eq_true,
+    List.indexOf_eq_zero_iff, List.head_cons, hw, or_false] at h
+    exact id (Eq.symm h)
+  · simp only [stopAt, h, List.take_eq_nil_iff, ne_eq, vertices_ne_nil, not_false_eq_true,
+    List.indexOf_eq_zero_iff, vertices_head_eq_start, true_or]
+
+def startFrom (v : V) : Walk G where
   start := v
   steps := w.steps.drop (w.vertices.indexOf v)
   start_spec := by
+    rintro hn
+    simp only [ne_eq, List.drop_eq_nil_iff, not_le] at hn
+    simp only [List.head_drop]
     sorry
   step_spec := by
     intro uev hin
@@ -352,7 +364,7 @@ def reverse [Undirected G] (w : Walk G) : Walk G where
   steps := w.steps.reverse.map (λ ⟨u, e, v⟩ => (v, e, u))
   start_spec := by
     intro hn
-    simp only [List.map_reverse, ne_eq, List.reverse_eq_nil_iff, List.map_eq_nil] at hn
+    simp only [List.map_reverse, ne_eq, List.reverse_eq_nil_iff, List.map_eq_nil_iff] at hn
     unfold finish
     split
     · exfalso
@@ -558,13 +570,17 @@ def append (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) : Path G where
     intro hn
     rw [List.head_append hn]
     split_ifs with h
-    · simp [List.isEmpty_eq_true, stopAt, Walk.stopAt] at h
+    · simp only [stopAt, Walk.stopAt, List.isEmpty_eq_true, List.take_eq_nil_iff, ne_eq,
+      Walk.vertices_ne_nil, not_false_eq_true, List.indexOf_eq_zero_iff,
+      Walk.vertices_head_eq_start] at h
       rcases h with h | h
-      · rw [Walk.left_indexOf_meet_eq_zero_eq_start] at h
-        rw [← h]
+      · rw [h]
         convert (p₂.startFrom_start (p₁.meet p₂.toWalk hfs)).symm
         refine ((p₂.startFrom (p₁.meet p₂.toWalk hfs)).start_spec _).symm
       · rw [← Walk.finish_eq_start _ h, hfs]
+        rename_i hstop
+        simp only [List.isEmpty_eq_true] at hstop
+        rw [← Walk.length_eq_zero_iff, length_zero_iff_eq_nil] at h
         sorry
     · convert (p₁.stopAt_start (p₁.meet p₂.toWalk hfs)).symm
       refine ((p₁.stopAt (p₁.meet p₂.toWalk hfs)).start_spec _).symm
