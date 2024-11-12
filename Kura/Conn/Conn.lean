@@ -54,7 +54,7 @@ lemma conn.ofPath (P : G.Path) : G.conn P.start P.finish := by
 instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=
   Relation.ReflTransGenDeciable
 
-class connected : Prop where
+class connected (G : Graph V E) : Prop where
   all_conn : ∀ u v : V, conn G u v
 
 def all_conn (u v : V) [G.connected] : conn G u v := connected.all_conn u v
@@ -86,7 +86,7 @@ def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
     · intro a b c hab hbc
       exact Relation.ReflTransGen.trans hab hbc
 
-def NumberOfComponents [Fintype V] [Searchable G] [Undirected G] : ℕ :=
+def NumberOfComponents [Fintype V] (G : Graph V E) [Searchable G] [Undirected G] : ℕ :=
   @Fintype.card (Quotient (connSetoid G)) (@Quotient.fintype V _ (connSetoid G) (Relation.ReflTransGenDeciable))
 
 lemma NumberOfComponents_le_card_V [Fintype V] [Fintype E] [Undirected G] :
@@ -94,11 +94,16 @@ lemma NumberOfComponents_le_card_V [Fintype V] [Fintype E] [Undirected G] :
   unfold NumberOfComponents
   exact @Fintype.card_quotient_le V _ G.connSetoid Relation.ReflTransGenDeciable
 
-lemma NumberOfComponents_eq_card_V [Fintype V] [IsEmpty E] [Fintype E] [Undirected G] :
+lemma NumberOfComponents_eq_card_V [Fintype V] [IsEmpty E] [Fintype E] (G : Graph V E) [Undirected G] :
     G.NumberOfComponents = Fintype.card V := by
   sorry
 
-lemma NumberOfComponents_eq_one [Fintype V] [Fintype E] [Undirected G] [G.connected] :
+lemma NumberOfComponents_le_one [Fintype V] [Fintype E] (G : Graph V E) [Undirected G] [G.connected] :
+    G.NumberOfComponents ≤ 1 := by
+  sorry
+
+lemma NumberOfComponents_eq_one [Fintype V] [Fintype E] [Nonempty V] (G : Graph V E) [Undirected G]
+  [G.connected] :
     G.NumberOfComponents = 1 := by
   sorry
 

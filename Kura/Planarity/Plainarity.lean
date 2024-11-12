@@ -61,7 +61,7 @@ lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
     have hmincut := (G.duality.minEdgeCut_cycle C.edges.toFinset).mpr ⟨C, rfl⟩
     have : C.edges.toFinset = {e} := sorry
     simp only [this, Finset.coe_singleton] at hmincut
-    exact ⟨ by assumption, edgeCut_of_minEdgeCut G {e} hmincut ⟩
+    exact ⟨ by assumption, edgeCut_of_minEdgeCut {e} hmincut ⟩
 
 
 instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConnected 3] :
@@ -85,7 +85,7 @@ instance instEdgelessGraphPlanar_by_AbstractDual (n : ℕ) :
     · have : S = ∅ := S.eq_empty_of_isEmpty
       subst this
       exfalso
-      exact empty_not_minEdgeCut _ h
+      exact empty_not_minEdgeCut h
     · have : c.edges = [] := List.eq_nil_of_IsEmpty c.edges
       exfalso
       exact c.eNonempty this
@@ -100,13 +100,13 @@ instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
     refine ⟨λ u v => ?_⟩
     have := Subsingleton.allEq u v
     subst u
-    apply conn_refl
+    apply conn.refl
   isDual := by
     refine ⟨λ S => ⟨λ h => ?_, λ ⟨c, hc⟩ => ?_⟩⟩
     · have : S = ∅ := S.eq_empty_of_isEmpty
       subst this
       exfalso
-      exact empty_not_minEdgeCut _ h
+      exact empty_not_minEdgeCut h
     · have : c.edges = [] := List.eq_nil_of_IsEmpty c.edges
       exfalso
       exact c.eNonempty this

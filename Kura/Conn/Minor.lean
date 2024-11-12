@@ -29,7 +29,7 @@ def MinorOf.refl : G.MinorOf G where
   connPreimage u v huv _hSome := by
     simp only [Option.some.injEq] at huv
     subst huv
-    exact conn_refl _ u
+    exact conn.refl _ u
 
 noncomputable def MinorOf.OfSubgraph {G : Graph V E} {H : Graph W F} (hGH : G ⊆ᴳ H) :
     G.MinorOf H where
@@ -52,5 +52,5 @@ noncomputable def MinorOf.OfSubgraph {G : Graph V E} {H : Graph W F} (hGH : G �
     by_cases hv : v ∈ Set.range hGH.fᵥ
     · simp only [hv, ↓reduceDIte, Option.some.injEq] at huv
       subst huv
-      simp only [Function.Embedding.rangeSplitting_eq_val, conn_refl]
+      simp only [Function.Embedding.rangeSplitting_eq_val, conn.refl]
     · simp only [hv, ↓reduceDIte, reduceCtorEq] at huv
