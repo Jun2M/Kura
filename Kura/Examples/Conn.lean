@@ -8,7 +8,7 @@ variable {V W E F : Type*} (G : Graph V E) (e : E) (u v w : V)
 
 instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph n).connected where
   all_conn u v := by have : n < 2 := Fact.out; interval_cases n <;> rw [Subsingleton.allEq u v] <;>
-    apply conn_refl
+    apply conn.refl
 
 lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph n).connected := by
   intro h
@@ -28,20 +28,16 @@ instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected := b
 instance instCompleteBipGraphConnected (n₁ n₂ : ℕ+) : (CompleteBipGraph n₁ n₂).connected := by
   sorry
 
-lemma PathGraph_conn_0 (n : ℕ+) (v : Fin n) : (PathGraph n).conn 0 v := by
+lemma PathGraph_conn_0 (n : ℕ) (v : Fin (n+1)) : (PathGraph n).conn 0 v := by
   induction' v with j hjpos
   induction' j with x ih
-  · exact conn_refl (PathGraph n) 0
-  · by_cases h : x +1 = n
-    · sorry
-    · have hxlt : x+1 < n := by omega
-      specialize ih (by omega)
-      apply ih.tail ; clear ih
-      use x
-      simp only [canGo, PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Nat.cast_add,
-        Nat.cast_one, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
-        Prod.swap_prod_mk]
-      refine Or.inl ?_
-      refine ⟨?_, ?_⟩
-      · sorry
-      · sorry
+  · exact conn.refl (PathGraph n) 0
+  · specialize ih (by omega)
+    apply ih.tail ; clear ih
+    rw [PathGraph.adj_iff]
+    simp only [Fin.mk_lt_mk, lt_add_iff_pos_right, zero_lt_one]
+
+instance instPathGraphConn (n : ℕ) : (PathGraph n).connected where
+  all_conn u v := ((PathGraph_conn_0 n u).symm (G:=PathGraph n) _).trans (PathGraph_conn_0 n v)
+
+

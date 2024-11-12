@@ -1,5 +1,6 @@
 import Kura.Conn.closedWalk
 import Kura.Conn.Conn
+import Kura.Examples.Conn
 import Kura.Graph.Remove
 
 namespace Graph
@@ -15,27 +16,76 @@ structure Tree (V E : Type*) [DecidableEq V] extends Forest V E where
 
 instance instTreeConnected (T : Tree V E) : T.connected := T.conn
 
-def PathTree (n : ℕ+) : Tree (Fin n) (Fin (n-1)) where
+def EdgelessForest (n : ℕ) : Forest (Fin n) Empty where
+  toGraph := EdgelessGraph n
+  no_cycle := by
+    by_contra!
+    simp only [not_isEmpty_iff] at this
+    obtain ⟨C, hCvNod, hCeNod, hCeNonempty⟩ := this
+    obtain e := C.edges.head hCeNonempty
+    exact e.elim
+
+def PathTree (n : ℕ) : Tree (Fin (n+1)) (Fin n) where
   toGraph := PathGraph n
   no_cycle := by
+  -- get a Cycle then vertices of the cycle as to be monotone increasing or decreaseing
+  -- but C.start = C.finish so C.edges  = []
+  -- contradiction
     sorry
-  conn := by
-    simp only
-    refine connected.mk ?_
-    rintro u v
-    
+  conn := inferInstance
+
 
 
 lemma existSpanningTree_aux [Fintype V] (G : Graph V E) [G.connected] :
-    Fintype.card V = n → ∃ T : Tree W F, Nonempty (T.SpanningSubgraphOf G) := by
+    Fintype.card V = n → ∃ (W F : Type) (h : DecidableEq W) (T : Tree W F),
+    Nonempty (T.SpanningSubgraphOf G) := by
   by_cases h : n = 0
   · rintro rfl
-    sorry
+    use Fin 0, Empty, inferInstance, ⟨EdgelessForest 0, ?_⟩
+    · refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
+      · refine ⟨?_, ?_⟩
+        · rintro e
+          exact Fin.elim0 e
+        · rintro i j h
+          exact Subsingleton.elim i j
+      · refine ⟨?_, ?_⟩
+        · rintro e
+          exact e.elim
+        · exact Function.injective_of_subsingleton _
+      · rintro e
+        exact e.elim
+      · rintro e
+        simp only [IsEmpty.exists_iff]
+        have : IsEmpty V := by exact Fintype.card_eq_zero_iff.mp h
+        exact IsEmpty.false e
+    refine ⟨?_⟩
+    rintro u v
+    exact u.elim0
   have hn : 1 ≤ n := by omega
   induction hn using Nat.leRec generalizing V E with
   | refl =>
     rintro hn
-    sorry
+    use (Fin 1)
+    use Empty
+    use inferInstance
+    use ⟨EdgelessForest 1, ?_⟩
+    refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
+    · refine ⟨?_, ?_⟩
+      · rintro e
+        have hVNonempty : Nonempty V := sorry
+        obtain v := hVNonempty.some
+        exact v
+      · rintro i j
+        simp only [forall_const]
+        exact Subsingleton.elim i j
+    · refine ⟨?_, ?_⟩
+      · rintro e
+        exact e.elim
+      · exact Function.injective_of_subsingleton _
+    · rintro e
+      exact e.elim
+    · sorry
+    · sorry
   | le_succ_of_le n ih =>
     rintro hn
     rename_i a b _ _ _

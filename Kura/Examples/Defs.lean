@@ -4,6 +4,7 @@ import Mathlib.Data.Prod.Lex
 import Mathlib.Data.Sum.Order
 import Kura.Dep.Toss
 import Kura.Graph.Bipartite
+import Kura.Dep.Fin
 
 
 namespace Graph
@@ -62,7 +63,6 @@ instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
 def CycleGraph (n : ℕ) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph ⟨n, by omega⟩
 #eval! CycleGraph 5 (by norm_num)
 
-
 instance instCycleGraphSimple (n : ℕ) (hn : 2 < n) : Simple (CycleGraph n (by omega)) where
 all_full e := (instTourGraphUndirected ⟨n, by omega⟩).all_full e
 no_loops e := by
@@ -88,25 +88,39 @@ inc_inj e₁ e₂ h := by
 def PathGraph (n : ℕ) : Graph (Fin (n+1)) (Fin n) where
   inc e := undir s(e, e+1)
 
-lemma PathGraph_adj {n : ℕ+} {u v : Fin n} (huv : u < v) :
-    (PathGraph n).adj u v ↔ u + 1 = v := by
+lemma PathGraph.adj_iff {n : ℕ} {u v : Fin (n+1)} (huv : u < v):
+    (PathGraph n).adj u v ↔ u.val +1 = v.val := by
   constructor <;> intro h
   · obtain ⟨e, he⟩ := h
     unfold PathGraph canGo at he
     simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, canGo_iff_eq_of_undir, Sym2.eq,
       Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Prod.swap_prod_mk] at he
-    obtain ⟨rfl, h⟩ | ⟨rfl, h⟩ := he
-    · sorry
-    · sorry
-  · subst v
-    use ⟨u.val,
-    sorry⟩
-    unfold PathGraph canGo
-    simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, canGo_iff_eq_of_undir, Sym2.eq,
-      Sym2.rel_iff', Prod.mk.injEq, true_and, Prod.swap_prod_mk, Fin.castSucc_inj,
-      self_eq_add_right, Fin.one_eq_zero_iff, PNat.coe_eq_one_iff]
-    
-    sorry
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := he
+    · exact rfl
+    · absurd huv; clear huv
+      simp only [not_lt]
+      exact Fin.castSucc_le_succ e
+  · unfold PathGraph adj canGo
+    use ⟨u.val, sorry⟩
+    simp only [Fin.cast_val_eq_self, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
+      true_and, Prod.swap_prod_mk, add_right_eq_self, Fin.one_eq_zero_iff, add_left_eq_self]
+    exact Or.inl sorry
+
+instance instPathGraphSimple (n : ℕ) : Simple (PathGraph n) where
+  edge_symm _ := by simp [PathGraph]
+  all_full _ := by simp only [isFull, edge.isFull, PathGraph]
+  no_loops e := by
+    simp only [isLoop, PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir_isLoop_iff']
+    exact (Fin.succ_ne_castSucc e).symm
+  inc_inj e₁ e₂ h := by
+    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir.injEq, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Fin.succ_inj, and_self, Prod.swap_prod_mk] at h
+    obtain (⟨rfl, rfl⟩ | ⟨h1, h2⟩) := h
+    · rfl
+    · apply_fun Fin.val at h1 h2 ⊢
+      simp only [Fin.coe_castSucc, Fin.val_succ] at h1 h2
+      omega
+      exact Fin.val_injective
 
 def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ₗ Fin n₂) (Fin n₁ ×ₗ Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)
@@ -125,6 +139,8 @@ instance instCompleteBipGraphSimple (n₁ n₂ : ℕ+) : Simple (CompleteBipGrap
 
 
 instance instCompleteBipGraphBip (n₁ n₂ : ℕ+) : Bipartite (CompleteBipGraph n₁ n₂) where
-  L := sorry
-  hLDec := sorry
-  distinguishes := sorry
+  L := Sum.inl '' Set.univ
+  distinguishes e := by
+    simp only [Distinguish, CompleteBipGraph, Set.image_univ, Set.mem_range,
+      Sym2.distinguish_pair_iff, exists_apply_eq_apply, reduceCtorEq, exists_const, ne_eq,
+      eq_iff_iff, iff_false, not_true_eq_false, not_false_eq_true]

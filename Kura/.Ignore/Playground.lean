@@ -55,3 +55,5 @@ rwa/simpa : 'rw'/'simp' followed by 'assumption'
 specialize h x: 'obtain h := h x'
 <;> : apply the next tactic to all the child goals of the first.
 -/
+
+instance instPropPreOrder {α : Type*}: PartialOrder (α → Prop) := by exact Pi.partialOrder

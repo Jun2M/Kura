@@ -6,21 +6,24 @@ import Kura.Graph.Searchable
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] {G : Graph V E}
 
 
-def conn : V → V → Prop := Relation.ReflTransClosure G.adj
+def conn (G : Graph V E) : V → V → Prop := Relation.ReflTransClosure G.adj
 
 @[simp]
-lemma conn_refl (v : V) : G.conn v v := Relation.ReflTransGen.refl
+lemma conn.refl (G : Graph V E) (v : V) : G.conn v v := Relation.ReflTransGen.refl
 
-lemma conn_symm [Undirected G] (u v : V) : G.conn u v → G.conn v u := by
+lemma conn.symm {G : Graph V E} [Undirected G] (u v : V) : G.conn u v → G.conn v u := by
   apply Relation.ReflTransGen.symmetric
   rintro u v h
   rwa [G.adj_comm]
 
-lemma conn_comm [Undirected G] (u v : V) : G.conn u v ↔ G.conn v u :=
-  ⟨ G.conn_symm u v, G.conn_symm v u ⟩
+lemma conn_comm {G : Graph V E} [Undirected G] (u v : V) : G.conn u v ↔ G.conn v u :=
+  ⟨ conn.symm u v, conn.symm v u ⟩
+
+lemma conn.trans {G : Graph V E} {u v w : V} : G.conn u v → G.conn v w → G.conn u w :=
+  Relation.ReflTransGen.trans
 
 lemma conn.path (u v : V) (huv : G.conn u v) : ∃ P : G.Path, P.start = u ∧ P.finish = v := by
   unfold conn at huv
@@ -68,10 +71,10 @@ lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
 lemma SubgraphOf.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
     H.conn (h.fᵥ u) (h.fᵥ v) := by
   induction huv with
-  | refl => exact conn_refl _ _
+  | refl => exact conn.refl _ _
   | tail _h1 h2 IH => exact IH.tail (h.Adj _ _ h2)
 
-def connSetoid [Undirected G] : Setoid V where
+def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
   r := conn G
   iseqv := by
     refine ⟨ ?_, ?_, ?_ ⟩
@@ -173,7 +176,7 @@ def edgeCut [DecidableEq E] (S : Finset E) : Prop := ∃ u v, G.conn u v ∧ ¬ 
 lemma edgeCut_of_not_conn [DecidableEq E] (S : Finset E) (u v : V) (hG : G.conn u v)
   (hGS : ¬ G{Sᶜ}ᴳ.conn u v) : G.edgeCut S := ⟨ u, v, hG, hGS ⟩
 
-lemma empty_not_edgeCut [DecidableEq E]: ¬ G.edgeCut ∅ := by
+lemma empty_not_edgeCut (G : Graph V E) [DecidableEq E]: ¬ G.edgeCut ∅ := by
   rintro ⟨ u', v', hG', hGS ⟩
   -- Isom theorems...
   sorry
@@ -188,7 +191,7 @@ lemma edgeCut_upward_closed [DecidableEq E] (S T : Finset E) (hST : S ⊆ T) (hC
     -- Subtype theorems...
     sorry
   rw [← hP'start, ← hP'finish]
-  exact conn.ofPath _ P'
+  exact conn.ofPath P'
 
 def bridge [DecidableEq E] (e : E) : Prop := G.connected ∧ G.edgeCut {e}
 
