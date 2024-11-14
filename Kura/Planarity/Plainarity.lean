@@ -133,7 +133,7 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
       omega
     obtain e : E := Classical.choice this
     let G' := G{{e}ᶜ}ᴳ
-    let hSubgraph : G'.SubgraphOf G := Es_subgraph G {e}ᶜ
+    let hSubgraph : G'.SubgraphOf G := (Es_spanningsubgraph G {e}ᶜ).toSubgraphOf
     have hG'Undir : G'.Undirected := hSubgraph.Undirected
     have hG'Planar : Planar_by_AbstractDual G' := by sorry
     specialize @ih ({e}ᶜ : Set E) _ G' hG'Undir hG'Planar _ (by simp only [compl,

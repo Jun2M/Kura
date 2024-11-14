@@ -72,7 +72,15 @@ lemma SubgraphOf.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V}
     H.conn (h.fᵥ u) (h.fᵥ v) := by
   induction huv with
   | refl => exact conn.refl _ _
-  | tail _h1 h2 IH => exact IH.tail (h.Adj _ _ h2)
+  | tail _h1 h2 IH => exact IH.tail (h.adj h2)
+
+lemma instSpanningSubgraphOfConnected {G : Graph V E} {H : Graph W F} [G.connected]
+  (h : G.SpanningSubgraphOf H) : H.connected where
+  all_conn u v := by
+    have : G.conn (h.fᵥEquiv.symm u) (h.fᵥEquiv.symm v) := G.all_conn _ _
+    convert h.conn this <;>
+    · change _ = h.fᵥEquiv (h.fᵥEquiv.symm _)
+      exact (Equiv.symm_apply_eq h.fᵥEquiv).mp rfl
 
 def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
   r := conn G
@@ -125,9 +133,9 @@ lemma Es_subgraph_conn_eq_conn_iff [DecidableEq E] {G : Graph V E} [Undirected G
   (hS : ∀ e ∉ S, G{S}ᴳ.conn (G.v1 e) (G.v2 e)) (u v : V) :
     G{S}ᴳ.conn u v ↔ G.conn u v := by
   let G' := G{S}ᴳ
-  let hSubgraph : G' ⊆ᴳ G := Es_subgraph G S
+  let hSubgraph : G' ⊆ᴳ G := (Es_spanningsubgraph G S).toSubgraphOf
   have := hSubgraph.Undirected
-  have hadj : G'.adj ≤ G.adj := hSubgraph.Adj
+  have hadj : G'.adj ≤ G.adj := fun _ _ => hSubgraph.adj
   have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
 
   have hadj' : G.adj ≤ G'.conn := by

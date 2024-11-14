@@ -102,10 +102,10 @@ theorem KuraCore1 {V E : Type*} [LinearOrder V] [Fintype V] [LinearOrder E] [Fin
 
   wlog hau : G.adj a u generalizing a u v E
   · let G' := G.addUndirEdge s(a, u)
-    let C' := C.SubgraphOf (SubgraphOf.addUndirEdge G s(a, u))
+    let C' := (SpanningSubgraphOf.addUndirEdge G s(a, u)).cycle C
     have huNinC' : u ∉ C'.vertices := by
       unfold C'; clear this
-      simp only [Cycle.SubgraphOf_vertices, List.mem_map, not_exists, not_and]
+      simp only [SubgraphOf.cycle_vertices, List.mem_map, not_exists, not_and]
       rintro z hz
 
       -- have h' := C'.vNodup' h ha

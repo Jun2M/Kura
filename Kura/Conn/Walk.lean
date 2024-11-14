@@ -435,45 +435,56 @@ lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.ve
 --     use ih
 --     sorry
 
-def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
-    Walk H where
+end Walk
+
+namespace SubgraphOf
+
+def walk [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G ⊆ᴳ H) : Walk H where
   start := h.fᵥ w.start
   steps := w.steps.map (fun ⟨u, e, v⟩ => (h.fᵥ u, h.fₑ e, h.fᵥ v))
   start_spec hn := by
     simp only [List.head_map, EmbeddingLike.apply_eq_iff_eq]
+    congr 1
     apply w.start_spec
   step_spec := by
     simp only [List.mem_map, Prod.exists, canGo, forall_exists_index, and_imp, Prod.forall,
       Prod.mk.injEq]
     rintro w₁ f w₂ v₁ e v₂ hve rfl rfl rfl
-    exact h.CanGo _ _ _ (w.step_spec (v₁, e, v₂) hve)
+    exact h.canGo (w.step_spec (v₁, e, v₂) hve)
   next_step := by
     refine List.chain'_map_of_chain' _ ?_ w.next_step
     rintro ⟨u, e, v⟩ ⟨u', e', v'⟩ h
-    simpa only [EmbeddingLike.apply_eq_iff_eq] using h
+    simp only
+    congr 1
 
 @[simp]
-lemma SubgraphOf_start [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
-    (w.SubgraphOf h).start = h.fᵥ w.start := rfl
+lemma walk_start [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G)
+    (h : G ⊆ᴳ H) : (h.walk w).start = h.fᵥ w.start := rfl
 
 @[simp]
-lemma SubgraphOf_vertices [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
-    (w.SubgraphOf h).vertices = w.vertices.map h.fᵥ := by
-  simp only [vertices, SubgraphOf, List.map_map, List.map_cons, List.cons.injEq, List.map_inj_left,
+lemma walk_steps [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G)
+    (h : G ⊆ᴳ H) : (h.walk w).steps = w.steps.map (fun ⟨u, e, v⟩ => (h.fᵥ u, h.fₑ e, h.fᵥ v)) := rfl
+
+@[simp]
+lemma walk_vertices [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G)
+    (h : G.SubgraphOf H) : (h.walk w).vertices = w.vertices.map h.fᵥ := by
+  simp only [Walk.vertices, walk, List.map_map, List.map_cons, List.cons.injEq, List.map_inj_left,
     Function.comp_apply, implies_true, and_self]
 
 @[simp]
-lemma SubgraphOf_finish [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
-    (w.SubgraphOf h).finish = h.fᵥ w.finish := by
-  rw [← vertices_getLast_eq_finish, ← vertices_getLast_eq_finish]
-  simp only [SubgraphOf_vertices, List.getLast_map, vertices_getLast_eq_finish]
+lemma walk_finish [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G)
+    (h : G.SubgraphOf H) : (h.walk w).finish = h.fᵥ w.finish := by
+  rw [← Walk.vertices_getLast_eq_finish, ← Walk.vertices_getLast_eq_finish]
+  simp only [walk_vertices, List.getLast_map, Walk.vertices_getLast_eq_finish]
 
 @[simp]
-lemma SubgraphOf_edges [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G) (h : G.SubgraphOf H) :
-    (w.SubgraphOf h).edges = w.edges.map h.fₑ := by
-  simp only [edges, SubgraphOf, List.map_map, List.map_inj_left, Function.comp_apply, implies_true]
+lemma walk_edges [DecidableEq W] {G : Graph V E} {H : Graph W F} (w : Walk G)
+    (h : G.SubgraphOf H) : (h.walk w).edges = w.edges.map h.fₑ := by
+  simp only [Walk.edges, walk_steps, List.map_map, List.map_inj_left, Function.comp_apply,
+    implies_true]
 
-end Walk
+end SubgraphOf
+
 
 @[ext]
 structure Path extends Walk G where
@@ -661,14 +672,14 @@ lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
     e ∈ p.reverse.edges ↔ e ∈ p.edges := by
   sorry
 
-def SubgraphOf [DecidableEq W] {G : Graph V E} {H : Graph W F} (p : Path G) (h : G.SubgraphOf H) : Path H where
-  toWalk := p.toWalk.SubgraphOf h
-  vNodup := by
-    simp only [Walk.SubgraphOf_vertices]
-    apply p.vNodup.map h.fᵥ.inj'
-
-
 end Path
+
+def SubgraphOf.Path [DecidableEq W] {G : Graph V E} {H : Graph W F} (p : Path G)
+    (h : G.SubgraphOf H) : Path H where
+  toWalk := h.walk p.toWalk
+  vNodup := by
+    simp only [walk_vertices]
+    apply p.vNodup.map h.fᵥinj
 
 structure Trail extends Walk G where
   eNodup : toWalk.edges.Nodup

@@ -55,14 +55,14 @@ noncomputable def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
   step_spec uev huev := by
     rw [List.mem_singleton] at huev
     subst huev
-    exact canGo_v1_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)
+    exact canGo_v1_v2 (isFull_of_isLoop (G.inc e) he)
   next_step :=
     List.chain'_singleton
       ((G.inc e).v1 (isFull_of_isLoop (G.inc e) he), e,
         (G.inc e).v2 (isFull_of_isLoop (G.inc e) he))
   startFinish := by
     simp only [Walk.finish, List.getLast_singleton]
-    exact (edge.isLoop_iff_v1_eq_v2 (G.inc e) (isFull_of_isLoop (G.inc e) he)).mp he
+    exact (edge.isLoop_iff_v1_eq_v2 (isFull_of_isLoop (G.inc e) he)).mp he
   vNodup' := by simp only [Walk.vertices, List.map_cons, List.map_nil, List.tail_cons,
     List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
   eNodup' := by simp only [Walk.edges, List.map_cons, List.map_nil, List.nodup_cons,
@@ -77,40 +77,6 @@ lemma isLoop_of_length_one (C : G.Cycle) (hC : C.length = 1) :
 lemma not_simple_of_length_two (C : G.Cycle) (hC : C.length = 2) :
     ¬ G.Simple := by
   sorry
-
-def SubgraphOf {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) : H.Cycle where
-  toWalk := C.toWalk.SubgraphOf A
-  startFinish := by
-    simp only [Walk.SubgraphOf_start, Walk.SubgraphOf_finish, C.startFinish]
-  vNodup' := by
-    simp only [Walk.SubgraphOf_vertices]
-    exact C.vNodup'.map A.fᵥ.inj'
-  eNodup' := by
-    simp only [Walk.SubgraphOf_edges]
-    exact (List.nodup_map_iff_inj_on C.eNodup').mpr (fun _ _ _ _ hxy ↦ A.fₑ.inj' hxy)
-  eNonempty := by
-    simp only [Walk.SubgraphOf_edges, ne_eq, List.map_eq_nil_iff]
-    exact C.eNonempty
-
-@[simp]
-lemma SubgraphOf_start {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
-    (SubgraphOf A C).start = A.fᵥ C.start := by
-  simp only [SubgraphOf, Walk.SubgraphOf_start]
-
-@[simp]
-lemma SubgraphOf_finish {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
-    (SubgraphOf A C).finish = A.fᵥ C.finish := by
-  simp only [SubgraphOf, Walk.SubgraphOf_finish]
-
-@[simp]
-lemma SubgraphOf_vertices {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
-    (SubgraphOf A C).vertices = C.vertices.map A.fᵥ := by
-  simp only [SubgraphOf, Walk.SubgraphOf_vertices]
-
-@[simp]
-lemma SubgraphOf_edges {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
-    (SubgraphOf A C).edges = C.edges.map A.fₑ := by
-  simp only [SubgraphOf, Walk.SubgraphOf_edges]
 
 variable {G}
 
@@ -149,6 +115,41 @@ lemma isLoop_of_edges_singleton (C : G.Cycle) (e : E) (he : C.edges = [e]) : G.i
 
 
 end Cycle
+
+namespace SubgraphOf
+
+def cycle {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) : H.Cycle where
+  toWalk := A.walk C.toWalk
+  startFinish := by
+    simp only [walk_start, walk_finish, C.startFinish]
+  vNodup' := by
+    simp only [walk_vertices]
+    exact C.vNodup'.map A.fᵥinj
+  eNodup' := by
+    simp only [walk_edges]
+    exact (List.nodup_map_iff_inj_on C.eNodup').mpr (fun _ _ _ _ hxy ↦ A.fₑinj hxy)
+  eNonempty := by
+    simp only [walk_edges, ne_eq, List.map_eq_nil_iff]
+    exact C.eNonempty
+
+@[simp]
+lemma cycle_start {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (A.cycle C).start = A.fᵥ C.start := by simp only [cycle, walk_start]
+
+@[simp]
+lemma cycle_finish {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (A.cycle C).finish = A.fᵥ C.finish := by simp only [cycle, walk_finish]
+
+@[simp]
+lemma cycle_vertices {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (A.cycle C).vertices = C.vertices.map A.fᵥ := by simp only [cycle, walk_vertices]
+
+@[simp]
+lemma cycle_edges {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
+    (A.cycle C).edges = C.edges.map A.fₑ := by simp only [cycle, walk_edges]
+
+end SubgraphOf
+
 
 -- def IsVertexCycle (v : V) (c : G.Cycle) : Prop :=
 --   @Minimal _ {le:=fun c1 c2 => (c1 : G.Cycle).toWalk.length ≤ (c2 : G.Cycle).toWalk.length} (∀ u ∈ G.neighbourhood v, u ∈ ·.vertices) c

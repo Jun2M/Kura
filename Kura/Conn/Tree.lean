@@ -35,61 +35,35 @@ def PathTree (n : ℕ) : Tree (Fin (n+1)) (Fin n) where
   conn := inferInstance
 
 
-
 lemma existSpanningTree_aux [Fintype V] (G : Graph V E) [G.connected] :
     Fintype.card V = n → ∃ (W F : Type) (h : DecidableEq W) (T : Tree W F),
     Nonempty (T.SpanningSubgraphOf G) := by
   by_cases h : n = 0
   · rintro rfl
-    use Fin 0, Empty, inferInstance, ⟨EdgelessForest 0, ?_⟩
-    · refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
-      · refine ⟨?_, ?_⟩
-        · rintro e
-          exact Fin.elim0 e
-        · rintro i j h
-          exact Subsingleton.elim i j
-      · refine ⟨?_, ?_⟩
-        · rintro e
-          exact e.elim
-        · exact Function.injective_of_subsingleton _
-      · rintro e
-        exact e.elim
-      · rintro e
-        simp only [IsEmpty.exists_iff]
-        have : IsEmpty V := by exact Fintype.card_eq_zero_iff.mp h
-        exact IsEmpty.false e
-    refine ⟨?_⟩
-    rintro u v
-    exact u.elim0
+    use Fin 0, Empty, inferInstance, ⟨EdgelessForest 0, @instEdgelessGraphConnected _ ⟨by omega⟩⟩
+    refine ⟨⟨⟨Fin.elim0 , Empty.elim, (Empty.elim ·)⟩, (Fin.elim0 ·), (Empty.elim ·)⟩, fun v => ?_⟩
+    have : IsEmpty V := Fintype.card_eq_zero_iff.mp h
+    exact this.elim v
   have hn : 1 ≤ n := by omega
   induction hn using Nat.leRec generalizing V E with
   | refl =>
     rintro hn
-    use (Fin 1)
-    use Empty
-    use inferInstance
-    use ⟨EdgelessForest 1, ?_⟩
-    refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
-    · refine ⟨?_, ?_⟩
-      · rintro e
-        have hVNonempty : Nonempty V := sorry
-        obtain v := hVNonempty.some
-        exact v
-      · rintro i j
-        simp only [forall_const]
-        exact Subsingleton.elim i j
-    · refine ⟨?_, ?_⟩
-      · rintro e
-        exact e.elim
-      · exact Function.injective_of_subsingleton _
-    · rintro e
-      exact e.elim
-    · sorry
-    · sorry
+    use (Fin 1), Empty, inferInstance, ⟨EdgelessForest 1, @instEdgelessGraphConnected _ ⟨by omega⟩⟩
+    refine ⟨⟨⟨?_, Empty.elim, (Empty.elim ·)⟩, ?_, (Empty.elim ·)⟩, ?_⟩
+    · choose x hx using Fintype.card_eq_one_iff.mp hn
+      exact fun v => x
+    · rintro u v h
+      exact Subsingleton.allEq u v
+    · rintro v
+      simp only [exists_const]
+      have := Fintype.card_le_one_iff_subsingleton.mp (by rw [hn])
+      exact Subsingleton.allEq _ v
   | le_succ_of_le n ih =>
     rintro hn
     rename_i a b _ _ _
-    have hVNonempty : Nonempty V := by sorry
+    have hVNonempty : Nonempty V := by
+      rw [← Fintype.card_pos_iff]
+      omega
     obtain ⟨v⟩ := hVNonempty
     let G' := G[{v}ᶜ]ᴳ
     have hG'conn : G'.connected := by sorry

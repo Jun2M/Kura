@@ -12,8 +12,7 @@ def Vmap (f : V₁ → V₂) : Graph V₂ E₁ where
   inc e := G₁.inc e |>.map f
 
 def Isom.OfVEquiv (f : V₁ ≃ V₂) : G₁ ≃ᴳ G₁.Vmap f :=
-  ⟨⟨f.toEmbedding, Function.Embedding.refl E₁, sorry⟩,
-    ⟨f.symm.toEmbedding, Function.Embedding.refl E₁, sorry⟩⟩
+  Isom.OfEquivs f (Equiv.refl _) (fun e => by simp only [Vmap, Equiv.refl_apply])
 
 def VImageUnder (f : V₁ → V₂) : Graph (Set.range f) E₁ where
   inc e := G₁.inc e |>.map f
@@ -28,9 +27,12 @@ noncomputable def EImageUnder (f : E₁ ↪ E₂) : Graph V₁ (Set.range f) whe
 
 def addVertex : Graph (WithBot V₁) E₁ := G₁.Vmap some
 
-def SubgraphOf.addVertex : G₁ ⊆ᴳ G₁.addVertex :=
-  ⟨Function.Embedding.some, Function.Embedding.refl E₁, fun _e ↦ rfl⟩
-
+def SubgraphOf.addVertex : G₁ ⊆ᴳ G₁.addVertex where
+  fᵥ := some
+  fₑ := id
+  inc _ := rfl
+  fᵥinj := Option.some_injective _
+  fₑinj _ _ a := a
 
 def addDirEdge (A : V₁ × V₁) : Graph V₁ (Lex $ E₁ ⊕ Unit) where
   inc := λ e => match e with
@@ -42,18 +44,21 @@ def addUndirEdge (s : Sym2 V₁) : Graph V₁ (Lex $ E₁ ⊕ Unit) where
     | Sum.inl e₁ => G₁.inc e₁
     | Sum.inr _ => undir s
 
-def SubgraphOf.addUndirEdge (s : Sym2 V₁) : G₁ ⊆ᴳ G₁.addUndirEdge s :=
-  ⟨Function.Embedding.refl V₁, Function.Embedding.inl, fun _e ↦ by
-    delta addUndirEdge Lex
-    simp only [Function.Embedding.inl_apply, Function.Embedding.coe_refl, map_id]⟩
+def SpanningSubgraphOf.addUndirEdge (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G₁.addUndirEdge s) where
+  fᵥ := id
+  fₑ := Sum.inl
+  inc _ := by aesop
+  fᵥinj _ _ a := a
+  fₑinj _ _ a := Sum.inl.inj a
+  fᵥsurj _ := by simp only [id_eq, exists_eq]
 
 @[simp]
-lemma SubgraphOf.addUndirEdge_fᵥ (s : Sym2 V₁) :
-    ⇑(SubgraphOf.addUndirEdge G₁ s).fᵥ = id := rfl
+lemma SpanningSubgraphOf.addUndirEdge_fᵥ (s : Sym2 V₁) :
+    (SpanningSubgraphOf.addUndirEdge G₁ s).fᵥ = id := rfl
 
 @[simp]
-lemma Subgraphof.addUndirEdge_fₑ (s : Sym2 V₁) :
-    ⇑(SubgraphOf.addUndirEdge G₁ s).fₑ = Sum.inl := rfl
+lemma SpanningSubgraphOf.addUndirEdge_fₑ (s : Sym2 V₁) :
+    (SpanningSubgraphOf.addUndirEdge G₁ s).fₑ = Sum.inl := rfl
 
 instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
     Undirected (G₁.addUndirEdge s) where
@@ -83,7 +88,7 @@ def MergeOnMultualSubgraph [DecidableEq V₂] {H : Graph V₃ E₃} (H₁ : H �
   |>.Qfp (λ v => match v with
     | Sum.inl v₁ => Sum.inl v₁
     | Sum.inr v₂ => if h : v₂ ∈ Set.range H₂.fᵥ
-                    then Sum.inl (H₁.fᵥ (H₂.fᵥ.rangeSplitting' ⟨v₂, h⟩))
+                    then Sum.inl (H₁.fᵥ (H₂.fᵥEmb.rangeSplitting' ⟨v₂, h⟩))
                     else Sum.inr v₂)
     (fun v ↦ match h : v with
       | Sum.inl v₁ => rfl
@@ -92,11 +97,13 @@ def MergeOnMultualSubgraph [DecidableEq V₂] {H : Graph V₃ E₃} (H₁ : H �
         simp only [Set.mem_range, Function.Embedding.rangeSplitting'_eq_rangeSplitting]
         split <;> rename_i A a ha <;> split at ha <;> rename_i hy <;> try simp only [reduceCtorEq] at ha
         · obtain ⟨u, hu, rfl⟩ := hy
+          change Sum.inl (H₁.fᵥ (H₂.fᵥEmb.rangeSplitting ⟨H₂.fᵥEmb u, _⟩)) = Sum.inl a at ha
           rw [Function.Embedding.rangeSplitting_apply, Sum.inl.inj_iff] at ha
           subst a
           split <;> rename_i hv
-          · simp only [Function.Embedding.rangeSplitting_apply]
-          · simp only [EmbeddingLike.apply_eq_iff_eq, exists_eq, not_true_eq_false] at hv
+          · change _ = Sum.inl (H₁.fᵥ (H₂.fᵥEmb.rangeSplitting ⟨H₂.fᵥEmb u, _⟩))
+            simp only [Function.Embedding.rangeSplitting_apply]
+          · simp only [exists_apply_eq_apply, not_true_eq_false] at hv
         · rw [Sum.inr.inj_iff] at ha
           subst a
           rfl)
@@ -137,16 +144,15 @@ def MergeOnMultualSubgraph [DecidableEq V₂] {H : Graph V₃ E₃} (H₁ : H �
 def gluing [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁)
   (H₂ : H ⊆ᴳ G₂) [Fintype V₃] [Fintype E₃] :
     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)}
-          {e : E₁ ⊕ E₂ // e ∉ (Finset.univ.map H₂.fₑ).image Sum.inr} :=
-  (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es {e | e ∉ (Finset.univ.map H₂.fₑ).image Sum.inr}
-
+          {e : E₁ ⊕ E₂ // e ∉ (Finset.univ.map H₂.fₑEmb).image Sum.inr} :=
+  (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es {e | e ∉ (Finset.univ.map H₂.fₑEmb).image Sum.inr}
 
 -- Clique sum
 def cliqueSum [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] (n : ℕ)
   (H₁ : (CompleteGraph n) ⊆ᴳ G₁) (H₂ : (CompleteGraph n) ⊆ᴳ G₂) :
     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)}
-          {e : E₁ ⊕ E₂ // e ∉ ((Finset.univ.map H₂.fₑ).image Sum.inr ∪ (Finset.univ.map H₁.fₑ).image Sum.inl)} :=
+          {e : E₁ ⊕ E₂ // e ∉ ((Finset.univ.map H₂.fₑEmb).image Sum.inr ∪ (Finset.univ.map H₁.fₑEmb).image Sum.inl)} :=
   (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es
-    {e : E₁ ⊕ E₂ | e ∉ ((Finset.univ.map H₂.fₑ).image Sum.inr ∪ (Finset.univ.map H₁.fₑ).image Sum.inl)}
+    {e : E₁ ⊕ E₂ | e ∉ ((Finset.univ.map H₂.fₑEmb).image Sum.inr ∪ (Finset.univ.map H₁.fₑEmb).image Sum.inl)}
 
 end Graph

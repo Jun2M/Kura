@@ -81,47 +81,45 @@ def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : ∀ v, f (f v) = f 
 
 
 --------------------------------------------------------------------------------
+def Vs_subgraph (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : G[S]ᴳ ⊆ᴳ G where
+  fᵥ := (·.val)
+  fₑ := (·.val)
+  inc e := by simp only [all, Vs, Vp, pmap_subtype_map_val]
+  fᵥinj := Subtype.val_injective
+  fₑinj := Subtype.val_injective
+
 @[simp]
 lemma Vs_inc (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (e : {e // G.all e (· ∈ S)}) :
-    ((G[S]ᴳ).inc e).map (Subtype.val) = G.inc e.val := by
-  sorry
-
-def Vs_subgraph (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] : G[S]ᴳ ⊆ᴳ G where
-  fᵥ := { toFun := (·.val), inj' := fun e₁ e₂ h => SetCoe.ext h }
-  fₑ := { toFun := (·.val), inj' := fun e₁ e₂ h => SetCoe.ext h }
-  comm := by
-    rintro ⟨e, he⟩
-    simp only [all, Function.Embedding.coeFn_mk, Vs_inc]
+    ((G[S]ᴳ).inc e).map Subtype.val = G.inc e.val := ((Vs_subgraph G S).inc e).symm
 
 @[simp]
 lemma Vs_subgraph_fᵥ {G : Graph V E} (S : Set V) [DecidablePred (· ∈ S)] :
-    (Vs_subgraph G S).fᵥ.toFun = Subtype.val := rfl
+    (Vs_subgraph G S).fᵥ = Subtype.val := rfl
 
 @[simp]
 lemma Vs_subgraph_fₑ {G : Graph V E} (S : Set V) [DecidablePred (· ∈ S)] :
-    (Vs_subgraph G S).fₑ.toFun = Subtype.val := rfl
+    (Vs_subgraph G S).fₑ = Subtype.val := rfl
 
 
 @[simp]
 lemma Es_inc (G : Graph V E) (S : Set E) (e : S) :
-    (G{S}ᴳ).inc e = G.inc e := by rfl
+    (G{S}ᴳ).inc e = G.inc e := rfl
 
-def Es_subgraph (G : Graph V E) (S : Set E) : G{S}ᴳ ⊆ᴳ G where
-  fᵥ := { toFun := id, inj' := fun e₁ e₂ h => h }
-  fₑ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
-  comm := by
-    rintro ⟨e, _he⟩
-    simp only [Function.Embedding.coeFn_mk, Es_inc, map_id]
-
-@[simp]
-lemma Es_subgraph_fᵥ {G : Graph V E} (S : Set E) :
-    ⇑(Es_subgraph G S).fᵥ = id := rfl
+def Es_spanningsubgraph (G : Graph V E) (S : Set E) : G{S}ᴳ.SpanningSubgraphOf G where
+  fᵥ := id
+  fₑ := Subtype.val
+  inc := by simp only [Es_inc, map_id, implies_true]
+  fᵥinj := Function.injective_id
+  fᵥsurj := Function.surjective_id
+  fₑinj := Subtype.val_injective
 
 @[simp]
-lemma Es_subgraph_fₑ {G : Graph V E} (S : Set E) :
-    ⇑(Es_subgraph G S).fₑ = Subtype.val := rfl
+lemma Es_spanningsubgraph_fᵥ {G : Graph V E} (S : Set E) :
+    (Es_spanningsubgraph G S).fᵥ = id := rfl
 
-
+@[simp]
+lemma Es_spanningsubgraph_fₑ {G : Graph V E} (S : Set E) :
+    (Es_spanningsubgraph G S).fₑ = Subtype.val := rfl
 
 
 @[simp]
@@ -132,31 +130,33 @@ lemma EVs_inc (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set
 
 def EVs_subgraph (G : Graph V E) (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
   [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : G.EVs Sv Se he ⊆ᴳ G where
-  fᵥ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
-  fₑ := { toFun := Subtype.val, inj' := fun e₁ e₂ h => SetCoe.ext h }
-  comm := by
+  fᵥ := Subtype.val
+  fₑ := Subtype.val
+  inc := by
     rintro ⟨e, he⟩
     simp only [Function.Embedding.coeFn_mk, EVs_inc, pmap_subtype_map_val]
+  fᵥinj := Subtype.val_injective
+  fₑinj := Subtype.val_injective
 
 @[simp]
 lemma EVs_subgraph_fᵥ {G : Graph V E} (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
   [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    (EVs_subgraph G Sv Se he).fᵥ.toFun = Subtype.val := rfl
+    (EVs_subgraph G Sv Se he).fᵥ = Subtype.val := rfl
 
 @[simp]
 lemma EVs_subgraph_fₑ {G : Graph V E} (Sv : Set V) [DecidablePred (· ∈ Sv)] (Se : Set E)
   [DecidablePred (· ∈ Se)] (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    (EVs_subgraph G Sv Se he).fₑ.toFun = Subtype.val := rfl
+    (EVs_subgraph G Sv Se he).fₑ = Subtype.val := rfl
 
 
 lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype W] [Fintype E]
   [Fintype F] [DecidableEq V] [DecidableEq W] [DecidableEq E] [DecidableEq F] :
-    Nonempty (G ⊆ᴳ H) ↔ ∃ (Sv : Set W) (hSv : DecidablePred (· ∈ Sv)) (Se : Set F)
-    (hSe : DecidablePred (· ∈ Se)) (hSve : ∀ e ∈ Se, (H.all e (· ∈ Sv))),
+    Nonempty (G ⊆ᴳ H) ↔ ∃ (Sv : Set W) (_ : DecidablePred (· ∈ Sv)) (Se : Set F)
+    (_ : DecidablePred (· ∈ Se)) (hSve : ∀ e ∈ Se, (H.all e (· ∈ Sv))),
     Nonempty (G ≃ᴳ H.EVs Sv Se hSve) := by
   constructor
-  · rintro ⟨⟨fᵥ, fₑ, hcomm⟩⟩
-    refine ⟨ Set.range fᵥ, by infer_instance, Set.range fₑ, by infer_instance, ?_, ⟨⟨?_, ?_⟩⟩ ⟩
+  · rintro ⟨⟨⟨fᵥ, fₑ, hcomm⟩, fᵥinj, fₑinj⟩⟩
+    refine ⟨ Set.range fᵥ, by infer_instance, Set.range fₑ, by infer_instance, ?_, ⟨⟨⟨⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩, ?_⟩, ?_⟩⟩ ⟩
     · intro e he
       simp only [Set.mem_range, all, all_iff, decide_eq_true_eq] at he ⊢
       intro w hw
@@ -164,39 +164,50 @@ lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype
       rw [hcomm e, mem_map_iff] at hw
       obtain ⟨v, _hv, rfl⟩ := hw
       use v
-    · refine ⟨fᵥ.rangeFactorization, fₑ.rangeFactorization, ?_⟩
-      intro e
-      rw [EVs_inc]
-      simp only [Function.Embedding.rangeFactorization_apply]
-      have : (Multiset.map (↑·: { x // x ∈ Set.range ⇑fᵥ } → W)).Injective :=
-        Multiset.map_injective Subtype.val_injective
-      ext1 <;> simp only [Function.Embedding.rangeSplitting_apply, map_startAt, pmap_startAt,
-        map_finishAt, pmap_finishAt] <;> apply_fun (Multiset.map Subtype.val) using this <;>
-      simp only [hcomm e, Function.Embedding.rangeFactorization_apply, ← map_startAt,
-        ← map_finishAt] <;> clear this <;>
-      change Multiset.map Subtype.val (Multiset.attachWith _ _ _) = _ <;>
-      simp only [map_startAt, map_finishAt, Multiset.attachWith_map_val, Multiset.map_map,
-        Function.comp_apply]
-
-    · refine ⟨fᵥ.rangeSplitting, fₑ.rangeSplitting, ?_⟩
-      rintro ⟨e, ⟨e, rfl⟩⟩
-      rw [EVs_inc]
-      have : Function.Injective (Multiset.map ⇑fᵥ) := Multiset.map_injective fᵥ.inj'
-      ext1 <;> simp only [Function.Embedding.rangeSplitting_apply, map_startAt, pmap_startAt,
-        map_finishAt, pmap_finishAt] <;> apply_fun (Multiset.map fᵥ) using this <;>
-      simp only [← map_startAt, ← map_finishAt, ← hcomm e, Multiset.map_map, Function.comp_apply,
-        Function.Embedding.rangeSplitting_eq_val] <;> clear this <;>
-      change _ = Multiset.map Subtype.val (Multiset.attachWith _ _ _) <;>
-      rw [Multiset.attachWith_map_val ]
-
-  · rintro ⟨Sv, hSv, Se, hSe, hSve, ⟨⟨hGH, _hHG⟩⟩⟩
-    refine ⟨⟨hGH.fᵥ.trans (Function.Embedding.subtype _), hGH.fₑ.trans (Function.Embedding.subtype _), ?_⟩⟩
-    intro e
-    have := hGH.comm e
-    rw [EVs_inc] at this
-    simp only [Function.Embedding.trans_apply, Function.Embedding.coe_subtype,
-      Function.Embedding.coe_trans, map_comp]
-    rw [← this, pmap_subtype_map_val]
+    · exact (Function.Embedding.rangeFactorization ⟨fᵥ, fᵥinj⟩).toFun
+    · exact (Function.Embedding.rangeFactorization ⟨fₑ, fₑinj⟩).toFun
+    · intro e
+      simp only [Function.Embedding.coeFn_mk, Function.Embedding.toFun_eq_coe, EVs_inc]
+      change pmap _ (H.inc (fₑ e)) _ = _
+      simp_rw [hcomm e]
+      rw [pmap_map (by simp only [Set.mem_range, exists_apply_eq_apply, implies_true])]
+      match G.inc e with
+      | dir (a, b) => cases a <;> cases b <;> simp <;> aesop
+      | undir s =>
+        induction' s with x y
+        simp_all only [pmap_undir, map_undir, Sym2.map_pair_eq, undir.injEq]
+        rfl
+    · exact (Function.Embedding.rangeFactorization ⟨fᵥ, fᵥinj⟩).inj'
+    · exact (Function.Embedding.rangeFactorization ⟨fₑ, fₑinj⟩).inj'
+    · rintro ⟨e, ⟨e, rfl⟩⟩
+      simp only [Function.Embedding.coeFn_mk, Function.Embedding.toFun_eq_coe]
+      use e
+      rfl
+    · rintro ⟨e, ⟨e, rfl⟩⟩
+      simp only [Function.Embedding.coeFn_mk, Function.Embedding.toFun_eq_coe]
+      use e
+      rfl
+  · rintro ⟨Sv, _, Se, _, hall, ⟨hIsom⟩⟩
+    refine ⟨⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩⟩
+    · exact fun v => hIsom.fᵥ v
+    · exact fun e => hIsom.fₑ e
+    · intro e
+      have := hIsom.inc e
+      simp [EVs_inc] at this
+      apply_fun (edge.map Subtype.val) at this
+      simp at this
+      rw [this, ← map_comp]
+      rfl
+    · simp only
+      intro a b h
+      apply hIsom.fᵥinj
+      simp at h
+      exact SetCoe.ext h
+    · simp only
+      intro a b h
+      apply hIsom.fₑinj
+      simp at h
+      exact Subtype.eq h
 
 @[simp]
 lemma Qs_inc (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v ∉ S) (e : E) :

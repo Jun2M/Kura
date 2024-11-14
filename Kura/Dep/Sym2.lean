@@ -112,8 +112,7 @@ lemma map_pmap {Q : β → Prop} (f : α → β) (g : ∀ b, Q b → γ) (z : Sy
   induction' z with x y
   rfl
 
-lemma pmap_map {P : α → Prop} {Q : β → Prop} (f : ∀ a, P a → β) (g : β → γ)
-    (z : Sym2 α) (h : ∀ a ∈ z, P a) (h' : ∀ b ∈ z.pmap f h, Q b) :
+lemma pmap_map {P : α → Prop} (f : ∀ a, P a → β) (g : β → γ) (z : Sym2 α) (h : ∀ a ∈ z, P a) :
     (z.pmap f h).map g = z.pmap (fun a ha => g (f a (h a ha))) (fun _ ha ↦ ha) := by
   induction' z with x y
   rfl
@@ -284,10 +283,10 @@ theorem other'_eq_left [DecidableEq α] (a b : α) : Mem.other' (by simp : b ∈
   obtain this := Sym2.other_spec' hb
   rwa [Sym2.eq_swap, Sym2.congr_left] at this
 
-lemma map_eq_iff {α β : Type*} (f : α ↪ β) (s : Sym2 α) (a b : α) :
+lemma map_eq_iff {α β : Type*} {f : α → β} (hf : f.Injective) {s : Sym2 α} {a b : α} :
   (s.map f = s(f a, f b)) ↔ s = s(a, b) := by
   induction' s with x y
-  simp only [map_pair_eq, Sym2.eq, rel_iff', Prod.mk.injEq, EmbeddingLike.apply_eq_iff_eq,
+  simp only [map_pair_eq, Sym2.eq, rel_iff', Prod.mk.injEq, Function.Injective.eq_iff hf,
     Prod.swap_prod_mk]
 
 def toMultiset (s : Sym2 α) : Multiset α := (Sym2.equivMultiset _ s).val

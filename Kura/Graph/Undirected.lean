@@ -112,9 +112,9 @@ lemma adj_comm [DecidableEq V] : G.adj u v ↔ G.adj v u := by
 lemma SubgraphOf.Undirected (hGH : H ⊆ᴳ G) : Undirected H where
   all_full e := by
     unfold isFull
-    rw [← map_isFull_iff hGH.fᵥ, ← hGH.comm e]
+    rw [← map_isFull_iff, ← hGH.inc e]
     exact all_full G (hGH.fₑ e)
   edge_symm e := by
     unfold isUndir
-    rw [← map_isUndir_iff hGH.fᵥ, ← hGH.comm e]
+    rw [← map_isUndir_iff, ← hGH.inc e]
     exact edge_symm G _

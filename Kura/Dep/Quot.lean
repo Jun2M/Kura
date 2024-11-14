@@ -63,7 +63,7 @@ end Quotient
 namespace Quot
 variable {α : Type*} (r : α → α → Prop)
 
-noncomputable def eqvGen_eqv  : Quot r ≃ Quotient (Relation.EqvGen.setoid r) := by
+noncomputable def eqvGen_eqv : Quot r ≃ Quotient (Relation.EqvGen.setoid r) := by
   refine Equiv.ofBijective ?_ ?_
   · apply Quot.lift (fun x => Quotient.mk (Relation.EqvGen.setoid r) x)
     rintro x y h

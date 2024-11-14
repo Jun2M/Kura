@@ -95,97 +95,184 @@ def neighbourhood [DecidableEq V] : Set V := {u | G.adj u v}
 macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 
 
-variable (H : Graph W F) (I : Graph U E')
+variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} [DecidableEq V] [DecidableEq W]
+  [DecidableEq U]
 
-structure Hom where
+structure Hom (G : Graph V E) (H : Graph W F) where
   fᵥ : V → W
   fₑ : E → F
-  comm : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
+  inc : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
 
-def Hom.inj (a : Hom G H) : Prop := a.fᵥ.Injective ∧ a.fₑ.Injective
+namespace Hom
 
-def Hom.surj (a : Hom G H) : Prop := a.fᵥ.Surjective ∧ a.fₑ.Surjective
+def refl (G : Graph V E) : Hom G G := ⟨id, id, fun _ => by rw [id_eq, map_id]⟩
 
-structure SubgraphOf where
-  fᵥ : V ↪ W
-  fₑ : E ↪ F
-  comm : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
+def trans (a : Hom G H) (b : Hom H I) : Hom G I where
+  fᵥ := b.fᵥ ∘ a.fᵥ
+  fₑ := b.fₑ ∘ a.fₑ
+  inc e := by simp only [Function.comp_apply, b.inc, a.inc, map_comp]
+
+lemma canGo (a : Hom G H) {u v : V} {e : E} (h : G.canGo u e v):
+    H.canGo (a.fᵥ u) (a.fₑ e) (a.fᵥ v) := by
+  simp only [Graph.canGo, a.inc e]
+  rwa [map_canGo]
+
+lemma adj (a : Hom G H) {u v : V} (h : G.adj u v) : H.adj (a.fᵥ u) (a.fᵥ v) := by
+  obtain ⟨e, he⟩ := h
+  exact ⟨a.fₑ e, a.canGo he⟩
+
+lemma adj_le (a : Hom G H) : Relation.Map G.adj a.fᵥ a.fᵥ ≤ H.adj := by
+  rintro u v ⟨x, y, hxy, rfl, rfl⟩
+  exact a.adj hxy
+
+end Hom
+
+structure SubgraphOf (G : Graph V E) (H : Graph W F) extends Hom G H where
+  fᵥinj : fᵥ.Injective
+  fₑinj : fₑ.Injective
 
 macro G:term "⊆ᴳ" H:term :term => `(Graph.SubgraphOf $G $H)
 
-unsafe instance [Repr W] [Repr V] [Fintype E] [Fintype F] : Repr (G ⊆ᴳ H) where
-  reprPrec _SubgraphOf _ := repr G ++ " ⊆ᴳ " ++ repr H
+-- unsafe instance [Repr W] [Repr V] [Fintype E] [Fintype F] : Repr (G ⊆ᴳ H) where
+--   reprPrec _SubgraphOf _ := repr G ++ " ⊆ᴳ " ++ repr H
 
-def SubgraphOf.refl : G ⊆ᴳ G := ⟨Function.Embedding.refl V, Function.Embedding.refl E,
-  fun _ => (map_id _).symm ⟩
+namespace SubgraphOf
 
-def SubgraphOf.trans {G : Graph V E} {H : Graph W F} {I : Graph U E'} (a : G ⊆ᴳ H) (b : H ⊆ᴳ I) :
-    G ⊆ᴳ I where
-  fᵥ := a.fᵥ.trans b.fᵥ
-  fₑ := a.fₑ.trans b.fₑ
-  comm e := by
-    simp only [Function.Embedding.trans_apply, b.comm, map, a.comm]
-    exact (map_comp a.fᵥ b.fᵥ (G.inc e)).symm
+def refl (G : Graph V E) : G ⊆ᴳ G where
+  toHom := Hom.refl G
+  fᵥinj _ _ h := h
+  fₑinj _ _ h := h
 
-lemma SubgraphOf.CanGo {G : Graph V E} {H : Graph W F} [DecidableEq V] [DecidableEq W] (A : G ⊆ᴳ H)
-  (u v : V) (e : E) : G.canGo u e v → H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
-  intro h
-  simpa only [canGo, A.comm, map_canGo]
+variable (A : G ⊆ᴳ H)
 
-lemma SubgraphOf.canGo_iff [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H)
-  (u v : V) (e : E) : G.canGo u e v ↔ H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
-  refine ⟨A.CanGo u v e, ?_⟩
+def fᵥEmb : V ↪ W := ⟨A.fᵥ, A.fᵥinj⟩
+def fₑEmb : E ↪ F := ⟨A.fₑ, A.fₑinj⟩
+
+def trans (B : H ⊆ᴳ I) : G ⊆ᴳ I where
+  toHom := A.toHom.trans B.toHom
+  fᵥinj := (A.fᵥEmb.trans B.fᵥEmb).inj'
+  fₑinj _ _ h := (A.fₑEmb.trans B.fₑEmb).inj' h
+
+lemma canGo_iff (u : V) (e : E) (v : V) :
+    H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) ↔ G.canGo u e v := by
+  refine ⟨?_, A.toHom.canGo⟩
   rintro h
   match h' : H.inc (A.fₑ e) with
   | dir d =>
     simp only [canGo, h', canGo_iff_eq_of_dir] at h
     subst h
-    simp only [A.comm e, map_eq_dir, Option.map_eq_some', EmbeddingLike.apply_eq_iff_eq,
-      exists_eq_right, exists_eq_right_right] at h'
-    unfold canGo
-    simp only [h', dir_canGo]
+    simp only [A.inc e, map_eq_dir, Option.map_eq_some'] at h'
+    obtain ⟨_, _, hinc, ⟨x, rfl, hx⟩, ⟨y, rfl, hy⟩⟩ := h'
+    rw [A.fᵥinj hx, A.fᵥinj hy] at hinc
+    simp only [canGo, hinc, dir_canGo]
   | undir s =>
     simp only [canGo, h', canGo_iff_eq_of_undir] at h
     subst h
-    simp only [A.comm e, map_eq_undir] at h'
+    simp only [A.inc e, map_eq_undir] at h'
     obtain ⟨s, hs, h'⟩ := h'
-    rw [Sym2.map_eq_iff] at h'
+    rw [Sym2.map_eq_iff A.fᵥinj] at h'
     subst h'
     unfold canGo
     simp only [hs, canGo_iff_eq_of_undir]
 
-lemma SubgraphOf.Adj [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H)
-  (u v : V) : G.adj u v → H.adj (A.fᵥ u) (A.fᵥ v) := by
-  intro h
-  obtain ⟨e, he⟩ := h
-  exact ⟨A.fₑ e, A.CanGo u v e he⟩
+noncomputable def FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
+  exact Fintype.ofInjective A.fᵥ A.fᵥinj
 
-lemma SubgraphOf.adj_le [DecidableEq V] [DecidableEq W] {G : Graph V E} {H : Graph W F}
-  (A : G ⊆ᴳ H) : Relation.Map G.adj A.fᵥ A.fᵥ ≤ H.adj := by
-  rintro u v ⟨x, y, hxy, rfl, rfl⟩
-  exact A.Adj x y hxy
+noncomputable def FintypeE [Fintype F] (A : G ⊆ᴳ H) : Fintype E := by
+  exact Fintype.ofInjective A.fₑ A.fₑinj
 
-noncomputable def SubgraphOf.FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
-  exact Fintype.ofInjective A.fᵥ A.fᵥ.inj'
+end SubgraphOf
 
-noncomputable def SubgraphOf.FintypeE [Fintype F] (A : G ⊆ᴳ H) : Fintype E := by
-  exact Fintype.ofInjective A.fₑ A.fₑ.inj'
+structure SpanningSubgraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H where
+  fᵥsurj : fᵥ.Surjective
 
-structure SpanningSubgraphOf extends G ⊆ᴳ H where
-  surj : fᵥ.toFun.Surjective
+namespace SpanningSubgraphOf
+variable (A : G.SpanningSubgraphOf H)
 
-structure Isom where
-  toSubgraphOf : G ⊆ᴳ H
-  invSubgraphOf : H ⊆ᴳ G
+def fᵥBij : Function.Bijective A.fᵥ where
+  left := A.fᵥinj
+  right := A.fᵥsurj
+
+noncomputable abbrev fᵥEquiv : V ≃ W := Equiv.ofBijective _ A.fᵥBij
+
+end SpanningSubgraphOf
+
+structure Isom (G : Graph V E) (H : Graph W F) extends SpanningSubgraphOf G H where
+  fₑsurj : fₑ.Surjective
 
 macro G:term "≃ᴳ" H:term :term => `(Graph.Isom $G $H)
 
-def Isom.refl : G ≃ᴳ G := ⟨SubgraphOf.refl G, SubgraphOf.refl G⟩
+namespace Isom
 
-def Isom.symm (A : G ≃ᴳ H) : H ≃ᴳ G := ⟨A.invSubgraphOf, A.toSubgraphOf⟩
+variable (A : G ≃ᴳ H)
 
-def Isom.trans (A₁ : G ≃ᴳ H) (A₂ : H ≃ᴳ I) : G ≃ᴳ I :=
-  ⟨A₁.toSubgraphOf.trans A₂.toSubgraphOf, A₂.invSubgraphOf.trans A₁.invSubgraphOf⟩
+def fᵥBij : Function.Bijective A.fᵥ where
+  left := A.fᵥinj
+  right := A.fᵥsurj
 
+def fₑBij : Function.Bijective A.fₑ where
+  left := A.fₑinj
+  right := A.fₑsurj
+
+noncomputable abbrev fᵥEquiv : V ≃ W := Equiv.ofBijective _ A.fᵥBij
+noncomputable abbrev fₑEquiv : E ≃ F := Equiv.ofBijective _ A.fₑBij
+
+lemma Equiv.ofBijective_symm_comp {α β : Sort*} (f : α → β) (hf : Function.Bijective f) :
+  (Equiv.ofBijective f hf).symm ∘ f = id :=
+    (Equiv.symm_comp_eq (Equiv.ofBijective f hf) id f).mpr rfl
+
+def OfEquivs (Efᵥ : V ≃ W) (Efₑ : E ≃ F) (hinc : ∀ e, H.inc (Efₑ e) = (G.inc e).map Efᵥ) :
+    G ≃ᴳ H where
+  fᵥ := Efᵥ
+  fₑ := Efₑ
+  inc := hinc
+  fᵥinj := Equiv.injective Efᵥ
+  fᵥsurj := Equiv.surjective Efᵥ
+  fₑinj := Equiv.injective Efₑ
+  fₑsurj := Equiv.surjective Efₑ
+
+def refl (G : Graph V E) : G ≃ᴳ G where
+  toSubgraphOf := SubgraphOf.refl G
+  fᵥsurj := fun x => exists_apply_eq_apply (SubgraphOf.refl G).fᵥ x
+  fₑsurj := fun x => exists_apply_eq_apply (SubgraphOf.refl G).fₑ x
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fᵥ : (Isom.refl G).fᵥ = Equiv.refl _ := rfl
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fₑ : (Isom.refl G).fₑ = Equiv.refl _ := rfl
+
+noncomputable def symm : H ≃ᴳ G := OfEquivs A.fᵥEquiv.symm A.fₑEquiv.symm (by
+  intro e
+  have := A.inc (A.fₑEquiv.symm e)
+  rw [Equiv.ofBijective_apply_symm_apply _ A.fₑBij] at this
+  rw [this, ← map_comp, Equiv.ofBijective_symm_comp _ A.fᵥBij, map_id])
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma symm_fᵥ : A.symm.fᵥ = A.fᵥEquiv.symm := rfl
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma symm_fₑ : A.symm.fₑ = A.fₑEquiv.symm := rfl
+
+def trans (B : H ≃ᴳ I) : G ≃ᴳ I where
+  toSubgraphOf := A.toSubgraphOf.trans B.toSubgraphOf
+  fᵥsurj := B.fᵥsurj.comp A.fᵥsurj
+  fₑsurj := B.fₑsurj.comp A.fₑsurj
+
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fᵥ (B : H ≃ᴳ I) : (A.trans B).fᵥ = B.fᵥ ∘ A.fᵥ := rfl
+
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in
+lemma trans_fₑ (B : H ≃ᴳ I) : (A.trans B).fₑ = B.fₑ ∘ A.fₑ := rfl
+
+lemma canGo_iff (u : V) (e : E) (v : V) :
+    H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) ↔ G.canGo u e v := SubgraphOf.canGo_iff A.toSubgraphOf u e v
+
+lemma adj_iff (u v : V) : H.adj (A.fᵥ u) (A.fᵥ v) ↔ G.adj u v := by
+  refine ⟨?_, A.toSubgraphOf.adj⟩
+  rintro h
+  convert A.symm.toSubgraphOf.adj h <;> simp only [symm_fᵥ, Equiv.ofBijective_symm_apply_apply]
+
+end Isom
 
 end Graph
