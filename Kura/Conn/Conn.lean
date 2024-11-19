@@ -2,6 +2,7 @@ import Kura.Conn.Walk
 import Kura.Graph.Remove
 import Kura.Dep.Rel
 import Kura.Graph.Searchable
+import Kura.Dep.Equiv
 
 
 namespace Graph
@@ -129,7 +130,7 @@ lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.
     rw [Fintype.card_eq_zero_iff] at hE
     exact hE.false e
 
-lemma Es_subgraph_conn_eq_conn_iff [DecidableEq E] {G : Graph V E} [Undirected G] {S : Set E}
+lemma Es_subgraph_conn_eq_conn_iff {G : Graph V E} [Undirected G] {S : Set E}
   (hS : ∀ e ∉ S, G{S}ᴳ.conn (G.v1 e) (G.v2 e)) (u v : V) :
     G{S}ᴳ.conn u v ↔ G.conn u v := by
   let G' := G{S}ᴳ
@@ -180,76 +181,103 @@ lemma n_pred_le_m_of_connected [Fintype V] [Fintype E] [G.connected] :
 
 def componentOf (v : V) : Set V := {u | G.conn u v}
 
+/--
+cut is a vertex cut
+edgeCut is an edge cut
+-/
+def cutBetween (S : Set V) {u v : V} (hu : u ∉ S) (hv : v ∉ S) : Prop :=
+    G.conn u v ∧ ¬ (G[Sᶜ]ᴳ).conn ⟨u, hu⟩ ⟨v, hv⟩
+
+def cut (S : Set V) : Prop := ∃ (u v : V) (hu : u ∉ S) (hv : v ∉ S), G.cutBetween S hu hv
+
+def minCut (S : Set V) : Prop := Minimal (G.cut ·) S
+
+lemma cut_of_minCut (S : Set V) (h : G.minCut S) : G.cut S := by
+  unfold minCut Minimal at h
+  exact h.1
+
+lemma empty_not_cut : ¬ G.cut ∅ := by
+  rintro ⟨ u', v', _hu', _hv', ⟨hConn, hnConn⟩⟩
+  apply hnConn
+  convert G.Vs_empty_compl.symm.conn hConn <;> simp only [all, Vs_empty_compl, Isom.symm_fᵥ,
+    Isom.trans_fᵥEquiv, Vs_congr_fᵥEquiv, Vs_univ_fᵥEquiv, Equiv.symm_trans_apply,
+    Equiv.setCongr_symm, Equiv.Set.univ_symm_apply, Equiv.setCongr_apply]
+
+-- lemma Menger (n : ℕ) : (∃ (S : Finset V), S.card = n ∧ G.minCut S) ↔
+--     ∃ (SP : Finset G.Path), SP.card = n ∧
+
 def edgeCut' (S : Set E) : Prop :=
   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
 @[simp]
-def edgeCut [DecidableEq E] (S : Finset E) : Prop := ∃ u v, G.conn u v ∧ ¬ G{Sᶜ}ᴳ.conn u v
+def edgeCut (S : Set E) : Prop := ∃ u v, G.conn u v ∧ ¬ G{Sᶜ}ᴳ.conn u v
 
-lemma edgeCut_of_not_conn [DecidableEq E] (S : Finset E) (u v : V) (hG : G.conn u v)
+lemma edgeCut_of_not_conn (S : Set E) (u v : V) (hG : G.conn u v)
   (hGS : ¬ G{Sᶜ}ᴳ.conn u v) : G.edgeCut S := ⟨ u, v, hG, hGS ⟩
 
-lemma empty_not_edgeCut (G : Graph V E) [DecidableEq E]: ¬ G.edgeCut ∅ := by
+lemma empty_not_edgeCut (G : Graph V E) : ¬ G.edgeCut ∅ := by
   rintro ⟨ u', v', hG', hGS ⟩
-  -- Isom theorems...
-  sorry
+  apply hGS
+  have : (∅ : Set E)ᶜ = Set.univ := by
+    simp only [Set.compl_empty]
+  convert (G.Es_congr this |>.trans G.Es_univ).symm.conn hG' <;>
+  simp only [Isom.symm_fᵥ, Isom.trans_fᵥEquiv, Es_congr_fᵥEquiv, Es_univ_fᵥEquiv,
+    Equiv.trans_refl, Equiv.refl_symm, Equiv.refl_apply]
 
-lemma edgeCut_upward_closed [DecidableEq E] (S T : Finset E) (hST : S ⊆ T) (hCut : G.edgeCut S) :
-     G.edgeCut T := by
+lemma edgeCut_upward_closed {S T : Set E} (hST : S ⊆ T) (hCut : G.edgeCut S) : G.edgeCut T := by
   unfold edgeCut at hCut ⊢
   contrapose! hCut
   intro u v hG
   obtain ⟨P, hPstart, hPfinish⟩ := (hCut u v hG).path
   obtain ⟨P', hP'start, hP'finish⟩ : ∃ P' : (G.Es Sᶜ).Path, P'.start = u ∧ P'.finish = v := by
-    -- Subtype theorems...
-    sorry
+    have hSTset : (T : Set E)ᶜ ⊆ (↑S)ᶜ := Set.compl_subset_compl_of_subset hST
+    use (G.Es_spanningsubgraph_Es_of_subset hSTset).Path P
+    simp only [Es_spanningsubgraph_Es_of_subset, SubgraphOf.Path_start, hPstart, id_eq,
+      SubgraphOf.Path_finish, hPfinish, and_self]
   rw [← hP'start, ← hP'finish]
   exact conn.ofPath P'
 
-def bridge [DecidableEq E] (e : E) : Prop := G.connected ∧ G.edgeCut {e}
+def bridge (e : E) : Prop := G.connected ∧ G.edgeCut {e}
 
-def minEdgeCut [DecidableEq E] (S : Finset E) : Prop :=
+def minEdgeCut (S : Set E) : Prop :=
   Minimal (G.edgeCut ·) S
 
-lemma edgeCut_of_minEdgeCut [DecidableEq E] (S : Finset E) (h : G.minEdgeCut S) : G.edgeCut S := by
+lemma edgeCut_of_minEdgeCut (S : Set E) (h : G.minEdgeCut S) : G.edgeCut S := by
   unfold minEdgeCut Minimal at h
   exact h.1
 
-lemma empty_not_minEdgeCut [DecidableEq E] : ¬ G.minEdgeCut ∅ := by
+lemma empty_not_minEdgeCut : ¬ G.minEdgeCut ∅ := by
   rintro ⟨ hCut, _hMin ⟩
   exact empty_not_edgeCut _ hCut
 
--- def isolatingEdgeCut [DecidableEq E] [Searchable G] (v : V) := G.incEdges v
+-- def isolatingEdgeCut [Searchable G] (v : V) := G.incEdges v
 
-lemma incEdges_edgeCut (v : V) [Nontrivial V] [DecidableEq E] [Searchable G] :
+lemma incEdges_edgeCut (v : V) [Nontrivial V] [Searchable G] [DecidableEq E] :
     G.edgeCut (G.incEdges v) := by
   simp only [edgeCut]
   obtain ⟨w, hw⟩ := exists_ne v
   sorry
 
-lemma bridge_minEdgeCut [DecidableEq E] (e: E) (h: G.bridge e) :
-    G.minEdgeCut {e} := by
+lemma bridge_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
   unfold minEdgeCut Minimal
   obtain ⟨ _, hCut⟩ := h
   refine ⟨ hCut, ?_ ⟩
   rintro S hS Sle
-  simp_all only [Finset.le_eq_subset, Finset.subset_singleton_iff, Finset.singleton_subset_iff]
-  obtain hS | hS := Sle <;> subst hS
-  · unfold edgeCut at hS
-    absurd hS
-    push_neg
-    intro u v hG
-    sorry
-    -- requires some Isom theorems
-  · simp only [Finset.mem_singleton]
+  have : S.Nonempty := by
+    by_contra! h
+    subst h
+    exact empty_not_edgeCut _ hS
+  simp_all only [edgeCut, Set.le_eq_subset, Set.subset_singleton_iff, Set.singleton_subset_iff]
+  obtain ⟨a, ha⟩ := this
+  convert ha
+  exact (Sle a ha).symm
 
-
-class NEdgeConnected [DecidableEq E] (n : ℕ) : Prop where
-  all_conn : ∀ u v : V, conn G u v
+class NEdgeConnected (n : ℕ) extends connected G where
   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
 
 def ball (u : V) (n : ℕ) : Set V :=
   {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
 
-class NConnected [Fintype V] [fullGraph G] (n : ℕ) : Prop where
+class NConnected [fullGraph G] (n : ℕ) : Prop where
+  all_conn : ∀ u v : V, conn G u v
   h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected

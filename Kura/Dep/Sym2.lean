@@ -329,25 +329,29 @@ lemma inf_mem [LinearOrder α] (s : Sym2 α) : s.inf ∈ s := by
   rw [eq_mk_out s, Sym2.inf_mk, Sym2.mem_iff, inf_eq_left, inf_eq_right]
   exact le_total _ _
 
-def any (s : Sym2 α) (P : α → Bool) : Bool := by
-  refine Sym2.rec (fun ab => P ab.1 || P ab.2) ?_ s
+def any (s : Sym2 α) (P : α → Prop) : Prop := by
+  refine Sym2.rec (fun ab => P ab.1 ∨ P ab.2) ?_ s
   intro (a, b) (c, d) hr
   simp only [rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at hr
-  rcases hr with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp only [eq_rec_constant, Bool.or_comm]
+  rcases hr with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp [eq_rec_constant, or_comm]
 
 @[simp]
-lemma any_iff (s : Sym2 α) (P : α → Bool) : s.any P ↔ (∃ a ∈ s, P a):= by
-  sorry
+lemma any_iff {s : Sym2 α} {P : α → Prop} : s.any P ↔ (∃ a ∈ s, P a):= by
+  induction' s with x y
+  simp only [any, mem_iff, exists_eq_or_imp, exists_eq_left]
+  rfl
 
-def all (s : Sym2 α) (P : α → Bool) : Bool := by
-  refine Sym2.rec (fun ab => P ab.1 && P ab.2) ?_ s
+def all (s : Sym2 α) (P : α → Prop) : Prop := by
+  refine Sym2.rec (fun ab => P ab.1 ∧ P ab.2) ?_ s
   intro (a, b) (c, d) hr
   simp only [rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at hr
-  rcases hr with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp only [eq_rec_constant, Bool.and_comm]
+  rcases hr with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp only [eq_rec_constant, and_comm]
 
 @[simp]
-lemma all_iff (s : Sym2 α) (P : α → Bool) : s.all P ↔ (∀ a ∈ s, P a) := by
-  sorry
+lemma all_iff (s : Sym2 α) (P : α → Prop) : s.all P ↔ (∀ a ∈ s, P a) := by
+  induction' s with x y
+  simp only [all, mem_iff, forall_eq_or_imp, forall_eq]
+  rfl
 
 @[simp]
 lemma equivMultiset_eq (a b : α) : (Sym2.equivMultiset α) s(a, b) = ⟨{a, b}, by simp⟩ := rfl

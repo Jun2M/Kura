@@ -454,23 +454,23 @@ lemma canGo_flip [DecidableEq V] (v w : V) : e.flip.canGo w v = e.canGo v w  := 
 lemma flip_self (s : Sym2 V) : (undir s).flip = undir s := by
   simp only [flip]
 
-def any (P : V → Bool) : Bool := match e with
-  | dir (a, b) => a.any P || b.any P
+def any (P : V → Prop) : Prop := match e with
+  | dir (a, b) => a.elim False P ∨ b.elim False P
   | undir s => s.any P
 
 @[simp]
-lemma any_iff (P : V → Bool) : e.any P ↔ (∃ v ∈ e, P v) := by match e with
+lemma any_iff {P : V → Prop} : e.any P ↔ (∃ v ∈ e, P v) := by match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [instedgeMem, any, Or.comm, endAt]
   | undir s => simp only [any, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, mem_undir_iff, Sym2.any_iff]
 
-def all (P : V → Bool) : Bool := match e with
-  | dir (a, b) => a.all P && b.all P
+def all (P : V → Prop) : Prop := match e with
+  | dir (a, b) => a.elim True P ∧ b.elim True P
   | undir s => s.all P
 
 @[simp]
-lemma all_iff (P : V → Bool) : e.all P ↔ (∀ v ∈ e, P v) := by match e with
+lemma all_iff {P : V → Prop} : e.all P ↔ (∀ v ∈ e, P v) := by match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all [instedgeMem, all, And.comm, endAt]
   | undir s => simp only [all, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
@@ -775,6 +775,17 @@ lemma pmap_finishAt {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : �
     cases a <;> cases b <;> simp_all only [pmap, Option.pmap, dir_finishAt, Option.isSome_some,
       Option.get_some, Multiset.empty_eq_zero, dite_eq_ite, ite_true] <;> rfl
   | undir s => simp only [finishAt, pmap, pmap_toMultiset]
+
+lemma pmap_congr {P Q : V → Prop} {e : edge V} {f : ∀ a, P a → W} {g : ∀ a, Q a → W}
+    (hP : ∀ v ∈ e, P v) (hQ : ∀ v ∈ e, Q v) (hfg : ∀ v hv, f v (hP v hv) = g v (hQ v hv)) :
+    e.pmap f hP = e.pmap g hQ := by
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [pmap, Option.pmap, mem_dir_some_fst, mem_dir_some_snd]
+  | undir s =>
+    induction' s with x y
+    simp only [pmap_undir, undir.injEq, pmap_pair]
+    congr <;> apply hfg <;> simp only [mem_undir_iff, mem_iff, or_true, true_or]
 
 -- lemma pmap_id {P : V → Prop} {e : edge V} (h : ∀ v ∈ e, P v) : e.pmap (λ a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]

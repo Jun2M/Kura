@@ -127,7 +127,8 @@ theorem KuraCore1 {V E : Type*} [LinearOrder V] [Fintype V] [LinearOrder E] [Fin
 
 -- Dual of (Gluing of G1 and G2) is Unlinegraph of (Clique sum of ((Line graph of (Dual of G1) and Line graph of (Dual of G2))))
 
--- theorem Kuratowski_AbstractDual {V E : Type*} [LinearOrder V] [Fintype V] (G : Graph V E) [Undirected G] :
---   Planar_by_AbstractDual G ↔ ¬ G.hasMinor (CompleteGraph 5) ∧ ¬ G.hasMinor (CompleteBipGraph 3 3) := by
+theorem Kuratowski_AbstractDual {V E : Type*} [DecidableEq V] [DecidableEq E] [Fintype V] (G : Graph V E) [Undirected G] :
+  Nonempty (Planar_by_AbstractDual G) ↔
+  IsEmpty ((CompleteGraph 5).MinorOf G) ∧ IsEmpty ((CompleteBipGraph 3 3).MinorOf G) := by
 
-  -- sorry
+  sorry

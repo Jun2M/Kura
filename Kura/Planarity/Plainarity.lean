@@ -16,7 +16,7 @@ variable {V E F : Type*} [DecidableEq V] [DecidableEq E] [DecidableEq F] (G : Gr
 --     edgeEmbedding e 1 = vertexEmbedding (G.ends e).snd)
 
 structure AbstractDual (H : Graph F E) where
-  minEdgeCut_cycle (S : Finset E) : G.minEdgeCut S ↔ ∃ (w : Cycle H), S = w.edges.toFinset
+  minEdgeCut_cycle (S : Set E) : G.minEdgeCut S ↔ ∃ (w : Cycle H), S = w.edges.toFinset
 
 class Planar_by_AbstractDual where
   F : Type*

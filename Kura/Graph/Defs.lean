@@ -11,6 +11,9 @@ namespace Graph
 open edge
 variable {U V W E F E' : Type*} (G : Graph V E) (e e' : E) (u v w : V)
 
+def Verts (_G : Graph V E) := V
+def Edges (_G : Graph V E) := E
+
 def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
   (@Fintype.elems E _ : Finset E)
   |>.val
@@ -205,7 +208,19 @@ def fᵥBij : Function.Bijective A.fᵥ where
 
 noncomputable abbrev fᵥEquiv : V ≃ W := Equiv.ofBijective _ A.fᵥBij
 
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma fᵥEquiv_apply : A.fᵥEquiv = A.fᵥ := by
+  ext v
+  rfl
+
 end SpanningSubgraphOf
+
+structure QuotientGraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H where
+  fₑsurj : fₑ.Surjective
+
+namespace QuotientGraphOf
+
+end QuotientGraphOf
 
 /-- The graphs `G=(V,E)` and `H=(W,F)` are isomorphic, denoted `G ≃ᴳ H` if there is a homomorphism
     `Hom G H` such that `fᵥ : V → W` and `fₑ : E → F` are both `Injective` and `Surjective`. -/
@@ -226,8 +241,12 @@ def fₑBij : Function.Bijective A.fₑ where
   left := A.fₑinj
   right := A.fₑsurj
 
-noncomputable abbrev fᵥEquiv : V ≃ W := Equiv.ofBijective _ A.fᵥBij
 noncomputable abbrev fₑEquiv : E ≃ F := Equiv.ofBijective _ A.fₑBij
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma fᵥEquiv_apply : A.fᵥEquiv = A.fᵥ := by
+  ext v
+  rfl
 
 lemma Equiv.ofBijective_symm_comp {α β : Sort*} (f : α → β) (hf : Function.Bijective f) :
   (Equiv.ofBijective f hf).symm ∘ f = id :=
@@ -254,6 +273,16 @@ lemma refl_fᵥ : (Isom.refl G).fᵥ = Equiv.refl _ := rfl
 omit [DecidableEq V] [DecidableEq W] in @[simp]
 lemma refl_fₑ : (Isom.refl G).fₑ = Equiv.refl _ := rfl
 
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fᵥEquiv : (Isom.refl G).fᵥEquiv = Equiv.refl _ := by
+  ext v
+  rfl
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fₑEquiv : (Isom.refl G).fₑEquiv = Equiv.refl _ := by
+  ext e
+  rfl
+
 noncomputable def symm : H ≃ᴳ G := OfEquivs A.fᵥEquiv.symm A.fₑEquiv.symm (by
   intro e
   have := A.inc (A.fₑEquiv.symm e)
@@ -266,6 +295,16 @@ lemma symm_fᵥ : A.symm.fᵥ = A.fᵥEquiv.symm := rfl
 omit [DecidableEq V] [DecidableEq W] in @[simp]
 lemma symm_fₑ : A.symm.fₑ = A.fₑEquiv.symm := rfl
 
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma symm_fᵥEquiv : A.symm.fᵥEquiv = A.fᵥEquiv.symm := by
+  ext v
+  rfl
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma symm_fₑEquiv : A.symm.fₑEquiv = A.fₑEquiv.symm := by
+  ext e
+  rfl
+
 def trans (B : H ≃ᴳ I) : G ≃ᴳ I where
   toSubgraphOf := A.toSubgraphOf.trans B.toSubgraphOf
   fᵥsurj := B.fᵥsurj.comp A.fᵥsurj
@@ -274,8 +313,18 @@ def trans (B : H ≃ᴳ I) : G ≃ᴳ I where
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
 lemma trans_fᵥ (B : H ≃ᴳ I) : (A.trans B).fᵥ = B.fᵥ ∘ A.fᵥ := rfl
 
-omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
 lemma trans_fₑ (B : H ≃ᴳ I) : (A.trans B).fₑ = B.fₑ ∘ A.fₑ := rfl
+
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fᵥEquiv (B : H ≃ᴳ I) : (A.trans B).fᵥEquiv = A.fᵥEquiv.trans B.fᵥEquiv := by
+  ext v
+  rfl
+
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fₑEquiv (B : H ≃ᴳ I) : (A.trans B).fₑEquiv = A.fₑEquiv.trans B.fₑEquiv := by
+  ext e
+  rfl
 
 lemma canGo_iff (u : V) (e : E) (v : V) :
     H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) ↔ G.canGo u e v := SubgraphOf.canGo_iff A.toSubgraphOf u e v

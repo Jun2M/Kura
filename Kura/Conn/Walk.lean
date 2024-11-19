@@ -34,7 +34,7 @@ lemma finish_eq_start (h : w.steps = []) : w.finish = w.start := by
   next h => exact rfl
   next a as has => exfalso; simp only [has, reduceCtorEq] at h
 
-lemma finish_eq_getLast_ssnd (hn : w.steps ≠ []) : w.finish = (w.steps.getLast hn).snd.snd := by
+lemma steps_getLast_ssnd_eq_finish (hn : w.steps ≠ []) : w.finish = (w.steps.getLast hn).snd.snd := by
   unfold finish
   split
   next h => exact (hn h).elim
@@ -53,6 +53,10 @@ def isSubpath : Walk G → Walk G → Prop := λ w₁ w₂ => w₁.steps.IsInfix
 def vertices : List V :=
   w.start :: w.steps.map (·.snd.snd)
 
+@[simp]
+lemma vertices_ne_nil : w.vertices ≠ [] := by
+  simp only [vertices, ne_eq, List.cons_ne_nil, not_false_eq_true]
+
 lemma start_mem_vertices : w.start ∈ w.vertices := by
   simp only [vertices, start, List.mem_cons, List.mem_map, Prod.exists, exists_eq_right, true_or]
 
@@ -70,10 +74,6 @@ lemma steps_fst_vertices : w.steps.map (·.fst) = w.vertices.dropLast := by
 
 lemma steps_ssnd_vertices : w.steps.map (·.snd.snd) = w.vertices.drop 1 := by
   simp only [vertices, List.drop_succ_cons, List.drop_zero]
-
-@[simp]
-lemma vertices_ne_nil : w.vertices ≠ [] := by
-  simp only [vertices, ne_eq, List.cons_ne_nil, not_false_eq_true]
 
 @[simp]
 lemma vertices_head_eq_start : w.vertices.head w.vertices_ne_nil = w.start := rfl
@@ -208,7 +208,7 @@ def append (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) : Walk G wher
     intro a ha b hb
     convert hconn
     · obtain ⟨hn, rfl⟩ := List.mem_getLast?_eq_getLast ha
-      exact Eq.symm (w₁.finish_eq_getLast_ssnd hn)
+      exact Eq.symm (w₁.steps_getLast_ssnd_eq_finish hn)
     · have hn := List.ne_nil_of_mem (List.mem_of_mem_head? hb)
       rw [Option.mem_iff, ← List.head_eq_iff_head?_eq_some hn] at hb
       exact hb ▸ (w₂.start_spec hn).symm
@@ -235,7 +235,7 @@ lemma append_finish (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
       have h1 : w₁.steps ≠ [] := by
         simp [h2] at happ
         simp [happ]
-      rw [← hconn, w₁.finish_eq_getLast_ssnd h1]
+      rw [← hconn, w₁.steps_getLast_ssnd_eq_finish h1]
     · rename_i b bs h2
       rw [List.getLast_append]
       simp only [h2, List.isEmpty_cons, Bool.false_eq_true, ↓reduceDIte]
@@ -674,12 +674,46 @@ lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
 
 end Path
 
-def SubgraphOf.Path [DecidableEq W] {G : Graph V E} {H : Graph W F} (p : Path G)
-    (h : G.SubgraphOf H) : Path H where
+namespace SubgraphOf
+variable [DecidableEq W] {G : Graph V E} {H : Graph W F} (h : G.SubgraphOf H)
+
+def Path (p : Path G)  : Path H where
   toWalk := h.walk p.toWalk
   vNodup := by
     simp only [walk_vertices]
     apply p.vNodup.map h.fᵥinj
 
+variable {p : G.Path}
+
+@[simp]
+lemma Path_start : (h.Path p).start = h.fᵥ p.start := rfl
+
+@[simp]
+lemma Path_steps : (h.Path p).steps = p.steps.map (fun ⟨u, e, v⟩ => (h.fᵥ u, h.fₑ e, h.fᵥ v)) := rfl
+
+@[simp]
+lemma Path_vertices : (h.Path p).vertices = p.vertices.map h.fᵥ := by
+  unfold Walk.vertices
+  simp only [Path_start, Path_steps, List.map_map, List.map_cons, List.cons.injEq,
+    List.map_inj_left, Function.comp_apply, implies_true, and_self]
+
+@[simp]
+lemma Path_finish : (h.Path p).finish = h.fᵥ p.finish := by
+  rw [← Walk.vertices_getLast_eq_finish, ← Walk.vertices_getLast_eq_finish,
+    ← p.vertices.getLast_map h.fᵥ]
+  convert rfl
+  exact (Path_vertices h).symm
+  simp only [ne_eq, List.map_eq_nil_iff, Walk.vertices_ne_nil, not_false_eq_true]
+
+@[simp]
+lemma Path_edges : (h.Path p).edges = p.edges.map h.fₑ := by
+  simp only [Walk.edges, Path_steps, List.map_map, List.map_inj_left, Function.comp_apply,
+    implies_true]
+
+end SubgraphOf
+
+
 structure Trail extends Walk G where
   eNodup : toWalk.edges.Nodup
+
+end Graph
