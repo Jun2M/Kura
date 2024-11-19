@@ -69,6 +69,14 @@ def EqvGenClosure {α : Type*} : ClosureOperator (α → α → Prop) where
       | trans x y z _ _ ihxy ihyz => exact EqvGen.trans x y z ihxy ihyz
     · exact EqvGen.rel a b h
 
-
-
 end Relation
+
+namespace ClosureOperator
+
+lemma closure_eq_closure_of_le_of_le_closure {α : Type*} {r s : α} [PartialOrder α]
+  {c : ClosureOperator α} (hle : r ≤ s) (hlec : s ≤ c r) : c r = c s := by
+  apply le_antisymm
+  · exact c.monotone hle
+  · exact le_closure_iff.mp hlec
+
+end ClosureOperator

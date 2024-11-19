@@ -92,4 +92,10 @@ lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Option α) :
   | none => rfl
   | some a => rfl
 
+-- def propOrFalse {α : Type u} (p : α → Prop) : Option α → Prop :=
+--   fun o => o.elim False p
+
+-- def propOrTrue {α : Type u} (p : α → Prop) : Option α → Prop :=
+--   fun o => o.elim True p
+
 end Option
