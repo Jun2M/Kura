@@ -27,33 +27,41 @@ variable {V : Type*} (e : edge V)
 instance instNonempty [Nonempty V] : Nonempty (edge V) :=
   Nonempty.intro (undir s(Classical.ofNonempty, Classical.ofNonempty))
 
+/-- The edge is directed (can be empty, half, or full) -/
 def isDir  : Prop := match e with
   | dir _ => true
   | _ => false
 
+/-- The edge is undirected -/
 def isUndir : Prop := match e with
   | undir _ => true
   | _ => false
 
+/-- The edge has both ends defined
+    (equivalently, is not a half or empty (directed) edge) -/
 def isFull : Prop := match e with
   | dir (some _, some _) => true
   | undir _ => true
   | _ => false
 
+/-- The (directed) edge has only one end defined, the head or tail  -/
 def isHalf : Prop := match e with
   | dir (some _, none) => true
   | dir (none, some _) => true
   | _ => false
 
+/-- The (directed) edge has no ends defined -/
 def isFree : Prop := match e with
   | dir (none, none) => true
   | _ => false
 
+/-- The edge is a loop (both ends are the same) -/
 def isLoop : Prop := match e with
   | dir (some a, some b) => a = b
   | undir s => s.IsDiag
   | _ => false
 
+/-- The edge is directed with distinct ends -/
 def isArc : Prop := match e with
   | dir (some a, some b) => a ≠ b
   | _ => false

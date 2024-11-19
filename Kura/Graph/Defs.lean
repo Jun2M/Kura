@@ -98,6 +98,9 @@ macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} [DecidableEq V] [DecidableEq W]
   [DecidableEq U]
 
+/-- A homomorphism between graphs `G = (V,E)` and `H = (W,F)` is a map between
+    vertex sets that preserves adjacency. It is implemented as two functions,
+    `fᵥ : V → W` and `fₑ : E → F` such that for all `(u,v) ∈ E, fₑ (u,v) = (fᵥ(u),fᵥ(v))`.-/
 structure Hom (G : Graph V E) (H : Graph W F) where
   fᵥ : V → W
   fₑ : E → F
@@ -107,6 +110,8 @@ namespace Hom
 
 def refl (G : Graph V E) : Hom G G := ⟨id, id, fun _ => by rw [id_eq, map_id]⟩
 
+/-- From two homomorphisms `Hom G H` and `Hom H I`, we can compose them to obtain
+    a `Hom G I`.-/
 def trans (a : Hom G H) (b : Hom H I) : Hom G I where
   fᵥ := b.fᵥ ∘ a.fᵥ
   fₑ := b.fₑ ∘ a.fₑ
@@ -127,6 +132,8 @@ lemma adj_le (a : Hom G H) : Relation.Map G.adj a.fᵥ a.fᵥ ≤ H.adj := by
 
 end Hom
 
+/-- `G` is a subgraph of `H`, written `G ⊆ᴳ H`, if there exists a `Hom G H` where the
+    map between the vertices and the edges are `Injective`.-/
 structure SubgraphOf (G : Graph V E) (H : Graph W F) extends Hom G H where
   fᵥinj : fᵥ.Injective
   fₑinj : fₑ.Injective
@@ -153,6 +160,8 @@ def trans (B : H ⊆ᴳ I) : G ⊆ᴳ I where
   fᵥinj := (A.fᵥEmb.trans B.fᵥEmb).inj'
   fₑinj _ _ h := (A.fₑEmb.trans B.fₑEmb).inj' h
 
+/-- Let `G ⊆ᴳ H`, we can travel from `u` to `v` via edge `e` in `G`
+    iff we can travel from `fᵥ(u)` to `fᵥ(v)` via edge `fₑ(e)` in `H`.-/
 lemma canGo_iff (u : V) (e : E) (v : V) :
     H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) ↔ G.canGo u e v := by
   refine ⟨?_, A.toHom.canGo⟩
@@ -183,6 +192,7 @@ noncomputable def FintypeE [Fintype F] (A : G ⊆ᴳ H) : Fintype E := by
 
 end SubgraphOf
 
+/-- A subgraph `G ⊆ᴳ H` is spanning if `V(G)=V(H)` i.e. `fᵥ` is surjective.-/
 structure SpanningSubgraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H where
   fᵥsurj : fᵥ.Surjective
 
@@ -197,6 +207,8 @@ noncomputable abbrev fᵥEquiv : V ≃ W := Equiv.ofBijective _ A.fᵥBij
 
 end SpanningSubgraphOf
 
+/-- The graphs `G=(V,E)` and `H=(W,F)` are isomorphic, denoted `G ≃ᴳ H` if there is a homomorphism
+    `Hom G H` such that `fᵥ : V → W` and `fₑ : E → F` are both `Injective` and `Surjective`. -/
 structure Isom (G : Graph V E) (H : Graph W F) extends SpanningSubgraphOf G H where
   fₑsurj : fₑ.Surjective
 
