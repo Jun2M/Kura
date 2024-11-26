@@ -26,6 +26,9 @@ lemma conn_comm {G : Graph V E} [Undirected G] (u v : V) : G.conn u v ↔ G.conn
 lemma conn.trans {G : Graph V E} {u v w : V} : G.conn u v → G.conn v w → G.conn u w :=
   Relation.ReflTransGen.trans
 
+lemma conn.ofAdj {G : Graph V E} {u v : V} (h : G.adj u v) : G.conn u v :=
+    Relation.ReflTransGen.single h
+
 lemma conn.path (u v : V) (huv : G.conn u v) : ∃ P : G.Path, P.start = u ∧ P.finish = v := by
   unfold conn at huv
   induction huv with
@@ -185,23 +188,46 @@ def componentOf (v : V) : Set V := {u | G.conn u v}
 cut is a vertex cut
 edgeCut is an edge cut
 -/
-def cutBetween (S : Set V) {u v : V} (hu : u ∉ S) (hv : v ∉ S) : Prop :=
-    G.conn u v ∧ ¬ (G[Sᶜ]ᴳ).conn ⟨u, hu⟩ ⟨v, hv⟩
+def isCutBetween (u v : V) (S : Set V) : Prop :=
+    ∃ (hu : u ∉ S) (hv : v ∉ S), G.conn u v ∧ ¬ (G[Sᶜ]ᴳ).conn ⟨u, hu⟩ ⟨v, hv⟩
 
-def cut (S : Set V) : Prop := ∃ (u v : V) (hu : u ∉ S) (hv : v ∉ S), G.cutBetween S hu hv
+def isCut (S : Set V) : Prop := ∃ (u v : V), G.isCutBetween u v S
 
-def minCut (S : Set V) : Prop := Minimal (G.cut ·) S
+def isMinimalCut (S : Set V) : Prop := Minimal (G.isCut ·) S
 
-lemma cut_of_minCut (S : Set V) (h : G.minCut S) : G.cut S := by
-  unfold minCut Minimal at h
+lemma cut_of_minCut (S : Set V) (h : G.isMinimalCut S) : G.isCut S := by
+  unfold isMinimalCut Minimal at h
   exact h.1
 
-lemma empty_not_cut : ¬ G.cut ∅ := by
+lemma empty_not_cut : ¬ G.isCut ∅ := by
   rintro ⟨ u', v', _hu', _hv', ⟨hConn, hnConn⟩⟩
   apply hnConn
   convert G.Vs_empty_compl.symm.conn hConn <;> simp only [all, Vs_empty_compl, Isom.symm_fᵥ,
     Isom.trans_fᵥEquiv, Vs_congr_fᵥEquiv, Vs_univ_fᵥEquiv, Equiv.symm_trans_apply,
     Equiv.setCongr_symm, Equiv.Set.univ_symm_apply, Equiv.setCongr_apply]
+
+structure connectivityBetween (u v : V) (k : ℕ) where
+  P : Finset G.Path
+  hPcard : P.card = k
+  hPstart : ∀ p ∈ P, p.start = u
+  hPfinish : ∀ p ∈ P, p.finish = v
+  hPdisjoint : ⋂ p ∈ P, p.vertices.toFinset = {u, v}
+
+def connectivity (G : Graph V E) (k : ℕ) : Prop := ∀ u v, Nonempty <| G.connectivityBetween u v k
+
+lemma connectivityBetween_le_cutBetween (u v : V) {X : Finset V} (hX : G.isCutBetween u v X) :
+    IsEmpty <| G.connectivityBetween u v (X.card + 1) := by
+  by_contra! h
+  simp only [not_isEmpty_iff] at h
+  obtain ⟨P, hPcard, hPstart, hPfinish, hPdisjoint⟩ := h
+  obtain ⟨hu, hv, hconn, hnConn⟩ := hX
+  have hPexist : ∃ p ∈ P, Disjoint p.vertices.toFinset X := by
+    by_contra! h
+    simp_rw [Finset.not_disjoint_iff_nonempty_inter] at h
+    unfold Finset.Nonempty at h
+    sorry
+  obtain ⟨p, hp, hDisjoint⟩ := hPexist
+  sorry
 
 -- lemma Menger (n : ℕ) : (∃ (S : Finset V), S.card = n ∧ G.minCut S) ↔
 --     ∃ (SP : Finset G.Path), SP.card = n ∧

@@ -46,6 +46,7 @@ def EsSubtype {P P' : E → Prop} (G : Graph V (Subtype P)) (S : Set E)
     obtain ⟨hP, _hS⟩ := he
     exact G.inc ⟨e, hP⟩
 
+/-subgraph creator-/
 def EVs (G : Graph V E) (Sv : Set V) (Se : Set E)
   (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : Graph Sv Se where
   inc e := G{Se}ᴳ[Sv]ᴳ.inc ⟨e, he e.val e.prop⟩

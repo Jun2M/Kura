@@ -4,8 +4,7 @@ import Kura.Examples.Defs
 
 namespace Graph
 open edge
-variable {V₁ V₂ V₃ V₄ E₁ E₂ E₃ E₄ : Type*}
-  (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) (G₃ : Graph V₃ E₃)
+variable {V₁ V₂ V₃ V₄ E₁ E₂ E₃ E₄ : Type*} (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) (G₃ : Graph V₃ E₃)
 
 
 def Vmap (f : V₁ → V₂) : Graph V₂ E₁ where
@@ -27,7 +26,7 @@ noncomputable def EImageUnder (f : E₁ ↪ E₂) : Graph V₁ (Set.range f) whe
 
 def addVertex : Graph (WithBot V₁) E₁ := G₁.Vmap some
 
-def SubgraphOf.addVertex : G₁ ⊆ᴳ G₁.addVertex where
+def addVertex_SubgraphOf : G₁ ⊆ᴳ G₁.addVertex where
   fᵥ := some
   fₑ := id
   inc _ := rfl
@@ -44,7 +43,7 @@ def addUndirEdge (s : Sym2 V₁) : Graph V₁ (Lex $ E₁ ⊕ Unit) where
     | Sum.inl e₁ => G₁.inc e₁
     | Sum.inr _ => undir s
 
-def SpanningSubgraphOf.addUndirEdge (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G₁.addUndirEdge s) where
+def addUndirEdge_SpanningSubgraphOf (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G₁.addUndirEdge s) where
   fᵥ := id
   fₑ := Sum.inl
   inc _ := by aesop
@@ -53,12 +52,12 @@ def SpanningSubgraphOf.addUndirEdge (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G
   fᵥsurj _ := by simp only [id_eq, exists_eq]
 
 @[simp]
-lemma SpanningSubgraphOf.addUndirEdge_fᵥ (s : Sym2 V₁) :
-    (SpanningSubgraphOf.addUndirEdge G₁ s).fᵥ = id := rfl
+lemma addUndirEdge_SpanningSubgraphOf_fᵥ (s : Sym2 V₁) :
+    (G₁.addUndirEdge_SpanningSubgraphOf s).fᵥ = id := rfl
 
 @[simp]
-lemma SpanningSubgraphOf.addUndirEdge_fₑ (s : Sym2 V₁) :
-    (SpanningSubgraphOf.addUndirEdge G₁ s).fₑ = Sum.inl := rfl
+lemma addUndirEdge_SpanningSubgraphOf_fₑ (s : Sym2 V₁) :
+    (G₁.addUndirEdge_SpanningSubgraphOf s).fₑ = Sum.inl := rfl
 
 instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
     Undirected (G₁.addUndirEdge s) where
@@ -68,6 +67,35 @@ instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
   edge_symm e := match e with
     | Sum.inl e₁ => G₁.edge_symm e₁
     | Sum.inr _ => by simp only [isUndir, addUndirEdge, inc_eq_undir_v12, isUndir_of_undir]
+
+def addApex (vs : Set V₁) : Graph (V₁ ⊕ Unit) (Lex $ E₁ ⊕ vs) where
+  inc e := match e with
+    | Sum.inl e₁ => (G₁.inc e₁).map Sum.inl
+    | Sum.inr v => undir s(Sum.inr (), Sum.inl v.val)
+
+def addApex_SubgraphOf (vs : Set V₁) : G₁ ⊆ᴳ G₁.addApex vs where
+  fᵥ := Sum.inl
+  fₑ := Sum.inl
+  inc _ := rfl
+  fᵥinj _ _ a := Sum.inl_injective a
+  fₑinj _ _ a := Sum.inl_injective a
+
+@[simp]
+lemma addApex_SubgraphOf_fᵥ (vs : Set V₁) : (G₁.addApex_SubgraphOf vs).fᵥ = Sum.inl := rfl
+
+@[simp]
+lemma addApex_SubgraphOf_fₑ (vs : Set V₁) : (G₁.addApex_SubgraphOf vs).fₑ = Sum.inl := rfl
+
+instance instAddApexUndir [Undirected G₁] {vs : Set V₁} :
+    Undirected (G₁.addApex vs) where
+  all_full e := match e with
+    | Sum.inl e₁ => by simp only [isFull, addApex, inc_eq_undir_v12, map_undir, Sym2.map_pair_eq,
+      undir_isFull]
+    | Sum.inr v => by simp only [isFull, addApex, inc_eq_undir_v12, undir_isFull]
+  edge_symm e := match e with
+    | Sum.inl e₁ => by simp only [isUndir, addApex, inc_eq_undir_v12, map_undir, Sym2.map_pair_eq,
+      isUndir_of_undir]
+    | Sum.inr v => by simp only [isUndir, addApex, inc_eq_undir_v12, isUndir_of_undir]
 
 
 def lineGraph [G₁.Undirected] [LinearOrder E₁]:
@@ -82,7 +110,8 @@ def add : Graph (Lex $ V₁ ⊕ V₂) (E₁ ⊕ E₂) where
     | Sum.inr e₂ => (G₂.inc e₂).map Sum.inr
 
 
-def MergeOnMultualSubgraph [DecidableEq V₂] {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁) (H₂ : H ⊆ᴳ G₂) [Fintype V₃] [Fintype E₃] :
+def MergeOnMultualSubgraph [DecidableEq V₂] {H : Graph V₃ E₃} (H₁ : H ⊆ᴳ G₁) (H₂ : H ⊆ᴳ G₂)
+    [Fintype V₃] :
     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)} (E₁ ⊕ E₂) :=
   G₁.add G₂
   |>.Qfp (λ v => match v with
@@ -148,11 +177,11 @@ def gluing [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] {H : Graph V
   (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es {e | e ∉ (Finset.univ.map H₂.fₑEmb).image Sum.inr}
 
 -- Clique sum
-def cliqueSum [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] (n : ℕ)
-  (H₁ : (CompleteGraph n) ⊆ᴳ G₁) (H₂ : (CompleteGraph n) ⊆ᴳ G₂) :
-    Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)}
-          {e : E₁ ⊕ E₂ // e ∉ ((Finset.univ.map H₂.fₑEmb).image Sum.inr ∪ (Finset.univ.map H₁.fₑEmb).image Sum.inl)} :=
-  (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es
-    {e : E₁ ⊕ E₂ | e ∉ ((Finset.univ.map H₂.fₑEmb).image Sum.inr ∪ (Finset.univ.map H₁.fₑEmb).image Sum.inl)}
+-- def cliqueSum [DecidableEq V₂] [DecidableEq E₁] [DecidableEq E₂] (n : ℕ)
+--   (H₁ : (CompleteGraph n) ⊆ᴳ G₁) (H₂ : (CompleteGraph n) ⊆ᴳ G₂) :
+--     Graph {v : Lex $ V₁ ⊕ V₂ // v ∉ Sum.inr '' (Set.range H₂.fᵥ)}
+--           {e : E₁ ⊕ E₂ // e ∉ ((Finset.univ.map H₂.fₑEmb).image Sum.inr ∪ (Finset.univ.map H₁.fₑEmb).image Sum.inl)} :=
+--   (MergeOnMultualSubgraph G₁ G₂ H₁ H₂).Es
+--     {e : E₁ ⊕ E₂ | e ∉ ((Finset.univ.map H₂.fₑEmb).image Sum.inr ∪ (Finset.univ.map H₁.fₑEmb).image Sum.inl)}
 
 end Graph

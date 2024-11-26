@@ -5,6 +5,7 @@ import Mathlib.Data.Sum.Order
 import Kura.Dep.Toss
 import Kura.Graph.Bipartite
 import Kura.Dep.Fin
+import Mathlib.Data.Sym.Card
 
 
 namespace Graph
@@ -25,31 +26,53 @@ instance instEdgelessGraphSimple (n : ℕ) : Simple (EdgelessGraph n) where
 
 
 
-def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
-  inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get (e.cast (by rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange])))
-#eval! CompleteGraph 4
+-- def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
+--   inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get (e.cast (by rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange])))
+-- #eval! CompleteGraph 4
+def CompleteGraph (n : ℕ) : Graph (Fin n) {e : Sym2 (Fin n) // ¬ e.IsDiag} where
+  inc e := undir e
 
+-- instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
+--   all_full e := by simp only [isFull, edge.isFull, CompleteGraph, List.get_eq_getElem, decide_not]
+--   no_loops e := by
+--     simp only [isLoop, edge.isLoop, CompleteGraph, List.get_eq_getElem, decide_not,
+--       decide_eq_true_eq]
+--     have := @List.getElem_filter _ (List.finRange n |>.sym2) (¬·.IsDiag) e.val ?_
+--     simpa using this
+--     rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange]
+--     exact e.prop
+--   edge_symm e := by
+--     simp only [isUndir, edge.isUndir, CompleteGraph, List.get_eq_getElem, decide_not]
+--   inc_inj e₁ e₂ h := by
+--     simp only [CompleteGraph, List.get_eq_getElem, undir.injEq, e₁.prop] at h
+--     ext
+--     refine List.getElem_inj ?_ ?_ ?_ h
+--     rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange]
+--     exact e₁.prop
+--     rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange]
+--     exact e₂.prop
+--     refine (List.nodup_finRange n).sym2.filter _
 instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
-  all_full e := by simp only [isFull, edge.isFull, CompleteGraph, List.get_eq_getElem, decide_not]
-  no_loops e := by
-    simp only [isLoop, edge.isLoop, CompleteGraph, List.get_eq_getElem, decide_not,
-      decide_eq_true_eq]
-    have := @List.getElem_filter _ (List.finRange n |>.sym2) (¬·.IsDiag) e.val ?_
-    simpa using this
-    rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange]
-    exact e.prop
-  edge_symm e := by
-    simp only [isUndir, edge.isUndir, CompleteGraph, List.get_eq_getElem, decide_not]
+  all_full _ := by simp only [isFull, edge.isFull, CompleteGraph]
+  no_loops e := by simp only [isLoop, edge.isLoop, CompleteGraph, e.prop, not_false_eq_true]
+  edge_symm _ := by simp only [isUndir, edge.isUndir, CompleteGraph]
   inc_inj e₁ e₂ h := by
-    simp only [CompleteGraph, List.get_eq_getElem, undir.injEq, e₁.prop] at h
-    ext
-    refine List.getElem_inj ?_ ?_ ?_ h
-    rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange]
-    exact e₁.prop
-    rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange]
-    exact e₂.prop
-    refine (List.nodup_finRange n).sym2.filter _
+    simp only [CompleteGraph, undir.injEq] at h
+    exact Subtype.eq h
 
+@[simp]
+lemma CompleteGraph_edges_eq (n : ℕ) : (CompleteGraph n).Edges = {e : Sym2 (Fin n) // ¬ e.IsDiag} :=
+  rfl
+
+instance instCompleteGraphFintypeE (n : ℕ) : Fintype (CompleteGraph n).Edges :=
+  sorry
+
+@[simp 120]
+lemma CompleteGraph_edges_card (n : ℕ) : Fintype.card (CompleteGraph n).Edges = n.choose 2 := by
+  simp only [CompleteGraph_edges_eq]
+  convert Sym2.card_subtype_not_diag
+  exact (Fintype.card_fin n).symm
+  infer_instance
 
 
 def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
@@ -62,6 +85,10 @@ instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
 
 def CycleGraph (n : ℕ) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph ⟨n, by omega⟩
 #eval! CycleGraph 5 (by norm_num)
+
+instance instCycleGraphUndir (n : ℕ) (hn : 1 < n) : Undirected (CycleGraph n hn) where
+  all_full e := (instTourGraphUndirected ⟨n, by omega⟩).all_full e
+  edge_symm e := (instTourGraphUndirected ⟨n, by omega⟩).edge_symm e
 
 instance instCycleGraphSimple (n : ℕ) (hn : 2 < n) : Simple (CycleGraph n (by omega)) where
 all_full e := (instTourGraphUndirected ⟨n, by omega⟩).all_full e

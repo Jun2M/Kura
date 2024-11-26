@@ -47,9 +47,13 @@ instance instPlanar_by_AbstractDualFintype [Fintype E]:
   sorry
 instance instPlanar_by_AbstractDualFacesFintype [Fintype E]:
     Fintype G.Faces := instPlanar_by_AbstractDualFintype G
+instance instPlanar_by_AbstractDualFintypeEdges [Fintype G.Edges]:
+    Fintype (Planar_by_AbstractDual.F G) := by
+  sorry
+instance instPlanar_by_AbstractDualFacesFintypeEdges [Fintype G.Edges]:
+    Fintype G.Faces := instPlanar_by_AbstractDualFintypeEdges G
 
-
-lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
+lemma bridge_iff_loop [G.connected] :
     G.bridge e ↔ G.dualGraph.isLoop e := by
   constructor <;> rintro h
   · have hmincut := G.bridge_minEdgeCut e h
@@ -64,7 +68,7 @@ lemma bridge_iff_loop [G.connected] [Planar_by_AbstractDual G] :
     exact ⟨ by assumption, edgeCut_of_minEdgeCut {e} hmincut ⟩
 
 
-instance doubleDual [Fintype V] [Nonempty V] [Planar_by_AbstractDual G] [G.nConnected 3] :
+instance doubleDual [Fintype V] [Nonempty V] [G.nConnected 3] :
     Planar_by_AbstractDual (dualGraph G) where
   F := V
   FDecidableEq := by assumption
@@ -111,96 +115,34 @@ instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
       exfalso
       exact c.eNonempty this
 
-lemma Faces_card_eq_one_of_no_edges [IsEmpty E] :
-    @Fintype.card G.Faces (by have := Fintype.ofIsEmpty (α := E); infer_instance) = 1 := by
-  sorry
+-- The following definitions should be sufficient to show that any planar graph is planar by
+-- abstract dual.
+def CycleGraph.Planar_by_AbstractDual (n : ℕ) (hn : 1 < n) :
+    Planar_by_AbstractDual (CycleGraph n hn) where
+  F := Fin 2
+  FDecidableEq := by infer_instance
+  dualGraph :=( {inc := fun e ↦ edge.undir s(0, 1)} : Graph (Fin 2) (Fin n))
+  dualGraphUndir := sorry
+  dualGraphConn := sorry
+  isDual := sorry
 
-lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
-    Fintype.card E = n →
-      Fintype.card V + Fintype.card G.Faces - Fintype.card E = 1 + NumberOfComponents G := by
-  have hVpos : Fintype.card V > 0 := Fintype.card_pos
-  induction n generalizing E with
-  | zero =>
-    intro hE0
-    have hE := (Fintype.card_eq_zero_iff (α := E)).mp hE0
-    have hV := NumberOfComponents_eq_card_V G
-    rw [hV, hE0, Faces_card_eq_one_of_no_edges]
-    omega
-  | succ m ih =>
-    intro hEcard
-    have : Nonempty E := by
-      rw [← Fintype.card_pos_iff]
-      omega
-    obtain e : E := Classical.choice this
-    let G' := G{{e}ᶜ}ᴳ
-    let hSubgraph : G'.SubgraphOf G := (Es_spanningsubgraph G {e}ᶜ).toSubgraphOf
-    have hG'Undir : G'.Undirected := hSubgraph.Undirected
-    have hG'Planar : Planar_by_AbstractDual G' := by sorry
-    specialize @ih ({e}ᶜ : Set E) _ G' hG'Undir hG'Planar _ (by simp only [compl,
-      Set.mem_singleton_iff, Set.coe_setOf, Fintype.card_subtype_compl, hEcard,
-      Fintype.card_ofSubsingleton, add_tsub_cancel_right])
-    simp only [compl, Set.coe_setOf, Set.mem_setOf_eq, Set.mem_singleton_iff,
-      Fintype.card_subtype_compl, hEcard, Fintype.card_ofSubsingleton, add_tsub_cancel_right] at ih
-    rw [Nat.sub_toss_eq' (by omega), Nat.add_toss_eq' hVpos] at ih ⊢
-    rw [ih]; clear ih
+def MinorOf.Planar_by_AbstractDual {H : Graph F E} (M : G.MinorOf H) :
+    Planar_by_AbstractDual H := sorry
 
-    suffices h: G'.NumberOfComponents + Fintype.card G.Faces =
-      1 + G.NumberOfComponents + Fintype.card G'.Faces by
-      omega
+def MergeOnMultualSubgraph.Planar_by_AbstractDual {H : Graph F E} (A₁ : CompleteGraph 2 ⊆ᴳ G)
+    (A₂ : CompleteGraph 2 ⊆ᴳ H) : Planar_by_AbstractDual (MergeOnMultualSubgraph G H A₁ A₂) := sorry
 
-    let u := G.v1 e
-    let v := G.v2 e
-    by_cases hG'conn : G'.conn u v
-    · have hNC : G'.NumberOfComponents = G.NumberOfComponents := by
-        unfold Graph.NumberOfComponents
-        have hconnEq : G'.connSetoid = G.connSetoid := by
-          ext x y
-          refine Es_subgraph_conn_eq_conn_iff ?_ x y
-          rintro e' h
-          simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Decidable.not_not] at h
-          subst e'
-          exact hG'conn
+def inSameFace (u v : V) : Prop := ∃ (f : G.Faces) (e1 e2 : G.Edges), u ∈ G.endAt e1 ∧
+  v ∈ G.endAt e2 ∧ f ∈ G.dualGraph.endAt e1 ∧ f ∈ G.dualGraph.endAt e2
 
-        apply_fun Quotient at hconnEq
-        have : Fintype (Quotient G'.connSetoid) :=
-          @Quotient.fintype _ _  G'.connSetoid (fun u v ↦ Relation.ReflTransGenDeciable _ _)
-        have : Fintype (Quotient G.connSetoid) :=
-          @Quotient.fintype _ _ G.connSetoid (fun u v ↦ Relation.ReflTransGenDeciable _ _)
-        apply_fun Fintype.card at hconnEq
-        convert hconnEq
-
-      have hF : Fintype.card G'.Faces + 1 = Fintype.card G.Faces := by
-        sorry
-      omega
-    · have hNC : G'.NumberOfComponents = G.NumberOfComponents + 1 := by
+def addUndirEdge.Planar_by_AbstractDual {u v : V} (h : G.inSameFace u v) :
+    Planar_by_AbstractDual (G.addUndirEdge s(u, v)) := sorry
 
 
-        sorry
-      have hF : Fintype.card G'.Faces = Fintype.card G.Faces := by
-        sorry
-      omega
+/-
+From here on, lets not appeal to the definition of planarity by abstract dual
+-/
 
-theorem EulerFormula [Nonempty V] [Fintype V] [Fintype E]:
-    Fintype.card V + Fintype.card G.Faces - Fintype.card E = 1 + NumberOfComponents G :=
-  EulerFormula_aux G rfl
-
-theorem EulerFormula_of_connected [Nonempty V] [Fintype V] [Fintype E] [G.connected] :
-    Fintype.card V + Fintype.card G.Faces - Fintype.card E = 2 := by
-  rw [EulerFormula G, NumberOfComponents_eq_one G]
-
-def FacialCycleOf (w : Cycle G) [Searchable G.dualGraph] : Prop :=
-  ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.incEdges f
-
-
-lemma three_le_dualGraph_minDegree [Fintype E] [G.Simple] : 3 ≤ G.dualGraph.minDegree := by
-  by_contra! h
-  unfold minDegree at h
-  have := G.dualGraph.minDegreeVerts_nonempty
-  sorry
-
-lemma four_le_dualGraph_minDegree_of_bipartite [Fintype E] [G.Simple] [G.Bipartite] :
-    4 ≤ G.dualGraph.minDegree := by
-  sorry
 
 
 end Graph

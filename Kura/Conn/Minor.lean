@@ -19,7 +19,7 @@ structure MinorOf (H : Graph W F) where
   fw : W → Option V
   fₑ : E → F
   fₑinj : Function.Injective fₑ
-  inc : ∀ e : E, (H.inc (fₑ e)).map fw = (G.inc e).map some
+  inc : ∀ e : E, (G.inc e).map some = (H.inc (fₑ e)).map fw
   connPreimage : ∀ (w₁ w₂ : W), fw w₁ = fw w₂ → (fw w₁).isSome → H{(Set.range fₑ)ᶜ}ᴳ.conn w₁ w₂
 
 
@@ -39,18 +39,41 @@ def MinorOf.trans {H : Graph W F} {I : Graph U E'} (M1 : G.MinorOf H) (M2 : H.Mi
   fₑinj e e' h := M1.fₑinj (M2.fₑinj h)
   inc e := by
     simp only [Function.comp_apply]
-    match I.inc (M2.fₑ (M1.fₑ e)) with
-    | dir a =>
-      rw [map_dir]
-      by_cases h : (a.1.map M2.fw).isSome
-      · simp only [Option.isSome_map'] at h
-
-        sorry
-      sorry
+    have hinc1 := M1.inc e
+    have hinc2 := M2.inc (M1.fₑ e)
+    unfold Option.bind
+    match h : I.inc (M2.fₑ (M1.fₑ e)) with
+    | dir (a, b) =>
+      cases a <;> cases b <;> simp_all [map_dir, Option.map_none', map_eq_dir,
+        Option.map_eq_none', exists_eq_right_right, exists_eq_right]
+      · obtain ⟨a, b, h1, rfl, w, rfl, h2⟩ := hinc2
+        use none, w, h1, rfl, w, rfl
+        rw [← h2]
+      · obtain ⟨w', h1, w, rfl, h2⟩ := hinc2
+        use w, h1, w, rfl
+        rw [← h2]
+      · obtain ⟨w1, w2, hw, ⟨w1, rfl, hw1⟩, ⟨w2, rfl, hw2⟩⟩ := hinc2
+        use w1, w2, hw
+        constructor
+        · use w1, rfl
+          rw [← hw1]
+        · use w2, rfl
+          rw [← hw2]
     | undir s =>
-      simp only [map_undir]
-      sorry
-  connPreimage u v huv hSome := by sorry
+      induction' s with s1 s2
+      rw [h] at hinc2
+      simp_all only [map_undir, Sym2.map_pair_eq, map_eq_undir]
+      obtain ⟨s', hs', h⟩ := hinc2
+      use s', hs'
+      induction' s' with s1' s2'
+      simp_all only [map_undir, Sym2.map_pair_eq, map_eq_undir, Sym2.eq, Sym2.rel_iff',
+        Prod.mk.injEq, Prod.swap_prod_mk]
+      obtain ⟨hs1', hs2'⟩ | ⟨hs1', hs2'⟩ := h <;>
+      rw [← hs1', ← hs2']
+      apply Or.inl ⟨rfl, rfl⟩
+      apply Or.inr ⟨rfl, rfl⟩
+  connPreimage u v huv hSome := by
+    sorry
 
 noncomputable def MinorOf.OfSubgraph {G : Graph V E} {H : Graph W F} (hGH : G ⊆ᴳ H) :
     G.MinorOf H where
@@ -66,7 +89,7 @@ noncomputable def MinorOf.OfSubgraph {G : Graph V E} {H : Graph W F} (hGH : G �
     ext u v
     simp only [Set.mem_range, Function.comp_apply, exists_apply_eq_apply, ↓reduceDIte,
       Option.mem_def, Option.some.injEq]
-    change hGH.fᵥEmb.rangeSplitting ⟨hGH.fᵥEmb u, _⟩ = v ↔ u = v
+    change u = v ↔ hGH.fᵥEmb.rangeSplitting ⟨hGH.fᵥEmb u, _⟩ = v
     rw [Function.Embedding.rangeSplitting_apply]
   connPreimage u v huv hSome := by
     simp only [Set.mem_range, Option.isSome_dite] at hSome huv

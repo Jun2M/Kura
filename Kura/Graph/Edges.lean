@@ -315,12 +315,21 @@ lemma ext (e e' : edge V) (hstart : e.startAt = e'.startAt) (hfin : e.finishAt =
 def gofrom? [DecidableEq V] (v : V) : Option V := match e with
   | dir (a, b) => if a = v then b else none
   | undir s => if h : v ∈ s then (@Mem.other' V _ v s h) else none
+-- noncomputable def gofrom? (v : V) : Part V := match e with
+--   | dir (a, b) => Part.assert (a = v) (fun _ => b)
+--   | undir s => Part.assert (v ∈ s) (fun h => @Mem.other V _ s h)
 
 def goback? [DecidableEq V] (v : V) : Option V := match e with
   | dir (a, b) => if b = v then a else none
   | undir s => if h : v ∈ s then (@Mem.other' V _ v s h) else none
+-- noncomputable def goback? (v : V) : Part V := match e with
+--   | dir (a, b) => Part.assert (b = v) (fun _ => a)
+--   | undir s => Part.assert (v ∈ s) (fun h => @Mem.other V _ s h)
 
 def canGo [DecidableEq V] (v : V) (e : edge V) (w : V) : Bool := w ∈ e.gofrom? v
+-- def canGo (v : V) (e : edge V) (w : V) : Prop := match e with
+--   | dir (a, b) => a = v ∧ b = w
+--   | undir s => s = s(v, w)
 
 theorem gofrom?_iff_goback?_iff_canGo [DecidableEq V] (u v : V) :
   List.TFAE [e.gofrom? u = some v, e.goback? v = some u, e.canGo u v] := by
@@ -338,6 +347,27 @@ theorem gofrom?_iff_goback?_iff_canGo [DecidableEq V] (u v : V) :
   · match e with
     | dir (a, b) => cases a <;> cases b <;> simp_all [canGo]
     | undir s => simp [canGo]
+
+-- theorem gofrom?_iff_goback?_iff_canGo [DecidableEq V] (u v : V) :
+--   List.TFAE [e.gofrom? u = some v, e.goback? v = some u, e.canGo u v] := by
+--   refine List.tfae_of_forall (e.gofrom? u = some v) _ (fun p hp => ?_)
+--   fin_cases hp
+--   · rfl
+--   · match e with
+--     | dir (a, b) =>
+--       cases a <;> simp_all only [goback?, ite_self, gofrom?, Option.ite_none_right_eq_some,
+--         iff_self_and, Option.some.injEq]
+--       simp only [Part.coe_none, Part.coe_some]
+--       · by_cases h' : b = some v
+--         · rw [Part.assert_pos h']
+--           simp [Part.none_ne_some, (Option.some_ne_none u).symm]
+--         rw [Part.assert_neg (by simp)]
+--         sorry
+--     | undir s =>
+--       simp [eq_swap, gofrom?, goback?]
+--   · match e with
+--     | dir (a, b) => cases a <;> cases b <;> simp_all [canGo]
+--     | undir s => simp [canGo]
 
 lemma mem_startAt_of_canGo [DecidableEq V] (v w : V) : e.canGo v w → v ∈ e.startAt := by
   intro h

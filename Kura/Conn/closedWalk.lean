@@ -88,7 +88,12 @@ def rotate (C : G.Cycle) (n : ℕ) : G.Cycle where
     | _ :: _ => ((C.steps.rotate n).head
       (List.rotate_eq_nil_iff.not.mpr (hsteps ▸ List.cons_ne_nil _ _))).fst
   steps := C.steps.rotate n
-  start_spec _ := by sorry
+  start_spec h := by
+    simp at h
+    split
+    · absurd h
+      assumption
+    · simp only
   step_spec := by sorry
   next_step := by sorry
   startFinish := by sorry
