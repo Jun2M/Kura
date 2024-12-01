@@ -1,6 +1,7 @@
 import Kura.Graph.Undirected
 import Mathlib.Data.Finset.Basic
 import Mathlib.Logic.OpClass
+import Kura.Examples.Defs
 
 
 namespace Graph
@@ -10,11 +11,11 @@ variable {V W E F : Type*} (G : Graph V E) [DecidableEq V] (e : E) (u v w : V)
 
 -- There is a finset of edges that leads out of a vertex
 class SearchableOut where
-  outEdges : V → Finset E
+  outEdges : V → List E
   mem_outEdges : ∀ v e, e ∈ outEdges v ↔ v ∈ G.startAt e
 
 
-def outEdges [SearchableOut G] (v : V) : Finset E := SearchableOut.outEdges G v
+def outEdges [SearchableOut G] (v : V) : List E := SearchableOut.outEdges G v
 
 omit [DecidableEq V] in
 @[simp]
@@ -23,9 +24,9 @@ lemma mem_outEdges [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ G.startAt e 
   rfl
 
 def outNeighbors [SearchableOut G] : Multiset V :=
-  G.outEdges v |>.val |>.map (G.endAt ·) |>.sum |>.filter (· ≠ v)
+  G.outEdges v |>.map (G.endAt ·) |>.sum |>.filter (· ≠ v)
 def outDegree [SearchableOut G] : ℕ :=
-  G.outEdges v |>.val |>.map (G.endAt ·) |>.sum |>.count v
+  G.outEdges v |>.map (G.endAt ·) |>.sum |>.count v
 
 omit [DecidableEq V] in
 lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] :
@@ -38,13 +39,33 @@ lemma adj_iff_exist_outEdge_canGo [DecidableEq V] [SearchableOut G] :
     G.adj u v ↔ ∃ e ∈ G.outEdges u, G.canGo u e v := by
   sorry
 
+instance instCycleGraphSearchableOut (n : ℕ) (h : 1 < n) : SearchableOut (CycleGraph n h) where
+  outEdges v := (List.finRange n).filter (λ e => v ∈ (CycleGraph n h).startAt e)
+  mem_outEdges v e := by
+    simp only [startAt, inc_eq_undir_v12, undir_startAt, Sym2.toMultiset_eq,
+      Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, Bool.decide_or,
+      List.mem_filter, List.mem_finRange, Bool.or_eq_true, decide_eq_true_eq, true_and]
+
+partial def BFS_aux [SearchableOut G] (queue : List V) (f : V → Option V) : V → Option V := Id.run do
+  if h : queue = [] then
+    return f
+  else
+    let v := queue.head h
+    let ws := G.outEdges v |>.filterMap (G.gofrom? v ·) |>.filter (f ·|>.isNone)
+    return BFS_aux (queue.tail ++ ws) (fun x => if x ∈ ws then some v else f x)
+
+partial def BFS [SearchableOut G] (v : V) : V → Option V :=
+  BFS_aux G [v] (if · = v then some v else none)
+
+#eval (CycleGraph 8 (by omega)).BFS 0
+
 -- There is a finset of edges that leads into a vertex
 class SearchableIn where
-  inEdges : V → Finset E
+  inEdges : V → List E
   mem_inEdges : ∀ v e, e ∈ inEdges v ↔ v ∈ G.finishAt e
 
 
-def inEdges [SearchableIn G] (v : V) : Finset E := SearchableIn.inEdges G v
+def inEdges [SearchableIn G] (v : V) : List E := SearchableIn.inEdges G v
 
 omit [DecidableEq V] in
 @[simp]
@@ -53,9 +74,9 @@ lemma mem_inEdges [SearchableIn G] : e ∈ G.inEdges v ↔ v ∈ G.finishAt e :=
   rfl
 
 def inNeighbors [SearchableIn G] : Multiset V :=
-  G.inEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.filter (· ≠ v)
+  G.inEdges v |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.filter (· ≠ v)
 def inDegree [SearchableIn G] : ℕ :=
-  G.inEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.count v
+  G.inEdges v |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.count v
 
 
 -- There is a finset of edges that are incident to a vertex
@@ -63,14 +84,14 @@ class Searchable extends SearchableOut G, SearchableIn G where
 
 variable [Searchable G] [DecidableEq E]
 
-def incEdges : Finset E := G.outEdges v ∪ G.inEdges v
+def incEdges : List E := G.outEdges v ∪ G.inEdges v
 def neighbors  : Multiset V :=
-  G.outEdges v ∪ G.inEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.filter (· ≠ v)
+  G.incEdges v |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.filter (· ≠ v)
 def degree : ℕ :=
-  G.outEdges v ∪ G.inEdges v |>.val |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.count v
+  G.incEdges v |>.map (G.endAt ·) |>.foldl (· + ·) ∅ |>.count v
 -- Deliverately double counts loops
 
-lemma incEdges_card_eq_degree [G.loopless] : (G.incEdges v).card = G.degree v := by
+lemma incEdges_card_eq_degree [G.loopless] : (G.incEdges v).length = G.degree v := by
   sorry
 
 @[simp]
@@ -86,26 +107,26 @@ def regular (k : ℕ) : Prop := ∀ v : V, G.degree v = k
 instance instRegularDecidablePred : DecidablePred (G.regular ·) := by
   sorry
 
-instance DecidableRelAdjOfFintypeE [Searchable G] : DecidableRel (G.adj : V → V → Prop) := by
-  intro u v
-  apply decidable_of_iff (G.outEdges u |>.filter (G.canGo u · v)).Nonempty
-  simp only [Finset.Nonempty, canGo, Finset.mem_filter, mem_outEdges, startAt, adj]
-  apply exists_congr
-  intro e
-  apply and_iff_right_of_imp
-  intro h
-  exact mem_startAt_of_canGo _ _ _ h
+-- instance DecidableRelAdjOfFintypeE [Searchable G] : DecidableRel (G.adj : V → V → Prop) := by
+--   intro u v
+--   apply decidable_of_iff (G.outEdges u |>.filter (G.canGo u · v)).Nonempty
+--   simp only [Finset.Nonempty, canGo, Finset.mem_filter, mem_outEdges, startAt, adj]
+--   apply exists_congr
+--   intro e
+--   apply and_iff_right_of_imp
+--   intro h
+--   exact mem_startAt_of_canGo _ _ _ h
 
 
-instance Searchable_of_FintypeE [DecidableEq V] [Fintype E] : Searchable G where
-  outEdges v := Fintype.elems.filter (λ e => v ∈ G.startAt e)
-  mem_outEdges v e := by
-    rw [Finset.mem_filter, and_iff_right_iff_imp]
-    exact fun _ => Fintype.complete e
-  inEdges v := Fintype.elems.filter (λ e => v ∈ G.finishAt e)
-  mem_inEdges v e := by
-    rw [Finset.mem_filter, and_iff_right_iff_imp]
-    exact fun _ => Fintype.complete e
+-- instance Searchable_of_FintypeE [DecidableEq V] [Fintype E] : Searchable G where
+--   outEdges v := Fintype.elems.filter (λ e => v ∈ G.startAt e)
+--   mem_outEdges v e := by
+--     rw [Finset.mem_filter, and_iff_right_iff_imp]
+--     exact fun _ => Fintype.complete e
+--   inEdges v := Fintype.elems.filter (λ e => v ∈ G.finishAt e)
+--   mem_inEdges v e := by
+--     rw [Finset.mem_filter, and_iff_right_iff_imp]
+--     exact fun _ => Fintype.complete e
 
 def maxDegree [Fintype V] : ℕ := Finset.univ.image (G.degree ·) |>.max |>.getD 0
 macro "Δ(" G:term ")" : term => `(Graph.maxDegree $G)

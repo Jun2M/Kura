@@ -58,6 +58,8 @@ lemma conn.ofPath (P : G.Path) : G.conn P.start P.finish := by
 instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=
   Relation.ReflTransGenDeciable
 
+example : (CycleGraph 12 (by omega)).conn 0 6 := by decide
+
 class connected (G : Graph V E) : Prop where
   all_conn : ∀ u v : V, conn G u v
 
