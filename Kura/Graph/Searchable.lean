@@ -46,7 +46,8 @@ instance instCycleGraphSearchableOut (n : ℕ) (h : 1 < n) : SearchableOut (Cycl
       Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, Bool.decide_or,
       List.mem_filter, List.mem_finRange, Bool.or_eq_true, decide_eq_true_eq, true_and]
 
-partial def BFS_aux [SearchableOut G] (queue : List V) (f : V → Option V) : V → Option V := Id.run do
+partial def BFS_aux [Fintype V] [SearchableOut G] (queue : List V) (f : V → Option V) :
+    V → Option V := Id.run do
   if h : queue = [] then
     return f
   else
@@ -54,10 +55,22 @@ partial def BFS_aux [SearchableOut G] (queue : List V) (f : V → Option V) : V 
     let ws := G.outEdges v |>.filterMap (G.gofrom? v ·) |>.filter (f ·|>.isNone)
     return BFS_aux (queue.tail ++ ws) (fun x => if x ∈ ws then some v else f x)
 
+
+lemma BFS_aux_adj [SearchableOut G] {v w : V} (h : G.adj v w) :
+    (G.BFS_aux [v] (if · = v then some v else none) w).isSome := by
+
+  sorry
+
 partial def BFS [SearchableOut G] (v : V) : V → Option V :=
   BFS_aux G [v] (if · = v then some v else none)
 
-#eval (CycleGraph 8 (by omega)).BFS 0
+lemma isSome_BFS_of_adj_of_isSome_BFS [SearchableOut G] {u v w : V} (h : G.adj v w)
+    (hv : (G.BFS u v).isSome) : (G.BFS u w).isSome := by
+  unfold BFS at hv ⊢
+
+  sorry
+
+-- #eval (CycleGraph 8 (by omega)).BFS 0
 
 -- There is a finset of edges that leads into a vertex
 class SearchableIn where
