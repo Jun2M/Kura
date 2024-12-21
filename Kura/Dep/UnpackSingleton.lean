@@ -1,23 +1,23 @@
 import Mathlib.Data.Sym.Sym2.Order
 
 
-def Mathlib.Vector.unpackSingleton {α : Type u} (v : Mathlib.Vector α 1) : α :=
+def List.Vector.unpackSingleton {α : Type u} (v : List.Vector α 1) : α :=
   v.get ⟨0, Nat.zero_lt_succ 0⟩
 
-lemma Mathlib.Vector.unpackSingleton_eq {α : Type u} (v : Mathlib.Vector α 1) :
-    Mathlib.Vector.unpackSingleton v = v.head := by
+lemma List.Vector.unpackSingleton_eq {α : Type u} (v : List.Vector α 1) :
+    List.Vector.unpackSingleton v = v.head := by
   match v with
   | ⟨[a], h⟩ => rfl
 
 -- @[simp]
--- lemma Mathlib.Vector.unpackSingleton_mem {α : Type u} (v : Mathlib.Vector α 1) :
---     Mathlib.Vector.unpackSingleton v ∈ v := by
---   simp only [Mathlib.Vector.unpackSingleton, Mathlib.Vector.get]
---   exact Mathlib.Vector.mem_singleton_self _
+-- lemma List.Vector.unpackSingleton_mem {α : Type u} (v : List.Vector α 1) :
+--     List.Vector.unpackSingleton v ∈ v := by
+--   simp only [List.Vector.unpackSingleton, List.Vector.get]
+--   exact List.Vector.mem_singleton_self _
 
 def Sym.Sym'.unpackSingleton {α : Type u} (s : Sym.Sym' α 1) : α :=
-  Quot.lift Mathlib.Vector.unpackSingleton (fun u v h ↦ by
-    simp only [Mathlib.Vector.unpackSingleton, Fin.zero_eta, Fin.isValue, Mathlib.Vector.get_zero]
+  Quot.lift List.Vector.unpackSingleton (fun u v h ↦ by
+    simp only [List.Vector.unpackSingleton, Fin.zero_eta, Fin.isValue, List.Vector.get_zero]
     obtain ⟨x, hx⟩ := List.length_eq_one.mp u.prop
     obtain ⟨y, hy⟩ := List.length_eq_one.mp v.prop
     have : u = v := by

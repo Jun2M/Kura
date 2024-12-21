@@ -1,4 +1,3 @@
-import Mathlib.Order.Defs
 import Mathlib.Logic.Relation
 import Mathlib.Data.Fintype.Quotient
 import Mathlib.Order.Rel.GaloisConnection

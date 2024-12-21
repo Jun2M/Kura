@@ -4,6 +4,111 @@ import Mathlib.Data.List.Sym
 namespace List
 variable {α : Type _}
 
+
+lemma sizeOf_filter_le' (p : α → Bool) (s : List α) :
+  sizeOf (s.filter p) ≤ sizeOf s := by
+  match s with
+  | [] => simp
+  | a :: as =>
+    by_cases h : p a
+    · simp only [filter_cons_of_pos h, cons.sizeOf_spec, sizeOf_default, add_zero,
+      Nat.add_le_add_iff_left, sizeOf_filter_le' p as]
+    · simp only [filter_cons_of_neg h, cons.sizeOf_spec, sizeOf_default, add_zero]
+      obtain := sizeOf_filter_le' p as
+      omega
+
+lemma sizeOf_filter_le (p : α → Prop) [DecidablePred p] (s : List α) :
+  sizeOf (s.filter p) ≤ sizeOf s := sizeOf_filter_le' (fun b ↦ decide (p b)) s
+
+lemma sizeOf_filter_lt' {p : α → Bool} (s : List α) {b : α} (hs : b ∈ s) (hp : ¬ p b) :
+  sizeOf (s.filter p) < sizeOf s := by
+  match s with
+  | [] => simp only [not_mem_nil] at hs
+  | a :: as =>
+    by_cases h : p a
+    · have : b ∈ as := by
+        by_contra! has
+        simp only [mem_cons, has, or_false] at hs
+        subst hs
+        exact hp h
+      simp only [filter_cons_of_pos h, cons.sizeOf_spec, sizeOf_default, add_zero,
+      Nat.add_lt_add_iff_left, gt_iff_lt]
+      exact sizeOf_filter_lt' as this hp
+    · simp only [filter_cons_of_neg h, cons.sizeOf_spec, sizeOf_default, add_zero]
+      suffices sizeOf (as.filter p) ≤ sizeOf as by omega
+      exact sizeOf_filter_le' p as
+
+lemma sizeOf_filter_lt {p : α → Prop} [DecidablePred p] (s : List α) {b : α} (hs : b ∈ s) (hp : ¬ p b) :
+  sizeOf (s.filter p) < sizeOf s := sizeOf_filter_lt' (p := fun b ↦ decide (p b)) s hs (by simp only [hp,
+    decide_false, Bool.false_eq_true, not_false_eq_true])
+
+lemma sizeOf_filter_le_filter' {p q : α → Bool} (hpq : ∀ a, p a → q a) (s : List α) :
+  sizeOf (s.filter p) ≤ sizeOf (s.filter q) := by
+  match s with
+  | [] => simp only [filter_nil, nil.sizeOf_spec, le_refl]
+  | a :: as =>
+    by_cases hpa : p a <;> by_cases hqa : q a
+    · simp [filter_cons_of_pos hpa, filter_cons_of_pos hqa, cons.sizeOf_spec, sizeOf_default,
+      add_zero, sizeOf_filter_le_filter' hpq as]
+    · exfalso
+      exact hqa <| hpq a hpa
+    · simp [filter_cons_of_neg hpa, filter_cons_of_pos hqa, cons.sizeOf_spec, sizeOf_default,
+      add_zero]
+      have := sizeOf_filter_le_filter' hpq as
+      omega
+    · simp [filter_cons_of_neg hpa, filter_cons_of_neg hqa, cons.sizeOf_spec, sizeOf_default,
+      add_zero, sizeOf_filter_le_filter' hpq as]
+
+lemma sizeOf_filter_le_filter {p q : α → Prop} [DecidablePred p] [DecidablePred q]
+  (hpq : ∀ a, p a → q a) (s : List α) : sizeOf (s.filter p) ≤ sizeOf (s.filter q) :=
+  sizeOf_filter_le_filter' (fun a h ↦ by simp_all only [decide_eq_true_eq, decide_true]) s
+
+lemma sizeOf_filter_lt_filter' {p q : α → Bool} (hpq : ∀ a, p a → q a) (s : List α) {b : α}
+  (hs : b ∈ s) (hp : ¬ p b) (hq : q b) :
+  sizeOf (s.filter p) < sizeOf (s.filter q) := by
+  match s with
+  | [] => simp only [not_mem_nil] at hs
+  | a :: as =>
+    by_cases hpa : p a <;> by_cases hqa : q a
+    · simp only [filter_cons_of_pos hpa, cons.sizeOf_spec, sizeOf_default, add_zero,
+      filter_cons_of_pos hqa, Nat.add_lt_add_iff_left, gt_iff_lt]
+      have : b ∈ as := by
+        by_contra! has
+        simp only [mem_cons, has, or_false] at hs
+        subst hs
+        exact hp hpa
+      have := sizeOf_filter_lt_filter' hpq as this hp hq
+      omega
+    · simp only [filter_cons_of_pos hpa, filter_cons_of_neg hqa, cons.sizeOf_spec, sizeOf_default,
+      add_zero]
+      exfalso
+      exact hqa <| hpq a hpa
+    · simp only [filter_cons_of_neg hpa, filter_cons_of_pos hqa, cons.sizeOf_spec, sizeOf_default,
+      add_zero]
+      have := sizeOf_filter_le_filter' hpq as
+      omega
+    · simp only [filter_cons_of_neg hpa, filter_cons_of_neg hqa, cons.sizeOf_spec, sizeOf_default,
+      add_zero]
+      have : b ∈ as := by
+        by_contra! has
+        simp only [mem_cons, has, or_false] at hs
+        subst hs
+        exact hqa hq
+      have := sizeOf_filter_lt_filter' hpq as this hp hq
+      omega
+
+lemma sizeOf_filter_lt_filter {p q : α → Prop} [DecidablePred p] [DecidablePred q]
+  (hpq : ∀ a, p a → q a) (s : List α) {b : α} (hs : b ∈ s) (hp : ¬ p b) (hq : q b) :
+  sizeOf (s.filter p) < sizeOf (s.filter q) :=
+  sizeOf_filter_lt_filter' (fun a h ↦ by simp_all only [decide_eq_true_eq, decide_true]) s hs
+    (by simpa only [decide_eq_true_eq]) (by simpa only [decide_eq_true_eq])
+
+lemma not_mem_of_length_eq_zero {l : List α} {a : α} (h : l.length = 0) : a ∉ l := by
+  intro h'
+  rw [length_eq_zero] at h
+  subst h
+  simp only [not_mem_nil] at h'
+
 @[simp]
 theorem indexOf_eq_zero_iff [BEq α] [LawfulBEq α] {l : List α} (hl : l ≠ []) {a : α} :
     indexOf a l = 0 ↔ l.head hl = a := by

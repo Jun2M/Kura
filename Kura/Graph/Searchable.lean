@@ -46,31 +46,45 @@ instance instCycleGraphSearchableOut (n : ℕ) (h : 1 < n) : SearchableOut (Cycl
       Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, Bool.decide_or,
       List.mem_filter, List.mem_finRange, Bool.or_eq_true, decide_eq_true_eq, true_and]
 
-partial def BFS_aux [Fintype V] [SearchableOut G] (queue : List V) (f : V → Option V) :
-    V → Option V := Id.run do
-  if h : queue = [] then
-    return f
-  else
-    let v := queue.head h
-    let ws := G.outEdges v |>.filterMap (G.gofrom? v ·) |>.filter (f ·|>.isNone)
-    return BFS_aux (queue.tail ++ ws) (fun x => if x ∈ ws then some v else f x)
+def BFS_aux [Fintype V] [SearchableOut G] (queue : List V) (f : V → Option V) : V → Option V :=
+  if h : queue = [] then f else
+  let v := queue.head h
+  let l := G.outEdges v |>.filterMap (G.gofrom? v ·) |>.filter (f ·|>.isNone) |>.dedup
+  BFS_aux (queue.tail ++ l) (fun x => if x ∈ l then some v else f x)
+termination_by (Finset.univ.filter (f ·|>.isNone)).card + queue.length
+decreasing_by
+  simp only [gofrom?, List.mem_dedup, List.mem_filter, List.mem_filterMap, mem_outEdges, startAt,
+    Option.isNone_iff_eq_none, dite_eq_ite, List.length_append, List.length_tail, gt_iff_lt]
+  let A := Finset.univ.filter (fun x ↦ (if x ∈ l then some v else f x) = none)
+  let B := Finset.univ.filter (fun x ↦ f x = none)
+  change A.card + (queue.length - 1 + l.length) < B.card + queue.length
+  have hqueueLenPos : 0 < queue.length := List.length_pos.mpr h
+  suffices A.card + l.length ≤ B.card by omega
+  have hlLen : _ = l.length := List.toFinset_card_of_nodup <| List.nodup_dedup _
+  have hlsuB : l.toFinset ⊆ B := fun x ↦ by
+    simp only [gofrom?, List.mem_toFinset, List.mem_dedup, List.mem_filter, List.mem_filterMap,
+      mem_outEdges, startAt, Option.isNone_iff_eq_none, Finset.mem_filter, Finset.mem_univ,
+      true_and, and_imp, imp_self, implies_true, l, B]
+  have : A ⊆ B \ l.toFinset := fun x ↦ by
+    by_cases hx : x ∈ l <;> simp [Finset.mem_filter, Finset.mem_univ, hx, ↓reduceIte,
+      reduceCtorEq, and_false, Finset.mem_sdiff, true_and, List.mem_toFinset, not_true_eq_false,
+      imp_self, A, B]
+  refine add_le_add_right (Finset.card_le_card this) _ |>.trans ?_
+  rw [Finset.card_sdiff hlsuB, ← hlLen, Nat.sub_add_cancel (Finset.card_le_card hlsuB)]
 
-
-lemma BFS_aux_adj [SearchableOut G] {v w : V} (h : G.adj v w) :
-    (G.BFS_aux [v] (if · = v then some v else none) w).isSome := by
-
+lemma BFS_aux_monotone [Fintype V] [SearchableOut G] {v w : V} {f : V → Option V} (hf : (f w).isSome)
+  (l : List V) : (G.BFS_aux l f w).isSome := by
   sorry
 
-partial def BFS [SearchableOut G] (v : V) : V → Option V :=
+def BFS [Fintype V] [SearchableOut G] (v : V) : V → Option V :=
   BFS_aux G [v] (if · = v then some v else none)
 
-lemma isSome_BFS_of_adj_of_isSome_BFS [SearchableOut G] {u v w : V} (h : G.adj v w)
+lemma isSome_BFS_of_adj_of_isSome_BFS [Fintype V] [SearchableOut G] {u v w : V} (h : G.adj v w)
     (hv : (G.BFS u v).isSome) : (G.BFS u w).isSome := by
   unfold BFS at hv ⊢
-
   sorry
 
--- #eval (CycleGraph 8 (by omega)).BFS 0
+#eval (CycleGraph 8 (by omega)).BFS 0
 
 -- There is a finset of edges that leads into a vertex
 class SearchableIn where

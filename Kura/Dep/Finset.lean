@@ -57,6 +57,32 @@ lemma attachWith_map_val [DecidableEq α] (s : Multiset α) {P : α → Prop}
   -- exact Quot.induction (fun l => (attachWith_map_val' H Subtype.val).symm) s
   sorry
 
+@[simp]
+lemma sizeOf_coe (l : List α) : sizeOf (l : Multiset α) = sizeOf l := rfl
+
+lemma sizeOf_filter_le (s : Multiset α) (p : α → Prop) [DecidablePred p] :
+  sizeOf (s.filter p) ≤ sizeOf s := by
+  induction' s using Quot.inductionOn with l
+  simp only [quot_mk_to_coe'', Multiset.filter_coe p l, sizeOf_coe, List.sizeOf_filter_le]
+
+lemma sizeOf_filter_lt {p : α → Prop} [DecidablePred p] (s : Multiset α) {b : α} (hs : b ∈ s)
+  (hp : ¬ p b) : sizeOf (s.filter p) < sizeOf s := by
+  induction' s using Quot.inductionOn with l
+  simp only [quot_mk_to_coe'', filter_coe, sizeOf_coe, l.sizeOf_filter_lt hs hp]
+
+lemma sizeOf_filter_le_filter {p q : α → Prop} [DecidablePred p] [DecidablePred q]
+  (hpq : ∀ a, p a → q a) (s : Multiset α) : sizeOf (s.filter p) ≤ sizeOf (s.filter q) := by
+  induction' s using Quot.inductionOn with l
+  simp only [quot_mk_to_coe'', filter_coe, sizeOf_coe, List.sizeOf_filter_le_filter hpq]
+
+lemma sizeOf_filter_lt_filter {p q : α → Prop} [DecidablePred p] [DecidablePred q]
+  (hpq : ∀ a, p a → q a) (s : Multiset α) {b : α} (hs : b ∈ s) (hp : ¬ p b) (hq : q b) :
+  sizeOf (s.filter p) < sizeOf (s.filter q) := by
+  induction' s using Quot.inductionOn with l
+  simp only [quot_mk_to_coe'', filter_coe, sizeOf_coe, l.sizeOf_filter_lt_filter hpq
+    (by simpa using hs) hp hq]
+
+
 end Multiset
 
 namespace Finset
