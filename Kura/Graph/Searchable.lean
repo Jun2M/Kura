@@ -23,11 +23,6 @@ lemma mem_outEdges [SearchableOut G] : e ∈ G.outEdges v ↔ v ∈ G.startAt e 
   rw [← SearchableOut.mem_outEdges (G := G) v e]
   rfl
 
-def outNeighbors [SearchableOut G] : Multiset V :=
-  G.outEdges v |>.map (G.endAt ·) |>.sum |>.filter (· ≠ v)
-def outDegree [SearchableOut G] : ℕ :=
-  G.outEdges v |>.map (G.endAt ·) |>.sum |>.count v
-
 omit [DecidableEq V] in
 lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] :
   e ∈ G.outEdges v ↔ v ∈ s(G.v1 e, G.v2 e) := by
@@ -35,9 +30,23 @@ lemma mem_outEdges_iff_mem_get [Undirected G] [SearchableOut G] :
   simp only [startAt, inc_eq_undir_v12, undir_startAt, Sym2.toMultiset_eq, Multiset.insert_eq_cons,
     Multiset.mem_cons, Multiset.mem_singleton, Sym2.mem_iff]
 
+def outNeighbors [SearchableOut G] : List V :=
+  G.outEdges v |>.filterMap (G.gofrom? v ·)
+def outDegree [SearchableOut G] : ℕ :=
+  G.outEdges v |>.filterMap (G.gofrom? v ·) |>.count v
+
 lemma adj_iff_exist_outEdge_canGo [DecidableEq V] [SearchableOut G] :
     G.adj u v ↔ ∃ e ∈ G.outEdges u, G.canGo u e v := by
   sorry
+
+lemma mem_outNeighbors_iff_adj [SearchableOut G] :
+    w ∈ G.outNeighbors v ↔ G.adj v w := by
+  unfold outNeighbors adj
+  simp only [gofrom?, List.mem_filterMap, mem_outEdges, startAt, Option.mem_def,
+    decide_eq_true_eq]
+  refine exists_congr (fun e => ?_)
+  rw [and_iff_right_of_imp (mem_startAt_of_gofrom?_eq  _ _ _)]
+  refine (gofrom?_iff_goback?_iff_canGo (G.inc e) v w).out 0 2
 
 instance instCycleGraphSearchableOut (n : ℕ) (h : 1 < n) : SearchableOut (CycleGraph n h) where
   outEdges v := (List.finRange n).filter (λ e => v ∈ (CycleGraph n h).startAt e)
@@ -46,38 +55,99 @@ instance instCycleGraphSearchableOut (n : ℕ) (h : 1 < n) : SearchableOut (Cycl
       Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, Bool.decide_or,
       List.mem_filter, List.mem_finRange, Bool.or_eq_true, decide_eq_true_eq, true_and]
 
-def BFS_aux [Fintype V] [SearchableOut G] (queue : List V) (f : V → Option V) : V → Option V :=
-  if h : queue = [] then f else
-  let v := queue.head h
-  let l := G.outEdges v |>.filterMap (G.gofrom? v ·) |>.filter (f ·|>.isNone) |>.dedup
-  BFS_aux (queue.tail ++ l) (fun x => if x ∈ l then some v else f x)
-termination_by (Finset.univ.filter (f ·|>.isNone)).card + queue.length
-decreasing_by
-  simp only [gofrom?, List.mem_dedup, List.mem_filter, List.mem_filterMap, mem_outEdges, startAt,
-    Option.isNone_iff_eq_none, dite_eq_ite, List.length_append, List.length_tail, gt_iff_lt]
-  let A := Finset.univ.filter (fun x ↦ (if x ∈ l then some v else f x) = none)
-  let B := Finset.univ.filter (fun x ↦ f x = none)
-  change A.card + (queue.length - 1 + l.length) < B.card + queue.length
-  have hqueueLenPos : 0 < queue.length := List.length_pos.mpr h
-  suffices A.card + l.length ≤ B.card by omega
-  have hlLen : _ = l.length := List.toFinset_card_of_nodup <| List.nodup_dedup _
-  have hlsuB : l.toFinset ⊆ B := fun x ↦ by
-    simp only [gofrom?, List.mem_toFinset, List.mem_dedup, List.mem_filter, List.mem_filterMap,
-      mem_outEdges, startAt, Option.isNone_iff_eq_none, Finset.mem_filter, Finset.mem_univ,
-      true_and, and_imp, imp_self, implies_true, l, B]
-  have : A ⊆ B \ l.toFinset := fun x ↦ by
-    by_cases hx : x ∈ l <;> simp [Finset.mem_filter, Finset.mem_univ, hx, ↓reduceIte,
-      reduceCtorEq, and_false, Finset.mem_sdiff, true_and, List.mem_toFinset, not_true_eq_false,
-      imp_self, A, B]
-  refine add_le_add_right (Finset.card_le_card this) _ |>.trans ?_
-  rw [Finset.card_sdiff hlsuB, ← hlLen, Nat.sub_add_cancel (Finset.card_le_card hlsuB)]
+namespace BFS
+variable [SearchableOut G]
 
-lemma BFS_aux_monotone [Fintype V] [SearchableOut G] {v w : V} {f : V → Option V} (hf : (f w).isSome)
-  (l : List V) : (G.BFS_aux l f w).isSome := by
-  sorry
+def l (queuef : List V × (V → Option V)) (h : queuef.1 ≠ []) :=
+  let queue := queuef.1
+  let f := queuef.2
+  let v := queue.head h
+  G.outNeighbors v |>.filter (f ·|>.isNone) |>.dedup
+
+def step : List V × (V → Option V) → List V × (V → Option V)
+| (queue, f) => if h : queue = [] then (queue, f) else
+  let v := queue.head h
+  let l' := l G (queue, f) h
+  (queue.tail ++ l', fun x => if x ∈ l' then some v else f x)
+
+@[simp]
+lemma step_queue_length (queuef : List V × (V → Option V)) (h : queuef.1 ≠ []) :
+  (step G queuef).1.length = queuef.1.length - 1 + (l G queuef h).length := by
+  simp only [step, h, ↓reduceDIte, Prod.mk.eta, List.length_append, List.length_tail]
+
+@[simp]
+lemma step_eq_of_some {queuef : List V × (V → Option V)} {w : V} (hw : (queuef.2 w).isSome) :
+  (step G queuef).2 w = queuef.2 w := by
+  by_cases hl : queuef.1 = [] <;> simp only [step, hl, ↓reduceDIte, l, outNeighbors, gofrom?,
+    List.mem_dedup, List.mem_filter, List.mem_filterMap, mem_outEdges, startAt,
+    Option.isNone_iff_eq_none, ite_eq_right_iff, and_imp, forall_exists_index]
+  rintro e _ _ hNone
+  simp only [hNone, Option.isSome_none, Bool.false_eq_true] at hw
+
+lemma mem_BFS_step_queue_of_adj {queuef : List V × (V → Option V)} {w : V}
+  (hqueue : queuef.1 ≠ []) (hwadj : G.adj (queuef.1.head hqueue) w) (hwf : queuef.2 w = none):
+  w ∈ (step G queuef).1 := by
+  simp only [step, hqueue, ↓reduceDIte, l, List.mem_dedup, List.mem_filter,
+    Option.isNone_iff_eq_none, List.mem_append, hwf, Option.isNone_none, and_true]
+  refine Or.inr <| (mem_outNeighbors_iff_adj _ _ _).mpr hwadj
+
+def nones [Fintype V] (queuef : List V × (V → Option V)) : Finset V :=
+  Finset.univ.filter (fun x ↦ (queuef.2 x).isNone)
+
+def measure [Fintype V] (queuef : List V × (V → Option V)) : ℕ :=
+  (nones queuef).card + queuef.1.length
+
+@[simp]
+lemma List.toFinset_dedup [Fintype V] (l : List V) : l.dedup.toFinset = l.toFinset := by
+  rw [List.toFinset_eq_iff_perm_dedup, List.dedup_idem]
+
+lemma disjoint_nones_step_l [Fintype V] (queuef : List V × (V → Option V)) (h : queuef.1 ≠ []) :
+  Disjoint (nones (step G queuef)) (l G queuef h).toFinset := by
+  simp [nones, step, h, ↓reduceDIte, l, List.mem_dedup, List.mem_filter,
+    Option.isNone_iff_eq_none]
+  rw [Finset.disjoint_left]
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and, List.mem_toFinset, not_and]
+  rintro x hx hx2 h
+  simp only [hx2, h, and_self, ↓reduceIte, reduceCtorEq] at hx
+
+lemma nones_step_disjUnion_l_eq_nones [Fintype V] (queuef : List V × (V → Option V))
+  (h : queuef.1 ≠ []) :
+  (nones (step G queuef)).disjUnion (l G queuef h).toFinset (disjoint_nones_step_l G queuef h) =
+  nones queuef := by
+  ext v
+  by_cases hv : v ∈ G.outNeighbors (queuef.1.head h) ∧ queuef.2 v = none
+  <;> simp only [nones, step, h, ↓reduceDIte, l, List.mem_dedup, List.mem_filter,
+    Option.isNone_iff_eq_none, List.toFinset_dedup, List.toFinset_filter, Finset.disjUnion_eq_union,
+    Finset.mem_union, Finset.mem_filter, Finset.mem_univ, hv, and_self, ↓reduceIte, reduceCtorEq,
+    and_false, List.mem_toFinset, or_true, or_false]
+
+lemma measure_decreasing [Fintype V] (queuef : List V × (V → Option V)) (h : queuef.1 ≠ []) :
+  measure (step G queuef) < measure queuef := by
+  let l' := l G queuef h
+  let A := nones (step G queuef)
+  let B := nones queuef
+  change A.card + (step G queuef).1.length < B.card + queuef.1.length
+  rw [step_queue_length]
+  have hqueueLenPos : 0 < queuef.1.length := List.length_pos.mpr h
+  suffices A.card + (l G queuef h).length ≤ B.card by omega
+  have hlLen : _ = l'.length := List.toFinset_card_of_nodup <| List.nodup_dedup _
+  rw [← hlLen]; clear hlLen
+  obtain this : A.disjUnion l'.toFinset (disjoint_nones_step_l G queuef h) = B :=
+    nones_step_disjUnion_l_eq_nones G queuef h
+  apply_fun Finset.card at this
+  rw [Finset.card_disjUnion] at this
+  rw [this]
+
+def rec [Fintype V] [SearchableOut G] (queuef : List V × (V → Option V)) : V → Option V :=
+  match queuef with
+  | (queue, f) => if h : queue = [] then f else rec (step G (queue, f))
+termination_by measure queuef
+decreasing_by exact measure_decreasing G (queue, f) h
+
+end BFS
 
 def BFS [Fintype V] [SearchableOut G] (v : V) : V → Option V :=
-  BFS_aux G [v] (if · = v then some v else none)
+  BFS.rec G ([v], (if · = v then some v else none))
 
 lemma isSome_BFS_of_adj_of_isSome_BFS [Fintype V] [SearchableOut G] {u v w : V} (h : G.adj v w)
     (hv : (G.BFS u v).isSome) : (G.BFS u w).isSome := by
@@ -85,6 +155,8 @@ lemma isSome_BFS_of_adj_of_isSome_BFS [Fintype V] [SearchableOut G] {u v w : V} 
   sorry
 
 #eval (CycleGraph 8 (by omega)).BFS 0
+
+
 
 -- There is a finset of edges that leads into a vertex
 class SearchableIn where

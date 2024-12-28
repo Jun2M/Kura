@@ -369,6 +369,16 @@ theorem gofrom?_iff_goback?_iff_canGo [DecidableEq V] (u v : V) :
 --     | dir (a, b) => cases a <;> cases b <;> simp_all [canGo]
 --     | undir s => simp [canGo]
 
+lemma mem_startAt_of_gofrom?_eq [DecidableEq V] (v w : V) (h : e.gofrom? v = some w) :
+  v ∈ e.startAt := match e with
+  | dir (a, b) => by
+    cases a <;> cases b <;> simp_all [gofrom?, Option.ite_none_right_eq_some,
+      Option.some.injEq, startAt, Multiset.empty_eq_zero, Multiset.not_mem_zero]
+  | undir s => by
+    simp_all only [gofrom?, Option.dite_none_right_eq_some, Option.some.injEq, exist_other'_eq,
+      undir_startAt, toMultiset_eq, Multiset.insert_eq_cons, Multiset.mem_cons,
+      Multiset.mem_singleton, true_or]
+
 lemma mem_startAt_of_canGo [DecidableEq V] (v w : V) : e.canGo v w → v ∈ e.startAt := by
   intro h
   match e with
@@ -414,7 +424,7 @@ lemma undir_gofrom?_comm [DecidableEq V] (s : Sym2 V) (v w : V) :
 
 @[simp]
 lemma dir_canGo [DecidableEq V] (a b : V) : (dir (some a, some b)).canGo a b := by
-  simp only [canGo, gofrom?, ↓reduceIte, Option.mem_def, decide_True]
+  simp only [canGo, gofrom?, ↓reduceIte, Option.mem_def, decide_true]
 
 @[simp]
 lemma undir_canGo [DecidableEq V] (a b : V) : (undir s(a, b)).canGo a b := by
@@ -426,7 +436,7 @@ lemma undir_canGo [DecidableEq V] (a b : V) : (undir s(a, b)).canGo a b := by
 lemma undir_canGo_v12 [DecidableEq V] (s : Sym2 V) : (undir s).canGo s.out.1 s.out.2 := by
   simp only [canGo, gofrom?, Option.mem_def, Option.dite_none_right_eq_some,
       Option.some.injEq, exist_other'_eq,
-    Prod.mk.eta, Quot.out_eq, decide_True]
+    Prod.mk.eta, Quot.out_eq, decide_true]
 
 @[simp]
 lemma canGo_iff_eq_of_undir [DecidableEq V] (v w : V) :
