@@ -97,6 +97,15 @@ def neighbourhood [DecidableEq V] : Set V := {u | G.adj u v}
 
 macro u:term "—[" e:term "]—" v:term : term => `(G.canGo $u $e $v)
 
+instance instAdjDecidable {G : Graph V E} [DecidableEq V] [Fintype E] (v : V) :
+    DecidablePred (G.adj v) := by
+  rintro w
+  simp only [adj, canGo, edge.canGo, Option.mem_def, decide_eq_true_eq]
+  infer_instance
+
+lemma adj_eq_bot_of_IsEmpty_E [DecidableEq V] [IsEmpty E] : G.adj = ⊥ := by
+  ext u v
+  simp only [adj, canGo, IsEmpty.exists_iff, Pi.bot_apply, «Prop».bot_eq_false]
 
 variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} [DecidableEq V] [DecidableEq W]
   [DecidableEq U]
@@ -110,6 +119,11 @@ structure Hom (G : Graph V E) (H : Graph W F) where
   inc : ∀ e, H.inc (fₑ e) = (G.inc e).map fᵥ
 
 namespace Hom
+
+@[ext]
+lemma ext (A B : Hom G H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
+  cases A; cases B
+  congr
 
 def refl (G : Graph V E) : Hom G G := ⟨id, id, fun _ => by rw [id_eq, map_id]⟩
 
@@ -147,6 +161,12 @@ macro G:term "⊆ᴳ" H:term :term => `(Graph.SubgraphOf $G $H)
 --   reprPrec _SubgraphOf _ := repr G ++ " ⊆ᴳ " ++ repr H
 
 namespace SubgraphOf
+
+@[ext]
+lemma ext (A B : G ⊆ᴳ H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
+  cases A; cases B
+  congr
+  ext <;> simp_all only
 
 def refl (G : Graph V E) : G ⊆ᴳ G where
   toHom := Hom.refl G
@@ -202,6 +222,12 @@ structure SpanningSubgraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H 
 namespace SpanningSubgraphOf
 variable (A : G.SpanningSubgraphOf H)
 
+@[ext]
+lemma ext (A B : G.SpanningSubgraphOf H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
+  cases A; cases B
+  congr
+  ext <;> simp_all only
+
 def fᵥBij : Function.Bijective A.fᵥ where
   left := A.fᵥinj
   right := A.fᵥsurj
@@ -233,6 +259,12 @@ namespace Isom
 
 variable (A : G ≃ᴳ H)
 
+@[ext]
+lemma ext (A B : G ≃ᴳ H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
+  cases A; cases B
+  congr
+  ext <;> simp_all only
+
 def fᵥBij : Function.Bijective A.fᵥ where
   left := A.fᵥinj
   right := A.fᵥsurj
@@ -246,6 +278,11 @@ noncomputable abbrev fₑEquiv : E ≃ F := Equiv.ofBijective _ A.fₑBij
 omit [DecidableEq V] [DecidableEq W] in @[simp]
 lemma fᵥEquiv_apply : A.fᵥEquiv = A.fᵥ := by
   ext v
+  rfl
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma fₑEquiv_apply : A.fₑEquiv = A.fₑ := by
+  ext e
   rfl
 
 lemma Equiv.ofBijective_symm_comp {α β : Sort*} (f : α → β) (hf : Function.Bijective f) :
@@ -335,5 +372,31 @@ lemma adj_iff (u v : V) : H.adj (A.fᵥ u) (A.fᵥ v) ↔ G.adj u v := by
   convert A.symm.toSubgraphOf.adj h <;> simp only [symm_fᵥ, Equiv.ofBijective_symm_apply_apply]
 
 end Isom
+
+def Aut (G : Graph V E) := G ≃ᴳ G
+
+namespace Aut
+
+noncomputable instance instAutGroup : Group G.Aut where
+  mul A B := A.trans B
+  mul_assoc A B C := by
+    change (A.trans B).trans C = A.trans (B.trans C)
+    ext <;> simp [Isom.trans_fᵥ, Function.comp_apply]
+  one := Isom.refl G
+  one_mul A := by
+    change (Isom.refl G).trans A = A
+    ext <;> simp [Isom.trans_fᵥ, Isom.refl_fᵥ, Equiv.coe_refl, Function.comp_apply, id_eq]
+  mul_one A := by
+    change A.trans (Isom.refl G) = A
+    ext <;> simp
+  inv A := A.symm
+  inv_mul_cancel A := by
+    change A.symm.trans A = Isom.refl G
+    ext <;> simp
+    rw [← Isom.fᵥEquiv_apply, Equiv.apply_symm_apply]
+    rw [← Isom.fₑEquiv_apply, Equiv.apply_symm_apply]
+
+end Aut
+
 
 end Graph

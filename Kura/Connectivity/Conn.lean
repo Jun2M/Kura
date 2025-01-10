@@ -1,8 +1,9 @@
-import Kura.Conn.Walk
+import Kura.Connectivity.Walk
 import Kura.Graph.Remove
 import Kura.Dep.Rel
 import Kura.Graph.Searchable
 import Kura.Dep.Equiv
+import Kura.Dep.Quot
 
 
 namespace Graph
@@ -51,8 +52,56 @@ lemma conn.ofPath (P : G.Path) : G.conn P.start P.finish := by
       exact this
     rw [← Walk.vertices_head_eq_start, List.head_cons_tail]
     exact Walk.vertices_chain'_adj P.toWalk
-
   · simp only [← Walk.vertices_head_eq_start, List.head_cons_tail, Walk.vertices_getLast_eq_finish]
+
+lemma conn.PathSubgr {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (S : (PathGraph n) ⊆ᴳ G),
+    S.fᵥ 0 = u ∧ S.fᵥ n = v := by
+  change Relation.ReflTransGen G.adj u v at huv
+  obtain ⟨l,H1, H2⟩ := List.exists_chain_of_relationReflTransGen huv
+  rw [List.chain_iff_forall₂] at H1
+  obtain rfl | H1 := H1
+  · simp only [List.getLast_singleton] at H2
+    subst u
+    use 0
+    refine ⟨⟨⟨fun a ↦ v,fun e ↦ Fin.elim0 e,fun e ↦ Fin.elim0 e⟩,?_,?_⟩,?_,?_⟩ <;>
+      simp only [Nat.reduceAdd] <;> rintro a b _hab
+    · exact Subsingleton.elim a b
+    · exact a.elim0
+  · use l.length
+    rw [List.forall₂_iff_zip] at H1
+    obtain ⟨H11,H21⟩ := H1
+    have H : ∀ p ∈ (u :: l.dropLast).zip l, G.adj p.1 p.2 := by sorry
+    let le : List E := (u :: l.dropLast).zip l |>.pmap (fun _p h ↦ h.choose) H
+
+    refine ⟨⟨⟨?_,?_,?_⟩,?_,?_⟩,?_,?_⟩
+    · exact (u :: l).get
+    · rintro i
+      apply le.get
+      apply i.cast
+      rw [List.length_pmap, List.length_zip, H11, min_self]
+    · rintro i
+      unfold PathGraph
+      simp only [canGo, List.get_eq_getElem, Fin.coe_cast, List.getElem_pmap, List.getElem_zip,
+        Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, map_undir, List.length_cons, Sym2.map_pair_eq,
+        Fin.coe_castSucc, Fin.val_succ, List.getElem_cons_succ, le]
+      sorry
+    · rintro i j hij
+      simp only [List.get_eq_getElem, List.length_cons] at hij
+      suffices u :: l |>.Nodup by
+        rw [this.getElem_inj_iff] at hij
+        omega
+      clear i j hij le H
+      sorry
+    · rintro i j hij
+      simp only [List.get_eq_getElem, Fin.coe_cast] at hij
+      suffices le.Nodup by
+        rw [this.getElem_inj_iff] at hij
+        omega
+      sorry
+    · simp only [List.get_eq_getElem, List.length_cons, Fin.val_zero, List.getElem_cons_zero]
+    · simp only [Fin.natCast_eq_last, List.get_eq_getElem, List.length_cons, Fin.val_last]
+      rw [List.getLast_eq_getElem] at H2
+      exact H2
 
 
 instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=
@@ -100,26 +149,51 @@ def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
     · intro a b c hab hbc
       exact Relation.ReflTransGen.trans hab hbc
 
-def NumberOfComponents [Fintype V] (G : Graph V E) [Searchable G] [Undirected G] : ℕ :=
-  @Fintype.card (Quotient (connSetoid G)) (@Quotient.fintype V _ (connSetoid G) (Relation.ReflTransGenDeciable))
+lemma connSetoid_eq_bot_of_IsEmpty_E [IsEmpty E] (G : Graph V E) [Undirected G] :
+    connSetoid G = ⊥ := by
+  apply Setoid.ext
+  rintro a b
+  change Relation.ReflTransGen G.adj a b ↔ _
+  simp only [adj_eq_bot_of_IsEmpty_E, Setoid.bot_def]
+  rw [Relation.reflTransGen_iff_eq, Eq.comm]
+  simp only [Pi.bot_apply, «Prop».bot_eq_false, not_false_eq_true, implies_true]
+
+lemma connSetoid_eq_top_of_connected [Undirected G] [G.connected] : connSetoid G = ⊤ := by
+  apply Setoid.ext
+  rintro a b
+  change G.conn a b ↔ _
+  simp only [Setoid.top_def, Pi.top_apply, «Prop».top_eq_true, iff_true]
+  exact G.all_conn a b
+
+def NumberOfComponents [Fintype V] [Fintype E] (G : Graph V E) [Undirected G] : ℕ :=
+  @Fintype.card (Quotient (connSetoid G)) (@Quotient.fintype V _ (connSetoid G) Relation.ReflTransGenDeciable)
 
 lemma NumberOfComponents_le_card_V [Fintype V] [Fintype E] [Undirected G] :
     G.NumberOfComponents ≤ Fintype.card V := by
   unfold NumberOfComponents
   exact @Fintype.card_quotient_le V _ G.connSetoid Relation.ReflTransGenDeciable
 
-lemma NumberOfComponents_eq_card_V [Fintype V] [IsEmpty E] [Fintype E] (G : Graph V E) [Undirected G] :
-    G.NumberOfComponents = Fintype.card V := by
-  sorry
+lemma NumberOfComponents_eq_card_V [Fintype V] [IsEmpty E] [Fintype E] (G : Graph V E)
+    [Undirected G] : G.NumberOfComponents = Fintype.card V := by
+  unfold NumberOfComponents
+  rw [@Fintype.card_eq]
+  refine ⟨Equiv.symm ?_⟩
+  convert Equiv.Quotient_bot
+  apply connSetoid_eq_bot_of_IsEmpty_E
 
 lemma NumberOfComponents_le_one [Fintype V] [Fintype E] (G : Graph V E) [Undirected G] [G.connected] :
     G.NumberOfComponents ≤ 1 := by
-  sorry
+  unfold NumberOfComponents
+  rw [@Fintype.card_le_one_iff_subsingleton, connSetoid_eq_top_of_connected]
+  exact SubsingletonQuotientTop
 
 lemma NumberOfComponents_eq_one [Fintype V] [Fintype E] [Nonempty V] (G : Graph V E) [Undirected G]
-  [G.connected] :
-    G.NumberOfComponents = 1 := by
-  sorry
+    [G.connected] : G.NumberOfComponents = 1 := by
+  refine le_antisymm (G.NumberOfComponents_le_one) ?_
+  unfold NumberOfComponents
+  rw [Nat.one_le_iff_ne_zero, ne_eq, @Fintype.card_eq_zero_iff, Quotient.IsEmpty_iff]
+  exact not_isEmpty_of_nonempty V
+
 
 lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.card E = 0):
   Subsingleton V := by
@@ -281,7 +355,7 @@ lemma empty_not_minEdgeCut : ¬ G.minEdgeCut ∅ := by
 -- def isolatingEdgeCut [Searchable G] (v : V) := G.incEdges v
 
 lemma incEdges_edgeCut (v : V) [Nontrivial V] [Searchable G] [DecidableEq E] :
-    G.edgeCut (G.incEdges v) := by
+    G.edgeCut (G.incEdges v).toFinset := by
   simp only [edgeCut]
   obtain ⟨w, hw⟩ := exists_ne v
   sorry

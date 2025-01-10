@@ -82,7 +82,7 @@ theorem EulerFormula_of_connected [Nonempty V] [Fintype V] [Fintype E] [G.connec
   rw [EulerFormula G, NumberOfComponents_eq_one G]
 
 def FacialCycleOf (w : Cycle G) [Searchable G.dualGraph] : Prop :=
-  ∃ (f : G.Faces), w.edges.toFinset = G.dualGraph.incEdges f
+  ∃ (f : G.Faces), w.edges.toFinset = (G.dualGraph.incEdges f).toFinset
 
 
 lemma three_le_dualGraph_minDegree [Fintype E] [G.Simple] : 3 ≤ G.dualGraph.minDegree := by

@@ -1,4 +1,4 @@
-import Kura.Conn.Walk
+import Kura.Connectivity.Walk
 
 namespace Graph
 open edge

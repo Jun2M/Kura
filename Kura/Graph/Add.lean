@@ -1,5 +1,4 @@
 import Kura.Graph.Remove
-import Kura.Examples.Defs
 
 
 namespace Graph
@@ -50,6 +49,14 @@ def addUndirEdge_SpanningSubgraphOf (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G
   fᵥinj _ _ a := a
   fₑinj _ _ a := Sum.inl.inj a
   fᵥsurj _ := by simp only [id_eq, exists_eq]
+
+@[simp]
+lemma addUndirEdge_inc_inl (s : Sym2 V₁) (e : E₁) :
+  (G₁.addUndirEdge s).inc (Sum.inl e) = G₁.inc e := rfl
+
+@[simp]
+lemma addUndirEdge_inc_inr (s : Sym2 V₁) :
+  (G₁.addUndirEdge s).inc (Sum.inr ()) = undir s := rfl
 
 @[simp]
 lemma addUndirEdge_SpanningSubgraphOf_fᵥ (s : Sym2 V₁) :

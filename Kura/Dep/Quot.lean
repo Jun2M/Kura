@@ -58,7 +58,72 @@ lemma card_submodular [Fintype α] [DecidableEq α] (r s : α → α → Prop) :
 
   sorry
 
+lemma IsEmpty_iff {α : Type*} (r : Setoid α) : IsEmpty (Quotient r) ↔ IsEmpty α := by
+  constructor <;> intro h
+  · contrapose! h
+    simp_all only [not_isEmpty_iff]
+    exact ⟨⟦h.some⟧⟩
+  · infer_instance
+
+def idmap {α : Type*} {s r : Setoid α} (hsr : s ≤ r) : Quotient s → Quotient r :=
+  fun a ↦ Quotient.map' id hsr a
+
+lemma idmap_surjective {α : Type*} {s r : Setoid α} (hsr : s ≤ r) :
+    Function.Surjective (idmap hsr) := by
+  intro x
+  obtain ⟨y, rfl⟩ := exists_rep x
+  use ⟦y⟧
+  simp only [idmap, map'_mk'', id_eq]
+
+lemma idmap_injective_iff_eq {α : Type*} {s r : Setoid α} (hsr : s ≤ r) :
+    Function.Injective (idmap hsr) ↔ s = r := by
+  constructor
+  · intro h
+    ext a b
+    refine ⟨(hsr ·), fun hr ↦ ?_⟩
+    obtain hinj := @h ⟦a⟧ ⟦b⟧
+    simp only [idmap, map'_mk'', id_eq, eq] at hinj
+    exact hinj hr
+  · rintro rfl a b hab
+    induction' a using Quotient.ind with a
+    induction' b using Quotient.ind with b
+    simp_all only [idmap, map'_mk'', id_eq, eq]
+
+lemma idmap_not_injective_of_lt {α : Type*} {s r : Setoid α} (hrs : s < r) :
+    ¬ Function.Injective (idmap hrs.le) := by
+  rw [idmap_injective_iff_eq]
+  exact ne_of_lt hrs
+
+lemma card_quotient_le_card_quotient_of_ge [Fintype α] [DecidableEq α] (hrs : s ≤ r) :
+    Fintype.card (Quotient r) ≤ Fintype.card (Quotient s) :=
+  Fintype.card_le_of_surjective (idmap hrs) (idmap_surjective hrs)
+
+lemma card_quotient_lt_card_quotient_of_gt [Fintype α] [DecidableEq α] (hrs : s < r) :
+    Fintype.card (Quotient r) < Fintype.card (Quotient s) :=
+  Fintype.card_lt_of_surjective_not_injective (idmap hrs.le) (idmap_surjective hrs.le) <|
+  idmap_not_injective_of_lt hrs
+
+
 end Quotient
+
+-- def Setoid.Eq (α : Type*) : Setoid α where
+--   r := (· = ·)
+--   iseqv := ⟨Eq.refl, Eq.symm, Eq.trans⟩
+
+def Equiv.Quotient_bot {α : Type*} : α ≃ Quotient (⊥ : Setoid α) where
+  toFun a := Quotient.mk ⊥ a
+  invFun q := Quotient.lift id (fun _ _ h ↦ h) q
+  left_inv a := by simp only [Quotient.lift_mk, id_eq]
+  right_inv q := by
+    induction' q using Quotient.ind with a
+    simp only [Quotient.lift_mk, id_eq]
+
+instance SubsingletonQuotientTop {α : Type*} : Subsingleton (Quotient (⊤ : Setoid α)) := by
+  constructor
+  rintro a b
+  induction' a using Quotient.ind with a
+  induction' b using Quotient.ind with b
+  exact Quotient.sound trivial
 
 namespace Quot
 variable {α : Type*} (r : α → α → Prop)

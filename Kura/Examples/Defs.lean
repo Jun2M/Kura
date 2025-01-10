@@ -6,6 +6,7 @@ import Kura.Dep.Toss
 import Kura.Graph.Bipartite
 import Kura.Dep.Fin
 import Mathlib.Data.Sym.Card
+import Kura.Graph.Add
 
 
 namespace Graph
@@ -75,6 +76,49 @@ lemma CompleteGraph_edges_card (n : ℕ) : Fintype.card (CompleteGraph n).Edges 
   infer_instance
 
 
+def PathGraph (n : ℕ) : Graph (Fin (n+1)) (Fin n) where
+  inc e := undir s(e, e+1)
+
+lemma PathGraph.adj_iff {n : ℕ} {u v : Fin (n+1)} (huv : u < v):
+    (PathGraph n).adj u v ↔ u.val +1 = v.val := by
+  constructor <;> intro h
+  · obtain ⟨e, he⟩ := h
+    unfold PathGraph canGo at he
+    simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, canGo_iff_eq_of_undir, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Prod.swap_prod_mk] at he
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := he
+    · exact rfl
+    · absurd huv; clear huv
+      simp only [not_lt]
+      exact Fin.castSucc_le_succ e
+  · unfold PathGraph adj canGo
+    use ⟨u.val, Fin.val_lt_last <| Fin.ne_last_of_lt huv⟩
+    simp only [Fin.cast_val_eq_self, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
+      true_and, Prod.swap_prod_mk, add_right_eq_self, Fin.one_eq_zero_iff, add_left_eq_self]
+    left
+    apply_fun Fin.val using Fin.val_injective
+    rw [← h, Fin.val_add_one]
+    simp only [ite_eq_right_iff, self_eq_add_left, AddLeftCancelMonoid.add_eq_zero, one_ne_zero,
+      and_false, imp_false]
+    exact Fin.ne_last_of_lt huv
+
+instance instPathGraphSimple (n : ℕ) : Simple (PathGraph n) where
+  edge_symm _ := by simp [PathGraph]
+  all_full _ := by simp only [isFull, edge.isFull, PathGraph]
+  no_loops e := by
+    simp only [isLoop, PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir_isLoop_iff']
+    exact (Fin.succ_ne_castSucc e).symm
+  inc_inj e₁ e₂ h := by
+    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir.injEq, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Fin.succ_inj, and_self, Prod.swap_prod_mk] at h
+    obtain (⟨rfl, rfl⟩ | ⟨h1, h2⟩) := h
+    · rfl
+    · apply_fun Fin.val at h1 h2 ⊢
+      simp only [Fin.coe_castSucc, Fin.val_succ] at h1 h2
+      omega
+      exact Fin.val_injective
+
+
 def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
 
@@ -82,6 +126,41 @@ instance instTourGraphUndirected (n : ℕ+) : Undirected (TourGraph n) where
   edge_symm _ := by simp [TourGraph]
   all_full _ := by simp only [isFull, edge.isFull, TourGraph]
 
+def TourGraph_Isom_PathGraph_addUndirEdge (n : ℕ) :
+    (TourGraph n.succPNat).Isom (PathGraph n |>.addUndirEdge s(0, Fin.last _)) where
+  fᵥ v := v
+  fₑ e :=
+    if h : e = Fin.last _
+    then Sum.inr ()
+    else Sum.inl (e.castPred h)
+  inc e := by
+    by_cases h : e = Fin.last _
+    · simp only [Nat.succPNat_coe, Nat.succ_eq_add_one, h, ↓reduceDIte, addUndirEdge_inc_inr,
+      TourGraph, Fin.last_add_one, map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff',
+      Prod.mk.injEq, Fin.zero_eq_last_iff, Fin.last_eq_zero_iff, and_self, Prod.swap_prod_mk,
+      or_true]
+    · simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Nat.succPNat_coe,
+      Nat.succ_eq_add_one, h, ↓reduceDIte, addUndirEdge_inc_inl, Fin.castSucc_castPred, TourGraph,
+      map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, true_and,
+      Prod.swap_prod_mk, self_eq_add_right, Fin.one_eq_zero_iff, add_left_eq_self]
+      left
+      exact Fin.castPred_succ e h
+  fᵥinj _ _ a := a
+  fₑinj e1 e2 h := by
+    by_cases he1 : e1 = Fin.last _ <;> by_cases he2 : e2 = Fin.last _ <;>
+    simp_all [Nat.succPNat_coe, Nat.succ_eq_add_one, dite_true, dite_false]
+    rw [← Fin.castPred_inj]
+    apply Sum.inl_injective h
+  fᵥsurj _ := by simp only [exists_eq]
+  fₑsurj e :=
+    match e with
+    | Sum.inl e => by
+      use e
+      simp only [Nat.succPNat_coe, Nat.succ_eq_add_one, Fin.coe_eq_castSucc, Fin.castSucc_ne_last,
+        ↓reduceDIte, Fin.castPred_castSucc]
+    | Sum.inr () => by
+      use Fin.last _
+      simp only [Nat.succPNat_coe, Nat.succ_eq_add_one, ↓reduceDIte]
 
 def CycleGraph (n : ℕ) (hn : 1 < n) : Graph (Fin n) (Fin n) := TourGraph ⟨n, by omega⟩
 #eval! CycleGraph 5 (by norm_num)
@@ -111,43 +190,6 @@ inc_inj e₁ e₂ h := by
     rw [← sub_toss_eq, sub_eq_add_neg, add_left_cancel_iff] at h₁
     absurd h₁
     exact CharP.neg_one_ne_one (Fin n) n
-
-def PathGraph (n : ℕ) : Graph (Fin (n+1)) (Fin n) where
-  inc e := undir s(e, e+1)
-
-lemma PathGraph.adj_iff {n : ℕ} {u v : Fin (n+1)} (huv : u < v):
-    (PathGraph n).adj u v ↔ u.val +1 = v.val := by
-  constructor <;> intro h
-  · obtain ⟨e, he⟩ := h
-    unfold PathGraph canGo at he
-    simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, canGo_iff_eq_of_undir, Sym2.eq,
-      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Prod.swap_prod_mk] at he
-    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := he
-    · exact rfl
-    · absurd huv; clear huv
-      simp only [not_lt]
-      exact Fin.castSucc_le_succ e
-  · unfold PathGraph adj canGo
-    use ⟨u.val, sorry⟩
-    simp only [Fin.cast_val_eq_self, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
-      true_and, Prod.swap_prod_mk, add_right_eq_self, Fin.one_eq_zero_iff, add_left_eq_self]
-    exact Or.inl sorry
-
-instance instPathGraphSimple (n : ℕ) : Simple (PathGraph n) where
-  edge_symm _ := by simp [PathGraph]
-  all_full _ := by simp only [isFull, edge.isFull, PathGraph]
-  no_loops e := by
-    simp only [isLoop, PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir_isLoop_iff']
-    exact (Fin.succ_ne_castSucc e).symm
-  inc_inj e₁ e₂ h := by
-    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir.injEq, Sym2.eq,
-      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Fin.succ_inj, and_self, Prod.swap_prod_mk] at h
-    obtain (⟨rfl, rfl⟩ | ⟨h1, h2⟩) := h
-    · rfl
-    · apply_fun Fin.val at h1 h2 ⊢
-      simp only [Fin.coe_castSucc, Fin.val_succ] at h1 h2
-      omega
-      exact Fin.val_injective
 
 def CompleteBipGraph (n₁ n₂ : ℕ+) : Graph (Fin n₁ ⊕ₗ Fin n₂) (Fin n₁ ×ₗ Fin n₂) where
   inc e := undir s(.inl e.1, .inr e.2)

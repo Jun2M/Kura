@@ -197,7 +197,8 @@ lemma incEdges_card_eq_degree [G.loopless] : (G.incEdges v).length = G.degree v 
 lemma incEdges_eq_outEdges [G.Undirected] : G.incEdges v = G.outEdges v := by
   sorry
 
-instance instAdjDecidable [DecidableEq V] [SearchableOut G] : ∀ u, DecidablePred (G.adj u ·) := by
+instance instAdjDecidableOfSearchableOut [DecidableEq V] [SearchableOut G] :
+    ∀ u, DecidablePred (G.adj u ·) := by
   rintro u v
   apply decidable_of_iff _ (G.adj_iff_exist_outEdge_canGo u v).symm
 

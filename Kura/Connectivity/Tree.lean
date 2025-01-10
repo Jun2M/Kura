@@ -1,5 +1,5 @@
-import Kura.Conn.closedWalk
-import Kura.Conn.Conn
+import Kura.Connectivity.closedWalk
+import Kura.Connectivity.Conn
 import Kura.Examples.Conn
 import Kura.Graph.Remove
 
@@ -7,6 +7,48 @@ namespace Graph
 open edge
 variable {V W E F : Type*} [DecidableEq V] [DecidableEq W]
 
+
+def acyclic (G : Graph V E) : Prop := ∀ n, IsEmpty <| TourGraph n ⊆ᴳ G
+
+omit [DecidableEq V] [DecidableEq W] in
+lemma SubgraphOf.acyclic {G : Graph V E} {H : Graph W F} (hHG : H ⊆ᴳ G) : G.acyclic → H.acyclic := by
+  intro hGacyclic n
+  by_contra! h
+  simp only [not_isEmpty_iff] at h
+  obtain ⟨h⟩ := h
+  specialize hGacyclic n
+  apply hGacyclic.elim'
+  exact h.trans hHG
+
+lemma endAt_not_conn {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) (e : E) :
+    ¬ G.conn (G.v1 e) (G.v2 e) := by
+  rintro hconn
+  
+
+theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirected G]
+    (hG : G.acyclic) : Fintype.card V = Fintype.card E + NumberOfComponents G := by
+  suffices ∀ m, Fintype.card E = m → Fintype.card V = m + NumberOfComponents G by
+    refine this _ rfl
+  rintro m
+  induction' m with m ih generalizing E <;> rintro hm
+  · rw [@Fintype.card_eq_zero_iff] at hm
+    rw [NumberOfComponents_eq_card_V]
+    omega
+  · obtain e : E := by
+      have : 0 < Fintype.card E := by omega
+      rw [Fintype.card_pos_iff] at this
+      exact this.some
+    let E' := ({e}ᶜ : Set _).Elem
+    have : Fintype E' := Fintype.ofFinite E'
+    have hG'Subgr := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf
+    have hG'Undir := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf.Undirected
+    specialize ih (G := G{{e}ᶜ}ᴳ) (hG'Subgr.acyclic hG) ?_
+    · rw [Fintype.card_compl_set, hm]
+      simp only [Fintype.card_ofSubsingleton, add_tsub_cancel_right]
+    rw [ih]
+    suffices (G.Es {e}ᶜ).NumberOfComponents = 1 + G.NumberOfComponents by rw [this]; omega
+
+    sorry
 
 structure Forest (V E : Type*) [DecidableEq V] extends Graph V E where
   no_cycle : IsEmpty toGraph.Cycle

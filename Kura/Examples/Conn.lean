@@ -1,5 +1,5 @@
 import Kura.Examples.Defs
-import Kura.Conn.Conn
+import Kura.Connectivity.Conn
 
 namespace Graph
 open edge
@@ -39,5 +39,3 @@ lemma PathGraph_conn_0 (n : ℕ) (v : Fin (n+1)) : (PathGraph n).conn 0 v := by
 
 instance instPathGraphConn (n : ℕ) : (PathGraph n).connected where
   all_conn u v := ((PathGraph_conn_0 n u).symm (G:=PathGraph n) _).trans (PathGraph_conn_0 n v)
-
-
