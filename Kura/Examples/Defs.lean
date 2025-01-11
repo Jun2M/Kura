@@ -102,6 +102,51 @@ lemma PathGraph.adj_iff {n : ℕ} {u v : Fin (n+1)} (huv : u < v):
       and_false, imp_false]
     exact Fin.ne_last_of_lt huv
 
+def PathGraph_SubgraphOf_Pathgraph {n m k : ℕ} (hnm : n + k ≤ m) :
+    (PathGraph n).SubgraphOf (PathGraph m) where
+  fᵥ v := (v.addNatEmb k).castLE (by omega)
+  fₑ e := (e.addNatEmb k).castLE (by omega)
+  inc e := by
+    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, map_undir, Sym2.map_pair_eq,
+      undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+    refine Or.inl ⟨?_,?_⟩ <;> ext
+    · simp only [Fin.addNatEmb_apply, Fin.coe_castSucc, Fin.coe_castLE, Fin.coe_addNat]
+    · simp only [Fin.addNatEmb_apply, Fin.val_succ, Fin.coe_castLE, Fin.coe_addNat]
+      omega
+  fᵥinj _ _ a := by
+    simp only [Fin.castLE_inj] at a
+    exact Function.Embedding.injective _ a
+  fₑinj e₁ e₂ h := by
+    simp only [Fin.castLE_inj] at h
+    exact Function.Embedding.injective _ h
+
+@[simp]
+lemma PathGraph_SubgraphOf_Pathgraph_fᵥapply {n m k : ℕ} (hnm : n + k ≤ m) (v : Fin (n+1)) :
+    (PathGraph_SubgraphOf_Pathgraph hnm).fᵥ v = (v.addNatEmb k).castLE (by omega) := by rfl
+
+@[simp]
+lemma PathGraph_SubgraphOf_Pathgraph_fₑapply {n m k : ℕ} (hnm : n + k ≤ m) (e : Fin n) :
+    (PathGraph_SubgraphOf_Pathgraph hnm).fₑ e = (e.addNatEmb k).castLE (by omega) := by rfl
+
+@[simp]
+lemma PathGraph_SubgraphOf_Pathgraph_start {n m k : ℕ} (hnm : n + k ≤ m) :
+    (PathGraph_SubgraphOf_Pathgraph hnm).fᵥ 0 = k := by
+  simp only [PathGraph_SubgraphOf_Pathgraph_fᵥapply, Fin.addNatEmb_apply]
+  ext
+  simp only [Fin.coe_castLE, Fin.coe_addNat, Fin.val_zero, zero_add, Fin.val_natCast]
+  refine (Nat.mod_eq_of_lt ?_).symm
+  omega
+
+@[simp]
+lemma PathGraph_SubgraphOf_Pathgraph_end {n m k : ℕ} (hnm : n + k ≤ m) :
+    (PathGraph_SubgraphOf_Pathgraph hnm).fᵥ n = ↑(n + k) := by
+  simp only [PathGraph_SubgraphOf_Pathgraph_fᵥapply, Fin.addNatEmb_apply]
+  ext
+  rw [Fin.val_natCast]
+  simp only [Fin.natCast_eq_last, Fin.addNat_last, Fin.coe_castLE, Fin.coe_cast, Fin.val_last]
+  refine (Nat.mod_eq_of_lt ?_).symm
+  omega
+
 instance instPathGraphSimple (n : ℕ) : Simple (PathGraph n) where
   edge_symm _ := by simp [PathGraph]
   all_full _ := by simp only [isFull, edge.isFull, PathGraph]

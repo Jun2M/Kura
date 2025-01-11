@@ -146,8 +146,7 @@ def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
     · apply Relation.ReflTransGen.symmetric
       intro x y hxy
       exact (G.adj_comm x y).mp hxy
-    · intro a b c hab hbc
-      exact Relation.ReflTransGen.trans hab hbc
+    · exact Relation.ReflTransGen.trans
 
 lemma connSetoid_eq_bot_of_IsEmpty_E [IsEmpty E] (G : Graph V E) [Undirected G] :
     connSetoid G = ⊥ := by
@@ -164,6 +163,14 @@ lemma connSetoid_eq_top_of_connected [Undirected G] [G.connected] : connSetoid G
   change G.conn a b ↔ _
   simp only [Setoid.top_def, Pi.top_apply, «Prop».top_eq_true, iff_true]
   exact G.all_conn a b
+
+lemma connSetoid_Es_le_connSetoid [Undirected G] (S : Set E) :
+    (G{S}ᴳ).connSetoid ≤ G.connSetoid := by
+  rintro a b
+  simp only [connSetoid, conn]
+  apply Relation.ReflTransClosure.monotone
+  convert G.Es_spanningsubgraph S |>.toHom.adj_le
+  simp only [Es_spanningsubgraph_fᵥ, Relation.map_id_id]
 
 def NumberOfComponents [Fintype V] [Fintype E] (G : Graph V E) [Undirected G] : ℕ :=
   @Fintype.card (Quotient (connSetoid G)) (@Quotient.fintype V _ (connSetoid G) Relation.ReflTransGenDeciable)

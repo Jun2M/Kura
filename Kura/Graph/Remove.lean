@@ -278,6 +278,57 @@ def Es_spanningsubgraph_Es_of_subset {S T : Set E} (h : S ⊆ T) :
 lemma Es_spanningsubgraph_Es_of_subset_fᵥ {S T : Set E} (h : S ⊆ T) :
     (G.Es_spanningsubgraph_Es_of_subset h).fᵥ = id := rfl
 
+def Hom.Es {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
+    G.Hom (H{S}ᴳ) where
+  fᵥ := σ.fᵥ
+  fₑ e := ⟨σ.fₑ e, hσ e⟩
+  inc e := σ.inc e
+
+@[simp]
+lemma Hom.Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
+    (σ.Es S hσ).fᵥ = σ.fᵥ := rfl
+
+@[simp]
+lemma Hom.Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
+    (σ.Es S hσ).fₑ e = ⟨σ.fₑ e, hσ e⟩ := rfl
+
+def SubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
+    G ⊆ᴳ H{S}ᴳ where
+  toHom := σ.toHom.Es S hσ
+  fᵥinj := σ.fᵥinj
+  fₑinj a b h := by
+    simp only [Hom.Es, Subtype.mk.injEq] at h
+    exact σ.fₑinj h
+
+def SpanningSubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G.SpanningSubgraphOf H) (S : Set F)
+    (hσ : ∀ e, σ.fₑ e ∈ S) : G.SpanningSubgraphOf (H{S}ᴳ) where
+  toSubgraphOf := σ.toSubgraphOf.Es S hσ
+  fᵥsurj := σ.fᵥsurj
+
+instance instEsUndir [Undirected G] {S : Set E} : G{S}ᴳ.Undirected where
+  all_full e := by
+    obtain ⟨e, he⟩ := e
+    exact G.all_full e
+  edge_symm e := by
+    obtain ⟨e, he⟩ := e
+    exact G.edge_symm e
+
+instance instEsSimple [Simple G] {S : Set E} : G{S}ᴳ.Simple where
+  edge_symm e := by
+    obtain ⟨e, he⟩ := e
+    exact G.edge_symm e
+  all_full e := by
+    obtain ⟨e, he⟩ := e
+    exact G.all_full e
+  no_loops e := by
+    obtain ⟨e, he⟩ := e
+    exact G.no_loops e
+  inc_inj e₁ e₂ h := by
+    obtain ⟨e₁, he₁⟩ := e₁
+    obtain ⟨e₂, he₂⟩ := e₂
+    ext
+    exact G.inc_inj h
+
 @[simp]
 lemma EVs_inc (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) (e : Se) :
     (G.EVs Sv Se he).inc e = (G.inc e).pmap Subtype.mk (by

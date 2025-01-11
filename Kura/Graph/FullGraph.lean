@@ -57,9 +57,9 @@ lemma NonemptyV_of_e (G : Graph V E) [fullGraph G] (e : E) : Nonempty V := by
     exact IsEmpty.false e
   · assumption
 
-noncomputable def v1 : V := ((G.inc e).toFullEdge (G.all_full e)).v1
+noncomputable def v1 : V := (G.inc e).v1 (G.all_full e)
 
-noncomputable def v2 : V := ((G.inc e).toFullEdge (G.all_full e)).v2
+noncomputable def v2 : V := (G.inc e).v2 (G.all_full e)
 
 @[simp↓ 101]
 lemma dir_v1 {e} {u v} (h : G.inc e = dir (some u, some v)) : v1 G e = u := by
@@ -83,5 +83,16 @@ lemma isLoop_iff_v1_eq_v2 : G.isLoop e ↔ v1 G e = v2 G e := by
       simp only [isLoop, h, dir_isLoop_iff]
   | undir s => simp only [isLoop, edge.isLoop, h, Sym2.isDiag_iff_out_fst_eq_out_snd, v1, undir_v1,
     v2, undir_v2]
+
+@[simp]
+lemma adj_v12 [DecidableEq V] : G.adj (G.v1 e) (G.v2 e) := by
+  match h : G.inc e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> try simp_all
+    use e
+    exact edge.canGo_v1_v2 (G.all_full e)
+  | undir s =>
+    use e
+    exact edge.canGo_v1_v2 (G.all_full e)
 
 end Graph

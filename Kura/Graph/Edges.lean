@@ -871,36 +871,36 @@ noncomputable def v2 {e : edge V} (he : e.isFull) : V := (toFullEdge e he).v2
 
 @[simp]
 lemma dir_v1 (a b : V) (he : (dir (some a, some b)).isFull) :
-  (toFullEdge (dir (some a, some b)) he).v1 = a := rfl
+  (dir (some a, some b)).v1 he = a := rfl
 
 @[simp]
 lemma undir_v1 (s : Sym2 V) :
-  (toFullEdge (undir s) (undir_isFull s)).v1 = s.out.1 := rfl
+  (undir s).v1 (undir_isFull s) = s.out.1 := rfl
 
 @[simp]
 lemma dir_v2 (a b : V) (he : (dir (some a, some b)).isFull) :
-  (toFullEdge (dir (some a, some b)) he).v2 = b := rfl
+  (dir (some a, some b)).v2 he = b := rfl
 
 @[simp]
 lemma undir_v2 (s : Sym2 V) :
-  (toFullEdge (undir s) (undir_isFull s)).v2 = s.out.2 := rfl
+  (undir s).v2 (undir_isFull s) = s.out.2 := rfl
 
 @[simp]
 lemma undir_v12_eq (s : Sym2 V) :
-  undir s((toFullEdge (undir s) (undir_isFull s)).v1,
-    (toFullEdge (undir s) (undir_isFull s)).v2) = undir s := by
+  undir s((undir s).v1 (undir_isFull s), (undir s).v2 (undir_isFull s)) = undir s := by
   simp only [undir_v1, undir_v2, Prod.mk.eta, Quot.out_eq]
 
+@[simp]
 lemma canGo_v1_v2 [DecidableEq V] {e : edge V} (he : e.isFull) : canGo (e.v1 he) e (e.v2 he) := by
   match e, he with
-  | edge.dir (some a, some b), _ => simp only [v1, dir_v1, v2, dir_v2, dir_canGo]
-  | edge.undir s, _ => simp [v1, v2]
+  | dir (some a, some b), _ => simp only [dir_v1, dir_v2, dir_canGo]
+  | undir s, _ => simp only [undir_v1, undir_v2, undir_canGo_v12]
 
 @[simp]
 lemma isLoop_iff_v1_eq_v2 {e : edge V} (he : e.isFull) : e.isLoop ↔ e.v1 he = e.v2 he := by
   match e, he with
-  | edge.dir (some a, some b), _ => simp only [v1, dir_v1, v2, dir_v2, dir_isLoop_iff]
-  | edge.undir s, _ => simp only [undir_isLoop_iff, isDiag_iff_out_fst_eq_out_snd, v1, undir_v1, v2,
+  | edge.dir (some a, some b), _ => simp only [dir_v1, dir_v2, dir_isLoop_iff]
+  | edge.undir s, _ => simp only [undir_isLoop_iff, isDiag_iff_out_fst_eq_out_snd, undir_v1,
     undir_v2]
 
 end edge
