@@ -290,7 +290,7 @@ lemma Hom.Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (h�
 
 @[simp]
 lemma Hom.Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
-    (σ.Es S hσ).fₑ e = ⟨σ.fₑ e, hσ e⟩ := rfl
+    (σ.Es S hσ).fₑ = fun e => ⟨σ.fₑ e, hσ e⟩ := rfl
 
 def SubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
     G ⊆ᴳ H{S}ᴳ where

@@ -28,14 +28,4 @@ instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected := b
 instance instCompleteBipGraphConnected (n₁ n₂ : ℕ+) : (CompleteBipGraph n₁ n₂).connected := by
   sorry
 
-lemma PathGraph_conn_0 (n : ℕ) (v : Fin (n+1)) : (PathGraph n).conn 0 v := by
-  induction' v with j hjpos
-  induction' j with x ih
-  · exact conn.refl (PathGraph n) 0
-  · specialize ih (by omega)
-    apply ih.tail ; clear ih
-    rw [PathGraph.adj_iff]
-    simp only [Fin.mk_lt_mk, lt_add_iff_pos_right, zero_lt_one]
 
-instance instPathGraphConn (n : ℕ) : (PathGraph n).connected where
-  all_conn u v := ((PathGraph_conn_0 n u).symm (G:=PathGraph n) _).trans (PathGraph_conn_0 n v)

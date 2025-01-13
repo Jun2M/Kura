@@ -68,14 +68,10 @@ lemma canGo_symm [DecidableEq V] : G.canGo u e v = G.canGo v e u := by
   simp only [canGo, inc_eq_undir_v12]
   rw [← canGo_flip, flip_self]
 
-lemma canGo_iff_eq_v12 [DecidableEq V] : G.canGo u e v ↔ (u = G.v1 e ∧ v = G.v2 e) ∨ (u = G.v2 e ∧ v = G.v1 e) := by
-  simp only [canGo, inc_eq_undir_v12]
-  constructor
-  · rintro h
-
-    sorry
-  ·
-    sorry
+-- lemma canGo_iff_eq_v12 [DecidableEq V] : G.canGo u e v ↔ G.v1 e = u ∧ G.v2 e = v ∨
+--     G.v1 e = v ∧ G.v2 e = u := by
+--   simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
+--     Prod.swap_prod_mk]
 
 lemma startAt_eq_endAt : G.startAt e = G.endAt e := by
   simp only [startAt, inc_eq_undir_v12, undir_startAt, endAt, undir_endAt]

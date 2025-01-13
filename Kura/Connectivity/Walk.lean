@@ -94,10 +94,18 @@ lemma vertices_getLast_eq_finish : w.vertices.getLast (w.vertices_ne_nil) = w.fi
 lemma vertices_chain'_adj : w.vertices.Chain' G.adj := by
   sorry
 
+@[simp]
+lemma vertices_length : w.vertices.length = w.length + 1 := by
+  simp only [vertices, length, List.length_cons, List.length_map]
+
 def edges : List E := w.steps.map (·.snd.fst)
 
 lemma length_ne_zero_iff_edges_ne_nil : w.length ≠ 0 ↔ w.edges ≠ [] := by
   simp only [ne_eq, length_ne_zero_iff, edges, List.map_eq_nil_iff]
+
+@[simp]
+lemma edges_length : w.edges.length = w.length := by
+  simp only [edges, length, List.length_map]
 
 -- same path iff same start and same edges
 

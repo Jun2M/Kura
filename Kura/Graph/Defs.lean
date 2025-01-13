@@ -107,8 +107,14 @@ lemma adj_eq_bot_of_IsEmpty_E [DecidableEq V] [IsEmpty E] : G.adj = ⊥ := by
   ext u v
   simp only [adj, canGo, IsEmpty.exists_iff, Pi.bot_apply, «Prop».bot_eq_false]
 
-variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} [DecidableEq V] [DecidableEq W]
-  [DecidableEq U]
+variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} {J : Graph V' F'} [DecidableEq V]
+  [DecidableEq W] [DecidableEq U] [DecidableEq V']
+
+-- Disjoint union of two graphs
+def add : Graph (V ⊕ W) (E ⊕ F) where
+  inc e := match e with
+    | Sum.inl e₁ => (G.inc e₁).map Sum.inl
+    | Sum.inr e₂ => (H.inc e₂).map Sum.inr
 
 /-- A homomorphism between graphs `G = (V,E)` and `H = (W,F)` is a map between
     vertex sets that preserves adjacency. It is implemented as two functions,
@@ -120,32 +126,49 @@ structure Hom (G : Graph V E) (H : Graph W F) where
 
 namespace Hom
 
-@[ext]
+omit [DecidableEq V] [DecidableEq W] in @[ext]
 lemma ext (A B : Hom G H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
   cases A; cases B
   congr
 
 def refl (G : Graph V E) : Hom G G := ⟨id, id, fun _ => by rw [id_eq, map_id]⟩
 
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fᵥ : (Hom.refl G).fᵥ = id := rfl
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma refl_fₑ : (Hom.refl G).fₑ = id := rfl
+
 /-- From two homomorphisms `Hom G H` and `Hom H I`, we can compose them to obtain
     a `Hom G I`.-/
-def trans (a : Hom G H) (b : Hom H I) : Hom G I where
-  fᵥ := b.fᵥ ∘ a.fᵥ
-  fₑ := b.fₑ ∘ a.fₑ
-  inc e := by simp only [Function.comp_apply, b.inc, a.inc, map_comp]
+def trans (A : Hom G H) (B : Hom H I) : Hom G I where
+  fᵥ := B.fᵥ ∘ A.fᵥ
+  fₑ := B.fₑ ∘ A.fₑ
+  inc e := by simp only [Function.comp_apply, B.inc, A.inc, map_comp]
 
-lemma canGo (a : Hom G H) {u v : V} {e : E} (h : G.canGo u e v):
-    H.canGo (a.fᵥ u) (a.fₑ e) (a.fᵥ v) := by
-  simp only [Graph.canGo, a.inc e]
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fᵥ (A : Hom G H) (B : Hom H I) : (A.trans B).fᵥ = B.fᵥ ∘ A.fᵥ := rfl
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fₑ (A : Hom G H) (B : Hom H I) : (A.trans B).fₑ = B.fₑ ∘ A.fₑ := rfl
+
+def add (A : Hom G H) (B : Hom H J) : Hom 
+
+def union (A : Hom G I) (B : Hom H I) : Graph (V ⊕ W) (E ⊕ F) where
+  inc := λ e => match e with
+    | inl e => A.fₑ e
+    | inr e => B.fₑ e
+
+lemma canGo (A : Hom G H) {u v : V} {e : E} (h : G.canGo u e v):
+    H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by
+  simp only [Graph.canGo, A.inc e]
   rwa [map_canGo]
 
-lemma adj (a : Hom G H) {u v : V} (h : G.adj u v) : H.adj (a.fᵥ u) (a.fᵥ v) := by
+lemma adj (A : Hom G H) {u v : V} (h : G.adj u v) : H.adj (A.fᵥ u) (A.fᵥ v) := by
   obtain ⟨e, he⟩ := h
-  exact ⟨a.fₑ e, a.canGo he⟩
+  exact ⟨A.fₑ e, A.canGo he⟩
 
-lemma adj_le (a : Hom G H) : Relation.Map G.adj a.fᵥ a.fᵥ ≤ H.adj := by
+lemma adj_le (A : Hom G H) : Relation.Map G.adj A.fᵥ A.fᵥ ≤ H.adj := by
   rintro u v ⟨x, y, hxy, rfl, rfl⟩
-  exact a.adj hxy
+  exact A.adj hxy
 
 end Hom
 
@@ -162,7 +185,7 @@ macro G:term "⊆ᴳ" H:term :term => `(Graph.SubgraphOf $G $H)
 
 namespace SubgraphOf
 
-@[ext]
+omit [DecidableEq V] [DecidableEq W] in @[ext]
 lemma ext (A B : G ⊆ᴳ H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
   cases A; cases B
   congr
@@ -175,13 +198,28 @@ def refl (G : Graph V E) : G ⊆ᴳ G where
 
 variable (A : G ⊆ᴳ H)
 
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fᵥ : (SubgraphOf.refl G).fᵥ = id := rfl
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma refl_fₑ : (SubgraphOf.refl G).fₑ = id := rfl
+
 def fᵥEmb : V ↪ W := ⟨A.fᵥ, A.fᵥinj⟩
 def fₑEmb : E ↪ F := ⟨A.fₑ, A.fₑinj⟩
+
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma fᵥEmb_apply : A.fᵥEmb v = A.fᵥ v := rfl
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma fₑEmb_apply : A.fₑEmb e = A.fₑ e := rfl
 
 def trans (B : H ⊆ᴳ I) : G ⊆ᴳ I where
   toHom := A.toHom.trans B.toHom
   fᵥinj := (A.fᵥEmb.trans B.fᵥEmb).inj'
   fₑinj _ _ h := (A.fₑEmb.trans B.fₑEmb).inj' h
+
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fᵥ (A : G ⊆ᴳ H) (B : H ⊆ᴳ I) : (A.trans B).fᵥ = B.fᵥ ∘ A.fᵥ := rfl
+omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
+lemma trans_fₑ (A : G ⊆ᴳ H) (B : H ⊆ᴳ I) : (A.trans B).fₑ = B.fₑ ∘ A.fₑ := rfl
 
 /-- Let `G ⊆ᴳ H`, we can travel from `u` to `v` via edge `e` in `G`
     iff we can travel from `fᵥ(u)` to `fᵥ(v)` via edge `fₑ(e)` in `H`.-/
@@ -222,7 +260,7 @@ structure SpanningSubgraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H 
 namespace SpanningSubgraphOf
 variable (A : G.SpanningSubgraphOf H)
 
-@[ext]
+omit [DecidableEq V] [DecidableEq W] in @[ext]
 lemma ext (A B : G.SpanningSubgraphOf H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
   cases A; cases B
   congr
@@ -259,15 +297,11 @@ namespace Isom
 
 variable (A : G ≃ᴳ H)
 
-@[ext]
+omit [DecidableEq V] [DecidableEq W] in @[ext]
 lemma ext (A B : G ≃ᴳ H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
   cases A; cases B
   congr
   ext <;> simp_all only
-
-def fᵥBij : Function.Bijective A.fᵥ where
-  left := A.fᵥinj
-  right := A.fᵥsurj
 
 def fₑBij : Function.Bijective A.fₑ where
   left := A.fₑinj
@@ -276,14 +310,10 @@ def fₑBij : Function.Bijective A.fₑ where
 noncomputable abbrev fₑEquiv : E ≃ F := Equiv.ofBijective _ A.fₑBij
 
 omit [DecidableEq V] [DecidableEq W] in @[simp]
-lemma fᵥEquiv_apply : A.fᵥEquiv = A.fᵥ := by
-  ext v
-  rfl
+lemma fᵥEquiv_apply : A.fᵥEquiv v = A.fᵥ v := rfl
 
 omit [DecidableEq V] [DecidableEq W] in @[simp]
-lemma fₑEquiv_apply : A.fₑEquiv = A.fₑ := by
-  ext e
-  rfl
+lemma fₑEquiv_apply : A.fₑEquiv e = A.fₑ e := rfl
 
 lemma Equiv.ofBijective_symm_comp {α β : Sort*} (f : α → β) (hf : Function.Bijective f) :
   (Equiv.ofBijective f hf).symm ∘ f = id :=

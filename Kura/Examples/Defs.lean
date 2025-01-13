@@ -65,19 +65,31 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
 lemma CompleteGraph_edges_eq (n : ℕ) : (CompleteGraph n).Edges = {e : Sym2 (Fin n) // ¬ e.IsDiag} :=
   rfl
 
-instance instCompleteGraphFintypeE (n : ℕ) : Fintype (CompleteGraph n).Edges :=
-  sorry
+instance instCompleteGraphFintypeE (n : ℕ) : Fintype (CompleteGraph n).Edges := by
+  simp only [CompleteGraph_edges_eq]
+  infer_instance
 
 @[simp 120]
 lemma CompleteGraph_edges_card (n : ℕ) : Fintype.card (CompleteGraph n).Edges = n.choose 2 := by
   simp only [CompleteGraph_edges_eq]
   convert Sym2.card_subtype_not_diag
   exact (Fintype.card_fin n).symm
-  infer_instance
 
 
 def PathGraph (n : ℕ) : Graph (Fin (n+1)) (Fin n) where
   inc e := undir s(e, e+1)
+
+lemma PathGraph.canGo' {n : ℕ} (e : Fin n) :
+    (PathGraph n).canGo e.castSucc e e.succ := by
+  unfold PathGraph canGo
+  simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir_canGo]
+
+@[simp]
+lemma PathGraph.canGo_iff {n : ℕ} {u v : Fin (n+1)} {e : Fin n} :
+    (PathGraph n).canGo u e v ↔ s(e.castSucc, e.succ) = s(u, v) := by
+  unfold PathGraph canGo
+  simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, edge.canGo_iff_eq_of_undir, Sym2.eq,
+    Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
 
 lemma PathGraph.adj_iff {n : ℕ} {u v : Fin (n+1)} (huv : u < v):
     (PathGraph n).adj u v ↔ u.val +1 = v.val := by

@@ -30,6 +30,21 @@ lemma conn.trans {G : Graph V E} {u v w : V} : G.conn u v → G.conn v w → G.c
 lemma conn.ofAdj {G : Graph V E} {u v : V} (h : G.adj u v) : G.conn u v :=
     Relation.ReflTransGen.single h
 
+lemma SubgraphOf.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
+    H.conn (h.fᵥ u) (h.fᵥ v) := by
+  induction huv with
+  | refl => exact conn.refl _ _
+  | tail _h1 h2 IH => exact IH.tail (h.adj h2)
+
+lemma PathGraph_conn_0 (n : ℕ) (v : Fin (n+1)) : (PathGraph n).conn 0 v := by
+  induction' v with j hjpos
+  induction' j with x ih
+  · exact conn.refl (PathGraph n) 0
+  · specialize ih (by omega)
+    apply ih.tail ; clear ih
+    rw [PathGraph.adj_iff]
+    simp only [Fin.mk_lt_mk, lt_add_iff_pos_right, zero_lt_one]
+
 lemma conn.path (u v : V) (huv : G.conn u v) : ∃ P : G.Path, P.start = u ∧ P.finish = v := by
   unfold conn at huv
   induction huv with
@@ -54,54 +69,71 @@ lemma conn.ofPath (P : G.Path) : G.conn P.start P.finish := by
     exact Walk.vertices_chain'_adj P.toWalk
   · simp only [← Walk.vertices_head_eq_start, List.head_cons_tail, Walk.vertices_getLast_eq_finish]
 
-lemma conn.PathSubgr {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (S : (PathGraph n) ⊆ᴳ G),
-    S.fᵥ 0 = u ∧ S.fᵥ n = v := by
-  change Relation.ReflTransGen G.adj u v at huv
-  obtain ⟨l,H1, H2⟩ := List.exists_chain_of_relationReflTransGen huv
-  rw [List.chain_iff_forall₂] at H1
-  obtain rfl | H1 := H1
-  · simp only [List.getLast_singleton] at H2
-    subst u
-    use 0
-    refine ⟨⟨⟨fun a ↦ v,fun e ↦ Fin.elim0 e,fun e ↦ Fin.elim0 e⟩,?_,?_⟩,?_,?_⟩ <;>
-      simp only [Nat.reduceAdd] <;> rintro a b _hab
-    · exact Subsingleton.elim a b
-    · exact a.elim0
-  · use l.length
-    rw [List.forall₂_iff_zip] at H1
-    obtain ⟨H11,H21⟩ := H1
-    have H : ∀ p ∈ (u :: l.dropLast).zip l, G.adj p.1 p.2 := by sorry
-    let le : List E := (u :: l.dropLast).zip l |>.pmap (fun _p h ↦ h.choose) H
+lemma conn.OfPathSubgraphOf {u v : V} {n : ℕ} (S : (PathGraph n) ⊆ᴳ G) (hSstart : S.fᵥ 0 = u)
+    (hSfinish : S.fᵥ n = v) : G.conn u v := by
+  have h := PathGraph_conn_0 n n
+  rw [← hSstart, ← hSfinish]
+  exact S.conn h
 
-    refine ⟨⟨⟨?_,?_,?_⟩,?_,?_⟩,?_,?_⟩
-    · exact (u :: l).get
-    · rintro i
-      apply le.get
-      apply i.cast
-      rw [List.length_pmap, List.length_zip, H11, min_self]
-    · rintro i
-      unfold PathGraph
-      simp only [canGo, List.get_eq_getElem, Fin.coe_cast, List.getElem_pmap, List.getElem_zip,
-        Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, map_undir, List.length_cons, Sym2.map_pair_eq,
-        Fin.coe_castSucc, Fin.val_succ, List.getElem_cons_succ, le]
-      sorry
-    · rintro i j hij
-      simp only [List.get_eq_getElem, List.length_cons] at hij
-      suffices u :: l |>.Nodup by
-        rw [this.getElem_inj_iff] at hij
-        omega
-      clear i j hij le H
-      sorry
-    · rintro i j hij
-      simp only [List.get_eq_getElem, Fin.coe_cast] at hij
-      suffices le.Nodup by
-        rw [this.getElem_inj_iff] at hij
-        omega
-      sorry
-    · simp only [List.get_eq_getElem, List.length_cons, Fin.val_zero, List.getElem_cons_zero]
-    · simp only [Fin.natCast_eq_last, List.get_eq_getElem, List.length_cons, Fin.val_last]
-      rw [List.getLast_eq_getElem] at H2
-      exact H2
+lemma conn.PathSubgraphOf {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (S : (PathGraph n) ⊆ᴳ G),
+    S.fᵥ 0 = u ∧ S.fᵥ n = v := by
+  obtain ⟨P, hPstart, hPfinish⟩ := huv.path
+  refine ⟨P.length, ⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
+  · exact fun v => P.vertices.get (v.cast P.vertices_length.symm)
+  · exact fun e => P.edges.get (e.cast P.edges_length.symm)
+  · intro e
+    simp
+
+  sorry
+
+
+  -- change Relation.ReflTransGen G.adj u v at huv
+  -- obtain ⟨l, hChain, hv, hnodup⟩ := List.exists_nodup_chain_of_relationReflTransGen huv
+  -- rw [List.chain_iff_forall₂] at hChain
+  -- obtain rfl | hForall := hChain
+  -- · simp only [List.getLast_singleton] at hv
+  --   subst u
+  --   refine ⟨0, ⟨⟨fun a ↦ v, Fin.elim0, (Fin.elim0 ·)⟩, ?_, ?_⟩, ?_, ?_⟩ <;>
+  --     simp only [Nat.reduceAdd] <;> rintro a b _hab
+  --   · exact Subsingleton.elim a b
+  --   · exact a.elim0
+  -- · use l.length
+  --   obtain ⟨hlen, hadj⟩ := List.forall₂_iff_zip.mp hForall
+  --   have hadjp : ∀ p ∈ (u :: l.dropLast).zip l, G.adj p.1 p.2 := by
+  --     rintro ⟨a, b⟩ h
+  --     exact hadj h
+  --   clear hadj hForall
+  --   let le : List E := (u :: l.dropLast).zip l |>.pmap (fun _p h ↦ h.choose) hadjp
+
+  --   refine ⟨⟨⟨(u :: l).get, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
+  --   · rintro i
+  --     apply (le.get <| i.cast ·)
+  --     rw [List.length_pmap, List.length_zip, hlen, min_self]
+  --   · rintro i
+  --     unfold PathGraph
+  --     simp only [canGo, List.get_eq_getElem, Fin.coe_cast, List.getElem_pmap, List.getElem_zip,
+  --       Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, map_undir, List.length_cons, Sym2.map_pair_eq,
+  --       Fin.coe_castSucc, Fin.val_succ, List.getElem_cons_succ, le]
+
+
+  --     sorry
+  --   · rintro i j hij
+  --     simp only [List.get_eq_getElem, List.length_cons] at hij
+  --     rw [hnodup.getElem_inj_iff] at hij
+  --     omega
+  --   save
+  --   · suffices le.Nodup by
+  --       rintro i j hij
+  --       simp only [List.get_eq_getElem, Fin.coe_cast] at hij
+  --       rw [this.getElem_inj_iff] at hij
+  --       omega
+  --     rw [List.nodup_iff_injective_getElem]
+  --     by_contra! h
+  --     sorry
+  --   · simp only [List.get_eq_getElem, List.length_cons, Fin.val_zero, List.getElem_cons_zero]
+  --   · simp only [Fin.natCast_eq_last, List.get_eq_getElem, List.length_cons, Fin.val_last]
+  --     rw [List.getLast_eq_getElem] at hv
+  --     exact hv
 
 
 instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=
@@ -123,12 +155,6 @@ lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
   · rintro ⟨u, v, h⟩ h'
     exact h (h'.all_conn u v)
 
-lemma SubgraphOf.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
-    H.conn (h.fᵥ u) (h.fᵥ v) := by
-  induction huv with
-  | refl => exact conn.refl _ _
-  | tail _h1 h2 IH => exact IH.tail (h.adj h2)
-
 lemma instSpanningSubgraphOfConnected {G : Graph V E} {H : Graph W F} [G.connected]
   (h : G.SpanningSubgraphOf H) : H.connected where
   all_conn u v := by
@@ -136,6 +162,9 @@ lemma instSpanningSubgraphOfConnected {G : Graph V E} {H : Graph W F} [G.connect
     convert h.conn this <;>
     · change _ = h.fᵥEquiv (h.fᵥEquiv.symm _)
       exact (Equiv.symm_apply_eq h.fᵥEquiv).mp rfl
+
+instance instPathGraphConn (n : ℕ) : (PathGraph n).connected where
+  all_conn u v := ((PathGraph_conn_0 n u).symm (G:=PathGraph n) _).trans (PathGraph_conn_0 n v)
 
 def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
   r := conn G

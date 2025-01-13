@@ -23,7 +23,7 @@ lemma SubgraphOf.acyclic {G : Graph V E} {H : Graph W F} (hHG : H ⊆ᴳ G) : G.
 lemma endAt_not_conn {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) (e : E) :
     ¬ (G{{e}ᶜ}ᴳ).conn (G.v1 e) (G.v2 e) := by
   contrapose! hGacyc
-  obtain ⟨n, S, hs, ht⟩ := hGacyc.PathSubgr
+  obtain ⟨n, S, hs, ht⟩ := hGacyc.PathSubgraphOf
   simp only [acyclic, not_forall, not_isEmpty_iff]
   use n.succPNat
   refine ⟨(TourGraph_Isom_PathGraph_addUndirEdge n).toSubgraphOf.trans ?_⟩
@@ -63,11 +63,9 @@ lemma endAt_not_conn {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) (e : E)
       have := h.symm ▸ (S.fₑ e').prop
       simp only [Set.mem_compl_iff, Set.mem_singleton_iff, not_true_eq_false] at this
 
-
 theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirected G]
     (hG : G.acyclic) : Fintype.card V = Fintype.card E + NumberOfComponents G := by
-  suffices ∀ m, Fintype.card E = m → Fintype.card V = m + NumberOfComponents G by
-    refine this _ rfl
+  suffices ∀ m, Fintype.card E = m → Fintype.card V = m + NumberOfComponents G by refine this _ rfl
   rintro m
   induction' m with m ih generalizing E <;> rintro hm
   · rw [@Fintype.card_eq_zero_iff] at hm
@@ -77,41 +75,85 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
       have : 0 < Fintype.card E := by omega
       rw [Fintype.card_pos_iff] at this
       exact this.some
-    let E' := ({e}ᶜ : Set _).Elem
-    have : Fintype E' := Fintype.ofFinite E'
-    have hG'Subgr := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf
-    have hG'Undir := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf.Undirected
-    specialize ih (G := G{{e}ᶜ}ᴳ) (hG'Subgr.acyclic hG) ?_
-    · rw [Fintype.card_compl_set, hm]
+    have := Fintype.ofFinite ({e}ᶜ : Set _).Elem
+    have hm' : Fintype.card ({e}ᶜ : Set _).Elem = m := by
+      rw [Fintype.card_compl_set, hm]
       simp only [Fintype.card_ofSubsingleton, add_tsub_cancel_right]
-    rw [ih]; clear hm ih
+    have hG'Subgr := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf
+    have hG'Undir := hG'Subgr.Undirected
+    rw [ih (G := G{{e}ᶜ}ᴳ) (hG'Subgr.acyclic hG) hm']; clear hm ih
+    save
     suffices (G.Es {e}ᶜ).NumberOfComponents = 1 + G.NumberOfComponents by rw [this]; omega
     apply le_antisymm
     · unfold NumberOfComponents
       rw [add_comm, ← @Fintype.card_option]
       let f : Quotient (G.Es {e}ᶜ).connSetoid → Option (Quotient G.connSetoid) :=
-        fun v ↦ by
-          by_cases h : v = ⟦G.v2 e⟧
-          · exact none
-          · exact some (Quotient.idmap (G.connSetoid_Es_le_connSetoid _) v)
+        fun v ↦ by if h : v = ⟦G.v2 e⟧ then exact none
+          else exact some (Quotient.idmap (G.connSetoid_Es_le_connSetoid _) v)
       convert Fintype.card_le_of_injective f ?_
       rintro v w h
-      unfold f at h
-      by_cases hv : v = ⟦G.v2 e⟧ <;> by_cases hw : w = ⟦G.v2 e⟧ <;> simp_all [dite_eq_ite,
+      by_cases hv : v = ⟦G.v2 e⟧ <;> by_cases hw : w = ⟦G.v2 e⟧ <;> simp_all [f, dite_eq_ite,
         ite_false, Option.some.injEq]
       induction' v using Quotient.ind with v
       induction' w using Quotient.ind with w
       simp_all only [connSetoid, Quotient.eq, Quotient.idmap, Quotient.map'_mk'', id_eq]
-      obtain ⟨n, S, hs, ht⟩ := h.PathSubgr
-      by_cases hv2 : ∃ n, S.fᵥ n = G.v2 e
-      · exfalso
-        -- have := PathGraph_SubgraphOf_Pathgraph
-        sorry
-
-      · simp only [not_exists] at hv2
-        obtain a := S.Es (PathGraph n) {e}ᶜ sorry
-        
-        sorry
+      obtain ⟨n, S, hs, ht⟩ := h.PathSubgraphOf
+      by_cases he : ∃ i, S.fₑ i = e
+      · obtain ⟨i, hi⟩ := he
+        have := S.canGo_iff (u := i.castSucc) (e := i) (v := i.succ) |>.mpr (PathGraph.canGo' i)
+        simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff',
+          Prod.mk.injEq, Prod.swap_prod_mk, hi] at this
+        obtain ⟨hv1, hv2⟩ | ⟨hv1, hv2⟩ := this
+        · absurd hw; clear hv hw f hG'Subgr h
+          have : (n - i.val.succ) + i.val.succ ≤ n := by omega
+          let Sl := PathGraph_SubgraphOf_Pathgraph this
+          have hslstart : Sl.fᵥ 0 = _ := PathGraph_SubgraphOf_Pathgraph_start this
+          have hslend : Sl.fᵥ _ = _:= PathGraph_SubgraphOf_Pathgraph_end this
+          have hnee: ∀ (e_1 : Fin (n - i.succ)), (Sl.trans S).fₑ e_1 ∈ ({e}ᶜ : Set _) := by
+            rintro e'
+            simp only [← hi, Nat.succ_eq_add_one, SubgraphOf.trans_fₑ, Function.comp_apply,
+              Set.mem_compl_iff, Set.mem_singleton_iff]
+            refine S.fₑinj.ne ?_
+            simp only [Nat.succ_eq_add_one, PathGraph_SubgraphOf_Pathgraph_fₑapply,
+              Fin.addNatEmb_apply, ← Fin.val_inj.ne, Fin.coe_castLE, Fin.coe_addNat, ne_eq, Sl]
+            omega
+          let Sl' := (Sl.trans S).Es {e}ᶜ hnee
+          have hsl'fᵥ : Sl'.fᵥ = _ := (Sl.trans S).toHom.Es_fᵥ {e}ᶜ hnee |>.trans (Sl.trans_fᵥ S)
+          rw [conn_comm]
+          apply conn.OfPathSubgraphOf Sl' <;>
+          simp only [Nat.succ_eq_add_one, hsl'fᵥ, Function.comp_apply, hslstart, hslend,
+            Nat.cast_add, Fin.coe_eq_castSucc, Nat.cast_one, Fin.coeSucc_eq_succ, ← ht,
+            S.fᵥinj.eq_iff, hv2]
+          simp only [Fin.natCast_eq_last, ← Fin.val_inj, Fin.val_add, Fin.val_natCast, Fin.val_succ,
+            Nat.mod_add_mod, Fin.val_last]
+          rw [Nat.sub_add_cancel (by omega), Nat.mod_succ]
+        · absurd hv
+          have : i.val + 0 ≤ n := by omega
+          let Sp := PathGraph_SubgraphOf_Pathgraph this
+          have hspstart : Sp.fᵥ 0 = 0 := PathGraph_SubgraphOf_Pathgraph_start this
+          have hspend : Sp.fᵥ _ = _ := PathGraph_SubgraphOf_Pathgraph_end this
+          have hnee: ∀ (e_1 : Fin i), (Sp.trans S).fₑ e_1 ∈ ({e}ᶜ : Set E) := by
+            rintro e'
+            simp only [← hi, Nat.succ_eq_add_one, SubgraphOf.trans_fₑ, Function.comp_apply,
+              Set.mem_compl_iff, Set.mem_singleton_iff]
+            refine S.fₑinj.ne ?_
+            rw [PathGraph_SubgraphOf_Pathgraph_fₑapply, ← Fin.val_inj.ne]
+            simp only [Nat.add_zero, Fin.coe_castLE, ne_eq]
+            omega
+          let Sp' := (Sp.trans S).Es {e}ᶜ hnee
+          have hsp'fᵥ : Sp'.fᵥ = _ := (Sp.trans S).toHom.Es_fᵥ {e}ᶜ hnee |>.trans (Sp.trans_fᵥ S)
+          apply conn.OfPathSubgraphOf Sp' <;>
+          simp only [Nat.succ_eq_add_one, hsp'fᵥ, Function.comp_apply, hspstart, hspend,
+            Fin.coe_eq_castSucc, Nat.cast_one, Fin.coeSucc_eq_succ, ← hs, S.fᵥinj.eq_iff, hv2]
+          simp only [add_zero, Fin.coe_eq_castSucc]
+      save
+      · simp only [not_exists] at he
+        have : ∀ (e_1 : Fin n), S.fₑ e_1 ∈ ({e}ᶜ : Set E) := by
+          rintro e'
+          simp only [Set.mem_compl_iff, Set.mem_singleton_iff, he, not_false_eq_true]
+        let S' := S.Es {e}ᶜ this
+        have hfᵥ : S'.fᵥ = _ := S.Es_fᵥ {e}ᶜ this
+        apply conn.OfPathSubgraphOf S' <;> simp only [hfᵥ, ← hs, Fin.natCast_eq_last, ← ht]
     · suffices G.NumberOfComponents < (G.Es {e}ᶜ).NumberOfComponents by omega
       unfold NumberOfComponents
       convert Quotient.card_quotient_lt_card_quotient_of_gt (?_ : _ < G.connSetoid)
