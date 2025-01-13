@@ -110,11 +110,11 @@ lemma adj_eq_bot_of_IsEmpty_E [DecidableEq V] [IsEmpty E] : G.adj = ⊥ := by
 variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} {J : Graph V' F'} [DecidableEq V]
   [DecidableEq W] [DecidableEq U] [DecidableEq V']
 
--- Disjoint union of two graphs
-def add : Graph (V ⊕ W) (E ⊕ F) where
-  inc e := match e with
-    | Sum.inl e₁ => (G.inc e₁).map Sum.inl
-    | Sum.inr e₂ => (H.inc e₂).map Sum.inr
+-- -- Disjoint union of two graphs
+-- def add : Graph (V ⊕ W) (E ⊕ F) where
+--   inc e := match e with
+--     | Sum.inl e₁ => (G.inc e₁).map Sum.inl
+--     | Sum.inr e₂ => (H.inc e₂).map Sum.inr
 
 /-- A homomorphism between graphs `G = (V,E)` and `H = (W,F)` is a map between
     vertex sets that preserves adjacency. It is implemented as two functions,
@@ -150,12 +150,12 @@ lemma trans_fᵥ (A : Hom G H) (B : Hom H I) : (A.trans B).fᵥ = B.fᵥ ∘ A.f
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
 lemma trans_fₑ (A : Hom G H) (B : Hom H I) : (A.trans B).fₑ = B.fₑ ∘ A.fₑ := rfl
 
-def add (A : Hom G H) (B : Hom H J) : Hom 
+-- def add (A : Hom G H) (B : Hom H J) : Hom
 
-def union (A : Hom G I) (B : Hom H I) : Graph (V ⊕ W) (E ⊕ F) where
-  inc := λ e => match e with
-    | inl e => A.fₑ e
-    | inr e => B.fₑ e
+-- def union (A : Hom G I) (B : Hom H I) : Graph (V ⊕ W) (E ⊕ F) where
+--   inc := λ e => match e with
+--     | inl e => A.fₑ e
+--     | inr e => B.fₑ e
 
 lemma canGo (A : Hom G H) {u v : V} {e : E} (h : G.canGo u e v):
     H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) := by

@@ -84,8 +84,12 @@ theorem EulerFormula_of_connected [Nonempty V] [Fintype V] [Fintype E] [G.connec
 def FacialCycleOf (w : Cycle G) [Searchable G.dualGraph] : Prop :=
   ∃ (f : G.Faces), w.edges.toFinset = (G.dualGraph.incEdges f).toFinset
 
+instance instSearchableDualGraph [Fintype E] [G.Simple] :
+    Searchable G.dualGraph := by
+  sorry
 
-lemma three_le_dualGraph_minDegree [Fintype E] [G.Simple] : 3 ≤ G.dualGraph.minDegree := by
+lemma three_le_dualGraph_minDegree [Fintype E] [G.Simple]:
+    3 ≤ G.dualGraph.minDegree := by
   by_contra! h
   unfold minDegree at h
   have := G.dualGraph.minDegreeVerts_nonempty

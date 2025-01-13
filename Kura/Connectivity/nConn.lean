@@ -1,5 +1,5 @@
-import Kura.Conn.Conn
-import Kura.Conn.closedWalk
+import Kura.Connectivity.Conn
+import Kura.Connectivity.closedWalk
 
 
 namespace Graph

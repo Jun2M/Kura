@@ -71,7 +71,7 @@ theorem KuraCore (n : ℕ) (hn : 1 < n) (Nx Ny : Finset (Fin n)) (hNxcard : Nx.c
       · -- If there are at least 3 vertices mutually adjacent to x and y, then we can find a K5 minor
         absurd hK5
         simp only [not_isEmpty_iff]
-        let l := ((Fin.list n).filter (· ∈ Nx)).take 3
+        let l := ((List.finRange n).filter (· ∈ Nx)).take 3
         refine ⟨⟨?_, ?_, ?_, ?_, ?_⟩⟩
         · intro v
           match v with

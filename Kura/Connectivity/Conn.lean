@@ -77,63 +77,63 @@ lemma conn.OfPathSubgraphOf {u v : V} {n : ℕ} (S : (PathGraph n) ⊆ᴳ G) (hS
 
 lemma conn.PathSubgraphOf {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (S : (PathGraph n) ⊆ᴳ G),
     S.fᵥ 0 = u ∧ S.fᵥ n = v := by
-  obtain ⟨P, hPstart, hPfinish⟩ := huv.path
-  refine ⟨P.length, ⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
-  · exact fun v => P.vertices.get (v.cast P.vertices_length.symm)
-  · exact fun e => P.edges.get (e.cast P.edges_length.symm)
-  · intro e
-    simp
+  -- obtain ⟨P, hPstart, hPfinish⟩ := huv.path
+  -- refine ⟨P.length, ⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
+  -- · exact fun v => P.vertices.get (v.cast P.vertices_length.symm)
+  -- · exact fun e => P.edges.get (e.cast P.edges_length.symm)
+  -- · intro e
+  --   simp
 
-  sorry
-
-
-  -- change Relation.ReflTransGen G.adj u v at huv
-  -- obtain ⟨l, hChain, hv, hnodup⟩ := List.exists_nodup_chain_of_relationReflTransGen huv
-  -- rw [List.chain_iff_forall₂] at hChain
-  -- obtain rfl | hForall := hChain
-  -- · simp only [List.getLast_singleton] at hv
-  --   subst u
-  --   refine ⟨0, ⟨⟨fun a ↦ v, Fin.elim0, (Fin.elim0 ·)⟩, ?_, ?_⟩, ?_, ?_⟩ <;>
-  --     simp only [Nat.reduceAdd] <;> rintro a b _hab
-  --   · exact Subsingleton.elim a b
-  --   · exact a.elim0
-  -- · use l.length
-  --   obtain ⟨hlen, hadj⟩ := List.forall₂_iff_zip.mp hForall
-  --   have hadjp : ∀ p ∈ (u :: l.dropLast).zip l, G.adj p.1 p.2 := by
-  --     rintro ⟨a, b⟩ h
-  --     exact hadj h
-  --   clear hadj hForall
-  --   let le : List E := (u :: l.dropLast).zip l |>.pmap (fun _p h ↦ h.choose) hadjp
-
-  --   refine ⟨⟨⟨(u :: l).get, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
-  --   · rintro i
-  --     apply (le.get <| i.cast ·)
-  --     rw [List.length_pmap, List.length_zip, hlen, min_self]
-  --   · rintro i
-  --     unfold PathGraph
-  --     simp only [canGo, List.get_eq_getElem, Fin.coe_cast, List.getElem_pmap, List.getElem_zip,
-  --       Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, map_undir, List.length_cons, Sym2.map_pair_eq,
-  --       Fin.coe_castSucc, Fin.val_succ, List.getElem_cons_succ, le]
+  -- sorry
 
 
-  --     sorry
-  --   · rintro i j hij
-  --     simp only [List.get_eq_getElem, List.length_cons] at hij
-  --     rw [hnodup.getElem_inj_iff] at hij
-  --     omega
-  --   save
-  --   · suffices le.Nodup by
-  --       rintro i j hij
-  --       simp only [List.get_eq_getElem, Fin.coe_cast] at hij
-  --       rw [this.getElem_inj_iff] at hij
-  --       omega
-  --     rw [List.nodup_iff_injective_getElem]
-  --     by_contra! h
-  --     sorry
-  --   · simp only [List.get_eq_getElem, List.length_cons, Fin.val_zero, List.getElem_cons_zero]
-  --   · simp only [Fin.natCast_eq_last, List.get_eq_getElem, List.length_cons, Fin.val_last]
-  --     rw [List.getLast_eq_getElem] at hv
-  --     exact hv
+  change Relation.ReflTransGen G.adj u v at huv
+  obtain ⟨l, hChain, hv, hnodup⟩ := List.exists_nodup_chain_of_relationReflTransGen huv
+  rw [List.chain_iff_forall₂] at hChain
+  obtain rfl | hForall := hChain
+  · simp only [List.getLast_singleton] at hv
+    subst u
+    refine ⟨0, ⟨⟨fun a ↦ v, Fin.elim0, (Fin.elim0 ·)⟩, ?_, ?_⟩, ?_, ?_⟩ <;>
+      simp only [Nat.reduceAdd] <;> rintro a b _hab
+    · exact Subsingleton.elim a b
+    · exact a.elim0
+  · use l.length
+    obtain ⟨hlen, hadj⟩ := List.forall₂_iff_zip.mp hForall
+    have hadjp : ∀ p ∈ (u :: l.dropLast).zip l, G.adj p.1 p.2 := by
+      rintro ⟨a, b⟩ h
+      exact hadj h
+    clear hadj hForall
+    let le : List E := (u :: l.dropLast).zip l |>.pmap (fun _p h ↦ h.choose) hadjp
+
+    refine ⟨⟨⟨(u :: l).get, ?_, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
+    · rintro i
+      apply (le.get <| i.cast ·)
+      rw [List.length_pmap, List.length_zip, hlen, min_self]
+    · rintro i
+      unfold PathGraph
+      simp only [canGo, List.get_eq_getElem, Fin.coe_cast, List.getElem_pmap, List.getElem_zip,
+        Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, map_undir, List.length_cons, Sym2.map_pair_eq,
+        Fin.coe_castSucc, Fin.val_succ, List.getElem_cons_succ, le]
+
+
+      sorry
+    · rintro i j hij
+      simp only [List.get_eq_getElem, List.length_cons] at hij
+      rw [hnodup.getElem_inj_iff] at hij
+      omega
+    save
+    · suffices le.Nodup by
+        rintro i j hij
+        simp only [List.get_eq_getElem, Fin.coe_cast] at hij
+        rw [this.getElem_inj_iff] at hij
+        omega
+      rw [List.nodup_iff_injective_getElem]
+      by_contra! h
+      sorry
+    · simp only [List.get_eq_getElem, List.length_cons, Fin.val_zero, List.getElem_cons_zero]
+    · simp only [Fin.natCast_eq_last, List.get_eq_getElem, List.length_cons, Fin.val_last]
+      rw [List.getLast_eq_getElem] at hv
+      exact hv
 
 
 instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=

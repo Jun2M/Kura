@@ -1,6 +1,6 @@
-import Kura.Conn.nConn
+import Kura.Connectivity.nConn
 import Kura.Examples.Conn
-import Kura.Conn.Minor
+import Kura.Connectivity.Minor
 
 
 namespace Graph

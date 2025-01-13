@@ -1,4 +1,4 @@
-import Kura.Conn.Conn
+import Kura.Connectivity.Conn
 
 namespace Graph
 open edge
