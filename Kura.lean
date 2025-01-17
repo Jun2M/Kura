@@ -15,6 +15,7 @@ import Kura.Connectivity.closedWalk
 import Kura.Connectivity.nConn
 import Kura.Connectivity.Minor
 import Kura.Connectivity.Tree
+import Kura.Connectivity.Matroid
 import Kura.Examples.Defs
 import Kura.Examples.Conn
 import Kura.Planarity.Plainarity

@@ -55,7 +55,7 @@ noncomputable def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
   step_spec uev huev := by
     rw [List.mem_singleton] at huev
     subst huev
-    exact canGo_v1_v2 (isFull_of_isLoop (G.inc e) he)
+    exact edge.canGo_v1_v2 (isFull_of_isLoop (G.inc e) he)
   next_step :=
     List.chain'_singleton
       ((G.inc e).v1 (isFull_of_isLoop (G.inc e) he), e,

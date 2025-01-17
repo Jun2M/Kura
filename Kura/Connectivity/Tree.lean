@@ -11,7 +11,8 @@ variable {V W E F : Type*} [DecidableEq V] [DecidableEq W]
 def acyclic (G : Graph V E) : Prop := ∀ n, IsEmpty <| TourGraph n ⊆ᴳ G
 
 omit [DecidableEq V] [DecidableEq W] in
-lemma SubgraphOf.acyclic {G : Graph V E} {H : Graph W F} (hHG : H ⊆ᴳ G) : G.acyclic → H.acyclic := by
+lemma SubgraphOf.acyclic {G : Graph V E} {H : Graph W F} (hHG : H ⊆ᴳ G) :
+    G.acyclic → H.acyclic := by
   intro hGacyclic n
   by_contra! h
   simp only [not_isEmpty_iff] at h
@@ -62,6 +63,54 @@ lemma endAt_not_conn {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) (e : E)
       have := h.symm ▸ (S.fₑ e').prop
       simp only [Set.mem_compl_iff, Set.mem_singleton_iff, not_true_eq_false] at this
 
+lemma NumberOfComponents_Es_eq_NumberOfComponents_iff (G : Graph V E) [Undirected G] (e : E) :
+    (G.Es {e}ᶜ).connSetoid = G.connSetoid ↔ (G{{e}ᶜ}ᴳ).conn (G.v1 e) (G.v2 e) := by
+  constructor <;> rintro h
+  · simp only [Setoid.ext_iff, connSetoid] at h
+    rw [h]
+    apply conn.ofAdj <| adj_v12 G e
+  · suffices Relation.ReflTransClosure (G.Es {e}ᶜ).adj = Relation.ReflTransClosure G.adj by
+      simp only [connSetoid, conn, this]
+    apply Relation.ReflTransClosure.closure_eq_closure_of_le_of_le_closure
+    · rintro v w
+      exact G.Es_spanningsubgraph {e}ᶜ |>.toSubgraphOf.adj
+    · rintro v w hG
+      change (G.Es {e}ᶜ).conn v w
+      obtain ⟨f, hf⟩ := hG
+      have := G.canGo_eq _ hf (G.canGo_v1_v2 f)
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := this
+      · by_cases hef : f = e
+        · subst e
+          exact h
+        · apply Relation.ReflTransGen.single
+          use ⟨f, by simp only [Set.mem_compl_iff, Set.mem_singleton_iff, hef, not_false_eq_true]⟩
+          rw [← (G.Es_spanningsubgraph {e}ᶜ).canGo_iff]
+          simp only [canGo, Es_spanningsubgraph_fᵥ, id_eq, Es_spanningsubgraph_fₑ, inc_eq_undir_v12,
+            undir_canGo]
+      · by_cases hef : f = e
+        · subst e
+          exact h.symm
+        · apply Relation.ReflTransGen.single
+          use ⟨f, by simp only [Set.mem_compl_iff, Set.mem_singleton_iff, hef, not_false_eq_true]⟩
+          rw [← (G.Es_spanningsubgraph {e}ᶜ).canGo_iff]
+          simp only [canGo, Es_spanningsubgraph_fᵥ, id_eq, Es_spanningsubgraph_fₑ, inc_eq_undir_v12,
+            canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk,
+            or_true]
+
+lemma c_lt_c_Es_of_acyclic [Fintype V] [Fintype E] {G : Graph V E}
+    [Undirected G] (hG : G.acyclic) (e : E) :
+    G.NumberOfComponents < (G.Es {e}ᶜ).NumberOfComponents := by
+  unfold NumberOfComponents
+  convert Quotient.card_quotient_lt_card_quotient_of_gt (?_ : _ < G.connSetoid)
+  rw [lt_iff_le_and_ne]
+  refine ⟨G.connSetoid_Es_le_connSetoid _, ?_⟩
+  have h := endAt_not_conn hG e
+  contrapose! h
+  have : (G.Es {e}ᶜ).connSetoid (G.v1 e) (G.v2 e) ↔ G.connSetoid (G.v1 e) (G.v2 e) := by rw [h]
+  simp only [connSetoid] at this
+  rw [this]; clear this h
+  apply conn.ofAdj <| adj_v12 G e
+
 theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirected G]
     (hG : G.acyclic) : Fintype.card V = Fintype.card E + NumberOfComponents G := by
   suffices ∀ m, Fintype.card E = m → Fintype.card V = m + NumberOfComponents G by refine this _ rfl
@@ -81,7 +130,6 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
     have hG'Subgr := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf
     have hG'Undir := hG'Subgr.Undirected
     rw [ih (G := G{{e}ᶜ}ᴳ) (hG'Subgr.acyclic hG) hm']; clear hm ih
-    save
     suffices (G.Es {e}ᶜ).NumberOfComponents = 1 + G.NumberOfComponents by rw [this]; omega
     apply le_antisymm
     · unfold NumberOfComponents
@@ -154,18 +202,14 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
         have hfᵥ : S'.fᵥ = _ := S.Es_fᵥ {e}ᶜ this
         apply conn.OfPathSubgraphOf S' <;> simp only [hfᵥ, ← hs, Fin.natCast_eq_last, ← ht]
     · suffices G.NumberOfComponents < (G.Es {e}ᶜ).NumberOfComponents by omega
-      unfold NumberOfComponents
-      convert Quotient.card_quotient_lt_card_quotient_of_gt (?_ : _ < G.connSetoid)
-      rw [lt_iff_le_and_ne]
-      refine ⟨G.connSetoid_Es_le_connSetoid _, ?_⟩
-      have h := endAt_not_conn hG e
-      contrapose! h
-      have : (G.Es {e}ᶜ).connSetoid (G.v1 e) (G.v2 e) ↔ G.connSetoid (G.v1 e) (G.v2 e) := by rw [h]
-      simp only [connSetoid] at this
-      rw [this]; clear this h
-      apply conn.ofAdj <| adj_v12 G e
+      convert c_lt_c_Es_of_acyclic hG e
 
 #print axioms n_eq_m_add_c_of_acyclic
+
+-- theorem n_eq_m_add_c_iff_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirected G] :
+--     Fintype.card V = Fintype.card E + NumberOfComponents G ↔ G.acyclic := by
+--   refine ⟨?_, n_eq_m_add_c_of_acyclic⟩
+--   intro h
 
 structure Forest (V E : Type*) [DecidableEq V] extends Graph V E where
   no_cycle : IsEmpty toGraph.Cycle

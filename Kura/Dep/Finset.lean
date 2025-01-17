@@ -1,6 +1,7 @@
 import Mathlib.Data.Finset.Slice
 import Mathlib.Data.Finset.Sort
 import Kura.Dep.List
+import Mathlib.Data.Set.Card
 
 
 namespace Multiset
@@ -102,3 +103,11 @@ instance Fintype.subtypeOfFintype [Fintype V] (P : V → Prop) [DecidablePred P]
   elems := Finset.attachWith (Finset.univ.filter P) P (by simp only [Finset.mem_filter,
     Finset.mem_univ, true_and, imp_self, implies_true])
   complete := Fintype.complete
+
+noncomputable instance Fintype.ofFiniteSet {s : Set V} [Finite s] : Fintype s :=
+  (@Fintype.ofFinite _ s.toFinite)
+
+lemma ncard_eq_card (s : Set V) [Finite s] : s.ncard = Fintype.card s := by
+  have := s.toFinite.card_toFinset
+  convert this
+  exact s.ncard_eq_toFinset_card s.toFinite

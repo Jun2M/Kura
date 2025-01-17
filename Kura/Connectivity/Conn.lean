@@ -139,7 +139,7 @@ lemma conn.PathSubgraphOf [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n :
     rw [PathGraph_glue_PathGraph_eq_PathGraph_symm_fᵥ]
     simp [hSstart]
 
-instance instConnDec [Fintype V] [G.SearchableOut]: DecidableRel G.conn :=
+instance instConnDec [Fintype V] [DecidableRel G.adj]: DecidableRel G.conn :=
   Relation.ReflTransGenDeciable
 
 example : (CycleGraph 12 (by omega)).conn 0 6 := by decide
@@ -196,7 +196,7 @@ lemma connSetoid_eq_top_of_connected [Undirected G] [G.connected] : connSetoid G
   simp only [Setoid.top_def, Pi.top_apply, «Prop».top_eq_true, iff_true]
   exact G.all_conn a b
 
-lemma connSetoid_Es_le_connSetoid [Undirected G] (S : Set E) :
+lemma connSetoid_Es_le_connSetoid (G : Graph V E) [Undirected G] (S : Set E) :
     (G{S}ᴳ).connSetoid ≤ G.connSetoid := by
   rintro a b
   simp only [connSetoid, conn]

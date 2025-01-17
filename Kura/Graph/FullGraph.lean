@@ -84,15 +84,11 @@ lemma isLoop_iff_v1_eq_v2 : G.isLoop e ↔ v1 G e = v2 G e := by
   | undir s => simp only [isLoop, edge.isLoop, h, Sym2.isDiag_iff_out_fst_eq_out_snd, v1, undir_v1,
     v2, undir_v2]
 
+lemma canGo_v1_v2 [DecidableEq V] : G.canGo (G.v1 e) e (G.v2 e) := edge.canGo_v1_v2 _
+
 @[simp]
 lemma adj_v12 [DecidableEq V] : G.adj (G.v1 e) (G.v2 e) := by
-  match h : G.inc e with
-  | dir (a, b) =>
-    cases a <;> cases b <;> try simp_all
-    use e
-    exact edge.canGo_v1_v2 (G.all_full e)
-  | undir s =>
-    use e
-    exact edge.canGo_v1_v2 (G.all_full e)
+  use e
+  exact canGo_v1_v2 G e
 
 end Graph
