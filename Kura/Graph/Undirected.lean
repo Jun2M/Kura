@@ -3,7 +3,7 @@ import Kura.Graph.FullGraph
 
 namespace Graph
 open edge
-variable {V W E F : Type*} {G : Graph V E} [Undirected G] (e : E) (u v w : V)
+variable {V W E F : Type*} {G : Graph V E} [Undirected G] {H : Graph W F} [Undirected H] (e : E) (u v w : V)
 
 
 -- def get : Sym2 V :=

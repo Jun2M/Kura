@@ -78,10 +78,10 @@ instance doubleDual [Fintype V] [Nonempty V] [G.nConnected 3] :
   isDual := sorry
 
 instance instEdgelessGraphPlanar_by_AbstractDual (n : ℕ) :
-    Planar_by_AbstractDual (EdgelessGraph n) where
+    Planar_by_AbstractDual (EdgelessGraph (Fin n)) where
   F := Fin 1
   FDecidableEq := by infer_instance
-  dualGraph := EdgelessGraph 1
+  dualGraph := EdgelessGraph (Fin 1)
   dualGraphUndir := by infer_instance
   dualGraphConn := by have : Fact (1 < 2) := Fact.mk (by omega); infer_instance
   isDual := by
@@ -130,7 +130,7 @@ def MinorOf.Planar_by_AbstractDual {H : Graph F E} (M : G.MinorOf H) :
     Planar_by_AbstractDual H := sorry
 
 def MergeOnMultualSubgraph.Planar_by_AbstractDual {H : Graph F E} (A₁ : CompleteGraph 2 ⊆ᴳ G)
-    (A₂ : CompleteGraph 2 ⊆ᴳ H) : Planar_by_AbstractDual (MergeOnMultualSubgraph G H A₁ A₂) := sorry
+    (A₂ : CompleteGraph 2 ⊆ᴳ H) : Planar_by_AbstractDual (A₁.glue A₂) := sorry
 
 def inSameFace (u v : V) : Prop := ∃ (f : G.Faces) (e1 e2 : G.Edges), u ∈ G.endAt e1 ∧
   v ∈ G.endAt e2 ∧ f ∈ G.dualGraph.endAt e1 ∧ f ∈ G.dualGraph.endAt e2

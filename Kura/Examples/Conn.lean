@@ -6,11 +6,11 @@ open edge
 variable {V W E F : Type*} (G : Graph V E) (e : E) (u v w : V)
 
 
-instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph n).connected where
+instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph (Fin n)).connected where
   all_conn u v := by have : n < 2 := Fact.out; interval_cases n <;> rw [Subsingleton.allEq u v] <;>
     apply conn.refl
 
-lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph n).connected := by
+lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph (Fin n)).connected := by
   intro h
   obtain ⟨u, v, huv⟩ := Fin.nontrivial_iff_two_le.mpr hn
   obtain ⟨P, rfl, rfl⟩ := (h.all_conn u v).path
@@ -27,5 +27,3 @@ instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected := b
 
 instance instCompleteBipGraphConnected (n₁ n₂ : ℕ+) : (CompleteBipGraph n₁ n₂).connected := by
   sorry
-
-

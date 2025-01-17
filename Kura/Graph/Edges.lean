@@ -705,6 +705,40 @@ lemma map_isFull_iff {f : V → W} {e : edge V} : (e.map f).isFull ↔ e.isFull 
     Option.map_some', Bool.false_eq_true]
   | undir _ => simp only [isFull, map]
 
+lemma map_inj {f g : V → W} : edge.map f = edge.map g ↔ f = g := by
+  constructor
+  · rintro h
+    ext v
+    have := congrFun h (dir (v, v))
+    simpa only [map_dir, Option.map_some', dir.injEq, Prod.mk.injEq, Option.some.injEq,
+      and_self] using this
+  · rintro rfl
+    rfl
+
+lemma map_injective_iff {f : V → W} : Function.Injective (edge.map f) ↔ Function.Injective f := by
+  constructor
+  · intro h x y hxy
+    specialize @h (dir (x, x)) (dir (y, y)) ?_
+    · simp only [map_dir, Option.map_some', hxy]
+    simpa only [dir.injEq, Prod.mk.injEq, Option.some.injEq, and_self] using h
+  · intro h e1 e2 he12
+    match e1, e2 with
+    | dir (a1, b1), dir (a2, b2) =>
+      simp_all [map_dir, Option.map_some', Option.map_none', Option.map_some',
+        Option.map_none', dir.injEq, Prod.mk.injEq, Option.some.injEq, and_self]
+      simp only [Option.map_injective h he12.1, Option.map_injective h he12.2, and_self]
+    | undir s1, undir s2 =>
+      simp_all only [map_undir, undir.injEq]
+      exact Sym2.map.injective h he12
+
+-- def val {p : V → Prop} (e : edge {a // p a}) : edge V := e.map (Subtype.val)
+
+@[simp]
+lemma subtype_eq {α : Type*} {p : α → Prop} (e1 e2 : edge {a // p a}) :
+    e1 = e2 ↔ e1.map Subtype.val = e2.map Subtype.val := by
+  constructor <;> rintro h
+  · exact h ▸ rfl
+  · exact map_injective_iff.mpr (Subtype.val_injective) h
 
 
 def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P v) → edge W := by
@@ -786,6 +820,12 @@ lemma pmap_map {P : W → Prop} {e : edge V} {f : V → W} (h : ∀ v ∈ e, P (
     induction' s with x y
     simp only [map, pmap, undir.injEq]
     rfl
+
+lemma pmap_eq_map {P : V → Prop} {e : edge V} (f : V → W) (h : ∀ v ∈ e, P v) :
+    e.pmap (λ v _ => f v) (λ v hv => h v hv) = e.map f := by
+  match e with
+  | dir (a, b) => simp only [pmap_dir, Option.pmap_eq_map, map_dir]
+  | undir s => simp only [pmap, Sym2.pmap_eq_map, map]
 
 @[simp]
 lemma pmap_subtype_map_val {P : V → Prop} {e : edge V} (h : ∀ v ∈ e, P v) :

@@ -43,7 +43,6 @@ lemma endAt_not_conn {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) (e : E)
       congr
       exact hs.symm
       convert ht.symm
-      exact (Fin.natCast_eq_last n).symm
   · rintro e₁ e₂ h
     simp at h
     exact S.fᵥinj h
@@ -166,6 +165,8 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
       rw [this]; clear this h
       apply conn.ofAdj <| adj_v12 G e
 
+#print axioms n_eq_m_add_c_of_acyclic
+
 structure Forest (V E : Type*) [DecidableEq V] extends Graph V E where
   no_cycle : IsEmpty toGraph.Cycle
 
@@ -175,7 +176,7 @@ structure Tree (V E : Type*) [DecidableEq V] extends Forest V E where
 instance instTreeConnected (T : Tree V E) : T.connected := T.conn
 
 def EdgelessForest (n : ℕ) : Forest (Fin n) Empty where
-  toGraph := EdgelessGraph n
+  toGraph := EdgelessGraph (Fin n)
   no_cycle := by
     by_contra!
     simp only [not_isEmpty_iff] at this

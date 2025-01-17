@@ -35,7 +35,10 @@ lemma rdropWhile_append_rtakeWhile (p : α → Bool) (l : List α) :
     rw [← reverse_append, List.reverse_eq_iff]
     apply List.takeWhile_append_dropWhile
 
-
+lemma Chain'.dropLast [DecidableEq α] {r : α → α → Prop} {l : List α} (h : Chain' r l) :
+  Chain' r l.dropLast := by
+  rw [List.dropLast_eq_take]
+  exact take h (l.length - 1)
 
 def skip [DecidableEq α] (l : List α) : List α :=
 match l with

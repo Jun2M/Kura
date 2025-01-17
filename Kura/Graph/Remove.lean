@@ -80,7 +80,6 @@ def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : ∀ v, f (f v) = f 
       specialize hfRange (f u)
       simpa only [Set.mem_range, exists_apply_eq_apply, true_iff] using hfRange)
 
-
 --------------------------------------------------------------------------------
 variable (G : Graph V E) {S T : Set V}
 
@@ -91,7 +90,7 @@ def Vs_univ : (G[Set.univ]ᴳ) ≃ᴳ G where
   fᵥinj := Subtype.val_injective
   fₑinj := Subtype.val_injective
   fᵥsurj v := by simp only [Subtype.exists, Set.mem_univ, exists_const, exists_eq]
-  fₑsurj e := by simp only [all, Subtype.exists, Set.mem_univ, decide_True, all_iff, implies_true,
+  fₑsurj e := by simp only [all, Subtype.exists, Set.mem_univ, decide_true, all_iff, implies_true,
     exists_const, exists_eq]
 
 @[simp]

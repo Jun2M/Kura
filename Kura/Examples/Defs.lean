@@ -14,18 +14,28 @@ open edge
 variable {V W E F : Type*} (G : Graph V E) (e : E) (u v w : V)
 
 
-def EdgelessGraph (n : ℕ): Graph (Fin n) Empty where
+def EdgelessGraph (W) : Graph W Empty where
   inc e := e.elim
-#eval! EdgelessGraph 5
 
-instance instEdgelessGraphSimple (n : ℕ) : Simple (EdgelessGraph n) where
+instance instEdgelessGraphSimple : Simple (EdgelessGraph V) where
   all_full e := e.elim
   no_loops e := e.elim
   edge_symm e := e.elim
   inc_inj e := e.elim
 
+def EdgelessGraph_SubgraphOf (fᵥ : W ↪ V) : EdgelessGraph W ⊆ᴳ G where
+  fᵥ := fᵥ
+  fₑ := Empty.elim
+  inc := (Empty.elim ·)
+  fᵥinj := fᵥ.injective
+  fₑinj := (Empty.elim ·)
 
+@[simp]
+lemma EdgelessGraph_SubgraphOf_fᵥ {fᵥ : W ↪ V} : (EdgelessGraph_SubgraphOf G fᵥ).fᵥ = fᵥ := rfl
 
+@[simp]
+lemma EdgelessGraph_SubgraphOf_fₑ {fᵥ : W ↪ V} : (EdgelessGraph_SubgraphOf G fᵥ).fₑ = Empty.elim :=
+  rfl
 
 -- def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
 --   inc e := undir (List.finRange n |>.sym2.filter (¬·.IsDiag) |>.get (e.cast (by rw [List.sym2_notDiag_length (List.nodup_finRange n), List.length_finRange])))
@@ -78,6 +88,22 @@ lemma CompleteGraph_edges_card (n : ℕ) : Fintype.card (CompleteGraph n).Edges 
 
 def PathGraph (n : ℕ) : Graph (Fin (n+1)) (Fin n) where
   inc e := undir s(e, e+1)
+
+instance instPathGraphSimple (n : ℕ) : Simple (PathGraph n) where
+  edge_symm _ := by simp [PathGraph]
+  all_full _ := by simp only [isFull, edge.isFull, PathGraph]
+  no_loops e := by
+    simp only [isLoop, PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir_isLoop_iff']
+    exact (Fin.succ_ne_castSucc e).symm
+  inc_inj e₁ e₂ h := by
+    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir.injEq, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Fin.succ_inj, and_self, Prod.swap_prod_mk] at h
+    obtain (⟨rfl, rfl⟩ | ⟨h1, h2⟩) := h
+    · rfl
+    · apply_fun Fin.val at h1 h2 ⊢
+      simp only [Fin.coe_castSucc, Fin.val_succ] at h1 h2
+      omega
+      exact Fin.val_injective
 
 lemma PathGraph.canGo' {n : ℕ} (e : Fin n) :
     (PathGraph n).canGo e.castSucc e e.succ := by
@@ -159,22 +185,133 @@ lemma PathGraph_SubgraphOf_Pathgraph_end {n m k : ℕ} (hnm : n + k ≤ m) :
   refine (Nat.mod_eq_of_lt ?_).symm
   omega
 
-instance instPathGraphSimple (n : ℕ) : Simple (PathGraph n) where
-  edge_symm _ := by simp [PathGraph]
-  all_full _ := by simp only [isFull, edge.isFull, PathGraph]
-  no_loops e := by
-    simp only [isLoop, PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir_isLoop_iff']
-    exact (Fin.succ_ne_castSucc e).symm
-  inc_inj e₁ e₂ h := by
-    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir.injEq, Sym2.eq,
-      Sym2.rel_iff', Prod.mk.injEq, Fin.castSucc_inj, Fin.succ_inj, and_self, Prod.swap_prod_mk] at h
-    obtain (⟨rfl, rfl⟩ | ⟨h1, h2⟩) := h
-    · rfl
-    · apply_fun Fin.val at h1 h2 ⊢
-      simp only [Fin.coe_castSucc, Fin.val_succ] at h1 h2
+def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
+    (EdgelessGraph_SubgraphOf (PathGraph n)
+      ⟨(fun _ => Fin.last n : Fin 1 → Fin (n+1)), Function.injective_of_subsingleton _⟩).glue
+    (EdgelessGraph_SubgraphOf (PathGraph m)
+      ⟨(fun _ => 0 : Fin 1 → Fin (m+1)), Function.injective_of_subsingleton _⟩) ≃ᴳ
+    PathGraph (n + m) where
+  fᵥ v := match v with
+    | Sum.inl v => v.castLE (by omega)
+    | Sum.inr v => v.val.natAdd n
+  fₑ e := match e with
+    | Sum.inl e => e.castLE (by omega)
+    | Sum.inr e => e.val.natAdd n
+  inc e := match e with
+    | Sum.inl e => by simp [SubgraphOf.glue, PathGraph]
+    | Sum.inr ⟨⟨e, he⟩, hemem⟩ => by
+      cases e <;> simp [SubgraphOf.glue, PathGraph]
       omega
-      exact Fin.val_injective
+  fᵥinj v w h := by
+    match v, w with
+    | Sum.inl ⟨v, hv⟩, Sum.inl ⟨w, hw⟩ =>
+      rw [Fin.castLE_inj] at h
+      exact congrArg Sum.inl h
+    | Sum.inl ⟨v, hv⟩, Sum.inr ⟨⟨w, hw⟩, hwmem⟩ =>
+      exfalso
+      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_SubgraphOf_fᵥ,
+        Function.Embedding.coeFn_mk, Set.range_const, Set.mem_compl_iff, Set.mem_singleton_iff,
+        Fin.val_zero] at h hwmem
+      omega
+    | Sum.inr ⟨⟨w, hw⟩, hwmem⟩, Sum.inl ⟨v, hv⟩ =>
+      exfalso
+      simp [← Fin.val_inj] at h hwmem
+      omega
+    | Sum.inr v, Sum.inr w =>
+      simp only [EdgelessGraph_SubgraphOf_fᵥ, Function.Embedding.coeFn_mk, Fin.natAdd_inj] at h
+      rw [Sum.inr.injEq]
+      exact SetCoe.ext h
+  fₑinj e₁ e₂ h := by
+    save
+    match e₁, e₂ with
+    | Sum.inl ⟨e₁, he₁⟩, Sum.inl ⟨e₂, he₂⟩ =>
+      simp only [Fin.castLE_inj] at h
+      exact congrArg Sum.inl h
+    | Sum.inl ⟨e₁, he₁⟩, Sum.inr ⟨⟨e₂, he₂⟩, he₂mem⟩ =>
+      exfalso
+      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_SubgraphOf_fₑ,
+        Function.Embedding.coeFn_mk, Set.range_const, Set.mem_compl_iff, Set.mem_singleton_iff,
+        Fin.val_zero] at h he₂mem
+      omega
+    | Sum.inr ⟨⟨e₁, he₁⟩, he₁mem⟩, Sum.inl ⟨e₂, he₂⟩ =>
+      exfalso
+      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_SubgraphOf_fₑ,
+        Function.Embedding.coeFn_mk, Set.range_const, Set.mem_compl_iff, Set.mem_singleton_iff,
+        Fin.val_zero] at h he₁mem
+      omega
+    | Sum.inr v, Sum.inr w =>
+      simp only [EdgelessGraph_SubgraphOf_fₑ, Function.Embedding.coeFn_mk, Fin.natAdd_inj] at h
+      rw [Sum.inr.injEq]
+      exact SetCoe.ext h
+  fᵥsurj v := by
+    obtain ⟨v, hv⟩ := v
+    simp
+    by_cases h : v ≤ n
+    · left
+      use v
+      simp only [Fin.val_natCast, Nat.mod_succ_eq_iff_lt, Nat.succ_eq_add_one]
+      omega
+    · right
+      use ↑(v - n)
+      have : (v - n) % (m + 1) = v - n := by
+        rw [Nat.mod_eq_of_lt]
+        omega
+      refine ⟨?_, ?_⟩
+      · simp only [Fin.val_natCast, this]
+        omega
+      · simp only [Fin.val_natCast, this]
+        omega
+  fₑsurj e := by
+    obtain ⟨e, he⟩ := e
+    simp only [EdgelessGraph_SubgraphOf_fₑ, Fin.ext_iff', Sum.exists, Fin.coe_castLE,
+      Fin.coe_natAdd, Subtype.exists, Set.mem_compl_iff, Set.mem_range, IsEmpty.exists_iff,
+      not_false_eq_true, exists_const]
+    by_cases h : e < n
+    · left
+      use ⟨e, h⟩
+    · right
+      use ⟨e - n, by omega⟩
+      simp only
+      omega
 
+@[simp]
+lemma PathGraph_glue_PathGraph_eq_PathGraph_fᵥ (n m : ℕ) :
+    (PathGraph_glue_PathGraph_eq_PathGraph n m).fᵥ = (fun v => by
+    match v with
+    | Sum.inl v => exact v.castLE (by omega)
+    | Sum.inr v => exact v.val.natAdd n) := rfl
+
+@[simp]
+lemma PathGraph_glue_PathGraph_eq_PathGraph_symm_fᵥ (n m : ℕ) :
+    (PathGraph_glue_PathGraph_eq_PathGraph n m).symm.fᵥ = (fun x => by
+    by_cases h : x.val ≤ n
+    · exact Sum.inl x
+    · exact Sum.inr ⟨↑((x.cast (by omega : _ = m + 1 + n)).subNat n (by simp_all; omega)), by
+      obtain ⟨x, hx⟩ := x
+      simp [← Nat.dvd_iff_mod_eq_zero] at h ⊢
+      omega⟩) := by
+  ext v
+  apply_fun (PathGraph_glue_PathGraph_eq_PathGraph n m).fᵥ using (PathGraph_glue_PathGraph_eq_PathGraph n m).fᵥinj
+  simp [EdgelessGraph_SubgraphOf_fᵥ, Function.Embedding.coeFn_mk, EdgelessGraph_SubgraphOf_fₑ,
+    Isom.fᵥ_symm_fᵥ, PathGraph_glue_PathGraph_eq_PathGraph_fᵥ, Fin.ext_iff']
+  split
+  · rename_i x y h
+    split_ifs at h with hvn
+    · simp_all
+      rwa [Nat.mod_eq_of_lt (by omega)] at h
+  · rename_i x y h
+    split_ifs at h with hvn
+    · simp at hvn h ⊢
+      subst h
+      simp
+      omega
+
+@[simp]
+lemma PathGraph_glue_PathGraph_eq_PathGraph_fₑ (n m : ℕ) :
+    (PathGraph_glue_PathGraph_eq_PathGraph n m).fₑ = (fun e => by
+    match e with
+    | Sum.inl e => exact e.castLE (by omega)
+    | Sum.inr e => exact e.val.natAdd n) := rfl
 
 def TourGraph (n : ℕ+) : Graph (Fin n) (Fin n) where
   inc e := undir s(e, e+1)
@@ -205,9 +342,7 @@ def TourGraph_Isom_PathGraph_addUndirEdge (n : ℕ) :
   fᵥinj _ _ a := a
   fₑinj e1 e2 h := by
     by_cases he1 : e1 = Fin.last _ <;> by_cases he2 : e2 = Fin.last _ <;>
-    simp_all [Nat.succPNat_coe, Nat.succ_eq_add_one, dite_true, dite_false]
-    rw [← Fin.castPred_inj]
-    apply Sum.inl_injective h
+    simp_all [Nat.succPNat_coe, Nat.succ_eq_add_one, dite_true, dite_false, Sum.inl_injective.eq_iff]
   fᵥsurj _ := by simp only [exists_eq]
   fₑsurj e :=
     match e with

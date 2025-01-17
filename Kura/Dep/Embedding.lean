@@ -4,10 +4,37 @@ import Mathlib.Tactic
 import Kura.Dep.UnpackSingleton
 
 
-lemma Set.rangeSplitting_apply' {α β : Type*} (f : α ↪ β) (x : α) :
+lemma Set.rangeSplitting_apply' {α β : Type*} {f : α → β} (hf : Function.Injective f) (x : α) :
     Set.rangeSplitting f ⟨f x, Set.mem_range_self x⟩ = x := by
-  change Set.rangeSplitting f.toFun (Set.rangeFactorization f.toFun x) = x
-  rw [Set.rightInverse_rangeSplitting f.inj' x]
+  change Set.rangeSplitting f (Set.rangeFactorization f x) = x
+  rw [Set.rightInverse_rangeSplitting hf x]
+
+@[simp]
+lemma Set.rangeSplitting_eq_iff {α β : Type*} {f : α → β} (hf : Function.Injective f) (x) (y : α) :
+    Set.rangeSplitting f x = y ↔ x = f y := by
+  constructor
+  · intro h
+    apply_fun f at h
+    rwa [Set.apply_rangeSplitting f] at h
+  · intro h
+    apply_fun f
+    rwa [Set.apply_rangeSplitting f]
+
+lemma Set.rangeFactorization_injective_iff {α β : Type*} (f : α → β) :
+    Function.Injective (Set.rangeFactorization f) ↔ Function.Injective f := by
+  constructor <;> intro h x y hxy <;> refine h ?_
+  · ext
+    simpa only [rangeFactorization_coe] using hxy
+  · apply_fun (·.val) at hxy
+    simpa only [rangeFactorization_coe] using hxy
+
+@[simp]
+lemma Subtype.impEmbedding_val {α : Type u_1} (p q : α → Prop) (h : ∀ (x : α), p x → q x)
+    (x : { x : α // p x }) : (Subtype.impEmbedding p q h x).val = x.val := rfl
+
+@[simp]
+lemma Subtype.val_comp_impEmbedding {α : Type u_1} (p q : α → Prop) (h : ∀ (x : α), p x → q x) :
+    (Subtype.val ∘ Subtype.impEmbedding p q h) = Subtype.val := rfl
 
 @[simp]
 theorem Function.Embedding.coe_refl {α : Type*} : (Function.Embedding.refl α : α → α) = id := rfl
