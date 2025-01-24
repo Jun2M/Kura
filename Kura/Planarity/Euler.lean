@@ -27,7 +27,7 @@ lemma EulerFormula_aux [Nonempty V] [Fintype V] [Fintype E]:
     obtain e : E := Classical.choice this
     let G' := G{{e}ᶜ}ᴳ
     let hSubgraph : G'.SubgraphOf G := (Es_spanningsubgraph G {e}ᶜ).toSubgraphOf
-    have hG'Undir : G'.Undirected := hSubgraph.Undirected
+    have hG'Undir : G'.Undirected := hSubgraph.Undirected'
     have hG'Planar : Planar_by_AbstractDual G' := by sorry
     specialize @ih ({e}ᶜ : Set E) _ G' hG'Undir hG'Planar _ (by simp only [compl,
       Set.mem_singleton_iff, Set.coe_setOf, Fintype.card_subtype_compl, hEcard,

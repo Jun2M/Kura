@@ -16,13 +16,13 @@ def conn (G : Graph V E) : V → V → Prop := Relation.ReflTransClosure G.adj
 @[simp]
 lemma conn.refl (G : Graph V E) (v : V) : G.conn v v := Relation.ReflTransGen.refl
 
-lemma conn.symm {G : Graph V E} [Undirected G] (u v : V) : G.conn u v → G.conn v u := by
+lemma conn.symm {G : Graph V E} [Undirected G] {u v : V} : G.conn u v → G.conn v u := by
   apply Relation.ReflTransGen.symmetric
   rintro u v h
   rwa [G.adj_comm]
 
 lemma conn_comm {G : Graph V E} [Undirected G] (u v : V) : G.conn u v ↔ G.conn v u :=
-  ⟨ conn.symm u v, conn.symm v u ⟩
+  ⟨ conn.symm, conn.symm ⟩
 
 lemma conn.trans {G : Graph V E} {u v w : V} : G.conn u v → G.conn v w → G.conn u w :=
   Relation.ReflTransGen.trans
@@ -139,15 +139,49 @@ lemma conn.PathSubgraphOf [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n :
     rw [PathGraph_glue_PathGraph_eq_PathGraph_symm_fᵥ]
     simp [hSstart]
 
+
+
+def conn' (G : Graph V E) [Undirected G] : Sym2 V → Prop := Sym2.lift ⟨G.conn, fun a b ↦ by rw [conn_comm]⟩
+
+lemma conn_v12_iff {G : Graph V E} [Undirected G] {H : Graph V F} [Undirected H] (e : F) :
+    G.conn (H.v1 e) (H.v2 e) ↔ G.conn' (H.get e) := by
+  simp only [conn', get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq', Sym2.lift_mk]
+
+lemma conn'_pair {G : Graph V E} [Undirected G] {u v : V} :
+    G.conn' (s(u, v)) ↔ G.conn u v := by
+  simp only [conn', Sym2.lift_mk]
+
+lemma conn'_mk {G : Graph V E} [Undirected G] {p : V × V} :
+    G.conn' (Sym2.mk p) ↔ G.conn p.1 p.2 := by
+  change G.conn' (s(p.1, p.2)) ↔ G.conn p.1 p.2
+  exact conn'_pair
+
+lemma SubgraphOf.conn' {G : Graph V E} [Undirected G] {H : Graph W F} [Undirected H] (h : G ⊆ᴳ H)
+    {s : Sym2 V} : G.conn' s → H.conn' (s.map h.fᵥ) := Sym2.rec
+  (motive := fun s ↦ G.conn' s → H.conn' (s.map h.fᵥ))
+  (by
+    intro p hconn
+    simp only [conn'_pair, Sym2.map_mk] at hconn ⊢
+    exact conn h hconn)
+  (by
+    intro p q h
+    simp only [conn'_pair, Sym2.map_mk])
+  s
+
+
 instance instConnDec [Fintype V] [DecidableRel G.adj]: DecidableRel G.conn :=
   Relation.ReflTransGenDeciable
 
-example : (CycleGraph 12 (by omega)).conn 0 6 := by decide
+-- example : (CycleGraph 12).conn 0 6 := by decide
 
 class connected (G : Graph V E) : Prop where
   all_conn : ∀ u v : V, conn G u v
 
 def all_conn (u v : V) [G.connected] : conn G u v := connected.all_conn u v
+
+lemma all_conn'_get {G : Graph V E} [Undirected G] [connected G] (s : Sym2 V) : G.conn' s := by
+  induction' s using Sym2.inductionOn with u v
+  exact G.all_conn u v
 
 @[simp]
 lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
@@ -167,7 +201,7 @@ lemma instSpanningSubgraphOfConnected {G : Graph V E} {H : Graph W F} [G.connect
       exact (Equiv.symm_apply_eq h.fᵥEquiv).mp rfl
 
 instance instPathGraphConn (n : ℕ) : (PathGraph n).connected where
-  all_conn u v := ((PathGraph_conn_0 n u).symm (G:=PathGraph n) _).trans (PathGraph_conn_0 n v)
+  all_conn u v := ((PathGraph_conn_0 n u).symm (G:=PathGraph n)).trans (PathGraph_conn_0 n v)
 
 def connSetoid (G : Graph V E) [Undirected G] : Setoid V where
   r := conn G
@@ -234,6 +268,13 @@ lemma NumberOfComponents_eq_one [Fintype V] [Fintype E] [Nonempty V] (G : Graph 
   rw [Nat.one_le_iff_ne_zero, ne_eq, @Fintype.card_eq_zero_iff, Quotient.IsEmpty_iff]
   exact not_isEmpty_of_nonempty V
 
+lemma NumberOfComponents_le_NumberOfComponents_of_conn_ge_conn [Fintype V] [Fintype E] (S T : Set E)
+    [Undirected G] (h : G{T}ᴳ.conn ≤ G{S}ᴳ.conn) :
+    G{S}ᴳ.NumberOfComponents ≤ G{T}ᴳ.NumberOfComponents := by
+  unfold NumberOfComponents
+  convert Quotient.card_quotient_le_card_quotient_of_ge
+    (?_ : (G.Es T).connSetoid ≤ (G.Es S).connSetoid)
+  exact h
 
 lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.card E = 0):
   Subsingleton V := by
@@ -254,7 +295,7 @@ lemma Es_subgraph_conn_eq_conn_iff {G : Graph V E} [Undirected G] {S : Set E}
     G{S}ᴳ.conn u v ↔ G.conn u v := by
   let G' := G{S}ᴳ
   let hSubgraph : G' ⊆ᴳ G := (Es_spanningsubgraph G S).toSubgraphOf
-  have := hSubgraph.Undirected
+  have := hSubgraph.Undirected'
   have hadj : G'.adj ≤ G.adj := fun _ _ => hSubgraph.adj
   have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
 

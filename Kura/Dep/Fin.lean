@@ -53,4 +53,73 @@ lemma ext_iff' {n : ℕ} (i j : Fin n) : i = j ↔ i.val = j.val := Fin.ext_iff
 @[simp]
 lemma le_iff_le {n : ℕ} (i j : Fin n) : i ≤ j ↔ i.val ≤ j.val := by exact le_def
 
+@[simp]
+lemma coe_neg_one' {n : ℕ+} : (-1 : Fin n).val = n - 1 := by
+  convert coe_neg_one
+  rw [Nat.sub_add_cancel]
+  exact n.prop
+
+@[simp]
+lemma cast_add {n m : ℕ} (h : n = m) (i j : Fin n) : (i + j).cast h = i.cast h + j.cast h := by
+  subst m
+  rfl
+
+lemma cast_eq_val_cast {n m : ℕ} [NeZero m] (h : n = m) (i : Fin n) :
+    i.cast h = i.val.cast := by
+  subst m
+  simp only [cast_eq_self, cast_val_eq_self]
+
+@[simp]
+lemma neg_one_eq_last {n : ℕ} : (-1 : Fin (n+1)) = last n := by
+  ext
+  simp only [coe_neg_one, val_last]
+
+@[simp]
+lemma neg'_one_eq_last {n : ℕ} : @Neg.neg (Fin (n+1)) SubNegMonoid.toNeg 1 = last n := by
+  ext
+  simp only [coe_neg_one, val_last]
+
+def singleton_comple_equiv_pred {n : ℕ} {m : ℕ+} (h : m = n + 1) :
+    ({-1}ᶜ : Set (Fin m)).Elem ≃ Fin n where
+  toFun x := (x.val.cast h).castPred (by
+    simp only [coe_cast, val_natCast, h, Nat.mod_eq_of_lt x.val.prop, ne_eq, ext_iff', val_last]
+    have := x.prop
+    simpa only [ne_eq, Set.mem_compl_iff, Set.mem_singleton_iff, ext_iff', coe_neg_one', h,
+      add_tsub_cancel_right] using this)
+  invFun x := ⟨x.castSucc, by
+    simp only [coe_castSucc, Set.mem_compl_iff, Set.mem_singleton_iff, ext_iff', val_natCast, h,
+      Nat.mod_eq_of_lt (x.prop.trans (lt_add_one n)), coe_neg_one', add_tsub_cancel_right]
+    exact Nat.ne_of_lt x.prop⟩
+  left_inv x := by simp only [coe_cast, val_natCast, h, Nat.mod_eq_of_lt x.val.prop,
+    castSucc_castPred, cast_val_eq_self, Subtype.coe_eta]
+  right_inv x := by simp only [coe_castSucc, val_natCast, h, coe_cast, dvd_refl,
+    Nat.mod_mod_of_dvd, ext_iff', coe_castPred, Nat.mod_succ_eq_iff_lt, Nat.succ_eq_add_one,
+    x.prop.trans (lt_add_one n)]
+
+lemma cast_surjective {n m : ℕ} (h : n = m) : Function.Surjective (Fin.cast h) := by
+  intro i
+  subst m
+  exact ⟨i.cast rfl, cast_eq_self _⟩
+
+@[simp]
+lemma cast_neg {n m : ℕ} [NeZero n] [NeZero m] {h : n = m} {i : Fin n} :
+    (-i : Fin n).cast h = (-(i.cast h) : Fin m) := by
+  subst m
+  simp only [cast_eq_self]
+
+@[simp]
+lemma cast_OfNat {n m i: ℕ} [NeZero n] [NeZero m] {h : n = m} :
+    ((@OfNat.ofNat (Fin n) i Fin.instOfNat).cast h : Fin m) =
+    @OfNat.ofNat (Fin m) i Fin.instOfNat := by
+  subst m
+  simp only [cast_eq_self]
+
+-- lemma OfNat_eq_cast {l n m : ℕ} [NeZero l] [NeZero n] (i : Fin n) :
+--     (@OfNat.ofNat (Fin l) m).val.cast = @OfNat.ofNat (Fin n) m := by
+--   ext
+--   simp [cast_eq_self, cast_val_eq_self]
+
+
+-- @[simp] lemma coe_sub' {n : Nat} (a b : Fin n) : ↑(a - b) = (n - ↑b + ↑a) % n := Fin.coe_sub a b
+
 end Fin

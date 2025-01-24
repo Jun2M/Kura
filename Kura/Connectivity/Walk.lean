@@ -21,6 +21,18 @@ structure Walk where
 namespace Walk
 variable {G : Graph V E} (w : Walk G)
 
+lemma ext_iff_ne_nil (w₁ w₂ : Walk G) (h : w₁.steps ≠ []) : w₁ = w₂ ↔ w₁.steps = w₂.steps := by
+  constructor
+  · exact congrArg steps
+  · intro heq
+    ext
+    · rw [w₁.start_spec h, w₂.start_spec (heq ▸ h)]
+      congr
+    · rw [heq]
+
+lemma ext_iff_ne_nil' (w₁ w₂ : Walk G) (h : w₂.steps ≠ []) : w₁ = w₂ ↔ w₁.steps = w₂.steps := by
+  convert ext_iff_ne_nil w₂ w₁ h using 1 <;> rw [eq_comm]
+
 instance instDecidableEqWalk [DecidableEq E] : DecidableEq G.Walk :=
   fun _ _ => decidable_of_decidable_of_iff Walk.ext_iff.symm
 
@@ -57,23 +69,37 @@ def vertices : List V :=
 lemma vertices_ne_nil : w.vertices ≠ [] := by
   simp only [vertices, ne_eq, List.cons_ne_nil, not_false_eq_true]
 
-lemma start_mem_vertices : w.start ∈ w.vertices := by
-  simp only [vertices, start, List.mem_cons, List.mem_map, Prod.exists, exists_eq_right, true_or]
+-- lemma start_mem_vertices : w.start ∈ w.vertices := by
+--   simp only [vertices, start, List.mem_cons, List.mem_map, Prod.exists, exists_eq_right, true_or]
 
-lemma finish_mem_vertices : w.finish ∈ w.vertices := by
-  simp only [vertices, finish, List.mem_cons, List.mem_map, exists_eq_right]
-  split
-  next h => exact Or.inl rfl
-  next a as h =>
-    right
-    use w.steps.getLast (h ▸ List.cons_ne_nil a as)
-    simp only [List.getLast_mem, and_self]
+-- lemma finish_mem_vertices : w.finish ∈ w.vertices := by
+--   simp only [vertices, finish, List.mem_cons, List.mem_map, exists_eq_right]
+--   split
+--   next h => exact Or.inl rfl
+--   next a as h =>
+--     right
+--     use w.steps.getLast (h ▸ List.cons_ne_nil a as)
+--     simp only [List.getLast_mem, and_self]
 
 lemma steps_fst_vertices : w.steps.map (·.fst) = w.vertices.dropLast := by
-  sorry
+  match h : w.steps with
+  | [] => simp only [h, List.map_nil, vertices, List.dropLast_single]
+  | [a] =>
+    have hstart := w.start_spec (h ▸ List.cons_ne_nil a _)
+    simp_all only [List.head_cons, List.map_cons, List.map_nil, vertices, List.dropLast_cons₂,
+      List.dropLast_single]
+  | a :: a' :: as =>
+    have hstart := w.start_spec (h ▸ List.cons_ne_nil a (a' :: as))
+    have hchain := w.next_step
+    simp_all [List.Chain', List.chain_iff_forall₂, vertices]
+    rw [eq_comm, ← List.forall₂_eq_eq_eq]
+    obtain ⟨ha', hchain⟩ := hchain
+    rw [← List.forall₂_map_right_iff, ← List.forall₂_map_left_iff] at hchain
+    convert hchain
+    simp only [List.map_dropLast, List.map_cons]
 
-lemma steps_ssnd_vertices : w.steps.map (·.snd.snd) = w.vertices.drop 1 := by
-  simp only [vertices, List.drop_succ_cons, List.drop_zero]
+lemma steps_ssnd_vertices : w.steps.map (·.snd.snd) = w.vertices.tail := by
+  simp only [vertices, List.tail_cons]
 
 @[simp]
 lemma vertices_head_eq_start : w.vertices.head w.vertices_ne_nil = w.start := rfl
@@ -90,9 +116,18 @@ lemma vertices_getLast_eq_finish : w.vertices.getLast (w.vertices_ne_nil) = w.fi
     rw [List.getLast_cons (by simp only [h, List.map_cons, ne_eq, reduceCtorEq, not_false_eq_true])]
     simp only [List.getLast_map]
 
-@[simp]
-lemma vertices_chain'_adj : w.vertices.Chain' G.adj := by
-  sorry
+lemma vertices_chain'_adj : w.vertices.Chain' G.adj :=
+  match h : w.vertices with
+  | [] => (w.vertices_ne_nil h).elim
+  | [a] => List.chain'_singleton a
+  | a :: a' :: as => by
+    simp [List.Chain', List.chain_iff_forall₂, reduceCtorEq, false_or, -List.forall₂_cons]
+    rw [← List.dropLast_cons₂, ← h, ← steps_fst_vertices, ← @List.tail_cons _ (a := a) (a' :: as),
+      ← h, ← steps_ssnd_vertices, List.forall₂_map_right_iff, List.forall₂_map_left_iff,
+      List.forall₂_same]
+    intro x hx
+    use x.2.1
+    exact w.step_spec x hx
 
 @[simp]
 lemma vertices_length : w.vertices.length = w.length + 1 := by
@@ -194,6 +229,14 @@ lemma some_start (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).st
 @[simp]
 lemma some_finish (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).finish = v := rfl
 
+@[simp]
+lemma some_vertices (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).vertices = [u, v] := by
+  simp only [vertices, some, List.map_cons, List.map_nil]
+
+@[simp]
+lemma some_edges (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).edges = [e] := by
+  simp only [edges, some, List.map_cons, List.map_nil]
+
 def append (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) : Walk G where
   start := w₁.start
   steps := w₁.steps ++ w₂.steps
@@ -256,6 +299,16 @@ lemma append_length (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
   simp only [length, append, List.length_append]
 
 @[simp]
+lemma append_vertices (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
+    (w₁.append w₂ hconn).vertices = w₁.vertices ++ w₂.vertices.tail := by
+  simp only [vertices, append, List.map_append, List.tail_cons, List.cons_append]
+
+@[simp]
+lemma append_edges (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
+    (w₁.append w₂ hconn).edges = w₁.edges ++ w₂.edges := by
+  simp only [edges, append, List.map_append]
+
+@[simp]
 lemma some_append_length (u : V) (e : E) (v : V) (h : G.canGo u e v) (w : Walk G)
   (hconn : v = w.start) :
     ((some u e v h).append w hconn).length = w.length + 1 := by
@@ -266,6 +319,20 @@ lemma append_some_length (w : Walk G) (u : V) (e : E) (v : V) (h : G.canGo u e v
   (hconn : w.finish = u) :
     (w.append (some u e v h) hconn).length = w.length + 1 := by
   simp only [length, append, some, List.length_append, List.length_singleton]
+
+lemma of_chain'_adj {u : V} {l : List V} (h : l.Chain G.adj u) :
+    ∃ w : Walk G, w.vertices = (u ::l) := by
+  induction l generalizing u with
+  | nil => exact ⟨nil u, nil_vertices u⟩
+  | cons v vs ih =>
+    specialize ih (List.chain_of_chain_cons h)
+    obtain ⟨w, hw⟩ := ih
+    rw [List.chain_cons] at h
+    obtain ⟨⟨e, he⟩, hvs⟩ := h
+    let w' := some u e v he
+    use w'.append w (by simp only [some_finish, ← vertices_head_eq_start, hw, List.head_cons, w'])
+    simp only [append_vertices, some_vertices, hw, List.tail_cons, List.cons_append,
+      List.singleton_append, w', List.nil_append]
 
 def take (w : Walk G) (n : ℕ) : Walk G where
   start := w.start
@@ -301,8 +368,9 @@ def stopAt (w : Walk G) (v : V) : Walk G where
     refine w.step_spec uev (List.mem_of_mem_take hin)
   next_step := List.Chain'.take w.next_step _
 
-lemma stopAt_vertices_IsPrefix (v : V) :
-  (w.stopAt v).vertices.IsPrefix w.vertices := by
+lemma stopAt_vertices_IsPrefix (w : Walk G) (v : V) :
+    (w.stopAt v).vertices.IsPrefix w.vertices := by
+  
   sorry
 
 @[simp]
@@ -348,8 +416,8 @@ def meet (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) :=
   (w₁.vertices.find? (· ∈ w₂.vertices)).get (by
     simp only [List.find?_isSome, decide_eq_true_eq]
     use w₁.finish
-    use w₁.finish_mem_vertices
-    use h ▸ w₂.start_mem_vertices)
+    use w₁.vertices_getLast_eq_finish ▸ List.getLast_mem w₁.vertices_ne_nil
+    use h ▸ w₂.vertices_head_eq_start ▸ List.head_mem w₂.vertices_ne_nil)
 
 lemma meet_mem_left (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) : w₁.meet w₂ h ∈ w₁.vertices := by
   simp only [meet, List.get_find?_mem]

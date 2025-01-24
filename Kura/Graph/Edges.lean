@@ -691,6 +691,17 @@ lemma map_isUndir_iff {f : V → W} {e : edge V} : (e.map f).isUndir ↔ e.isUnd
   | dir _ => simp only [isUndir, map]
   | undir _ => simp only [isUndir, map]
 
+lemma map_isLoop (f : V → W) {e : edge V} (he : e.isLoop) : (e.map f).isLoop := by
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp_all only [isLoop, map, Option.map_some', Option.map_none',
+      EmbeddingLike.apply_eq_iff_eq]
+  | undir s =>
+    induction' s with x y
+    simp only [isLoop, isDiag_iff_proj_eq, map, map_pair_eq] at he ⊢
+    subst x
+    rfl
+
 @[simp]
 lemma map_isLoop_iff (f : V ↪ W) {e : edge V} : (e.map f).isLoop ↔ e.isLoop := by
   match e with

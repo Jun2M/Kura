@@ -6,19 +6,15 @@ open edge
 variable {V W E F : Type*} {G : Graph V E} [Undirected G] {H : Graph W F} [Undirected H] (e : E) (u v w : V)
 
 
--- def get : Sym2 V :=
---   match h : G.inc e with
---   | dir (a, b) => by
---     have := Undirected.edge_symm (G := G) e
---     rw [isUndir, h] at this
---     exact (not_isUndir_of_dir _ this).elim
+-- def get : Sym2 V := match h : G.inc e with
+--   | dir (a, b) => (not_isUndir_of_dir (a, b) (h ▸ G.edge_symm e)).elim
 --   | undir s => s
 
 -- @[simp]
 -- lemma mem_get_iff_mem_inc : v ∈ G.inc e ↔ v ∈ G.get e := by
 --   match h : G.inc e with
 --   | dir (a, b) =>
---     have := @Undirected.edge_symm _ _ _ G _ e
+--     have := Undirected.edge_symm (G := G) e
 --     cases a <;> cases b <;> simp_all only [isUndir, not_isUndir_of_dir, Bool.false_eq_true]
 --   | undir s =>
 --     simp [get, h]
@@ -28,7 +24,7 @@ variable {V W E F : Type*} {G : Graph V E} [Undirected G] {H : Graph W F} [Undir
 -- lemma inc_eq_undir_get : G.inc e = undir (G.get e) := by
 --   match h : G.inc e with
 --   | dir (a, b) =>
---     have := @Undirected.edge_symm _ _ _ G _ e
+--     have := Undirected.edge_symm (G := G) e
 --     cases a <;> cases b <;> simp_all
 --   | undir s =>
 --     simp only [get, h]
@@ -54,6 +50,8 @@ variable {V W E F : Type*} {G : Graph V E} [Undirected G] {H : Graph W F} [Undir
 -- lemma mem_finishAt_iff_mem_get : v ∈ G.finishAt e ↔ v ∈ G.get e := by
 --   simp only [finishAt, inc_eq_undir_get, mem_finishAt_undir]
 
+noncomputable def get : Sym2 V := (exist_of_isUndir (G.edge_symm e)).choose
+
 @[simp high]
 lemma inc_eq_undir_v12 : G.inc e = undir s(G.v1 e, G.v2 e) := by
   match h : G.inc e with
@@ -63,6 +61,20 @@ lemma inc_eq_undir_v12 : G.inc e = undir s(G.v1 e, G.v2 e) := by
     exact (not_isUndir_of_dir _ this).elim
   | undir s =>
     simp only [v1, h, undir_v1, v2, undir_v2, Prod.mk.eta, Quot.out_eq]
+
+lemma get_eq_v12 : G.get e = s(G.v1 e, G.v2 e) := by
+  simp only [get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq']
+
+lemma inc_eq_get (e : E) : G.inc e = undir (G.get e) := by
+  simp only [inc_eq_undir_v12, get, undir.injEq, Classical.choose_eq']
+
+lemma lift_v12 {α : Type*} {f : V → V → α} (hf : ∀ (a₁ a₂ : V), f a₁ a₂ = f a₂ a₁) (e : E) :
+    f (G.v1 e) (G.v2 e) = Sym2.lift ⟨f, hf⟩ (G.get e) := by
+  simp only [get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq', Sym2.lift_mk]
+
+lemma Hom.get (A : G ⊆ᴳ H) (e : E) : H.get (A.fₑ e) = (G.get e).map A.fᵥ := by
+  have := A.inc e
+  rwa [inc_eq_get, inc_eq_get, edge.map_undir, undir.injEq] at this
 
 lemma canGo_symm [DecidableEq V] : G.canGo u e v = G.canGo v e u := by
   simp only [canGo, inc_eq_undir_v12]
@@ -105,7 +117,8 @@ lemma mem_incEE_of_both_mem_incVE [DecidableEq V] (hne : e ≠ e') (h : e ∈ G.
 lemma adj_comm [DecidableEq V] : G.adj u v ↔ G.adj v u := by
   simp only [adj, canGo_symm]
 
-lemma SubgraphOf.Undirected (hGH : H ⊆ᴳ G) : Undirected H where
+omit [Undirected H] in
+lemma SubgraphOf.Undirected' (hGH : H ⊆ᴳ G) : Undirected H where
   all_full e := by
     unfold isFull
     rw [← map_isFull_iff, ← hGH.inc e]
@@ -114,3 +127,17 @@ lemma SubgraphOf.Undirected (hGH : H ⊆ᴳ G) : Undirected H where
     unfold isUndir
     rw [← map_isUndir_iff, ← hGH.inc e]
     exact edge_symm G _
+
+lemma SubgraphOf_v12 (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H.v2 (A.fₑ e) =
+    A.fᵥ (G.v2 e) ∨ H.v1 (A.fₑ e) = A.fᵥ (G.v2 e) ∧ H.v2 (A.fₑ e) = A.fᵥ (G.v1 e) := by
+  have := A.inc e
+  simp only [inc_eq_undir_v12, map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff',
+    Prod.mk.injEq, Prod.swap_prod_mk] at this
+  exact this
+
+-- lemma SubgraphOf_v12' (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H.v2 (A.fₑ e) =
+--     A.fᵥ (G.v2 e) ∨ H.v1 (A.fₑ e) = A.fᵥ (G.v2 e) ∧ H.v2 (A.fₑ e) = A.fᵥ (G.v1 e) := by
+--   have := A.inc e
+--   simp [-inc_eq_undir_v12, map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff',
+--     Prod.mk.injEq, Prod.swap_prod_mk] at this
+--   exact this

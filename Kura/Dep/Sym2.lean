@@ -286,6 +286,7 @@ lemma map_IsDiag_iff (f : α ↪ β) (s : Sym2 α) :
   induction' s with x y
   simp only [map_pair_eq, isDiag_iff_proj_eq, EmbeddingLike.apply_eq_iff_eq]
 
+lemma map_mk {α β : Type*} (f : α → β) (p : α × α) : (Sym2.mk p).map f = s(f p.1, f p.2) := rfl
 
 -- example {α β : Type*} :
 --   α × β ≃ { a : Sym2 (α ⊕ β) // a.toMultiset.countP (Sum.isLeft ·) = 1 } where

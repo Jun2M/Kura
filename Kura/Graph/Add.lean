@@ -3,10 +3,10 @@ import Kura.Graph.Remove
 
 namespace Graph
 open edge
-variable {V₁ V₂ V₃ V₄ E₁ E₂ E₃ E₄ : Type*} (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) (G₃ : Graph V₃ E₃)
+variable {V₁ V₂ V₃ V₄ E₁ E₂ E₃ E₄ : Type*} {G₁ : Graph V₁ E₁} {G₂ : Graph V₂ E₂} {G₃ : Graph V₃ E₃}
 
 
-def Vmap (f : V₁ → V₂) : Graph V₂ E₁ where
+def Vmap (G₁ : Graph V₁ E₁) (f : V₁ → V₂) : Graph V₂ E₁ where
   inc e := G₁.inc e |>.map f
 
 -- def Isom.OfVEquiv (f : V₁ ≃ V₂) : G₁ ≃ᴳ G₁.Vmap f :=
@@ -23,26 +23,27 @@ def Vmap (f : V₁ → V₂) : Graph V₂ E₁ where
 --   inc e := G₁.inc ((Equiv.ofEmbedding f).symm e)
 
 
-def addVertex : Graph (WithBot V₁) E₁ := G₁.Vmap some
+def addVertex (G₁ : Graph V₁ E₁) : Graph (WithBot V₁) E₁ := G₁.Vmap some
 
-def addVertex_SubgraphOf : G₁ ⊆ᴳ G₁.addVertex where
+def addVertex_SubgraphOf (G₁ : Graph V₁ E₁) : G₁ ⊆ᴳ G₁.addVertex where
   fᵥ := some
   fₑ := id
   inc _ := rfl
   fᵥinj := Option.some_injective _
   fₑinj _ _ a := a
 
-def addDirEdge (A : V₁ × V₁) : Graph V₁ (Lex $ E₁ ⊕ Unit) where
+def addDirEdge (G₁ : Graph V₁ E₁) (A : V₁ × V₁) : Graph V₁ (E₁ ⊕ Unit) where
   inc := λ e => match e with
     | Sum.inl e₁ => G₁.inc e₁
     | Sum.inr _ => dir (A.map some some)
 
-def addUndirEdge (s : Sym2 V₁) : Graph V₁ (Lex $ E₁ ⊕ Unit) where
+def addUndirEdge (G₁ : Graph V₁ E₁) (s : Sym2 V₁) : Graph V₁ (E₁ ⊕ Unit) where
   inc := λ e => match e with
     | Sum.inl e₁ => G₁.inc e₁
     | Sum.inr _ => undir s
 
-def addUndirEdge_SpanningSubgraphOf (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G₁.addUndirEdge s) where
+def addUndirEdge_SpanningSubgraphOf (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
+    G₁.SpanningSubgraphOf (G₁.addUndirEdge s) where
   fᵥ := id
   fₑ := Sum.inl
   inc _ := by aesop
@@ -51,20 +52,84 @@ def addUndirEdge_SpanningSubgraphOf (s : Sym2 V₁) : G₁.SpanningSubgraphOf (G
   fᵥsurj _ := by simp only [id_eq, exists_eq]
 
 @[simp]
-lemma addUndirEdge_inc_inl (s : Sym2 V₁) (e : E₁) :
+lemma addUndirEdge_inc_inl (G₁ : Graph V₁ E₁) (s : Sym2 V₁) (e : E₁) :
   (G₁.addUndirEdge s).inc (Sum.inl e) = G₁.inc e := rfl
 
 @[simp]
-lemma addUndirEdge_inc_inr (s : Sym2 V₁) :
+lemma addUndirEdge_inc_inr (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
   (G₁.addUndirEdge s).inc (Sum.inr ()) = undir s := rfl
 
 @[simp]
-lemma addUndirEdge_SpanningSubgraphOf_fᵥ (s : Sym2 V₁) :
+lemma addUndirEdge_SpanningSubgraphOf_fᵥ (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
     (G₁.addUndirEdge_SpanningSubgraphOf s).fᵥ = id := rfl
 
 @[simp]
-lemma addUndirEdge_SpanningSubgraphOf_fₑ (s : Sym2 V₁) :
+lemma addUndirEdge_SpanningSubgraphOf_fₑ (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
     (G₁.addUndirEdge_SpanningSubgraphOf s).fₑ = Sum.inl := rfl
+
+def Hom.addUndirEdge (s : Sym2 V₁) (A : Hom G₁ G₂) {e : E₂} (he : G₂.inc e = (undir s).map A.fᵥ) :
+    Hom (G₁.addUndirEdge s) G₂ where
+  fᵥ := A.fᵥ
+  fₑ e' := match e' with
+    | Sum.inl e₁ => A.fₑ e₁
+    | Sum.inr _ => e
+  inc := λ e' => match e' with
+    | Sum.inl e₁ => A.inc e₁
+    | Sum.inr _ => by simp only [he, map_undir, addUndirEdge_inc_inr _ s]
+
+@[simp]
+lemma Hom.addUndirEdge_fᵥ (s : Sym2 V₁) (A : Hom G₁ G₂) {e : E₂}
+    (he : G₂.inc e = (undir s).map A.fᵥ) : (A.addUndirEdge s he).fᵥ = A.fᵥ := rfl
+
+@[simp]
+lemma Hom.addUndirEdge_fₑ (s : Sym2 V₁) (A : Hom G₁ G₂) {e : E₂}
+    (he : G₂.inc e = (undir s).map A.fᵥ) : (A.addUndirEdge s he).fₑ = fun e' => match e' with
+    | Sum.inl e' => A.fₑ e'
+    | Sum.inr _ => e := rfl
+
+def SubgraphOf.addUndirEdge (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (heinj : e ∉ Set.range A.fₑ)
+    (he : G₂.inc e = (undir s).map A.fᵥ) : G₁.addUndirEdge s ⊆ᴳ G₂ where
+  toHom := A.toHom.addUndirEdge s he
+  fᵥinj := A.fᵥinj
+  fₑinj e₁ e₂ he₁₂ := by match e₁, e₂ with
+    | Sum.inl e₁, Sum.inl e₂ => simpa [A.fₑinj.eq_iff] using he₁₂
+    | Sum.inl e₁, Sum.inr _ =>
+      simp only [Set.mem_range, not_exists, Hom.addUndirEdge_fₑ] at heinj he₁₂
+      exact (heinj e₁ he₁₂).elim
+    | Sum.inr _, Sum.inl e₂ =>
+      simp only [Set.mem_range, not_exists, Hom.addUndirEdge_fₑ] at heinj he₁₂
+      exact (heinj e₂ he₁₂.symm).elim
+    | Sum.inr _, Sum.inr _ => simp only
+
+@[simp]
+lemma SubgraphOf.addUndirEdge_fₑ_inl (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (e' : E₁)
+    (heinj : e ∉ Set.range A.fₑ) (he : G₂.inc e = (undir s).map A.fᵥ) :
+    (A.addUndirEdge s heinj he).fₑ (Sum.inl e') = A.fₑ e' := by
+  simp only [addUndirEdge, Hom.addUndirEdge_fₑ]
+
+@[simp]
+lemma SubgraphOf.addUndirEdge_fₑ_inr (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (heinj : e ∉ Set.range A.fₑ)
+    (he : G₂.inc e = (undir s).map A.fᵥ) : (A.addUndirEdge s heinj he).fₑ (Sum.inr ()) = e := rfl
+
+def addUndirEdge_SubgraphOf_iff (s : Sym2 V₁) (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) {e : E₂} :
+    (∃ (A : G₁.addUndirEdge s ⊆ᴳ G₂), A.fₑ (Sum.inr ()) = e) ↔ ∃ (A : G₁ ⊆ᴳ G₂), e ∉ Set.range A.fₑ ∧ G₂.inc e = (undir s).map A.fᵥ := by
+  constructor
+  · rintro ⟨A, rfl⟩
+    refine ⟨⟨⟨A.fᵥ, A.fₑ ∘ Sum.inl, ?_⟩, ?_, ?_⟩, ?_, ?_⟩
+    · rintro e
+      simp only [Function.comp_apply, A.inc, addUndirEdge_inc_inl]
+    · rintro v₁ v₂ hv
+      simpa [A.fᵥinj.eq_iff] using hv
+    · rintro e₁ e₂ he
+      simpa [A.fₑinj.eq_iff] using he
+    · simp
+      intro e' he'
+      have := A.fₑinj he'
+      simp at this
+    · simp [A.inc]
+  · rintro ⟨A, hinj, he⟩
+    refine ⟨A.addUndirEdge s hinj he, ?_⟩
+    simp only [SubgraphOf.addUndirEdge_fₑ_inr]
 
 instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
     Undirected (G₁.addUndirEdge s) where
@@ -75,7 +140,7 @@ instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
     | Sum.inl e₁ => G₁.edge_symm e₁
     | Sum.inr _ => by simp only [isUndir, addUndirEdge, inc_eq_undir_v12, isUndir_of_undir]
 
-def addApex (vs : Set V₁) : Graph (V₁ ⊕ Unit) (Lex $ E₁ ⊕ vs) where
+def addApex (vs : Set V₁) : Graph (V₁ ⊕ Unit) (E₁ ⊕ vs) where
   inc e := match e with
     | Sum.inl e₁ => (G₁.inc e₁).map Sum.inl
     | Sum.inr v => undir s(Sum.inr (), Sum.inl v.val)

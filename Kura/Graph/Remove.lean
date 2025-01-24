@@ -47,9 +47,20 @@ def EsSubtype {P P' : E → Prop} (G : Graph V (Subtype P)) (S : Set E)
     exact G.inc ⟨e, hP⟩
 
 /-subgraph creator-/
-def EVs (G : Graph V E) (Sv : Set V) (Se : Set E)
-  (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) : Graph Sv Se where
+def EVSubgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    Graph Sv Se where
   inc e := G{Se}ᴳ[Sv]ᴳ.inc ⟨e, he e.val e.prop⟩
+
+-- def VESubgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+--     Graph Sv Se where
+--   inc e :=
+--     let Se' : Set { e // G.all e fun x ↦ x ∈ Sv } :=
+--       Subtype.map id (fun f (hSf : f ∈ Se) => he (id f) hSf) ''
+--     G[Sv]ᴳ{Se'}ᴳ.inc ⟨e, he e.val e.prop⟩
+
+def Subgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, ∀ v ∈ G.inc e, v ∈ Sv) :
+    Graph Sv Se where
+  inc e := edge.pmap Subtype.mk (G.inc e) (he e.val e.prop)
 
 def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v ∉ S) :
   Graph (Sᶜ:Set _) E where
@@ -193,6 +204,30 @@ def Vs_subgraphOf_Vs_of_subset (h : S ⊆ T) : G[S]ᴳ ⊆ᴳ G[T]ᴳ where
 lemma Es_inc (G : Graph V E) (S : Set E) (e : S) :
     (G{S}ᴳ).inc e = G.inc e := rfl
 
+instance instEsUndir [Undirected G] {S : Set E} : G{S}ᴳ.Undirected where
+  all_full e := by
+    obtain ⟨e, he⟩ := e
+    exact G.all_full e
+  edge_symm e := by
+    obtain ⟨e, he⟩ := e
+    exact G.edge_symm e
+
+instance instEsSimple [Simple G] {S : Set E} : G{S}ᴳ.Simple where
+  edge_symm e := by
+    obtain ⟨e, he⟩ := e
+    exact G.edge_symm e
+  all_full e := by
+    obtain ⟨e, he⟩ := e
+    exact G.all_full e
+  no_loops e := by
+    obtain ⟨e, he⟩ := e
+    exact G.no_loops e
+  inc_inj e₁ e₂ h := by
+    obtain ⟨e₁, he₁⟩ := e₁
+    obtain ⟨e₂, he₂⟩ := e₂
+    ext
+    exact G.inc_inj h
+
 def Es_univ : (G{Set.univ}ᴳ) ≃ᴳ G where
   fᵥ := id
   fₑ := Subtype.val
@@ -261,21 +296,67 @@ lemma Es_spanningsubgraph_fᵥ (S : Set E) : (Es_spanningsubgraph G S).fᵥ = id
 @[simp]
 lemma Es_spanningsubgraph_fₑ (S : Set E) : (Es_spanningsubgraph G S).fₑ = Subtype.val := rfl
 
-@[simp]
 def Es_spanningsubgraph_Es_of_subset {S T : Set E} (h : S ⊆ T) :
   G{S}ᴳ.SpanningSubgraphOf (G{T}ᴳ) where
   fᵥ := id
-  fₑ e := ⟨e.val, h e.prop⟩
-  inc e := by simp only [Es_inc, map_id]
+  fₑ := Subtype.impEmbedding _ _ h
+  inc e := by simp only [Es_inc, Subtype.impEmbedding_apply_coe, map_id]
   fᵥinj := Function.injective_id
   fᵥsurj := Function.surjective_id
-  fₑinj e1 e2 he := by
-    simp only [Subtype.mk.injEq] at he
-    exact Subtype.eq he
+  fₑinj e1 e2 he := by simpa only [EmbeddingLike.apply_eq_iff_eq] using he
 
 @[simp]
 lemma Es_spanningsubgraph_Es_of_subset_fᵥ {S T : Set E} (h : S ⊆ T) :
     (G.Es_spanningsubgraph_Es_of_subset h).fᵥ = id := rfl
+
+@[simp]
+lemma Es_spanningsubgraph_Es_of_subset_fₑ {S T : Set E} (h : S ⊆ T) :
+    (G.Es_spanningsubgraph_Es_of_subset h).fₑ = Subtype.impEmbedding _ _ h := rfl
+
+def Es_of_Es_Es (S : Set E) (T : Set S) {U : Set E} (hU : U = Subtype.val '' T) :
+    G{U}ᴳ ≃ᴳ G{S}ᴳ{T}ᴳ where
+  fᵥ := id
+  fₑ e : T.Elem := ⟨⟨e.val, (by
+    subst U
+    obtain ⟨e, ⟨⟨a, haS⟩, haT, rfl⟩⟩ := e
+    exact haS)⟩, (by
+    subst U
+    obtain ⟨e, ⟨⟨a, haS⟩, haT, rfl⟩⟩ := e
+    exact haT)⟩
+  inc := by simp only [Es_inc, map_id, implies_true]
+  fᵥinj := Function.injective_id
+  fₑinj e f hef := by
+    ext
+    simpa only [Subtype.mk.injEq] using hef
+  fᵥsurj := Function.surjective_id
+  fₑsurj e := by
+    subst U
+    simp only [Subtype.exists, Set.mem_image, exists_and_right, exists_eq_right]
+    obtain ⟨⟨e, heS⟩, heT⟩ := e
+    use e, ⟨heS, heT⟩
+
+
+@[simp]
+lemma Es_of_Es_Es_fᵥ (S : Set E) (T : Set S) {U : Set E} (hU : U = Subtype.val '' T) :
+    (G.Es_of_Es_Es S T hU).fᵥ = id := rfl
+
+-- @[simp]
+-- lemma Es_of_Es_Es_fₑ {S : Set E} (T : Set S) {U : Set E} (hU : U = Subtype.val '' T) :
+--     (G.Es_of_Es_Es S T hU).fₑ = (Equiv.setCongr hU) ∘ sorry := rfl
+
+@[simp]
+lemma Es_of_Es_Es_symm_fᵥ (S : Set E) (T : Set S) {U : Set E} (hU : U = Subtype.val '' T) :
+    (G.Es_of_Es_Es S T hU).symm.fᵥ = id := by
+  ext v
+  apply_fun (G.Es_of_Es_Es S T hU).fᵥ using (G.Es_of_Es_Es S T hU).fᵥinj
+  simp only [Isom.fᵥ_symm_fᵥ, id_eq, Es_of_Es_Es_fᵥ]
+
+-- @[simp]
+-- lemma Es_of_Es_Es_symm_fₑ {S : Set E} (T : Set S) :
+--     (G.Es_of_Es_Es T).symm.fₑ = Subtype.impEmbedding _ _ (fun _ he => he) := rfl
+
+@[simp]
+lemma Es_get {G : Graph V E} [Undirected G] (S : Set E) (e : S) : (G{S}ᴳ).get e = G.get e := rfl
 
 def Hom.Es {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
     G.Hom (H{S}ᴳ) where
@@ -304,56 +385,94 @@ def SpanningSubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G.SpanningSubgra
   toSubgraphOf := σ.toSubgraphOf.Es S hσ
   fᵥsurj := σ.fᵥsurj
 
-instance instEsUndir [Undirected G] {S : Set E} : G{S}ᴳ.Undirected where
-  all_full e := by
-    obtain ⟨e, he⟩ := e
-    exact G.all_full e
-  edge_symm e := by
-    obtain ⟨e, he⟩ := e
-    exact G.edge_symm e
-
-instance instEsSimple [Simple G] {S : Set E} : G{S}ᴳ.Simple where
-  edge_symm e := by
-    obtain ⟨e, he⟩ := e
-    exact G.edge_symm e
-  all_full e := by
-    obtain ⟨e, he⟩ := e
-    exact G.all_full e
-  no_loops e := by
-    obtain ⟨e, he⟩ := e
-    exact G.no_loops e
-  inc_inj e₁ e₂ h := by
-    obtain ⟨e₁, he₁⟩ := e₁
-    obtain ⟨e₂, he₂⟩ := e₂
+def SubgraphOf.Es_Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
+    (hσ : σ.fₑ '' S ⊆ T) : G{S}ᴳ ⊆ᴳ H{T}ᴳ where
+  fᵥ := σ.fᵥ
+  fₑ e := ⟨σ.fₑ e.val, hσ (Set.mem_image_of_mem _ e.prop)⟩
+  inc e := by simp only [Es_inc, σ.inc]
+  fᵥinj := σ.fᵥinj
+  fₑinj a b h := by
     ext
-    exact G.inc_inj h
+    simpa [Subtype.mk.injEq, σ.fₑinj.eq_iff] using h
 
 @[simp]
-lemma EVs_inc (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) (e : Se) :
-    (G.EVs Sv Se he).inc e = (G.inc e).pmap Subtype.mk (by
+lemma SubgraphOf.Es_Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
+    (hσ : σ.fₑ '' S ⊆ T) : (σ.Es_Es S T hσ).fᵥ = σ.fᵥ := rfl
+
+@[simp]
+lemma SubgraphOf.Es_Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
+    (hσ : σ.fₑ '' S ⊆ T) : (σ.Es_Es S T hσ).fₑ =
+    fun e => ⟨σ.fₑ e.val, hσ (Set.mem_image_of_mem _ e.prop)⟩ := rfl
+
+def Isom.Es_Es {G : Graph V E} {H : Graph W F} (σ : G ≃ᴳ H) {S : Set E} {T : Set F}
+    (hσ : σ.fₑ '' S = T) : G{S}ᴳ ≃ᴳ H{T}ᴳ where
+  fᵥ := σ.fᵥ
+  fₑ e := ⟨σ.fₑ e.val, by simp only [←hσ, Set.mem_image, σ.fₑinj.eq_iff, exists_eq_right, e.prop]⟩
+  inc e := by simp only [Es_inc, σ.inc]
+  fᵥinj := σ.fᵥinj
+  fₑinj a b h := by
+    ext
+    simpa [Subtype.mk.injEq, σ.fₑinj.eq_iff] using h
+  fᵥsurj := σ.fᵥsurj
+  fₑsurj e := by
+    subst T
+    obtain ⟨e, ⟨a, ha, rfl⟩⟩ := e
+    simp only [Subtype.mk.injEq, σ.fₑinj.eq_iff, Subtype.exists, exists_prop, exists_eq_right, ha]
+
+@[simp]
+lemma Isom.Es_Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G ≃ᴳ H) {S : Set E} {T : Set F}
+    (hσ : σ.fₑ '' S = T) : (σ.Es_Es hσ).fᵥ = σ.fᵥ := rfl
+
+@[simp]
+lemma Isom.Es_Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G ≃ᴳ H) {S : Set E} {T : Set F}
+    (hσ : σ.fₑ '' S = T) : (σ.Es_Es hσ).fₑ = fun e => ⟨σ.fₑ e.val, by
+    simp only [←hσ, Set.mem_image, σ.fₑinj.eq_iff, exists_eq_right, e.prop]⟩ := rfl
+
+@[simp]
+lemma Isom.Es_Es_symm_fᵥ {G : Graph V E} {H : Graph W F} (σ : G ≃ᴳ H) {S : Set E} {T : Set F}
+    (hσ : σ.fₑ '' S = T) : (σ.Es_Es hσ).symm.fᵥ = σ.symm.fᵥ := by
+  ext1 v
+  apply_fun (σ.Es_Es hσ).fᵥ using σ.fᵥinj
+  simp only [fᵥ_symm_fᵥ, Es_Es_fᵥ]
+
+@[simp]
+lemma Isom.Es_Es_symm_fₑ {G : Graph V E} {H : Graph W F} (σ : G ≃ᴳ H) {S : Set E} {T : Set F}
+    (hσ : σ.fₑ '' S = T) : (σ.Es_Es hσ).symm.fₑ = fun e => ⟨σ.symm.fₑ e.val, by
+    obtain ⟨e, he⟩ := e
+    obtain ⟨e, he, rfl⟩ := hσ ▸ he
+    simpa⟩ := by
+  ext1 e
+  apply_fun (σ.Es_Es hσ).fₑ using (σ.Es_Es hσ).fₑinj
+  simp only [fₑ_symm_fₑ, Es_Es_fₑ]
+
+
+
+@[simp]
+lemma EVSubgraph_inc (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) (e : Se) :
+    (G.EVSubgraph Sv Se he).inc e = (G.inc e).pmap Subtype.mk (by
       specialize he e.val e.prop; simpa only [all, all_iff, decide_eq_true_eq] using he) := rfl
 
-def EVs_subgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    G.EVs Sv Se he ⊆ᴳ G where
+def EVSubgraphOf (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    G.EVSubgraph Sv Se he ⊆ᴳ G where
   fᵥ := Subtype.val
   fₑ := Subtype.val
-  inc e := by simp only [Function.Embedding.coeFn_mk, EVs_inc, pmap_subtype_map_val]
+  inc e := by simp only [Function.Embedding.coeFn_mk, EVSubgraph_inc, pmap_subtype_map_val]
   fᵥinj := Subtype.val_injective
   fₑinj := Subtype.val_injective
 
 @[simp]
-lemma EVs_subgraph_fᵥ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    (EVs_subgraph G Sv Se he).fᵥ = Subtype.val := rfl
+lemma EVSubgraphOf_fᵥ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    (EVSubgraphOf G Sv Se he).fᵥ = Subtype.val := rfl
 
 @[simp]
-lemma EVs_subgraph_fₑ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    (EVs_subgraph G Sv Se he).fₑ = Subtype.val := rfl
+lemma EVSubgraphOf_fₑ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    (EVSubgraphOf G Sv Se he).fₑ = Subtype.val := rfl
 
 
 lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype W] [Fintype E]
   [Fintype F] [DecidableEq V] [DecidableEq W] [DecidableEq E] [DecidableEq F] :
     Nonempty (G ⊆ᴳ H) ↔ ∃ (Sv : Set W) (Se : Set F) (hSve : ∀ e ∈ Se, (H.all e (· ∈ Sv))),
-    Nonempty (G ≃ᴳ H.EVs Sv Se hSve) := by
+    Nonempty (G ≃ᴳ H.EVSubgraph Sv Se hSve) := by
   constructor
   · rintro ⟨⟨⟨fᵥ, fₑ, hcomm⟩, fᵥinj, fₑinj⟩⟩
     refine ⟨ Set.range fᵥ, Set.range fₑ, ?_, ⟨⟨⟨⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩, ?_⟩, ?_⟩⟩ ⟩
@@ -367,7 +486,7 @@ lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype
     · exact (Function.Embedding.rangeFactorization ⟨fᵥ, fᵥinj⟩).toFun
     · exact (Function.Embedding.rangeFactorization ⟨fₑ, fₑinj⟩).toFun
     · intro e
-      simp only [Function.Embedding.coeFn_mk, Function.Embedding.toFun_eq_coe, EVs_inc]
+      simp only [Function.Embedding.coeFn_mk, Function.Embedding.toFun_eq_coe, EVSubgraph_inc]
       change pmap _ (H.inc (fₑ e)) _ = _
       simp_rw [hcomm e]
       rw [pmap_map (by simp only [Set.mem_range, exists_apply_eq_apply, implies_true])]
@@ -391,7 +510,7 @@ lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype
     refine ⟨⟨⟨(hIsom.fᵥ ·), (hIsom.fₑ ·), ?_⟩, ?_, ?_⟩⟩
     · intro e
       have := hIsom.inc e
-      simp only [EVs_inc] at this
+      simp only [EVSubgraph_inc] at this
       apply_fun (edge.map Subtype.val) at this
       simp only [pmap_subtype_map_val] at this
       rw [this, ← map_comp]

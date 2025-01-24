@@ -356,6 +356,10 @@ lemma eq_nil_of_IsEmpty [IsEmpty α] (l : List α) : l = [] := by
   rfl
   exact IsEmpty.elim (by assumption) h
 
+lemma forall₂_iff_forall {l : List α} {P : α → α → Prop} :
+    List.Forall₂ P l l ↔ List.Forall (fun a ↦ P a a) l := by
+  rw [List.forall₂_same, List.forall_iff_forall_mem]
+
 /- ------------------------------------------------------------------------------------ -/
 
 

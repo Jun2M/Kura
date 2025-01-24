@@ -47,11 +47,11 @@ instance instPlanar_by_AbstractDualFintype [Fintype E]:
   sorry
 instance instPlanar_by_AbstractDualFacesFintype [Fintype E]:
     Fintype G.Faces := instPlanar_by_AbstractDualFintype G
-instance instPlanar_by_AbstractDualFintypeEdges [Fintype G.Edges]:
-    Fintype (Planar_by_AbstractDual.F G) := by
-  sorry
-instance instPlanar_by_AbstractDualFacesFintypeEdges [Fintype G.Edges]:
-    Fintype G.Faces := instPlanar_by_AbstractDualFintypeEdges G
+-- instance instPlanar_by_AbstractDualFintypeEdges [Fintype G.Edges]:
+--     Fintype (Planar_by_AbstractDual.F G) := by
+--   sorry
+-- instance instPlanar_by_AbstractDualFacesFintypeEdges [Fintype G.Edges]:
+--     Fintype G.Faces := instPlanar_by_AbstractDualFintypeEdges G
 
 lemma bridge_iff_loop [G.connected] :
     G.bridge e ↔ G.dualGraph.isLoop e := by
@@ -117,8 +117,8 @@ instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
 
 -- The following definitions should be sufficient to show that any planar graph is planar by
 -- abstract dual.
-def CycleGraph.Planar_by_AbstractDual (n : ℕ) (hn : 1 < n) :
-    Planar_by_AbstractDual (CycleGraph n hn) where
+def CycleGraph.Planar_by_AbstractDual (n : ℕ+) :
+    Planar_by_AbstractDual (CycleGraph n) where
   F := Fin 2
   FDecidableEq := by infer_instance
   dualGraph :=( {inc := fun e ↦ edge.undir s(0, 1)} : Graph (Fin 2) (Fin n))
@@ -132,11 +132,11 @@ def MinorOf.Planar_by_AbstractDual {H : Graph F E} (M : G.MinorOf H) :
 def MergeOnMultualSubgraph.Planar_by_AbstractDual {H : Graph F E} (A₁ : CompleteGraph 2 ⊆ᴳ G)
     (A₂ : CompleteGraph 2 ⊆ᴳ H) : Planar_by_AbstractDual (A₁.glue A₂) := sorry
 
-def inSameFace (u v : V) : Prop := ∃ (f : G.Faces) (e1 e2 : G.Edges), u ∈ G.endAt e1 ∧
-  v ∈ G.endAt e2 ∧ f ∈ G.dualGraph.endAt e1 ∧ f ∈ G.dualGraph.endAt e2
+-- def inSameFace (u v : V) : Prop := ∃ (f : G.Faces) (e1 e2 : G.Edges), u ∈ G.endAt e1 ∧
+--   v ∈ G.endAt e2 ∧ f ∈ G.dualGraph.endAt e1 ∧ f ∈ G.dualGraph.endAt e2
 
-def addUndirEdge.Planar_by_AbstractDual {u v : V} (h : G.inSameFace u v) :
-    Planar_by_AbstractDual (G.addUndirEdge s(u, v)) := sorry
+-- def addUndirEdge.Planar_by_AbstractDual {u v : V} (h : G.inSameFace u v) :
+--     Planar_by_AbstractDual (G.addUndirEdge s(u, v)) := sorry
 
 
 /-

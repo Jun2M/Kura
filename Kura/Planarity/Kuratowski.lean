@@ -40,65 +40,65 @@ lemma CompleteBipGraph33_not_Planar : IsEmpty <| Planar_by_AbstractDual (Complet
   rw [hEuler] at h1; clear hEuler
   omega
 
-theorem KuraCore (n : ℕ) (hn : 1 < n) (Nx Ny : Finset (Fin n)) (hNxcard : Nx.card ≥ 2)
-    (hNycard : Ny.card ≥ 2) :
-    let G := ((CycleGraph n hn).addApex Nx).addApex (Sum.inl '' Ny ∪ {Sum.inr ()})
-    IsEmpty ((CompleteGraph 5).MinorOf G) ∧ IsEmpty ((CompleteBipGraph 3 3).MinorOf G) →
-    Nonempty (Planar_by_AbstractDual G) := by
-  rintro G ⟨hK5, hK33⟩
-  let y : G.Verts := Sum.inr ()
-  let x : G.Verts := Sum.inl (Sum.inr ())
-  let Ny' : Set G.Verts := Sum.inl '' (Sum.inl '' Ny)
-  let Nx' : Set G.Verts := Sum.inl '' (Sum.inl '' Nx)
+-- theorem KuraCore (n : ℕ) (hn : 1 < n) (Nx Ny : Finset (Fin n)) (hNxcard : Nx.card ≥ 2)
+--     (hNycard : Ny.card ≥ 2) :
+--     let G := ((CycleGraph n hn).addApex Nx).addApex (Sum.inl '' Ny ∪ {Sum.inr ()})
+--     IsEmpty ((CompleteGraph 5).MinorOf G) ∧ IsEmpty ((CompleteBipGraph 3 3).MinorOf G) →
+--     Nonempty (Planar_by_AbstractDual G) := by
+--   rintro G ⟨hK5, hK33⟩
+--   let y : G.Verts := Sum.inr ()
+--   let x : G.Verts := Sum.inl (Sum.inr ())
+--   let Ny' : Set G.Verts := Sum.inl '' (Sum.inl '' Ny)
+--   let Nx' : Set G.Verts := Sum.inl '' (Sum.inl '' Nx)
 
-  let e : G.Edges := Sum.inr ⟨Sum.inr (), Set.mem_union_right (Sum.inl '' _) rfl⟩
-  let G' := G.Es {e}ᶜ
+--   let e : G.Edges := Sum.inr ⟨Sum.inr (), Set.mem_union_right (Sum.inl '' _) rfl⟩
+--   let G' := G.Es {e}ᶜ
 
-  have hG' : ∃ S : Set G'.Verts, S.ncard = 2 ∧ G'.isCutBetween x y S := by
-    by_cases hsymmdiff : Nx' ∆ Ny' = ∅
-    · rw [← Set.bot_eq_empty, symmDiff_eq_bot] at hsymmdiff
-      by_cases hNxcard2 : Nx'.ncard = 2
-      · use Nx', hNxcard2, (by simp only [Set.mem_image, Sum.inl.injEq, exists_eq_right,
-        reduceCtorEq, and_false, exists_false, not_false_eq_true, Nx', x]), (by simp only [
-          Set.mem_image, reduceCtorEq, and_false, exists_const, not_false_eq_true, Nx', y])
-        constructor
-        · have hNxNonempty : Nx'.Nonempty := Set.nonempty_of_ncard_ne_zero (hNxcard2 ▸
-            (Nat.zero_ne_add_one 1).symm)
-          obtain ⟨v, hv⟩ := hNxNonempty
-          exact Relation.ReflTransGen.tail (Relation.ReflTransGen.single (sorry : G'.adj x v)) (sorry : G'.adj v y)
-        ·
-          sorry
-      · -- If there are at least 3 vertices mutually adjacent to x and y, then we can find a K5 minor
-        absurd hK5
-        simp only [not_isEmpty_iff]
-        let l := ((List.finRange n).filter (· ∈ Nx)).take 3
-        refine ⟨⟨?_, ?_, ?_, ?_, ?_⟩⟩
-        · intro v
-          match v with
-          | Sum.inl (Sum.inl v') =>
-            by_cases h : v' ∈ Nx
-            · exact some (l.indexOf v')
-            · exact none
-          | Sum.inl (Sum.inr v') => exact some 1
-          | Sum.inr () => exact some 0
-        · rintro ⟨e, he⟩
-          let ⟨a, b⟩ := e.out
-          sorry
-        · sorry
-        · sorry
-        · sorry
+--   have hG' : ∃ S : Set G'.Verts, S.ncard = 2 ∧ G'.isCutBetween x y S := by
+--     by_cases hsymmdiff : Nx' ∆ Ny' = ∅
+--     · rw [← Set.bot_eq_empty, symmDiff_eq_bot] at hsymmdiff
+--       by_cases hNxcard2 : Nx'.ncard = 2
+--       · use Nx', hNxcard2, (by simp only [Set.mem_image, Sum.inl.injEq, exists_eq_right,
+--         reduceCtorEq, and_false, exists_false, not_false_eq_true, Nx', x]), (by simp only [
+--           Set.mem_image, reduceCtorEq, and_false, exists_const, not_false_eq_true, Nx', y])
+--         constructor
+--         · have hNxNonempty : Nx'.Nonempty := Set.nonempty_of_ncard_ne_zero (hNxcard2 ▸
+--             (Nat.zero_ne_add_one 1).symm)
+--           obtain ⟨v, hv⟩ := hNxNonempty
+--           exact Relation.ReflTransGen.tail (Relation.ReflTransGen.single (sorry : G'.adj x v)) (sorry : G'.adj v y)
+--         ·
+--           sorry
+--       · -- If there are at least 3 vertices mutually adjacent to x and y, then we can find a K5 minor
+--         absurd hK5
+--         simp only [not_isEmpty_iff]
+--         let l := ((List.finRange n).filter (· ∈ Nx)).take 3
+--         refine ⟨⟨?_, ?_, ?_, ?_, ?_⟩⟩
+--         · intro v
+--           match v with
+--           | Sum.inl (Sum.inl v') =>
+--             by_cases h : v' ∈ Nx
+--             · exact some (l.indexOf v')
+--             · exact none
+--           | Sum.inl (Sum.inr v') => exact some 1
+--           | Sum.inr () => exact some 0
+--         · rintro ⟨e, he⟩
+--           let ⟨a, b⟩ := e.out
+--           sorry
+--         · sorry
+--         · sorry
+--         · sorry
 
-    · wlog h : (Nx' \ Ny').Nonempty
-      · specialize this n hn Ny Nx hNycard hNxcard
-        -- needs commutativity between two addApex ops
-        sorry
+--     · wlog h : (Nx' \ Ny').Nonempty
+--       · specialize this n hn Ny Nx hNycard hNxcard
+--         -- needs commutativity between two addApex ops
+--         sorry
 
-      obtain ⟨v, hv⟩ := h
-      -- Find two nearest vertices to x in Ny
-      -- split cycle into two parts
-      sorry
+--       obtain ⟨v, hv⟩ := h
+--       -- Find two nearest vertices to x in Ny
+--       -- split cycle into two parts
+--       sorry
 
-  sorry
+--   sorry
 
 
 -- theorem KuraCore1 {V E : Type*} [LinearOrder V] [Fintype V] [LinearOrder E] [Fintype E]

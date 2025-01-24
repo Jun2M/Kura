@@ -11,8 +11,6 @@ namespace Graph
 open edge
 variable {U V W E F E' : Type*} (G : Graph V E) (e e' : E) (u v w : V)
 
-def Verts (_G : Graph V E) := V
-def Edges (_G : Graph V E) := E
 
 def toEdgeMultiset [Fintype E] : Multiset (edge V) :=
   (@Fintype.elems E _ : Finset E)
@@ -91,9 +89,14 @@ lemma canGo_eq [DecidableEq V] (e : E) {u v w y : V} (h : G.canGo u e v) (h' : G
 --   | undir s => {(some s.inf, e, some s.sup), (some s.sup, e, some s.inf)}
 
 def incEV := λ e => {v | v ∈ G.inc e}
+def incEsV (E : Set E) : Set V := {v | ∃ e ∈ E, v ∈ G.inc e}
 def incVE := λ v => {e | v ∈ G.startAt e}
 def incVV := λ v => {u | ∃ e, u ≠ v ∧ u ∈ G.inc e ∧ v ∈ G.inc e}
 def incEE [DecidableEq V] := λ e => {e' | (e = e' ∧ G.isLoop e) ∨ (e ≠ e' ∧ G.startAt e ∩ G.finishAt e' ≠ ∅)}
+
+lemma incEsV_union (A B : Set E) : G.incEsV (A ∪ B) = G.incEsV A ∪ G.incEsV B := by
+  ext v
+  simp only [incEsV, Set.mem_union, Set.mem_setOf_eq, ← exists_or, ← or_and_right]
 
 lemma loop_mem_incEE [DecidableEq V] (hloop : G.isLoop e) : e ∈ G.incEE e := by
   simp only [incEE, Set.mem_setOf_eq, true_and]
@@ -120,6 +123,7 @@ instance instAdjDecidable {G : Graph V E} [DecidableEq V] [Fintype E] (v : V) :
 lemma adj_eq_bot_of_IsEmpty_E [DecidableEq V] [IsEmpty E] : G.adj = ⊥ := by
   ext u v
   simp only [adj, canGo, IsEmpty.exists_iff, Pi.bot_apply, «Prop».bot_eq_false]
+
 
 variable {G : Graph V E} {H : Graph W F} {I : Graph U E'} {J : Graph V' F'} [DecidableEq V]
   [DecidableEq W] [DecidableEq U] [DecidableEq V']
@@ -232,6 +236,11 @@ lemma adj_le (A : Hom G H) : Relation.Map G.adj A.fᵥ A.fᵥ ≤ H.adj := by
   rintro u v ⟨x, y, hxy, rfl, rfl⟩
   exact A.adj hxy
 
+omit [DecidableEq V] [DecidableEq W] in
+lemma isloop (A : Hom G H) {e : E} (he : G.isLoop e) : H.isLoop (A.fₑ e) := by
+  simp only [isLoop, A.inc] at he ⊢
+  exact map_isLoop A.fᵥ he
+
 end Hom
 
 /-- `G` is a subgraph of `H`, written `G ⊆ᴳ H`, if there exists a `Hom G H` where the
@@ -318,6 +327,11 @@ lemma canGo_iff (u : V) (e : E) (v : V) :
     subst h'
     unfold canGo
     simp only [hs, canGo_iff_eq_of_undir]
+
+omit [DecidableEq V] [DecidableEq W] in @[simp]
+lemma isLoop_iff {e : E} : H.isLoop (A.fₑ e) ↔ G.isLoop e := by
+  simp only [isLoop, A.inc]
+  exact map_isLoop_iff A.fᵥEmb
 
 noncomputable def FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
   exact Fintype.ofInjective A.fᵥ A.fᵥinj
@@ -748,6 +762,13 @@ lemma SubgraphOf.range_Isom_symm_fₑ (A : G ⊆ᴳ H) :
   rw [Set.leftInverse_rangeSplitting A.fₑ e]
   change (A.range_Isom).fₑ (A.range_Isom.symm.fₑ e) = e
   rw [Isom.fₑ_symm_fₑ]
+
+-- def Subtype_SubgraphOf_Subtype_of_imp {vp₁ vp₂ : V → Prop} {ep₁ ep₂ : E → Prop}
+--     {G : Graph (Subtype vp₁) (Subtype ep₁)} {H : Graph (Subtype vp₂) (Subtype ep₂)}
+--     (hv : vp₁ ≤ vp₂) (he : ep₁ ≤ ep₂) : G ⊆ᴳ H := by
+--   refine SubgraphOf.OfEmbs (Subtype.impEmbedding _ _ hv) (Subtype.impEmbedding _ _ he) ?_
+--   rintro ⟨f, hf⟩
+--   simp only [subtype_eq]
 
 def union (A : Hom G I) (B : Hom H I) :
     Graph (Set.range (A.add B).fᵥ) (Set.range (A.add B).fₑ) := (A.add B).range

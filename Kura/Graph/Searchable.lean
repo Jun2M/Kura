@@ -48,8 +48,8 @@ lemma mem_outNeighbors_iff_adj [SearchableOut G] :
   rw [and_iff_right_of_imp (mem_startAt_of_gofrom?_eq  _ _ _)]
   refine (gofrom?_iff_goback?_iff_canGo (G.inc e) v w).out 0 2
 
-instance instCycleGraphSearchableOut (n : ℕ) (h : 1 < n) : SearchableOut (CycleGraph n h) where
-  outEdges v := (List.finRange n).filter (λ e => v ∈ (CycleGraph n h).startAt e)
+instance instCycleGraphSearchableOut (n : ℕ+) : SearchableOut (CycleGraph n) where
+  outEdges v := (List.finRange n).filter (λ e => v ∈ (CycleGraph n).startAt e)
   mem_outEdges v e := by
     simp only [startAt, inc_eq_undir_v12, undir_startAt, Sym2.toMultiset_eq,
       Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, Bool.decide_or,
@@ -154,7 +154,7 @@ lemma isSome_BFS_of_adj_of_isSome_BFS [Fintype V] [SearchableOut G] {u v w : V} 
   unfold BFS at hv ⊢
   sorry
 
-#eval (CycleGraph 8 (by omega)).BFS 0
+#eval (CycleGraph 8).BFS 0
 
 
 
