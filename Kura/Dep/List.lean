@@ -24,7 +24,11 @@ lemma rtakeWhile_length_le_length (p : α → Bool) (l : List α) :
 lemma rtakeWhlie_cons (p : α → Bool) (a : α) (l : List α) (ha : ¬ p a):
   (a :: l).rtakeWhile p = l.rtakeWhile p := by
   simp only [List.rtakeWhile, reverse_cons, reverse_inj]
-  sorry
+  rw [takeWhile_append]
+  split_ifs with h
+  · simp only [ha, Bool.false_eq_true, not_false_eq_true, takeWhile_cons_of_neg, append_nil,
+    (l.reverse.takeWhile_prefix p).eq_of_length h]
+  · rfl
 
 lemma rdropWhile_append_rtakeWhile (p : α → Bool) (l : List α) :
   (l.rdropWhile p) ++ l.rtakeWhile p = l := by
@@ -46,88 +50,74 @@ match l with
 | a :: as => a :: skip (as.rtakeWhile (· != a))
 termination_by l.length
 decreasing_by
-  simp only [length_cons, gt_iff_lt]
-  suffices (as.rtakeWhile (· != a)).length ≤ as.length by omega
+  suffices (as.rtakeWhile (· != a)).length ≤ as.length by simp only [length_cons, gt_iff_lt]; omega
   exact rtakeWhile_length_le_length (· != a) as
 
 @[simp]
 lemma skip_nil [DecidableEq α] : ([] : List α).skip = [] := by
   unfold skip
   rfl
-
 @[simp]
-lemma skip_ne_nil [DecidableEq α] {l : List α} :
-  l.skip ≠ [] ↔ l ≠ [] := by
+lemma skip_ne_nil [DecidableEq α] {l : List α} : l.skip ≠ [] ↔ l ≠ [] := by
   rw [not_iff_not]
   match l with
   | [] => simp only [skip_nil]
   | a :: as => simp only [skip, cons_ne_nil]
 
 @[simp]
-lemma skip_head? [DecidableEq α] (l : List α) : l.skip.head? = l.head? := by
-  cases l
-  · simp only [skip_nil, head?_nil]
-  · simp only [skip, head?_cons]
+lemma skip_head? [DecidableEq α] : ∀ {l : List α}, l.skip.head? = l.head?
+| [] => by simp only [skip_nil, head?_nil]
+| a :: as => by simp only [skip, head?_cons]
 
 @[simp]
-lemma skip_getLast? [DecidableEq α] (l : List α) : l.skip.getLast? = l.getLast? := by
-  induction' l using Nat.strongRecMeasure with l l ih
-  exact l.length
-  match l with
-  | [] => simp only [skip_nil, length_nil, Nat.zero_le]
-  | a :: as =>
-    simp only [skip, getLast?_cons, Option.some.injEq]
-    have := rtakeWhile_length_le_length (· != a) as
-    rw [ih (as.rtakeWhile (· != a)) (by rw [length_cons]; omega)]
-    by_cases h : as.rtakeWhile (· != a) = []
-    · rw [h, getLast?_nil, Option.getD_none]
-      by_cases h' : as = []
-      · rw [h', getLast?_nil, Option.getD_none]
-      · simp only [rtakeWhile_eq_nil_iff, ne_eq, h', not_false_eq_true, bne_iff_ne,
-        getLast_eq_iff_getLast?_eq_some, Decidable.not_not, forall_const] at h
-        rw [h, Option.getD_some]
-    · have := (as.rtakeWhile_suffix _).ne_nil h
-      rw [getLast?_eq_getLast_of_ne_nil h, Option.getD_some, getLast?_eq_getLast_of_ne_nil this]
-      apply (as.rtakeWhile_suffix _).getLast
+lemma skip_getLast? [DecidableEq α] {l : List α} : l.skip.getLast? = l.getLast? := by
+  induction l using Nat.strongRecMeasure with
+  | f l => exact l.length
+  | ind l ih => match l with
+    | [] => simp only [skip_nil, length_nil, Nat.zero_le]
+    | a :: as =>
+      simp only [length_cons, Nat.lt_add_one_iff, skip, getLast?_cons, Option.some.injEq] at ih ⊢
+      rw [ih (as.rtakeWhile (· != a)) (as.rtakeWhile_length_le_length _)]; clear ih l
+      by_cases h : as.rtakeWhile (· != a) = []
+      · by_cases h' : as = [] <;> rw [h] <;> simp_all only [rtakeWhile_eq_nil_iff, ne_eq,
+        not_false_eq_true, bne_iff_ne, getLast_eq_iff_getLast?_eq_some, Decidable.not_not,
+        forall_const, getLast?_nil, Option.getD_none, Option.getD_some]
+      · have := (as.rtakeWhile_suffix _).ne_nil h
+        rw [getLast?_eq_getLast_of_ne_nil h, Option.getD_some, getLast?_eq_getLast_of_ne_nil this]
+        exact (as.rtakeWhile_suffix _).getLast h
 
 lemma skip_length_le [DecidableEq α] (l : List α) : (l.skip).length ≤ l.length := by
-  induction' l using Nat.strongRecMeasure with l l ih
-  exact l.length
-  match l with
-  | [] => simp only [skip_nil, length_nil, Nat.zero_le]
-  | a :: as =>
-    simp_all only [skip, length_cons, ge_iff_le]
-    suffices (as.rtakeWhile (· != a)).skip.length ≤ as.length by omega
-    have := rtakeWhile_length_le_length (· != a) as
-    refine (ih (as.rtakeWhile (· != a)) (by omega)).trans this
+  induction l using Nat.strongRecMeasure with
+  | f l => exact l.length
+  | ind l ih => match l with
+    | [] => simp only [skip_nil, length_nil, Nat.zero_le]
+    | a :: as =>
+      simp only [length_cons, Nat.lt_add_one_iff, skip, Nat.add_le_add_iff_right, ge_iff_le] at ih ⊢
+      have := rtakeWhile_length_le_length (· != a) as
+      refine (ih (as.rtakeWhile (· != a)) this).trans this
 
 lemma skip_sublist [DecidableEq α] (l : List α) : l.skip <+ l := by
-  induction' l using Nat.strongRecMeasure with l l ih
-  exact l.length
-  match l with
-  | [] => simp only [skip_nil, Sublist.refl]
-  | a :: as =>
-    simp only [skip, cons_sublist_cons]
-    have := rtakeWhile_length_le_length (· != a) as
-    refine (ih (as.rtakeWhile (· != a)) (by rw [length_cons]; omega)).trans ?_
-    rw [List.rtakeWhile, ← List.sublist_reverse_iff]
-    exact takeWhile_sublist (· != a)
+  induction l using Nat.strongRecMeasure with
+  | f l => exact l.length
+  | ind l ih => match l with
+    | [] => simp only [skip_nil, Sublist.refl]
+    | a :: as =>
+      simp only [length_cons, Nat.lt_add_one_iff, skip, cons_sublist_cons] at ih ⊢
+      refine ih (as.rtakeWhile (· != a)) (as.rtakeWhile_length_le_length _) |>.trans ?_
+      rw [List.rtakeWhile, ← List.sublist_reverse_iff]
+      exact takeWhile_sublist (· != a)
 
 lemma skip_nodup [DecidableEq α] (l : List α) : (l.skip).Nodup := by
-  induction' l using Nat.strongRecMeasure with l l ih
-  exact l.length
-  match l with
-  | [] => simp only [skip_nil, nodup_nil]
-  | a :: as =>
-    simp only [skip, nodup_cons]
-    refine ⟨?_,?_⟩
-    · rintro hmem
-      have hmem := (takeWhile (fun x ↦ x != a) as.reverse).reverse.skip_sublist.mem hmem
-      simp only [mem_reverse] at hmem
-      have := List.mem_takeWhile_imp hmem
-      simp only [bne_self_eq_false, Bool.false_eq_true] at this
-    · have := rtakeWhile_length_le_length (· != a) as
-      exact ih (as.rtakeWhile (· != a)) (by rw [length_cons]; omega)
+  induction l using Nat.strongRecMeasure with
+  | f l => exact l.length
+  | ind l ih => match l with
+    | [] => simp only [skip_nil, nodup_nil]
+    | a :: as =>
+      simp only [length_cons, Nat.lt_add_one_iff, skip, nodup_cons] at ih ⊢
+      refine ⟨?_, ih (as.rtakeWhile (· != a)) (as.rtakeWhile_length_le_length _)⟩
+      apply not_imp_not.mpr (as.rtakeWhile (· != a)).skip_sublist.mem
+      apply not_imp_not.mpr List.mem_rtakeWhile_imp
+      simp only [bne_self_eq_false, Bool.false_eq_true, not_false_eq_true]
 
 lemma Chain'.skip [DecidableEq α] {r : α → α → Prop} {l : List α} (h : Chain' r l) :
   Chain' r l.skip := by
@@ -138,28 +128,23 @@ lemma Chain'.skip [DecidableEq α] {r : α → α → Prop} {l : List α} (h : C
     | [] => simp only [skip_nil, chain'_nil]
     | [a] => simp only [List.skip, rtakeWhile_nil, skip_nil, chain'_singleton]
     | a :: b :: as =>
-      rw [List.chain'_cons', ← rdropWhile_append_rtakeWhile (· != a) (b :: as),
+      rw [List.chain'_cons', ← (b :: as).rdropWhile_append_rtakeWhile (· != a),
         List.chain'_append] at h
       obtain ⟨hhead, _hdw, htw, hbtw⟩ := h
-      simp only [List.skip]
-      rw [List.chain'_cons']
-      refine ⟨?_,?_⟩
-      · rintro c hc
-        simp only [skip_head?] at hc
-        by_cases h : (b :: as).rdropWhile (· != a) = []
-        · have : (b :: as).rtakeWhile (· != a) = b :: as := by
-            conv_rhs => rw [← rdropWhile_append_rtakeWhile (· != a) (b :: as)]
-            exact self_eq_append_left.mpr h
-          simp only [this, head?_cons, Option.some.injEq, h, nil_append, Option.mem_def,
-            forall_eq'] at hc hhead
-          subst hc
-          exact hhead
-        · refine hbtw a ?_ c hc
-          have := List.rdropWhile_last_not _ _ h
-          simp only [bne_iff_ne, ne_eq, Decidable.not_not] at this
-          simpa only [getLast?_eq_getLast_of_ne_nil h, Option.mem_def, Option.some.injEq]
-      · have := rtakeWhile_length_le_length (· != a) (b :: as)
-        exact ih ((b :: as).rtakeWhile (· != a)) (by rw [length_cons]; omega) htw
+      simp only [length_cons, Nat.lt_add_one_iff, List.skip, List.chain'_cons', skip_head?] at ih ⊢
+      refine ⟨?_, ih ((b :: as).rtakeWhile (· != a)) ((b :: as).rtakeWhile_length_le_length _) htw⟩
+      rintro c hc
+      by_cases h : (b :: as).rdropWhile (· != a) = []
+      · have : (b :: as).rtakeWhile (· != a) = b :: as := by
+          conv_rhs => rw [← rdropWhile_append_rtakeWhile (· != a) (b :: as)]
+          exact self_eq_append_left.mpr h
+        simp only [this, head?_cons, Option.some.injEq, h, nil_append, Option.mem_def,
+          forall_eq'] at hc hhead
+        exact hc ▸ hhead
+      · refine hbtw a ?_ c hc
+        have := List.rdropWhile_last_not _ _ h
+        simp only [bne_iff_ne, ne_eq, Decidable.not_not] at this
+        simpa only [getLast?_eq_getLast_of_ne_nil h, Option.mem_def, Option.some.injEq]
 
 lemma Chain.skip [DecidableEq α] {r : α → α → Prop} {a : α} {l : List α} (h : Chain r a l) :
   Chain r a l.skip := by
@@ -180,8 +165,8 @@ theorem exists_nodup_chain'_of_relationReflTransGen [DecidableEq α] {r : α →
   · simp only [ne_eq, skip_ne_nil, reduceCtorEq, not_false_eq_true]
   · simp only [skip, head_cons]
   · have := (a :: l).skip_getLast?
-    rw [getLast?_eq_getLast_of_ne_nil (by simp), getLast?_eq_getLast_of_ne_nil (by simp),
-      Option.some_inj] at this
+    rw [getLast?_eq_getLast_of_ne_nil (skip_ne_nil.mpr <| cons_ne_nil a l),
+      getLast?_eq_getLast_of_ne_nil (cons_ne_nil a l), Option.some_inj] at this
     exact this ▸ hlast
 
 theorem exists_nodup_chain_of_relationReflTransGen [DecidableEq α] {r : α → α → Prop} {a b : α}
