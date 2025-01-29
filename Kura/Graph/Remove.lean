@@ -58,9 +58,9 @@ def EVSubgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.a
 --       Subtype.map id (fun f (hSf : f ∈ Se) => he (id f) hSf) ''
 --     G[Sv]ᴳ{Se'}ᴳ.inc ⟨e, he e.val e.prop⟩
 
-def Subgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, ∀ v ∈ G.inc e, v ∈ Sv) :
-    Graph Sv Se where
-  inc e := edge.pmap Subtype.mk (G.inc e) (he e.val e.prop)
+-- def Subgraph (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, ∀ v ∈ G.inc e, v ∈ Sv) :
+--     Graph Sv Se where
+--   inc e := edge.pmap Subtype.mk (G.inc e) (he e.val e.prop)
 
 def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v ∉ S) :
   Graph (Sᶜ:Set _) E where
@@ -181,7 +181,7 @@ lemma Vs_subgraph_fᵥ {G : Graph V E} (S : Set V) :
 lemma Vs_subgraph_fₑ {G : Graph V E} (S : Set V) :
     (Vs_subgraph G S).fₑ = Subtype.val := rfl
 
-def Vs_subgraphOf_Vs_of_subset (h : S ⊆ T) : G[S]ᴳ ⊆ᴳ G[T]ᴳ where
+def Vs_EmbSpanningEmb_Vs_of_subset (h : S ⊆ T) : G[S]ᴳ ⊆ᴳ G[T]ᴳ where
   fᵥ v := ⟨v.val, h v.prop⟩
   fₑ e := ⟨e.val, by
     have he := e.prop; simp only [all, all_iff, decide_eq_true_eq] at he ⊢; exact (h <| he · ·)⟩
@@ -282,7 +282,7 @@ lemma SubtypeVal_Es_congr_fₑ {S T : Set E} (h : S = T) :
 def Es_empty_compl (G : Graph V E) : G{∅ᶜ}ᴳ ≃ᴳ G :=
   (G.Es_congr Set.compl_empty).trans (G.Es_univ)
 
-def Es_spanningsubgraph (G : Graph V E) (S : Set E) : G{S}ᴳ.SpanningSubgraphOf G where
+def Es_spanningsubgraph (G : Graph V E) (S : Set E) : G{S}ᴳ.SpanningEmb G where
   fᵥ := id
   fₑ := Subtype.val
   inc := by simp only [Es_inc, map_id, implies_true]
@@ -297,7 +297,7 @@ lemma Es_spanningsubgraph_fᵥ (S : Set E) : (Es_spanningsubgraph G S).fᵥ = id
 lemma Es_spanningsubgraph_fₑ (S : Set E) : (Es_spanningsubgraph G S).fₑ = Subtype.val := rfl
 
 def Es_spanningsubgraph_Es_of_subset {S T : Set E} (h : S ⊆ T) :
-  G{S}ᴳ.SpanningSubgraphOf (G{T}ᴳ) where
+  G{S}ᴳ.SpanningEmb (G{T}ᴳ) where
   fᵥ := id
   fₑ := Subtype.impEmbedding _ _ h
   inc e := by simp only [Es_inc, Subtype.impEmbedding_apply_coe, map_id]
@@ -372,7 +372,7 @@ lemma Hom.Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (h�
 lemma Hom.Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G.Hom H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
     (σ.Es S hσ).fₑ = fun e => ⟨σ.fₑ e, hσ e⟩ := rfl
 
-def SubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
+def Emb.Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set F) (hσ : ∀ e, σ.fₑ e ∈ S) :
     G ⊆ᴳ H{S}ᴳ where
   toHom := σ.toHom.Es S hσ
   fᵥinj := σ.fᵥinj
@@ -380,12 +380,12 @@ def SubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set F) 
     simp only [Hom.Es, Subtype.mk.injEq] at h
     exact σ.fₑinj h
 
-def SpanningSubgraphOf.Es {G : Graph V E} {H : Graph W F} (σ : G.SpanningSubgraphOf H) (S : Set F)
-    (hσ : ∀ e, σ.fₑ e ∈ S) : G.SpanningSubgraphOf (H{S}ᴳ) where
-  toSubgraphOf := σ.toSubgraphOf.Es S hσ
+def SpanningEmb.Es {G : Graph V E} {H : Graph W F} (σ : G.SpanningEmb H) (S : Set F)
+    (hσ : ∀ e, σ.fₑ e ∈ S) : G.SpanningEmb (H{S}ᴳ) where
+  toEmb := σ.toEmb.Es S hσ
   fᵥsurj := σ.fᵥsurj
 
-def SubgraphOf.Es_Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
+def Emb.Es_Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
     (hσ : σ.fₑ '' S ⊆ T) : G{S}ᴳ ⊆ᴳ H{T}ᴳ where
   fᵥ := σ.fᵥ
   fₑ e := ⟨σ.fₑ e.val, hσ (Set.mem_image_of_mem _ e.prop)⟩
@@ -396,11 +396,11 @@ def SubgraphOf.Es_Es {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set 
     simpa [Subtype.mk.injEq, σ.fₑinj.eq_iff] using h
 
 @[simp]
-lemma SubgraphOf.Es_Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
+lemma Emb.Es_Es_fᵥ {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
     (hσ : σ.fₑ '' S ⊆ T) : (σ.Es_Es S T hσ).fᵥ = σ.fᵥ := rfl
 
 @[simp]
-lemma SubgraphOf.Es_Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
+lemma Emb.Es_Es_fₑ {G : Graph V E} {H : Graph W F} (σ : G ⊆ᴳ H) (S : Set E) (T : Set F)
     (hσ : σ.fₑ '' S ⊆ T) : (σ.Es_Es S T hσ).fₑ =
     fun e => ⟨σ.fₑ e.val, hσ (Set.mem_image_of_mem _ e.prop)⟩ := rfl
 
@@ -452,7 +452,7 @@ lemma EVSubgraph_inc (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· �
     (G.EVSubgraph Sv Se he).inc e = (G.inc e).pmap Subtype.mk (by
       specialize he e.val e.prop; simpa only [all, all_iff, decide_eq_true_eq] using he) := rfl
 
-def EVSubgraphOf (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+def EVSubgraphSpanningEmb (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
     G.EVSubgraph Sv Se he ⊆ᴳ G where
   fᵥ := Subtype.val
   fₑ := Subtype.val
@@ -461,12 +461,12 @@ def EVSubgraphOf (G : Graph V E) (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G
   fₑinj := Subtype.val_injective
 
 @[simp]
-lemma EVSubgraphOf_fᵥ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    (EVSubgraphOf G Sv Se he).fᵥ = Subtype.val := rfl
+lemma EVSubgraphSpanningEmb_fᵥ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    (EVSubgraphSpanningEmb G Sv Se he).fᵥ = Subtype.val := rfl
 
 @[simp]
-lemma EVSubgraphOf_fₑ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
-    (EVSubgraphOf G Sv Se he).fₑ = Subtype.val := rfl
+lemma EVEmbSpanningEmb_fₑ (Sv : Set V) (Se : Set E) (he : ∀ e ∈ Se, G.all e (· ∈ Sv)) :
+    (EVSubgraphSpanningEmb G Sv Se he).fₑ = Subtype.val := rfl
 
 
 lemma subgraph_iff_isom_EVs (G : Graph V E) (H : Graph W F) [Fintype V] [Fintype W] [Fintype E]

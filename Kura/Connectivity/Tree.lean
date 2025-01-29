@@ -1,11 +1,11 @@
 import Kura.Connectivity.closedWalk
 import Kura.Connectivity.Conn
 import Kura.Examples.Conn
-import Kura.Graph.Remove
+import Kura.Graph.Subgraph
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [DecidableEq V] [DecidableEq W]
+variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] {G : Graph V E} [Undirected G]
 
 
 def acyclic (G : Graph V E) : Prop := ∀ n, IsEmpty <| CycleGraph n ⊆ᴳ G
@@ -28,17 +28,17 @@ lemma acyclic_of_IsEmpty_E {G : Graph V E} [IsEmpty E] : G.acyclic := by
   intro n S
   exact IsEmpty.false (S.fₑ 0)
 
-def loopless_of_acyclic {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) : loopless G where
+def loopless_of_acyclic (hGacyc : G.acyclic) : loopless G where
   no_loops e := by
     contrapose! hGacyc
     simp
     let v := G.v1 e
     use 1, ?_
-    apply CycleGraph_SubgraphOf_of_isLoop (e := e) (i := v)
+    apply CycleGraph_Emb_of_isLoop (e := e) (i := v)
     rw [isLoop_iff_v1_eq_v2] at hGacyc
     simp only [inc_eq_undir_v12, hGacyc, v]
 
-def simple_of_acyclic {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) : Simple G where
+def simple_of_acyclic (hGacyc : G.acyclic) : Simple G where
   no_loops := (loopless_of_acyclic hGacyc).no_loops
   edge_symm := G.edge_symm
   inc_inj a b h := by
@@ -46,11 +46,10 @@ def simple_of_acyclic {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) : Simp
     by_cases hloop : G.v1 a = G.v2 a
     · apply (loopless_of_acyclic hGacyc).no_loops a
       rwa [isLoop_iff_v1_eq_v2]
-    · exact (hGacyc 2).false (CycleGraph_SubgraphOf_of_parallel G hab _ _ hloop h (inc_eq_undir_v12 a))
+    · exact (hGacyc 2).false (CycleGraph_Emb_of_parallel G hab _ _ hloop h (inc_eq_undir_v12 a))
 
-omit [DecidableEq V] in
-lemma acyclic_of_loopless_Subsingleton_E {G : Graph V E} [loopless G] [Subsingleton E] :
-    G.acyclic := by
+omit [DecidableEq V] [Undirected G] in
+lemma acyclic_of_loopless_Subsingleton_E [loopless G] [Subsingleton E] : G.acyclic := by
   simp only [acyclic, isEmpty_iff]
   intro n S
   have := S.fₑinj <| Subsingleton.elim (S.fₑ 0) (S.fₑ 1)
@@ -65,9 +64,8 @@ lemma acyclic_of_loopless_Subsingleton_E {G : Graph V E} [loopless G] [Subsingle
   simp only [PNat.val_ofNat, Fin.isValue, Prod.mk_zero_zero, undir_isFull,
     edge.isLoop_iff_v1_eq_v2, undir_v1, undir_v2, Fin.ext_iff', Fin.val_eq_zero]
 
-omit [DecidableEq V] [DecidableEq W] in
-lemma SubgraphOf.acyclic {G : Graph V E} {H : Graph W F} (hHG : H ⊆ᴳ G) :
-    G.acyclic → H.acyclic := by
+omit [DecidableEq V] [DecidableEq W] [Undirected G] in
+lemma Emb.acyclic {H : Graph W F} (hHG : H ⊆ᴳ G) : G.acyclic → H.acyclic := by
   intro hGacyclic n
   by_contra! h
   simp only [not_isEmpty_iff] at h
@@ -76,18 +74,30 @@ lemma SubgraphOf.acyclic {G : Graph V E} {H : Graph W F} (hHG : H ⊆ᴳ G) :
   apply hGacyclic.elim'
   exact h.trans hHG
 
+lemma acyclic_of_Separation_order_le_one (Sep : Separation G) (h : Sep.order ≤ 1)
+    (hG₁acyc : acyclic Sep.G₁.toGraph) (hG₂acyc : acyclic Sep.G₂.toGraph) : G.acyclic := by
+  
+  sorry
+
+lemma PathGraph_acyclic (n : ℕ) : (PathGraph n).acyclic := by
+  induction' n with n ih
+  · exact acyclic_of_loopless_Subsingleton_E
+  · apply (PathGraph_glue_PathGraph_eq_PathGraph n 1).symm.acyclic
+
+    sorry
+
 -- lemma v12_not_conn_of_acyclic {G : Graph V E} [Undirected G] (hGacyc : G.acyclic) (e : E) :
 --     ¬ (G{{e}ᶜ}ᴳ).conn (G.v1 e) (G.v2 e) := by
 --   contrapose! hGacyc
---   obtain ⟨n, S, hs, ht⟩ := hGacyc.PathSubgraphOf
+--   obtain ⟨n, S, hs, ht⟩ := hGacyc.PathEmb
 --   simp only [acyclic, not_forall, not_isEmpty_iff]
 --   use n.succPNat
---   refine ⟨(CycleGraph_Isom_PathGraph_addUndirEdge n rfl).toSubgraphOf.trans ?_⟩
---   apply SubgraphOf.addUndirEdge (s(0, Fin.last n))
---     (S.trans (G.Es_spanningsubgraph {e}ᶜ).toSubgraphOf) (?_ : e ∉ _)
---   simp only [inc_eq_undir_v12, SubgraphOf.trans_fᵥ, Es_spanningsubgraph_fᵥ, CompTriple.comp_eq,
+--   refine ⟨(CycleGraph_Isom_PathGraph_addUndirEdge n rfl).toEmb.trans ?_⟩
+--   apply Emb.addUndirEdge (s(0, Fin.last n))
+--     (S.trans (G.Es_spanningsubgraph {e}ᶜ).toEmb) (?_ : e ∉ _)
+--   simp only [inc_eq_undir_v12, Emb.trans_fᵥ, Es_spanningsubgraph_fᵥ, CompTriple.comp_eq,
 --     map_undir, Sym2.map_pair_eq, hs, ht]
---   simp only [SubgraphOf.trans_fₑ, Es_spanningsubgraph_fₑ, Set.mem_range, Function.comp_apply,
+--   simp only [Emb.trans_fₑ, Es_spanningsubgraph_fₑ, Set.mem_range, Function.comp_apply,
 --     not_exists]
 --   rintro i
 --   exact (S.fₑ i).prop
@@ -96,15 +106,15 @@ lemma get_not_conn'_of_acyclic {G : Graph V E} [Undirected G] (hGacyc : G.acycli
     ¬ (G{{e}ᶜ}ᴳ).conn' (G.get e) := by
   rw [conn', ← lift_v12 (f := (G.Es {e}ᶜ).conn) (by simp only [conn_comm, implies_true])]
   contrapose! hGacyc
-  obtain ⟨n, S, hs, ht⟩ := hGacyc.PathSubgraphOf
+  obtain ⟨n, S, hs, ht⟩ := hGacyc.PathEmb
   simp only [acyclic, not_forall, not_isEmpty_iff]
   use n.succPNat
-  refine ⟨(CycleGraph_Isom_PathGraph_addUndirEdge n rfl).toSubgraphOf.trans ?_⟩
-  apply SubgraphOf.addUndirEdge (s(0, Fin.last n))
-    (S.trans (G.Es_spanningsubgraph {e}ᶜ).toSubgraphOf) (?_ : e ∉ _)
-  simp only [inc_eq_undir_v12, SubgraphOf.trans_fᵥ, Es_spanningsubgraph_fᵥ, CompTriple.comp_eq,
+  refine ⟨(CycleGraph_Isom_PathGraph_addUndirEdge n rfl).toEmb.trans ?_⟩
+  apply Emb.addUndirEdge (s(0, Fin.last n))
+    (S.trans (G.Es_spanningsubgraph {e}ᶜ).toEmb) (?_ : e ∉ _)
+  simp only [inc_eq_undir_v12, Emb.trans_fᵥ, Es_spanningsubgraph_fᵥ, CompTriple.comp_eq,
     map_undir, Sym2.map_pair_eq, hs, ht]
-  simp only [SubgraphOf.trans_fₑ, Es_spanningsubgraph_fₑ, Set.mem_range, Function.comp_apply,
+  simp only [Emb.trans_fₑ, Es_spanningsubgraph_fₑ, Set.mem_range, Function.comp_apply,
     not_exists]
   rintro i
   exact (S.fₑ i).prop
@@ -117,10 +127,10 @@ lemma get_not_conn'_of_acyclic {G : Graph V E} [Undirected G] (hGacyc : G.acycli
 --   obtain ⟨n, S, _, _⟩ := h
 --   use S.fₑ (-1)
 --   rw [lift_v12 (f := (G.Es {S.fₑ (-1)}ᶜ).conn) (by simp only [conn_comm, implies_true]), Hom.get S]
---   apply SubgraphOf.conn' (S.Es_Es {-1}ᶜ {S.fₑ (-1)}ᶜ (fun e ⟨i, H2, H3⟩ ↦ by
+--   apply Emb.conn' (S.Es_Es {-1}ᶜ {S.fₑ (-1)}ᶜ (fun e ⟨i, H2, H3⟩ ↦ by
 --     simpa [S.fₑinj.eq_iff, ← H3] using H2))
 --   simp only [CycleGraph_get, neg_add_cancel, conn'_pair]
---   convert ((CycleGraph.toPathGraph (PNat.natPred_add_one n).symm)).symm.toSubgraphOf.conn
+--   convert ((CycleGraph.toPathGraph (PNat.natPred_add_one n).symm)).symm.toEmb.conn
 --     ((PathGraph_conn_0 n.natPred (-1)).symm) <;> simp only [PNat.natPred, Fin.neg_one_eq_last,
 --     CycleGraph_toPathGraph_symm_fᵥ, Fin.ext_iff', Fin.coe_neg_one', Fin.coe_cast, Fin.val_last,
 --     Fin.val_zero]
@@ -133,10 +143,10 @@ lemma get_not_conn'_iff_acyclic {G : Graph V E} [Undirected G] :
   obtain ⟨n, S, _, _⟩ := h
   use S.fₑ (-1)
   rw [Hom.get S]
-  apply SubgraphOf.conn' (S.Es_Es {-1}ᶜ {S.fₑ (-1)}ᶜ (fun e ⟨i, H2, H3⟩ ↦ by
+  apply Emb.conn' (S.Es_Es {-1}ᶜ {S.fₑ (-1)}ᶜ (fun e ⟨i, H2, H3⟩ ↦ by
     simpa [S.fₑinj.eq_iff, ← H3] using H2))
   simp only [CycleGraph_get, neg_add_cancel, conn'_pair]
-  convert ((CycleGraph.toPathGraph (PNat.natPred_add_one n).symm)).symm.toSubgraphOf.conn
+  convert ((CycleGraph.toPathGraph (PNat.natPred_add_one n).symm)).symm.toEmb.conn
     ((PathGraph_conn_0 n.natPred (-1)).symm) <;> simp only [PNat.natPred, Fin.neg_one_eq_last,
     CycleGraph_toPathGraph_symm_fᵥ, Fin.ext_iff', Fin.coe_neg_one', Fin.coe_cast, Fin.val_last,
     Fin.val_zero]
@@ -154,7 +164,7 @@ lemma get_not_conn'_iff_acyclic_of_Es_singleton_compl_acyclic {G : Graph V E} [U
     rw [Hom.get]
     apply (S.Es_Es {i}ᶜ {S.fₑ i}ᶜ (by simp [S.fₑinj.eq_iff])).conn'
     convert CycleGraph_Es_singleton_eq_PathGraph (PNat.natPred_add_one n).symm i
-      |>.symm.toSubgraphOf.conn' ((PathGraph n.natPred).all_conn'_get (s(-1, 0)))
+      |>.symm.toEmb.conn' ((PathGraph n.natPred).all_conn'_get (s(-1, 0)))
     simp only [CycleGraph_get, CycleGraph_Es_singleton_eq_PathGraph, Isom.trans_symm, Isom.trans_fᵥ,
       Isom.Es_Es_symm_fᵥ, CycleGraph_rotate_symm_fᵥ, CycleGraph_toPathGraph_symm_fᵥ,
       Function.comp_apply, Sym2.map_pair_eq, Fin.cast_neg, Fin.cast_OfNat (i := 1), Fin.cast_zero,
@@ -177,7 +187,7 @@ lemma NumberOfComponents_Es_eq_NumberOfComponents_iff (G : Graph V E) [Undirecte
       simp only [connSetoid, conn, this]
     apply Relation.ReflTransClosure.closure_eq_closure_of_le_of_le_closure
     · rintro v w
-      exact G.Es_spanningsubgraph {e}ᶜ |>.toSubgraphOf.adj
+      exact G.Es_spanningsubgraph {e}ᶜ |>.toEmb.adj
     · rintro v w hG
       change (G.Es {e}ᶜ).conn v w
       obtain ⟨f, hf⟩ := hG
@@ -232,7 +242,7 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
     have hm' : Fintype.card ({e}ᶜ : Set _).Elem = m := by
       rw [Fintype.card_compl_set, hm]
       simp only [Fintype.card_ofSubsingleton, add_tsub_cancel_right]
-    have hG'Subgr := Es_spanningsubgraph G {e}ᶜ |>.toSubgraphOf
+    have hG'Subgr := Es_spanningsubgraph G {e}ᶜ |>.toEmb
     have hG'Undir := hG'Subgr.Undirected'
     rw [ih (G := G{{e}ᶜ}ᴳ) (hG'Subgr.acyclic hG) hm']; clear hm ih
     suffices (G.Es {e}ᶜ).NumberOfComponents = 1 + G.NumberOfComponents by rw [this]; omega
@@ -249,7 +259,7 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
       induction' v using Quotient.ind with v
       induction' w using Quotient.ind with w
       simp_all only [connSetoid, Quotient.eq, Quotient.idmap, Quotient.map'_mk'', id_eq]
-      obtain ⟨n, S, hs, ht⟩ := h.PathSubgraphOf
+      obtain ⟨n, S, hs, ht⟩ := h.PathEmb
       by_cases he : ∃ i, S.fₑ i = e
       · obtain ⟨i, hi⟩ := he
         have := S.canGo_iff (u := i.castSucc) (e := i) (v := i.succ) |>.mpr (PathGraph.canGo' i)
@@ -258,21 +268,21 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
         obtain ⟨hv1, hv2⟩ | ⟨hv1, hv2⟩ := this
         · absurd hw; clear hv hw f hG'Subgr h
           have : (n - i.val.succ) + i.val.succ ≤ n := by omega
-          let Sl := PathGraph_SubgraphOf_Pathgraph this
-          have hslstart : Sl.fᵥ 0 = _ := PathGraph_SubgraphOf_Pathgraph_start this
-          have hslend : Sl.fᵥ _ = _:= PathGraph_SubgraphOf_Pathgraph_end this
+          let Sl := PathGraph_Emb_Pathgraph this
+          have hslstart : Sl.fᵥ 0 = _ := PathGraph_Emb_Pathgraph_start this
+          have hslend : Sl.fᵥ _ = _:= PathGraph_Emb_Pathgraph_end this
           have hnee: ∀ (e_1 : Fin (n - i.succ)), (Sl.trans S).fₑ e_1 ∈ ({e}ᶜ : Set _) := by
             rintro e'
-            simp only [← hi, Nat.succ_eq_add_one, SubgraphOf.trans_fₑ, Function.comp_apply,
+            simp only [← hi, Nat.succ_eq_add_one, Emb.trans_fₑ, Function.comp_apply,
               Set.mem_compl_iff, Set.mem_singleton_iff]
             refine S.fₑinj.ne ?_
-            simp only [Nat.succ_eq_add_one, PathGraph_SubgraphOf_Pathgraph_fₑapply,
+            simp only [Nat.succ_eq_add_one, PathGraph_Emb_Pathgraph_fₑapply,
               Fin.addNatEmb_apply, ← Fin.val_inj.ne, Fin.coe_castLE, Fin.coe_addNat, ne_eq, Sl]
             omega
           let Sl' := (Sl.trans S).Es {e}ᶜ hnee
           have hsl'fᵥ : Sl'.fᵥ = _ := (Sl.trans S).toHom.Es_fᵥ {e}ᶜ hnee |>.trans (Sl.trans_fᵥ S)
           rw [conn_comm]
-          apply conn.OfPathSubgraphOf Sl' <;>
+          apply conn.OfPathEmb Sl' <;>
           simp only [Nat.succ_eq_add_one, hsl'fᵥ, Function.comp_apply, hslstart, hslend,
             Nat.cast_add, Fin.coe_eq_castSucc, Nat.cast_one, Fin.coeSucc_eq_succ, ← ht,
             S.fᵥinj.eq_iff, hv2]
@@ -281,20 +291,20 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
           rw [Nat.sub_add_cancel (by omega), Nat.mod_succ]
         · absurd hv
           have : i.val + 0 ≤ n := by omega
-          let Sp := PathGraph_SubgraphOf_Pathgraph this
-          have hspstart : Sp.fᵥ 0 = 0 := PathGraph_SubgraphOf_Pathgraph_start this
-          have hspend : Sp.fᵥ _ = _ := PathGraph_SubgraphOf_Pathgraph_end this
+          let Sp := PathGraph_Emb_Pathgraph this
+          have hspstart : Sp.fᵥ 0 = 0 := PathGraph_Emb_Pathgraph_start this
+          have hspend : Sp.fᵥ _ = _ := PathGraph_Emb_Pathgraph_end this
           have hnee: ∀ (e_1 : Fin i), (Sp.trans S).fₑ e_1 ∈ ({e}ᶜ : Set E) := by
             rintro e'
-            simp only [← hi, Nat.succ_eq_add_one, SubgraphOf.trans_fₑ, Function.comp_apply,
+            simp only [← hi, Nat.succ_eq_add_one, Emb.trans_fₑ, Function.comp_apply,
               Set.mem_compl_iff, Set.mem_singleton_iff]
             refine S.fₑinj.ne ?_
-            rw [PathGraph_SubgraphOf_Pathgraph_fₑapply, ← Fin.val_inj.ne]
+            rw [PathGraph_Emb_Pathgraph_fₑapply, ← Fin.val_inj.ne]
             simp only [Nat.add_zero, Fin.coe_castLE, ne_eq]
             omega
           let Sp' := (Sp.trans S).Es {e}ᶜ hnee
           have hsp'fᵥ : Sp'.fᵥ = _ := (Sp.trans S).toHom.Es_fᵥ {e}ᶜ hnee |>.trans (Sp.trans_fᵥ S)
-          apply conn.OfPathSubgraphOf Sp' <;>
+          apply conn.OfPathEmb Sp' <;>
           simp only [Nat.succ_eq_add_one, hsp'fᵥ, Function.comp_apply, hspstart, hspend,
             Fin.coe_eq_castSucc, Nat.cast_one, Fin.coeSucc_eq_succ, ← hs, S.fᵥinj.eq_iff, hv2]
           simp only [add_zero, Fin.coe_eq_castSucc]
@@ -305,37 +315,37 @@ theorem n_eq_m_add_c_of_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirec
           simp only [Set.mem_compl_iff, Set.mem_singleton_iff, he, not_false_eq_true]
         let S' := S.Es {e}ᶜ this
         have hfᵥ : S'.fᵥ = _ := S.Es_fᵥ {e}ᶜ this
-        apply conn.OfPathSubgraphOf S' <;> simp only [hfᵥ, ← hs, Fin.natCast_eq_last, ← ht]
+        apply conn.OfPathEmb S' <;> simp only [hfᵥ, ← hs, Fin.natCast_eq_last, ← ht]
     · suffices G.NumberOfComponents < (G.Es {e}ᶜ).NumberOfComponents by omega
       convert c_lt_c_Es_of_acyclic hG e
 
 #print axioms n_eq_m_add_c_of_acyclic
 
-lemma acyclic_of_Es_acyclic_of_Es_subset {G : Graph V E} [Undirected G] {A B : Set E}
-    (hAacyc : (G.Es A).acyclic) (hAFin : A.Finite) (hBacyc : (G.Es B).acyclic) (hBFin : B.Finite)
-    (hAltB : A.ncard < B.ncard) : ¬(G.Es B).conn ≤ (G.Es A).conn := by
-  rintro h
-  let S := G.incEsV (A ∪ B)
-  let GB := (G.EVSubgraph S B sorry)
-  let GA := (G.EVSubgraph S A sorry)
-  have hSfin : Fintype S.Elem := sorry
-  have hBfin : Fintype B.Elem := hBFin.fintype
-  have hAfin : Fintype A.Elem := hAFin.fintype
-  have hAcardltBcard : Fintype.card A < Fintype.card B := by
-    convert hAltB
-    · rw [← Set.Finite.card_toFinset hAFin]
-      exact (Set.ncard_eq_toFinset_card A hAFin).symm
-    · rw [← Set.Finite.card_toFinset hBFin]
-      exact (Set.ncard_eq_toFinset_card B hBFin).symm
-  have hGBundir : GB.Undirected := G.EVSubgraphOf S B sorry |>.Undirected'
-  have hGAundir : GA.Undirected := G.EVSubgraphOf S A sorry |>.Undirected'
-  have hGBacyc : GB.acyclic := sorry
-    -- (G{B}ᴳ).Vs_subgraph S |>.acyclic hBacyc
-  have hGAacyc : GA.acyclic := sorry
-  have hGBconnleGAconn : GB.conn ≤ GA.conn := sorry
-  have : GA.NumberOfComponents ≤ GB.NumberOfComponents := sorry
-  have := (n_eq_m_add_c_of_acyclic hGAacyc).symm.trans (n_eq_m_add_c_of_acyclic hGBacyc)
-  omega
+-- lemma acyclic_of_Es_acyclic_of_Es_subset {G : Graph V E} [Undirected G] {A B : Set E}
+--     (hAacyc : (G.Es A).acyclic) (hAFin : A.Finite) (hBacyc : (G.Es B).acyclic) (hBFin : B.Finite)
+--     (hAltB : A.ncard < B.ncard) : ¬(G.Es B).conn ≤ (G.Es A).conn := by
+--   rintro h
+--   let S := G.incEsV (A ∪ B)
+--   let GB := (G.EVSubgraph S B sorry)
+--   let GA := (G.EVSubgraph S A sorry)
+--   have hSfin : Fintype S.Elem := sorry
+--   have hBfin : Fintype B.Elem := hBFin.fintype
+--   have hAfin : Fintype A.Elem := hAFin.fintype
+--   have hAcardltBcard : Fintype.card A < Fintype.card B := by
+--     convert hAltB
+--     · rw [← Set.Finite.card_toFinset hAFin]
+--       exact (Set.ncard_eq_toFinset_card A hAFin).symm
+--     · rw [← Set.Finite.card_toFinset hBFin]
+--       exact (Set.ncard_eq_toFinset_card B hBFin).symm
+--   have hGBundir : GB.Undirected := G.EVSubgraphSpanningEmb S B sorry |>.Undirected'
+--   have hGAundir : GA.Undirected := G.EVSubgraphSpanningEmb S A sorry |>.Undirected'
+--   have hGBacyc : GB.acyclic := sorry
+--     -- (G{B}ᴳ).Vs_subgraph S |>.acyclic hBacyc
+--   have hGAacyc : GA.acyclic := sorry
+--   have hGBconnleGAconn : GB.conn ≤ GA.conn := sorry
+--   have : GA.NumberOfComponents ≤ GB.NumberOfComponents := sorry
+--   have := (n_eq_m_add_c_of_acyclic hGAacyc).symm.trans (n_eq_m_add_c_of_acyclic hGBacyc)
+--   omega
 
 -- theorem n_eq_m_add_c_iff_acyclic [Fintype V] [Fintype E] {G : Graph V E} [Undirected G] :
 --     Fintype.card V = Fintype.card E + NumberOfComponents G ↔ G.acyclic := by
@@ -371,7 +381,7 @@ def PathTree (n : ℕ) : Tree (Fin (n+1)) (Fin n) where
 
 lemma existSpanningTree_aux [Fintype V] (G : Graph V E) [G.connected] :
     Fintype.card V = n → ∃ (W F : Type) (h : DecidableEq W) (T : Tree W F),
-    Nonempty (T.SpanningSubgraphOf G) := by
+    Nonempty (T.SpanningEmb G) := by
   by_cases h : n = 0
   · rintro rfl
     use Fin 0, Empty, inferInstance, ⟨EdgelessForest 0, @instEdgelessGraphConnected _ ⟨by omega⟩⟩

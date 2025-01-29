@@ -137,7 +137,7 @@ lemma isFull_of_isLoop (hloop : e.isLoop) : e.isFull := by
 
 
 def endAt : Multiset V := match e with
-  | dir (a, b) => [b, a].foldl (λ s x =>
+  | dir (a, b) => [b, a].foldl (fun s x =>
     match x with
     | some x => insert x s
     | none => s) ∅
@@ -776,8 +776,8 @@ lemma pmap_undir {P : V → Prop} (f : ∀ a, P a → W) (s : Sym2 V) (h : ∀ v
 @[simp]
 lemma pmap_eq_dir {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) (a b : Option W) :
     e.pmap f h = dir (a, b) ↔ ∃ (a' b' : Option V) (hab' : e = dir (a', b')),
-      a'.pmap f (λ v hv => h v (by simp_all only [Option.mem_def, mem_dir_some_fst])) = a ∧
-      b'.pmap f (λ v hv => h v (by simp_all only [Option.mem_def, mem_dir_some_snd])) = b := by
+      a'.pmap f (fun v hv => h v (by simp_all only [Option.mem_def, mem_dir_some_fst])) = a ∧
+      b'.pmap f (fun v hv => h v (by simp_all only [Option.mem_def, mem_dir_some_snd])) = b := by
   constructor
   · intro heq
     match e with
@@ -797,7 +797,7 @@ lemma pmap_eq_dir {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ 
 @[simp]
 lemma pmap_eq_undir_iff {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v)
   (s : Sym2 W) : e.pmap f h = undir s ↔
-    ∃ (s' : Sym2 _) (hs' : e = undir s'), s'.pmap f (λ v hv => (by simp_all)) = s := by
+    ∃ (s' : Sym2 _) (hs' : e = undir s'), s'.pmap f (fun v hv => (by simp_all)) = s := by
   simp only [pmap]
   split
   · simp only [Option.pmap, reduceCtorEq, IsEmpty.exists_iff, exists_false]
@@ -810,7 +810,7 @@ lemma pmap_eq_undir_iff {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h 
       rfl
 
 lemma map_pmap {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) (g : W → U) :
-    (e.pmap f h).map g = e.pmap (λ a ha => g (f a (h a ha))) (λ _ hv => hv) := by
+    (e.pmap f h).map g = e.pmap (fun a ha => g (f a (h a ha))) (fun _ hv => hv) := by
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all only [map, pmap, Option.pmap, Option.map_none',
@@ -822,7 +822,7 @@ lemma map_pmap {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v �
 
 lemma pmap_map {P : W → Prop} {e : edge V} {f : V → W} (h : ∀ v ∈ e, P (f v)) (g : ∀ a, P a → U) :
     (e.map f).pmap g (fun a ha => by obtain ⟨b, hb, rfl⟩ := mem_map_iff.mp ha; exact h b hb) =
-    e.pmap (λ a ha => g (f a) ha) (λ v hv => h v hv) := by
+    e.pmap (fun a ha => g (f a) ha) (fun v hv => h v hv) := by
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all only [map, pmap, Option.pmap, Option.map_none',
@@ -833,7 +833,7 @@ lemma pmap_map {P : W → Prop} {e : edge V} {f : V → W} (h : ∀ v ∈ e, P (
     rfl
 
 lemma pmap_eq_map {P : V → Prop} {e : edge V} (f : V → W) (h : ∀ v ∈ e, P v) :
-    e.pmap (λ v _ => f v) (λ v hv => h v hv) = e.map f := by
+    e.pmap (fun v _ => f v) (fun v hv => h v hv) = e.map f := by
   match e with
   | dir (a, b) => simp only [pmap_dir, Option.pmap_eq_map, map_dir]
   | undir s => simp only [pmap, Sym2.pmap_eq_map, map]
@@ -851,7 +851,7 @@ lemma pmap_subtype_map_val {P : V → Prop} {e : edge V} (h : ∀ v ∈ e, P v) 
 
 @[simp]
 lemma pmap_startAt {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) :
-    (e.pmap f h).startAt = e.startAt.pmap f (λ v hv => h v (mem_of_mem_startAt e v hv)) := by
+    (e.pmap f h).startAt = e.startAt.pmap f (fun v hv => h v (mem_of_mem_startAt e v hv)) := by
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all only [pmap, Option.pmap, dir_startAt, Option.isSome_some,
@@ -860,7 +860,7 @@ lemma pmap_startAt {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀
 
 @[simp]
 lemma pmap_finishAt {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) :
-    (e.pmap f h).finishAt = e.finishAt.pmap f (λ v hv => h v (mem_of_mem_finishAt e v hv)) := by
+    (e.pmap f h).finishAt = e.finishAt.pmap f (fun v hv => h v (mem_of_mem_finishAt e v hv)) := by
   match e with
   | dir (a, b) =>
     cases a <;> cases b <;> simp_all only [pmap, Option.pmap, dir_finishAt, Option.isSome_some,
@@ -878,7 +878,7 @@ lemma pmap_congr {P Q : V → Prop} {e : edge V} {f : ∀ a, P a → W} {g : ∀
     simp only [pmap_undir, undir.injEq, pmap_pair]
     congr <;> apply hfg <;> simp only [mem_undir_iff, mem_iff, or_true, true_or]
 
--- lemma pmap_id {P : V → Prop} {e : edge V} (h : ∀ v ∈ e, P v) : e.pmap (λ a _ => a) h = e := by
+-- lemma pmap_id {P : V → Prop} {e : edge V} (h : ∀ v ∈ e, P v) : e.pmap (fun a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]
 
 
@@ -903,6 +903,36 @@ noncomputable def v2 : fullEdge V → V
 end fullEdge
 
 namespace edge
+
+def ofIsLoop (e : edge V) (he : e.isLoop) : V := match e with
+  | dir (some a, _) => a
+  | undir s => s.ofIsDiag he
+
+lemma ofIsLoop_mem {e : edge V} (he : e.isLoop) : ofIsLoop e he ∈ e := by
+  match e with
+  | dir (some a, _) => simp only [ofIsLoop, mem_dir_some_fst]
+  | undir s => simp only [ofIsLoop, mem_undir_iff, ofIsDiag_mem]
+
+lemma eq_ofIsLoop_of_undir {e : edge V} (he : e.isLoop) (heUndir : e.isUndir) :
+    e = undir s(ofIsLoop e he, ofIsLoop e he) := match e with
+  | undir s => by
+    simp only [undir_isLoop_iff, undir.injEq] at he ⊢
+    nth_rewrite 1 [Sym2.eq_ofIsDiag s he]
+    congr
+
+lemma canGo_ofIsLoop [DecidableEq V] {e : edge V} (he : e.isLoop) :
+    canGo (ofIsLoop e he) e (ofIsLoop e he) := by
+  match e with
+  | dir (some a, some b) =>
+    simp only [ofIsLoop, canGo_iff_eq_of_dir, Prod.mk.injEq, Option.some.injEq, true_and]
+    rw [Eq.comm]
+    simpa only [dir_isLoop_iff] using he
+  | undir s =>
+    simp only [canGo_iff_eq_of_undir]
+    apply_fun undir
+    apply eq_ofIsLoop_of_undir he rfl
+    exact fun a b ↦ edge.undir.inj
+
 
 def toFullEdge (e : edge V) (he : e.isFull) : fullEdge V :=
   match e, he with
@@ -947,11 +977,48 @@ lemma canGo_v1_v2 [DecidableEq V] {e : edge V} (he : e.isFull) : canGo (e.v1 he)
   | dir (some a, some b), _ => simp only [dir_v1, dir_v2, dir_canGo]
   | undir s, _ => simp only [undir_v1, undir_v2, undir_canGo_v12]
 
-@[simp]
 lemma isLoop_iff_v1_eq_v2 {e : edge V} (he : e.isFull) : e.isLoop ↔ e.v1 he = e.v2 he := by
   match e, he with
   | edge.dir (some a, some b), _ => simp only [dir_v1, dir_v2, dir_isLoop_iff]
   | edge.undir s, _ => simp only [undir_isLoop_iff, isDiag_iff_out_fst_eq_out_snd, undir_v1,
     undir_v2]
+
+lemma v1_mem {e : edge V} (he : e.isFull) : e.v1 he ∈ e := by
+  match e, he with
+  | dir (some a, some b), _ => simp [dir_v1, mem_dir_some_fst]
+  | undir s, _ =>
+    simp only [undir_v1, mem_undir_iff]
+    exact out_fst_mem s
+
+lemma v2_mem {e : edge V} (he : e.isFull) : e.v2 he ∈ e := by
+  match e, he with
+  | dir (some a, some b), _ => simp [dir_v2, mem_dir_some_snd]
+  | undir s, _ =>
+    simp only [undir_v2, mem_undir_iff]
+    exact out_snd_mem s
+
+lemma v1_eq_ofIsLoop {e : edge V} (he : e.isLoop) : e.v1 (isFull_of_isLoop _ he) = ofIsLoop e he :=
+  match e with
+  | dir (some a, some b) => by
+    simp only [dir_isFull_iff, Option.isSome_some, and_self, isLoop_iff_v1_eq_v2, dir_v1,
+      dir_v2] at he
+    subst b
+    rfl
+  | undir s => by
+    refine s.eq_of_mem_isDiag ?_ ?_ he <;> rw [← mem_undir_iff]
+    · exact v1_mem (isFull_of_isLoop (undir s) he)
+    · exact ofIsLoop_mem _
+
+lemma v2_eq_ofIsLoop {e : edge V} (he : e.isLoop) : e.v2 (isFull_of_isLoop _ he) = ofIsLoop e he :=
+  match e with
+  | dir (some a, some b) => by
+    simp only [dir_isFull_iff, Option.isSome_some, and_self, isLoop_iff_v1_eq_v2, dir_v1,
+      dir_v2] at he
+    subst b
+    rfl
+  | undir s => by
+    refine s.eq_of_mem_isDiag ?_ ?_ he <;> rw [← mem_undir_iff]
+    · exact v2_mem (isFull_of_isLoop (undir s) he)
+    · exact ofIsLoop_mem _
 
 end edge

@@ -1,5 +1,58 @@
 import Mathlib
 
+open List
+
+#eval (finRange 4).permutations
+
+def comp [NeZero n] : List (Fin n) → List (Fin n) → List (Fin n) :=
+  fun l1 l2 ↦ l1.map (fun i ↦ l2.get! i)
+
+def inv [NeZero n] : List (Fin n) → List (Fin n) :=
+  fun l ↦ ([0, 1, 2, 3] : List (Fin 4)).map (fun i ↦ l.findIdx (fun j ↦ j = i))
+
+#eval comp ([2, 3, 0, 1] : List (Fin 4)) [2, 3, 1, 0]
+
+#eval inv ([2, 3, 0, 1] : List (Fin 4))
+
+#eval (finRange 4).permutations.product (finRange 4).permutations
+  -- |>.map (fun (l1, l2) ↦ comp l1 (inv l2))
+  |>.filter (fun (l1, l2) ↦ comp l1 (inv l2) = [2, 1, 3, 0])
+  -- |>.length
+
+-- [1, 0, 2, 3], [0, 1, 3, 2]
+
+def a : List (List (Fin 4)) := [[1, 0, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3]]
+
+-- 3
+#eval (finRange 4).permutations
+  |>.product ((finRange 4).permutations.product (finRange 4).permutations)
+  |>.filter (fun (l1, l2, l3) ↦ comp l1 (inv l2) ∈ a ∧ comp l2 (inv l3) ∈ a ∧ comp l3 (inv l1) ∈ a ∧ [l1, l2, l3].Nodup)
+
+def test3 (a : List (List (Fin 4))) : Bool :=
+  ((finRange 4).permutations
+  |>.product ((finRange 4).permutations.product (finRange 4).permutations)
+  |>.filter (fun (l1, l2, l3) ↦ comp l1 (inv l2) ∈ a ∧ comp l2 (inv l3) ∈ a ∧ comp l3 (inv l1) ∈ a ∧ [l1, l2, l3].Nodup)
+  |>.length) = 0
+
+-- 4
+#eval (finRange 4).permutations
+  |>.product ((finRange 4).permutations.product ((finRange 4).permutations.product (finRange 4).permutations))
+  |>.filter (fun (l1, l2, l3, l4) ↦ comp l1 (inv l2) ∈ a ∧ comp l2 (inv l3) ∈ a ∧ comp l3 (inv l4) ∈ a ∧ comp l4 (inv l1) ∈ a ∧ [l1, l2, l3, l4].Nodup)
+
+def test4 (a : List (List (Fin 4))) : Bool :=
+  ((finRange 4).permutations
+  |>.product ((finRange 4).permutations.product ((finRange 4).permutations.product (finRange 4).permutations))
+  |>.filter (fun (l1, l2, l3, l4) ↦ comp l1 (inv l2) ∈ a ∧ comp l2 (inv l3) ∈ a ∧ comp l3 (inv l4) ∈ a ∧ comp l4 (inv l1) ∈ a ∧ [l1, l2, l3, l4].Nodup)
+  |>.length) = 0
+
+#eval (finRange 4).permutations.product (finRange 4).permutations
+  |>.map (fun (l1, l2) ↦ [l1, l2, [1, 0, 2, 3]])
+  |>.filter (fun l ↦ l.Nodup ∧ ([0, 1, 2, 3] : List (Fin 4)) ∉ l ∧
+    l.Sorted (fun x y ↦ (x.enum.map (fun i ↦ i.1 * i.2.val)).sum < (y.enum.map (fun i ↦ i.1 * i.2.val)).sum))
+  |>.filter test3
+  |>.filter test4
+  -- |>.length
+
 /-
 Tier 0: I would be surprised if Peter didn't taught this (or some version of it) in the course.
 rfl

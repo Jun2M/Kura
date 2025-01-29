@@ -9,6 +9,7 @@ import Kura.Graph.Translation
 import Kura.Graph.Bipartite
 import Kura.Graph.Edges
 import Kura.Graph.Searchable
+import Kura.Graph.Subgraph
 import Kura.Connectivity.Conn
 import Kura.Connectivity.Walk
 import Kura.Connectivity.closedWalk
@@ -19,4 +20,5 @@ import Kura.Connectivity.Matroid
 import Kura.Examples.Defs
 import Kura.Examples.Conn
 import Kura.Planarity.Plainarity
+import Kura.Planarity.Euler
 import Kura.Planarity.Kuratowski

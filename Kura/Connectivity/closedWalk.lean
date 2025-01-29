@@ -15,6 +15,74 @@ lemma Closed.ext (c1 c2 : G.Closed) : c1.toWalk = c2.toWalk → c1 = c2 := by
   cases c2
   simp_all only
 
+namespace Closed
+
+@[simp]
+def ofLoop (e : E) (he : G.isLoop e) : G.Closed where
+  toWalk := Walk.some (G.ofIsLoop he) e (G.ofIsLoop he) (canGo_ofIsLoop he)
+  startFinish := by simp only [Walk.some, Walk.finish, List.getLast_singleton]
+
+lemma isLoop_of_length_one {C : G.Closed} (hC : C.length = 1) (hedge : C.edges ≠ []) :
+    G.isLoop (C.edges.head hedge) := by
+  rw [Walk.length, List.length_eq_one] at hC
+  obtain ⟨⟨u, e, v⟩, hstep⟩ := hC
+  apply isLoop_of_canGo_self
+  use C.start
+  convert C.step_spec (C.steps.head ?_) (List.head_mem _)
+  · refine C.start_spec ?_
+  · simp only [Walk.edges, List.head_map]
+  · rw [C.startFinish, ← Walk.vertices_getLast_eq_finish]
+    simp only [Walk.vertices, hstep, List.map_cons, List.map_nil, ne_eq, List.cons_ne_self,
+      not_false_eq_true, List.getLast_cons, List.getLast_singleton, List.head_cons]
+  · simp only [hstep, ne_eq, List.cons_ne_self, not_false_eq_true]
+
+variable {G}
+
+/-- ClosedWalk has some start point by the definition. rotate it. -/
+def rotate (C : G.Closed) (n : ℕ) : G.Closed where
+  start := match hsteps : C.steps with
+    | [] => C.start
+    | _ :: _ => ((C.steps.rotate n).head
+      (List.rotate_eq_nil_iff.not.mpr (hsteps ▸ List.cons_ne_nil _ _))).fst
+  steps := C.steps.rotate n
+  start_spec h := by
+    simp at h
+    split
+    · absurd h
+      assumption
+    · simp only
+  step_spec uev he := by
+    simp only [List.mem_rotate] at he
+    exact C.step_spec uev he
+  next_step := by
+    refine C.next_step.rotate _ ?_
+    rintro x hx y hy
+    obtain ⟨hnil, rfl⟩ := List.mem_getLast?_eq_getLast hx
+    obtain ⟨_hnil', rfl⟩ := List.mem_head?_eq_head hy
+    rw [← C.steps.getLast_map (·.2.2), ← C.steps.head_map (·.1), eq_comm]
+    convert C.startFinish
+    · convert C.start_spec hnil |>.symm
+      refine List.head_map (fun x ↦ x.1) C.steps ?_
+    · convert C.steps_getLast_ssnd_eq_finish hnil |>.symm
+      refine List.getLast_map (fun x ↦ x.2.2) C.steps ?_
+    all_goals simp only [ne_eq, List.map_eq_nil_iff, hnil, not_false_eq_true]
+  startFinish := sorry
+
+@[simp]
+lemma rotate_edges (C : G.Closed) (n : ℕ) : (C.rotate n).edges = C.edges.rotate n := by
+  simp only [Walk.edges, rotate, List.map_rotate]
+
+/-- Pick a vertex, v, in a ClosedWalk. Get a walk from v to v along the ClosedWalk -/
+def cut (C : G.Closed) {v : V} (_ : v ∈ C.vertices) : G.Walk :=
+  let i := C.vertices.indexOf v
+  (C.rotate i).toWalk
+
+/-- Pick 2 vertices, u & v, in a ClosedWalk. Get edge-disjoint paths u to v and v to u -/
+def split (C : G.Closed) {u v : V} (hu : u ∈ C.vertices) (hv : v ∈ C.vertices) : G.Path × G.Path :=
+  sorry
+
+end Closed
+
 structure Cycle extends Closed G where
   vNodup' : toWalk.vertices.tail.Nodup
   eNodup' : toWalk.edges.Nodup
@@ -48,58 +116,40 @@ instance instFintype [Fintype E] [DecidableEq E] : Fintype (Cycle G) where
     sorry
   complete := sorry
 
-noncomputable def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
-  start := (G.inc e).v1 ((G.inc e).isFull_of_isLoop he)
-  steps := [((G.inc e).v1 ((G.inc e).isFull_of_isLoop he), e, (G.inc e).v2 ((G.inc e).isFull_of_isLoop he))]
-  start_spec _hn := rfl
-  step_spec uev huev := by
-    rw [List.mem_singleton] at huev
-    subst huev
-    exact edge.canGo_v1_v2 (isFull_of_isLoop (G.inc e) he)
-  next_step :=
-    List.chain'_singleton
-      ((G.inc e).v1 (isFull_of_isLoop (G.inc e) he), e,
-        (G.inc e).v2 (isFull_of_isLoop (G.inc e) he))
-  startFinish := by
-    simp only [Walk.finish, List.getLast_singleton]
-    exact (edge.isLoop_iff_v1_eq_v2 (isFull_of_isLoop (G.inc e) he)).mp he
-  vNodup' := by simp only [Walk.vertices, List.map_cons, List.map_nil, List.tail_cons,
-    List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
-  eNodup' := by simp only [Walk.edges, List.map_cons, List.map_nil, List.nodup_cons,
-    List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
-  eNonempty := by simp only [Walk.edges, List.map_cons, List.map_nil, ne_eq, List.cons_ne_self,
+def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
+  toClosed := Closed.ofLoop G e he
+  vNodup' := by simp only [Walk.vertices, Closed.ofLoop, Walk.some, List.map_cons, List.map_nil,
+    List.tail_cons, List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
+  eNodup' := by simp only [Closed.ofLoop, Walk.some_edges, List.nodup_cons, List.not_mem_nil,
+    not_false_eq_true, List.nodup_nil, and_self]
+  eNonempty := by simp only [Closed.ofLoop, Walk.some_edges, ne_eq, List.cons_ne_self,
     not_false_eq_true]
 
-lemma isLoop_of_length_one (C : G.Cycle) (hC : C.length = 1) :
-    G.isLoop (C.edges.head (by rw [← Walk.length_ne_zero_iff_edges_ne_nil]; omega)) := by
-  sorry
-
-lemma not_simple_of_length_two (C : G.Cycle) (hC : C.length = 2) :
-    ¬ G.Simple := by
-  sorry
+lemma not_simple_of_length_two {C : G.Cycle} (hC : C.length = 2) : ¬ G.Simple := by
+  rintro hSimple
+  obtain hInj := hSimple.inc_inj
+  rw [← Walk.edges_length, List.length_eq_two] at hC
+  obtain ⟨e1, e2, H⟩ := hC
+  specialize @hInj e1 e2 ?_
+  · rw [inc_eq_get, inc_eq_get, undir.injEq]
+    sorry
+  subst e2
+  exact List.not_nodup_pair _ (H ▸ C.eNodup')
 
 variable {G}
 
 /-- Cycle has some start point by the definition. rotate it. -/
 def rotate (C : G.Cycle) (n : ℕ) : G.Cycle where
-  start :=
-    match hsteps : C.steps with
-    | [] => C.start
-    | _ :: _ => ((C.steps.rotate n).head
-      (List.rotate_eq_nil_iff.not.mpr (hsteps ▸ List.cons_ne_nil _ _))).fst
-  steps := C.steps.rotate n
-  start_spec h := by
-    simp at h
-    split
-    · absurd h
-      assumption
-    · simp only
-  step_spec := by sorry
-  next_step := by sorry
-  startFinish := by sorry
-  vNodup' := by sorry
-  eNodup' := by sorry
-  eNonempty := by sorry
+  toClosed := C.toClosed.rotate n
+  vNodup' := by
+    simp only [Walk.vertices, Closed.rotate, List.tail_cons, List.map_rotate, List.nodup_rotate]
+    exact C.vNodup'
+  eNodup' := by
+    simp only [Walk.edges, Closed.rotate, List.map_rotate, List.nodup_rotate]
+    exact C.eNodup'
+  eNonempty := by
+    simp only [Closed.rotate_edges, ne_eq, List.rotate_eq_nil_iff]
+    exact C.eNonempty
 
 /-- Pick a vertex, v, in a cycle. Get a walk from v to v along the cycle -/
 def cut (C : G.Cycle) {v : V} (_ : v ∈ C.vertices) : G.Walk :=
@@ -121,7 +171,7 @@ lemma isLoop_of_edges_singleton (C : G.Cycle) (e : E) (he : C.edges = [e]) : G.i
 
 end Cycle
 
-namespace SubgraphOf
+namespace Emb
 
 def cycle {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) : H.Cycle where
   toWalk := A.walk C.toWalk
@@ -153,7 +203,7 @@ lemma cycle_vertices {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cyc
 lemma cycle_edges {G : Graph V E} {H : Graph W F} (A : G ⊆ᴳ H) (C : G.Cycle) :
     (A.cycle C).edges = C.edges.map A.fₑ := by simp only [cycle, walk_edges]
 
-end SubgraphOf
+end Emb
 
 
 -- def IsVertexCycle (v : V) (c : G.Cycle) : Prop :=

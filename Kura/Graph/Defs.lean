@@ -98,6 +98,11 @@ lemma incEsV_union (A B : Set E) : G.incEsV (A ∪ B) = G.incEsV A ∪ G.incEsV 
   ext v
   simp only [incEsV, Set.mem_union, Set.mem_setOf_eq, ← exists_or, ← or_and_right]
 
+lemma incEsV_spec (S : Set E) : ∀ e ∈ S, ∀ v ∈ G.inc e, v ∈ G.incEsV S := by
+  rintro e he v hve
+  simp only [incEsV, Set.mem_setOf_eq]
+  use e, he
+
 lemma loop_mem_incEE [DecidableEq V] (hloop : G.isLoop e) : e ∈ G.incEE e := by
   simp only [incEE, Set.mem_setOf_eq, true_and]
   exact Or.inl hloop
@@ -245,16 +250,16 @@ end Hom
 
 /-- `G` is a subgraph of `H`, written `G ⊆ᴳ H`, if there exists a `Hom G H` where the
     map between the vertices and the edges are `Injective`.-/
-structure SubgraphOf (G : Graph V E) (H : Graph W F) extends Hom G H where
+structure Emb (G : Graph V E) (H : Graph W F) extends Hom G H where
   fᵥinj : fᵥ.Injective
   fₑinj : fₑ.Injective
 
-macro G:term "⊆ᴳ" H:term :term => `(Graph.SubgraphOf $G $H)
+macro G:term "⊆ᴳ" H:term :term => `(Graph.Emb $G $H)
 
 -- unsafe instance [Repr W] [Repr V] [Fintype E] [Fintype F] : Repr (G ⊆ᴳ H) where
---   reprPrec _SubgraphOf _ := repr G ++ " ⊆ᴳ " ++ repr H
+--   reprPrec _Emb _ := repr G ++ " ⊆ᴳ " ++ repr H
 
-namespace SubgraphOf
+namespace Emb
 
 omit [DecidableEq V] [DecidableEq W] in @[ext]
 lemma ext (A B : G ⊆ᴳ H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
@@ -270,9 +275,9 @@ def refl (G : Graph V E) : G ⊆ᴳ G where
 variable (A : G ⊆ᴳ H)
 
 omit [DecidableEq V] [DecidableEq W] in @[simp]
-lemma refl_fᵥ : (SubgraphOf.refl G).fᵥ = id := rfl
+lemma refl_fᵥ : (Emb.refl G).fᵥ = id := rfl
 omit [DecidableEq V] [DecidableEq W] in @[simp]
-lemma refl_fₑ : (SubgraphOf.refl G).fₑ = id := rfl
+lemma refl_fₑ : (Emb.refl G).fₑ = id := rfl
 
 def fᵥEmb : V ↪ W := ⟨A.fᵥ, A.fᵥinj⟩
 def fₑEmb : E ↪ F := ⟨A.fₑ, A.fₑinj⟩
@@ -339,17 +344,17 @@ noncomputable def FintypeV [Fintype W] (A : G ⊆ᴳ H) : Fintype V := by
 noncomputable def FintypeE [Fintype F] (A : G ⊆ᴳ H) : Fintype E := by
   exact Fintype.ofInjective A.fₑ A.fₑinj
 
-end SubgraphOf
+end Emb
 
 /-- A subgraph `G ⊆ᴳ H` is spanning if `V(G)=V(H)` i.e. `fᵥ` is surjective.-/
-structure SpanningSubgraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H where
+structure SpanningEmb (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H where
   fᵥsurj : fᵥ.Surjective
 
-namespace SpanningSubgraphOf
-variable (A : G.SpanningSubgraphOf H)
+namespace SpanningEmb
+variable (A : G.SpanningEmb H)
 
 omit [DecidableEq V] [DecidableEq W] in @[ext]
-lemma ext (A B : G.SpanningSubgraphOf H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
+lemma ext (A B : G.SpanningEmb H) (h : A.fᵥ = B.fᵥ) (h' : A.fₑ = B.fₑ) : A = B := by
   cases A; cases B
   congr
   ext <;> simp_all only
@@ -365,7 +370,7 @@ lemma fᵥEquiv_apply : A.fᵥEquiv = A.fᵥ := by
   ext v
   rfl
 
-end SpanningSubgraphOf
+end SpanningEmb
 
 structure QuotientGraphOf (G : Graph V E) (H : Graph W F) extends G ⊆ᴳ H where
   fₑsurj : fₑ.Surjective
@@ -376,7 +381,7 @@ end QuotientGraphOf
 
 /-- The graphs `G=(V,E)` and `H=(W,F)` are isomorphic, denoted `G ≃ᴳ H` if there is a homomorphism
     `Hom G H` such that `fᵥ : V → W` and `fₑ : E → F` are both `Injective` and `Surjective`. -/
-structure Isom (G : Graph V E) (H : Graph W F) extends SpanningSubgraphOf G H where
+structure Isom (G : Graph V E) (H : Graph W F) extends SpanningEmb G H where
   fₑsurj : fₑ.Surjective
 
 macro G:term "≃ᴳ" H:term :term => `(Graph.Isom $G $H)
@@ -418,9 +423,9 @@ def OfEquivs (Efᵥ : V ≃ W) (Efₑ : E ≃ F) (hinc : ∀ e, H.inc (Efₑ e) 
   fₑsurj := Equiv.surjective Efₑ
 
 def refl (G : Graph V E) : G ≃ᴳ G where
-  toSubgraphOf := SubgraphOf.refl G
-  fᵥsurj := fun x => exists_apply_eq_apply (SubgraphOf.refl G).fᵥ x
-  fₑsurj := fun x => exists_apply_eq_apply (SubgraphOf.refl G).fₑ x
+  toEmb := Emb.refl G
+  fᵥsurj := fun x => exists_apply_eq_apply (Emb.refl G).fᵥ x
+  fₑsurj := fun x => exists_apply_eq_apply (Emb.refl G).fₑ x
 
 omit [DecidableEq V] [DecidableEq W] in @[simp]
 lemma refl_fᵥ : (Isom.refl G).fᵥ = Equiv.refl _ := rfl
@@ -505,7 +510,7 @@ lemma refl_symm : (Isom.refl G).symm = Isom.refl G := by
     simp
 
 def trans (B : H ≃ᴳ I) : G ≃ᴳ I where
-  toSubgraphOf := A.toSubgraphOf.trans B.toSubgraphOf
+  toEmb := A.toEmb.trans B.toEmb
   fᵥsurj := B.fᵥsurj.comp A.fᵥsurj
   fₑsurj := B.fₑsurj.comp A.fₑsurj
 
@@ -538,12 +543,12 @@ lemma trans_symm (B : H ≃ᴳ I) : (A.trans B).symm = B.symm.trans A.symm := by
   ext <;> simp [symm_fᵥ, symm_fₑ, Equiv.symm_apply_apply]
 
 lemma canGo_iff (u : V) (e : E) (v : V) :
-    H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) ↔ G.canGo u e v := SubgraphOf.canGo_iff A.toSubgraphOf u e v
+    H.canGo (A.fᵥ u) (A.fₑ e) (A.fᵥ v) ↔ G.canGo u e v := Emb.canGo_iff A.toEmb u e v
 
 lemma adj_iff (u v : V) : H.adj (A.fᵥ u) (A.fᵥ v) ↔ G.adj u v := by
-  refine ⟨?_, A.toSubgraphOf.adj⟩
+  refine ⟨?_, A.toEmb.adj⟩
   rintro h
-  convert A.symm.toSubgraphOf.adj h <;> simp only [symm_fᵥ, Equiv.ofBijective_symm_apply_apply]
+  convert A.symm.toEmb.adj h <;> simp only [symm_fᵥ, Equiv.ofBijective_symm_apply_apply]
 
 end Isom
 
@@ -562,7 +567,7 @@ omit [DecidableEq V] [DecidableEq W] [DecidableEq U] [DecidableEq V'] in @[simp]
 lemma Hom.Isom_fₑ (A : Hom G H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
     (A.Isom B C).fₑ = C.fₑ ∘ A.fₑ ∘ B.symm.fₑ := rfl
 
-noncomputable def SubgraphOf.Isom (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) : I ⊆ᴳ J where
+noncomputable def Emb.Isom (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) : I ⊆ᴳ J where
   toHom := A.toHom.Isom B C
   fᵥinj v w h := by
     simp only [Hom.Isom_fᵥ, Function.comp_apply] at h
@@ -572,18 +577,18 @@ noncomputable def SubgraphOf.Isom (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃�
     rwa [C.fₑinj.eq_iff, A.fₑinj.eq_iff, B.symm.fₑinj.eq_iff] at h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] [DecidableEq V'] in @[simp]
-lemma SubgraphOf.Isom_fᵥ (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
+lemma Emb.Isom_fᵥ (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
     (A.Isom B C).fᵥ = C.fᵥ ∘ A.fᵥ ∘ B.symm.fᵥ := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] [DecidableEq V'] in @[simp]
-lemma SubgraphOf.Isom_fₑ (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
+lemma Emb.Isom_fₑ (A : G ⊆ᴳ H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
     (A.Isom B C).fₑ = C.fₑ ∘ A.fₑ ∘ B.symm.fₑ := rfl
 
-noncomputable def SpanningSubgraphOf.Isom (A : SpanningSubgraphOf G H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
-    SpanningSubgraphOf I J where
-  toSubgraphOf := A.toSubgraphOf.Isom B C
+noncomputable def SpanningEmb.Isom (A : SpanningEmb G H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) :
+    SpanningEmb I J where
+  toEmb := A.toEmb.Isom B C
   fᵥsurj v := by
-    simp only [SubgraphOf.Isom_fᵥ, Function.comp_apply]
+    simp only [Emb.Isom_fᵥ, Function.comp_apply]
     use B.fᵥ (A.fᵥEquiv.symm (C.symm.fᵥ v))
     rw [B.symm_fᵥ, ← A.fᵥEquiv_apply, ← C.fᵥEquiv_apply, C.symm_fᵥ]
     simp only [Equiv.ofBijective_symm_apply_apply, Equiv.apply_symm_apply]
@@ -636,7 +641,7 @@ lemma Hom.range_inc_val (A : Hom G H) (e : Set.range A.fₑ) :
   unfold Hom.range
   simp only [pmap_subtype_map_val]
 
-def Hom.range_SubgraphOf (A : Hom G H) : A.range ⊆ᴳ H where
+def Hom.range_Emb (A : Hom G H) : A.range ⊆ᴳ H where
   fᵥ := Subtype.val
   fₑ := Subtype.val
   inc e := by
@@ -650,10 +655,10 @@ def Hom.range_SubgraphOf (A : Hom G H) : A.range ⊆ᴳ H where
     simpa only [range, Set.rangeFactorization_coe] using h
 
 omit [DecidableEq V] [DecidableEq W] in @[simp]
-lemma Hom.range_SubgraphOf_fᵥ (A : Hom G H) : (A.range_SubgraphOf).fᵥ = Subtype.val := rfl
+lemma Hom.range_Emb_fᵥ (A : Hom G H) : (A.range_Emb).fᵥ = Subtype.val := rfl
 
 omit [DecidableEq V] [DecidableEq W] in @[simp]
-lemma Hom.range_SubgraphOf_fₑ (A : Hom G H) : (A.range_SubgraphOf).fₑ = Subtype.val := rfl
+lemma Hom.range_Emb_fₑ (A : Hom G H) : (A.range_Emb).fₑ = Subtype.val := rfl
 
 def Hom.range.Isom (A : Hom G H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) : A.range ≃ᴳ (A.Isom B C).range where
   fᵥ v := ⟨C.fᵥ v.val, (by
@@ -668,8 +673,8 @@ def Hom.range.Isom (A : Hom G H) (B : G ≃ᴳ I) (C : H ≃ᴳ J) : A.range ≃
       Equiv.ofBijective_symm_apply_apply])⟩
   inc e := by
     simp only [subtype_eq, ← map_comp, (A.Isom B C).range_inc_val, C.inc]
-    have := (A.range_SubgraphOf).inc e
-    simp only [range_SubgraphOf_fₑ, range_SubgraphOf_fᵥ] at this
+    have := (A.range_Emb).inc e
+    simp only [range_Emb_fₑ, range_Emb_fᵥ] at this
     rw [this, ← map_comp]; clear this
     congr
   fᵥinj v w h := by
@@ -711,7 +716,7 @@ omit [DecidableEq V] [DecidableEq W] in @[simp]
 lemma Hom.rangeFactorization_fₑ (A : Hom G H) :
     (A.rangeFactorization).fₑ = Set.rangeFactorization A.fₑ := rfl
 
-def SubgraphOf.range_Isom (A : G ⊆ᴳ H) : G ≃ᴳ A.range where
+def Emb.range_Isom (A : G ⊆ᴳ H) : G ≃ᴳ A.range where
   fᵥ := Set.rangeFactorization A.fᵥ
   fₑ := Set.rangeFactorization A.fₑ
   inc e := by
@@ -738,15 +743,15 @@ def SubgraphOf.range_Isom (A : G ⊆ᴳ H) : G ≃ᴳ A.range where
     exact he'
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf.range_Isom_fᵥ (A : G ⊆ᴳ H) :
+lemma Emb.range_Isom_fᵥ (A : G ⊆ᴳ H) :
     (A.range_Isom).fᵥ = Set.rangeFactorization A.fᵥ := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf.range_Isom_fₑ (A : G ⊆ᴳ H) :
+lemma Emb.range_Isom_fₑ (A : G ⊆ᴳ H) :
     (A.range_Isom).fₑ = Set.rangeFactorization A.fₑ := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf.range_Isom_symm_fᵥ (A : G ⊆ᴳ H) :
+lemma Emb.range_Isom_symm_fᵥ (A : G ⊆ᴳ H) :
     (A.range_Isom).symm.fᵥ = Set.rangeSplitting A.fᵥ := by
   ext v
   apply_fun Set.rangeFactorization A.fᵥ using (Set.rangeFactorization_injective_iff A.fᵥ).mpr A.fᵥinj
@@ -755,7 +760,7 @@ lemma SubgraphOf.range_Isom_symm_fᵥ (A : G ⊆ᴳ H) :
   rw [Isom.fᵥ_symm_fᵥ]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf.range_Isom_symm_fₑ (A : G ⊆ᴳ H) :
+lemma Emb.range_Isom_symm_fₑ (A : G ⊆ᴳ H) :
     (A.range_Isom).symm.fₑ = Set.rangeSplitting A.fₑ := by
   ext e
   apply_fun Set.rangeFactorization A.fₑ using (Set.rangeFactorization_injective_iff A.fₑ).mpr A.fₑinj
@@ -763,10 +768,10 @@ lemma SubgraphOf.range_Isom_symm_fₑ (A : G ⊆ᴳ H) :
   change (A.range_Isom).fₑ (A.range_Isom.symm.fₑ e) = e
   rw [Isom.fₑ_symm_fₑ]
 
--- def Subtype_SubgraphOf_Subtype_of_imp {vp₁ vp₂ : V → Prop} {ep₁ ep₂ : E → Prop}
+-- def Subtype_Emb_Subtype_of_imp {vp₁ vp₂ : V → Prop} {ep₁ ep₂ : E → Prop}
 --     {G : Graph (Subtype vp₁) (Subtype ep₁)} {H : Graph (Subtype vp₂) (Subtype ep₂)}
 --     (hv : vp₁ ≤ vp₂) (he : ep₁ ≤ ep₂) : G ⊆ᴳ H := by
---   refine SubgraphOf.OfEmbs (Subtype.impEmbedding _ _ hv) (Subtype.impEmbedding _ _ he) ?_
+--   refine Emb.OfEmbs (Subtype.impEmbedding _ _ hv) (Subtype.impEmbedding _ _ he) ?_
 --   rintro ⟨f, hf⟩
 --   simp only [subtype_eq]
 
@@ -798,7 +803,7 @@ omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
 lemma Hom1_union_fₑ (A : Hom G I) (B : Hom H I) :
     (Hom1_union A B).fₑ = Set.rangeFactorization (A.add B).fₑ ∘ Sum.inl := rfl
 
-def SubgraphOf1_union (A : SubgraphOf G I) (B : Hom H I) : G ⊆ᴳ union A.toHom B where
+def Emb1_union (A : Emb G I) (B : Hom H I) : G ⊆ᴳ union A.toHom B where
   toHom := Hom1_union A.toHom B
   fᵥinj v w h := by
     apply_fun (·.val) at h
@@ -812,12 +817,12 @@ def SubgraphOf1_union (A : SubgraphOf G I) (B : Hom H I) : G ⊆ᴳ union A.toHo
     exact A.fₑinj h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf1_union_fᵥ (A : SubgraphOf G I) (B : Hom H I) :
-    (SubgraphOf1_union A B).fᵥ = Set.rangeFactorization (A.toHom.add B).fᵥ ∘ Sum.inl := rfl
+lemma Emb1_union_fᵥ (A : Emb G I) (B : Hom H I) :
+    (Emb1_union A B).fᵥ = Set.rangeFactorization (A.toHom.add B).fᵥ ∘ Sum.inl := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf1_union_fₑ (A : SubgraphOf G I) (B : Hom H I) :
-    (SubgraphOf1_union A B).fₑ = Set.rangeFactorization (A.toHom.add B).fₑ ∘ Sum.inl := rfl
+lemma Emb1_union_fₑ (A : Emb G I) (B : Hom H I) :
+    (Emb1_union A B).fₑ = Set.rangeFactorization (A.toHom.add B).fₑ ∘ Sum.inl := rfl
 
 def Hom2_union (A : Hom G I) (B : Hom H I) : Hom H (union A B) where
   fᵥ := Set.rangeFactorization (A.add B).fᵥ ∘ Sum.inr
@@ -836,7 +841,7 @@ omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
 lemma Hom2_union_fₑ (A : Hom G I) (B : Hom H I) :
     (Hom2_union A B).fₑ = Set.rangeFactorization (A.add B).fₑ ∘ Sum.inr := rfl
 
-def SubgraphOf2_union (A : Hom G I) (B : SubgraphOf H I) : H ⊆ᴳ union A B.toHom where
+def Emb2_union (A : Hom G I) (B : Emb H I) : H ⊆ᴳ union A B.toHom where
   toHom := Hom2_union A B.toHom
   fᵥinj v w h := by
     apply_fun (·.val) at h
@@ -850,14 +855,14 @@ def SubgraphOf2_union (A : Hom G I) (B : SubgraphOf H I) : H ⊆ᴳ union A B.to
     exact B.fₑinj h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf2_union_fᵥ (A : Hom G I) (B : SubgraphOf H I) :
-    (SubgraphOf2_union A B).fᵥ = Set.rangeFactorization (A.add B.toHom).fᵥ ∘ Sum.inr := rfl
+lemma Emb2_union_fᵥ (A : Hom G I) (B : Emb H I) :
+    (Emb2_union A B).fᵥ = Set.rangeFactorization (A.add B.toHom).fᵥ ∘ Sum.inr := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf2_union_fₑ (A : Hom G I) (B : SubgraphOf H I) :
-    (SubgraphOf2_union A B).fₑ = Set.rangeFactorization (A.add B.toHom).fₑ ∘ Sum.inr := rfl
+lemma Emb2_union_fₑ (A : Hom G I) (B : Emb H I) :
+    (Emb2_union A B).fₑ = Set.rangeFactorization (A.add B.toHom).fₑ ∘ Sum.inr := rfl
 
-def union_SubgraphOf (A : Hom G I) (B : Hom H I) : union A B ⊆ᴳ I where
+def union_Emb (A : Hom G I) (B : Hom H I) : union A B ⊆ᴳ I where
   fᵥ := Subtype.val
   fₑ := Subtype.val
   inc e := by
@@ -873,38 +878,38 @@ def union_SubgraphOf (A : Hom G I) (B : Hom H I) : union A B ⊆ᴳ I where
     exact h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma union_SubgraphOf_fᵥ (A : Hom G I) (B : Hom H I) :
-    (union_SubgraphOf A B).fᵥ = Subtype.val := rfl
+lemma union_Emb_fᵥ (A : Hom G I) (B : Hom H I) :
+    (union_Emb A B).fᵥ = Subtype.val := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma union_SubgraphOf_fₑ (A : Hom G I) (B : Hom H I) :
-    (union_SubgraphOf A B).fₑ = Subtype.val := rfl
+lemma union_Emb_fₑ (A : Hom G I) (B : Hom H I) :
+    (union_Emb A B).fₑ = Subtype.val := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma Hom1_union_trans_union_SubgraphOf (A : Hom G I) (B : Hom H I) :
-    (Hom1_union A B).trans (union_SubgraphOf A B).toHom = A := by
+lemma Hom1_union_trans_union_Emb (A : Hom G I) (B : Hom H I) :
+    (Hom1_union A B).trans (union_Emb A B).toHom = A := by
   ext v
-  · simp only [union_SubgraphOf, Hom.trans_fᵥ, Hom1_union_fᵥ, Function.comp_apply,
+  · simp only [union_Emb, Hom.trans_fᵥ, Hom1_union_fᵥ, Function.comp_apply,
     Set.rangeFactorization_coe, Hom.add_fᵥ_inl_apply]
-  · simp only [union_SubgraphOf, Hom.trans_fₑ, Hom1_union_fₑ, Function.comp_apply,
+  · simp only [union_Emb, Hom.trans_fₑ, Hom1_union_fₑ, Function.comp_apply,
     Set.rangeFactorization_coe, Hom.add_fₑ_inl_apply]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf1_union_trans_union_SubgraphOf (A : G ⊆ᴳ I) (B : Hom H I) :
-    (SubgraphOf1_union A B).trans (union_SubgraphOf A.toHom B) = A := by
+lemma Emb1_union_trans_union_Emb (A : G ⊆ᴳ I) (B : Hom H I) :
+    (Emb1_union A B).trans (union_Emb A.toHom B) = A := by
   ext v
-  · simp only [union_SubgraphOf, SubgraphOf.trans_fᵥ, SubgraphOf1_union_fᵥ, Function.comp_apply,
+  · simp only [union_Emb, Emb.trans_fᵥ, Emb1_union_fᵥ, Function.comp_apply,
     Set.rangeFactorization_coe, Hom.add_fᵥ_inl_apply]
-  · simp only [union_SubgraphOf, SubgraphOf.trans_fₑ, SubgraphOf1_union_fₑ, Function.comp_apply,
+  · simp only [union_Emb, Emb.trans_fₑ, Emb1_union_fₑ, Function.comp_apply,
     Set.rangeFactorization_coe, Hom.add_fₑ_inl_apply]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma Hom2_union_trans_union_SubgraphOf (A : Hom G I) (B : Hom H I) :
-    (Hom2_union A B).trans (union_SubgraphOf A B).toHom = B := by
+lemma Hom2_union_trans_union_Emb (A : Hom G I) (B : Hom H I) :
+    (Hom2_union A B).trans (union_Emb A B).toHom = B := by
   ext v
-  · simp only [union_SubgraphOf, Hom.trans_fᵥ, Hom2_union_fᵥ, Function.comp_apply,
+  · simp only [union_Emb, Hom.trans_fᵥ, Hom2_union_fᵥ, Function.comp_apply,
     Set.rangeFactorization_coe, Hom.add_fᵥ_inr_apply]
-  · simp only [union_SubgraphOf, Hom.trans_fₑ, Hom2_union_fₑ, Function.comp_apply,
+  · simp only [union_Emb, Hom.trans_fₑ, Hom2_union_fₑ, Function.comp_apply,
     Set.rangeFactorization_coe, Hom.add_fₑ_inr_apply]
 
 
@@ -931,7 +936,7 @@ lemma inter_inc_val (A : Hom G I) (B : Hom H I) (e : (Set.range A.fₑ ∩ Set.r
   unfold inter
   simp only [pmap_subtype_map_val]
 
-def inter_SubgraphOf (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ I where
+def inter_Emb (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ I where
   fᵥ := Subtype.val
   fₑ := Subtype.val
   inc e := by
@@ -947,61 +952,61 @@ def inter_SubgraphOf (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ I where
     exact h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf_fᵥ (A : Hom G I) (B : Hom H I) :
-    (inter_SubgraphOf A B).fᵥ = Subtype.val := rfl
+lemma inter_Emb_fᵥ (A : Hom G I) (B : Hom H I) :
+    (inter_Emb A B).fᵥ = Subtype.val := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf_fₑ (A : Hom G I) (B : Hom H I) :
-    (inter_SubgraphOf A B).fₑ = Subtype.val := rfl
+lemma inter_Emb_fₑ (A : Hom G I) (B : Hom H I) :
+    (inter_Emb A B).fₑ = Subtype.val := rfl
 
-def inter_SubgraphOf_range1 (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ A.range := by
-  apply SubgraphOf.OfEmbs (Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left))
+def inter_Emb_range1 (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ A.range := by
+  apply Emb.OfEmbs (Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left))
     (Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left))
   intro e
   simp only [subtype_eq, Hom.range_inc_val, Subtype.impEmbedding_apply_coe, ← map_comp,
     Subtype.val_comp_impEmbedding, inter_inc_val]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf_range1_fᵥ (A : Hom G I) (B : Hom H I) :
-    (inter_SubgraphOf_range1 A B).fᵥ =
+lemma inter_Emb_range1_fᵥ (A : Hom G I) (B : Hom H I) :
+    (inter_Emb_range1 A B).fᵥ =
     Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left) := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf_range1_fₑ (A : Hom G I) (B : Hom H I) :
-    (inter_SubgraphOf_range1 A B).fₑ =
+lemma inter_Emb_range1_fₑ (A : Hom G I) (B : Hom H I) :
+    (inter_Emb_range1 A B).fₑ =
     Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left) := rfl
 
-def inter_SubgraphOf_range2 (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ B.range := by
-  apply SubgraphOf.OfEmbs (Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right))
+def inter_Emb_range2 (A : Hom G I) (B : Hom H I) : inter A B ⊆ᴳ B.range := by
+  apply Emb.OfEmbs (Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right))
     (Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right))
   intro e
   simp only [subtype_eq, Hom.range_inc_val, Subtype.impEmbedding_apply_coe, ← map_comp,
     Subtype.val_comp_impEmbedding, inter_inc_val]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf_range2_fᵥ (A : Hom G I) (B : Hom H I) :
-    (inter_SubgraphOf_range2 A B).fᵥ =
+lemma inter_Emb_range2_fᵥ (A : Hom G I) (B : Hom H I) :
+    (inter_Emb_range2 A B).fᵥ =
     Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right) := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf_range2_fₑ (A : Hom G I) (B : Hom H I) :
-    (inter_SubgraphOf_range2 A B).fₑ =
+lemma inter_Emb_range2_fₑ (A : Hom G I) (B : Hom H I) :
+    (inter_Emb_range2 A B).fₑ =
     Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right) := rfl
 
-noncomputable def inter_SubgraphOf1 (A : G ⊆ᴳ I) (B : Hom H I) : (inter A.toHom B) ⊆ᴳ G :=
-  (inter_SubgraphOf_range1 A.toHom B).Isom (Isom.refl _) A.range_Isom.symm
+noncomputable def inter_Emb1 (A : G ⊆ᴳ I) (B : Hom H I) : (inter A.toHom B) ⊆ᴳ G :=
+  (inter_Emb_range1 A.toHom B).Isom (Isom.refl _) A.range_Isom.symm
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf1_fᵥ (A : G ⊆ᴳ I) (B : Hom H I) :
-    (inter_SubgraphOf1 A B).fᵥ =
+lemma inter_Emb1_fᵥ (A : G ⊆ᴳ I) (B : Hom H I) :
+    (inter_Emb1 A B).fᵥ =
     (Set.rangeSplitting A.fᵥ) ∘ Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left) := by
-  simp only [inter_SubgraphOf1, SubgraphOf.Isom_fᵥ, SubgraphOf.range_Isom_symm_fᵥ,
-    inter_SubgraphOf_range1_fᵥ, Isom.refl_symm, Isom.refl_fᵥ, Equiv.coe_refl, CompTriple.comp_eq]
+  simp only [inter_Emb1, Emb.Isom_fᵥ, Emb.range_Isom_symm_fᵥ,
+    inter_Emb_range1_fᵥ, Isom.refl_symm, Isom.refl_fᵥ, Equiv.coe_refl, CompTriple.comp_eq]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma mem_range_inter_SubgraphOf1_fᵥ (A : G ⊆ᴳ I) (B : Hom H I) (v : _) :
-    v ∈ Set.range (inter_SubgraphOf1 A B).fᵥ ↔ A.fᵥ v ∈ Set.range B.fᵥ := by
-  simp only [inter_SubgraphOf1_fᵥ, Set.mem_range, Function.comp_apply, Subtype.exists,
+lemma mem_range_inter_Emb1_fᵥ (A : G ⊆ᴳ I) (B : Hom H I) (v : _) :
+    v ∈ Set.range (inter_Emb1 A B).fᵥ ↔ A.fᵥ v ∈ Set.range B.fᵥ := by
+  simp only [inter_Emb1_fᵥ, Set.mem_range, Function.comp_apply, Subtype.exists,
     Set.mem_inter_iff]
   constructor
   · rintro ⟨u, ⟨⟨v, rfl⟩, w, hw⟩, rfl⟩
@@ -1015,16 +1020,16 @@ lemma mem_range_inter_SubgraphOf1_fᵥ (A : G ⊆ᴳ I) (B : Hom H I) (v : _) :
     refine ⟨⟨v, rfl⟩, ⟨w, hw⟩⟩
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf1_fₑ (A : G ⊆ᴳ I) (B : Hom H I) :
-    (inter_SubgraphOf1 A B).fₑ =
+lemma inter_Emb1_fₑ (A : G ⊆ᴳ I) (B : Hom H I) :
+    (inter_Emb1 A B).fₑ =
     (Set.rangeSplitting A.fₑ) ∘ Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_left) := by
-  simp only [inter_SubgraphOf1, SubgraphOf.Isom_fₑ, SubgraphOf.range_Isom_symm_fₑ,
-    inter_SubgraphOf_range1_fₑ, Isom.refl_symm, Isom.refl_fₑ, Equiv.coe_refl, CompTriple.comp_eq]
+  simp only [inter_Emb1, Emb.Isom_fₑ, Emb.range_Isom_symm_fₑ,
+    inter_Emb_range1_fₑ, Isom.refl_symm, Isom.refl_fₑ, Equiv.coe_refl, CompTriple.comp_eq]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma mem_range_inter_SubgraphOf1_fₑ (A : G ⊆ᴳ I) (B : Hom H I) (e : E) :
-    e ∈ Set.range (inter_SubgraphOf1 A B).fₑ ↔ A.fₑ e ∈ Set.range B.fₑ := by
-  simp only [inter_SubgraphOf1_fₑ, Set.mem_range, Function.comp_apply, Subtype.exists,
+lemma mem_range_inter_Emb1_fₑ (A : G ⊆ᴳ I) (B : Hom H I) (e : E) :
+    e ∈ Set.range (inter_Emb1 A B).fₑ ↔ A.fₑ e ∈ Set.range B.fₑ := by
+  simp only [inter_Emb1_fₑ, Set.mem_range, Function.comp_apply, Subtype.exists,
     Set.mem_inter_iff]
   constructor
   · rintro ⟨u, ⟨⟨v, rfl⟩, f, hf⟩, rfl⟩
@@ -1037,20 +1042,20 @@ lemma mem_range_inter_SubgraphOf1_fₑ (A : G ⊆ᴳ I) (B : Hom H I) (e : E) :
     simp only [Set.rangeSplitting_eq_iff A.fₑinj, Subtype.impEmbedding_apply_coe]
     refine ⟨⟨e, rfl⟩, ⟨f, hf⟩⟩
 
-noncomputable def inter_SubgraphOf2 (A : Hom G I) (B : H ⊆ᴳ I) : (inter A B.toHom) ⊆ᴳ H :=
-  (inter_SubgraphOf_range2 A B.toHom).Isom (Isom.refl _) B.range_Isom.symm
+noncomputable def inter_Emb2 (A : Hom G I) (B : H ⊆ᴳ I) : (inter A B.toHom) ⊆ᴳ H :=
+  (inter_Emb_range2 A B.toHom).Isom (Isom.refl _) B.range_Isom.symm
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf2_fᵥ (A : Hom G I) (B : H ⊆ᴳ I) :
-    (inter_SubgraphOf2 A B).fᵥ =
+lemma inter_Emb2_fᵥ (A : Hom G I) (B : H ⊆ᴳ I) :
+    (inter_Emb2 A B).fᵥ =
     (Set.rangeSplitting B.fᵥ) ∘ Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right) := by
-  simp only [inter_SubgraphOf2, SubgraphOf.Isom_fᵥ, SubgraphOf.range_Isom_symm_fᵥ,
-    inter_SubgraphOf_range2_fᵥ, Isom.refl_symm, Isom.refl_fᵥ, Equiv.coe_refl, CompTriple.comp_eq]
+  simp only [inter_Emb2, Emb.Isom_fᵥ, Emb.range_Isom_symm_fᵥ,
+    inter_Emb_range2_fᵥ, Isom.refl_symm, Isom.refl_fᵥ, Equiv.coe_refl, CompTriple.comp_eq]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma mem_range_inter_SubgraphOf2_fᵥ (A : Hom G I) (B : H ⊆ᴳ I) (w : _) :
-    w ∈ Set.range (inter_SubgraphOf2 A B).fᵥ ↔ B.fᵥ w ∈ Set.range A.fᵥ := by
-  simp only [inter_SubgraphOf2_fᵥ, Set.mem_range, Function.comp_apply, Subtype.exists,
+lemma mem_range_inter_Emb2_fᵥ (A : Hom G I) (B : H ⊆ᴳ I) (w : _) :
+    w ∈ Set.range (inter_Emb2 A B).fᵥ ↔ B.fᵥ w ∈ Set.range A.fᵥ := by
+  simp only [inter_Emb2_fᵥ, Set.mem_range, Function.comp_apply, Subtype.exists,
     Set.mem_inter_iff]
   constructor
   · rintro ⟨u, ⟨⟨v, rfl⟩, w, hw⟩, rfl⟩
@@ -1064,16 +1069,16 @@ lemma mem_range_inter_SubgraphOf2_fᵥ (A : Hom G I) (B : H ⊆ᴳ I) (w : _) :
     refine ⟨⟨v, rfl⟩, ⟨w, hv.symm⟩⟩
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma inter_SubgraphOf2_fₑ (A : Hom G I) (B : H ⊆ᴳ I) :
-    (inter_SubgraphOf2 A B).fₑ =
+lemma inter_Emb2_fₑ (A : Hom G I) (B : H ⊆ᴳ I) :
+    (inter_Emb2 A B).fₑ =
     (Set.rangeSplitting B.fₑ) ∘ Subtype.impEmbedding _ _ (fun _ => Set.mem_of_mem_inter_right) := by
-  simp only [inter_SubgraphOf2, SubgraphOf.Isom_fₑ, SubgraphOf.range_Isom_symm_fₑ,
-    inter_SubgraphOf_range2_fₑ, Isom.refl_symm, Isom.refl_fₑ, Equiv.coe_refl, CompTriple.comp_eq]
+  simp only [inter_Emb2, Emb.Isom_fₑ, Emb.range_Isom_symm_fₑ,
+    inter_Emb_range2_fₑ, Isom.refl_symm, Isom.refl_fₑ, Equiv.coe_refl, CompTriple.comp_eq]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma mem_range_inter_SubgraphOf2_fₑ (A : Hom G I) (B : H ⊆ᴳ I) (f : _) :
-    f ∈ Set.range (inter_SubgraphOf2 A B).fₑ ↔ B.fₑ f ∈ Set.range A.fₑ := by
-  simp only [inter_SubgraphOf2_fₑ, Set.mem_range, Function.comp_apply, Subtype.exists,
+lemma mem_range_inter_Emb2_fₑ (A : Hom G I) (B : H ⊆ᴳ I) (f : _) :
+    f ∈ Set.range (inter_Emb2 A B).fₑ ↔ B.fₑ f ∈ Set.range A.fₑ := by
+  simp only [inter_Emb2_fₑ, Set.mem_range, Function.comp_apply, Subtype.exists,
     Set.mem_inter_iff]
   constructor
   · rintro ⟨u, ⟨⟨v, rfl⟩, e, he⟩, rfl⟩
@@ -1093,7 +1098,7 @@ presence of a mutual supergraph.
 The 'glue' function below is a reverse of that: Given a mutual subgraph of two graphs,
 it constructs a union of the two graphs by gluing on the mutual subgraph.
 -/
-noncomputable def SubgraphOf.glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
+noncomputable def Emb.glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
   Graph (W ⊕ (Set.range B.fᵥ)ᶜ.Elem) (F ⊕ (Set.range B.fₑ)ᶜ.Elem) :=
   let fᵥ : _ → W ⊕ (Set.range B.fᵥ)ᶜ.Elem := (λ v => match v with
     | Sum.inl v₁ => Sum.inl v₁
@@ -1106,11 +1111,11 @@ noncomputable def SubgraphOf.glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
     | Sum.inr e₂ => Sum.inr e₂.val
   (H + I).map fᵥ fₑ
 
-def SubgraphOf1_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : H ⊆ᴳ A.glue B where
+def Emb1_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : H ⊆ᴳ A.glue B where
   fᵥ := Sum.inl
   fₑ := Sum.inl
   inc e := by
-    unfold SubgraphOf.glue
+    unfold Emb.glue
     simp only [map, Set.mem_range, add_inc]
     rw [← map_comp]
     congr
@@ -1118,14 +1123,14 @@ def SubgraphOf1_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : H ⊆ᴳ A.glue B where
   fₑinj e f h := by simpa only [Sum.inl.injEq] using h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf1_glue_fᵥ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
-    (SubgraphOf1_glue A B).fᵥ = Sum.inl := rfl
+lemma Emb1_glue_fᵥ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
+    (Emb1_glue A B).fᵥ = Sum.inl := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf1_glue_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
-    (SubgraphOf1_glue A B).fₑ = Sum.inl := rfl
+lemma Emb1_glue_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
+    (Emb1_glue A B).fₑ = Sum.inl := rfl
 
-noncomputable def SubgraphOf2_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : I ⊆ᴳ A.glue B where
+noncomputable def Emb2_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : I ⊆ᴳ A.glue B where
   fᵥ v := by
     by_cases hv : v ∈ Set.range B.fᵥ
     · exact Sum.inl (A.fᵥ (Set.rangeSplitting B.fᵥ ⟨v, hv⟩))
@@ -1135,7 +1140,7 @@ noncomputable def SubgraphOf2_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : I ⊆ᴳ 
     · exact Sum.inl (A.fₑ (Set.rangeSplitting B.fₑ ⟨e, he⟩))
     · exact Sum.inr ⟨e, by simp only [Set.mem_compl_iff, he, not_false_eq_true]⟩
   inc e := by
-    unfold SubgraphOf.glue
+    unfold Emb.glue
     by_cases he : e ∈ Set.range B.fₑ <;> simp only [map, Set.mem_range, add_inc, he, ↓reduceDIte]
     · obtain ⟨e', rfl⟩ := he
       rw [A.inc, B.inc, Set.rangeSplitting_apply' B.fₑinj]
@@ -1158,20 +1163,20 @@ noncomputable def SubgraphOf2_glue (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) : I ⊆ᴳ 
     simpa only [Subtype.mk.injEq] using h
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf2_glue_fᵥ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
-    (SubgraphOf2_glue A B).fᵥ = (fun v => by
+lemma Emb2_glue_fᵥ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
+    (Emb2_glue A B).fᵥ = (fun v => by
     by_cases hv : v ∈ Set.range B.fᵥ
     · exact Sum.inl (A.fᵥ (Set.rangeSplitting B.fᵥ ⟨v, hv⟩))
     · exact Sum.inr ⟨v, by simp only [Set.mem_compl_iff, hv, not_false_eq_true]⟩) := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] in @[simp]
-lemma SubgraphOf2_glue_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
-    (SubgraphOf2_glue A B).fₑ = (fun e => by
+lemma Emb2_glue_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
+    (Emb2_glue A B).fₑ = (fun e => by
     by_cases he : e ∈ Set.range B.fₑ
     · exact Sum.inl (A.fₑ (Set.rangeSplitting B.fₑ ⟨e, he⟩))
     · exact Sum.inr ⟨e, by simp only [Set.mem_compl_iff, he, not_false_eq_true]⟩) := rfl
 
-def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆ᴳ J) (D : I ⊆ᴳ J)
+def glue_Emb_of_Emb (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆ᴳ J) (D : I ⊆ᴳ J)
     (hᵥ : C.fᵥ ∘ A.fᵥ = D.fᵥ ∘ B.fᵥ) (hₑ : C.fₑ ∘ A.fₑ = D.fₑ ∘ B.fₑ)
     (hᵥ' : Set.range C.fᵥ ∩ Set.range D.fᵥ = Set.range (C.fᵥ ∘ A.fᵥ))
     (hₑ' : Set.range C.fₑ ∩ Set.range D.fₑ = Set.range (C.fₑ ∘ A.fₑ)) :
@@ -1187,11 +1192,11 @@ def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆�
   inc e := by
     match e with
     | Sum.inl e =>
-      simp [SubgraphOf.glue, C.inc]
+      simp [Emb.glue, C.inc]
       repeat rw [← map_comp]
       congr
     | Sum.inr e =>
-      simp [SubgraphOf.glue, D.inc]
+      simp [Emb.glue, D.inc]
       repeat rw [← map_comp]
       congr
       ext u
@@ -1209,7 +1214,7 @@ def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆�
       rw [hvw]
     | Sum.inl v, Sum.inr ⟨w, hw⟩ =>
       exfalso
-      simp [SubgraphOf.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hvw hw hᵥ'
+      simp [Emb.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hvw hw hᵥ'
       have : C.fᵥ v ∈ Set.range C.fᵥ ∩ Set.range D.fᵥ := by
         simp
         rw [hvw]
@@ -1218,7 +1223,7 @@ def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆�
       simp [D.fᵥinj.eq_iff, hw] at this
     | Sum.inr ⟨v, hv⟩, Sum.inl w =>
       exfalso
-      simp [SubgraphOf.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hvw hv hᵥ'
+      simp [Emb.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hvw hv hᵥ'
       have : D.fᵥ v ∈ Set.range C.fᵥ ∩ Set.range D.fᵥ := by
         simp
         rw [hvw]
@@ -1231,7 +1236,7 @@ def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆�
     | Sum.inl e, Sum.inl f => simp_all [C.fₑinj.eq_iff]
     | Sum.inl e, Sum.inr ⟨f, hf⟩ =>
       exfalso
-      simp [SubgraphOf.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hef hf hₑ'
+      simp [Emb.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hef hf hₑ'
       have : C.fₑ e ∈ Set.range C.fₑ ∩ Set.range D.fₑ := by
         simp
         rw [hef]
@@ -1240,7 +1245,7 @@ def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆�
       simp [D.fₑinj.eq_iff, hf] at this
     | Sum.inr ⟨e, he⟩, Sum.inl f =>
       exfalso
-      simp [SubgraphOf.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hef he hₑ'
+      simp [Emb.glue, Set.mem_range, map, add_inc, C.inc, Sum.inl.injEq] at hef he hₑ'
       have : D.fₑ e ∈ Set.range C.fₑ ∩ Set.range D.fₑ := by
         simp
         rw [hef]
@@ -1250,21 +1255,21 @@ def glue_SubgraphOf_of_SubgraphOf (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆�
     | Sum.inr e, Sum.inr f => simp_all [D.fₑinj.eq_iff, Subtype.val_inj]
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] [DecidableEq V'] in @[simp]
-lemma glue_SubgraphOf_of_SubgraphOf_fᵥ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆ᴳ J) (D : I ⊆ᴳ J)
+lemma glue_Emb_of_Emb_fᵥ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆ᴳ J) (D : I ⊆ᴳ J)
     (hᵥ : C.fᵥ ∘ A.fᵥ = D.fᵥ ∘ B.fᵥ) (hₑ : C.fₑ ∘ A.fₑ = D.fₑ ∘ B.fₑ)
     (hᵥ' : Set.range C.fᵥ ∩ Set.range D.fᵥ = Set.range (C.fᵥ ∘ A.fᵥ))
     (hₑ' : Set.range C.fₑ ∩ Set.range D.fₑ = Set.range (C.fₑ ∘ A.fₑ)) :
-    (glue_SubgraphOf_of_SubgraphOf A B C D hᵥ hₑ hᵥ' hₑ').fᵥ = (fun v => by
+    (glue_Emb_of_Emb A B C D hᵥ hₑ hᵥ' hₑ').fᵥ = (fun v => by
     match v with
     | Sum.inl v => exact C.fᵥ v
     | Sum.inr v => exact D.fᵥ v.val) := rfl
 
 omit [DecidableEq V] [DecidableEq W] [DecidableEq U] [DecidableEq V'] in @[simp]
-lemma glue_SubgraphOf_of_SubgraphOf_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆ᴳ J) (D : I ⊆ᴳ J)
+lemma glue_Emb_of_Emb_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : H ⊆ᴳ J) (D : I ⊆ᴳ J)
     (hᵥ : C.fᵥ ∘ A.fᵥ = D.fᵥ ∘ B.fᵥ) (hₑ : C.fₑ ∘ A.fₑ = D.fₑ ∘ B.fₑ)
     (hᵥ' : Set.range C.fᵥ ∩ Set.range D.fᵥ = Set.range (C.fᵥ ∘ A.fᵥ))
     (hₑ' : Set.range C.fₑ ∩ Set.range D.fₑ = Set.range (C.fₑ ∘ A.fₑ)) :
-    (glue_SubgraphOf_of_SubgraphOf A B C D hᵥ hₑ hᵥ' hₑ').fₑ = (fun e => by
+    (glue_Emb_of_Emb A B C D hᵥ hₑ hᵥ' hₑ').fₑ = (fun e => by
     match e with
     | Sum.inl e => exact C.fₑ e
     | Sum.inr e => exact D.fₑ e.val) := rfl
@@ -1272,28 +1277,28 @@ lemma glue_SubgraphOf_of_SubgraphOf_fₑ (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) (C : 
 @[simp]
 
 def glue_inter_Isom (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
-    G.Isom (inter (SubgraphOf1_glue A B).toHom (SubgraphOf2_glue A B).toHom) where
+    G.Isom (inter (Emb1_glue A B).toHom (Emb2_glue A B).toHom) where
   fᵥ v := ⟨Sum.inl (A.fᵥ v), by
-    simp only [SubgraphOf.glue, Set.mem_range, map, add_inc, SubgraphOf1_glue, SubgraphOf2_glue,
+    simp only [Emb.glue, Set.mem_range, map, add_inc, Emb1_glue, Emb2_glue,
       Set.mem_inter_iff, Sum.inl.injEq, exists_eq, true_and]
     use B.fᵥ v
     simp only [Set.mem_range, exists_apply_eq_apply, ↓reduceDIte, Set.rangeSplitting_apply' B.fᵥinj]⟩
   fₑ e := ⟨Sum.inl (A.fₑ e), by
-    simp only [SubgraphOf.glue, Set.mem_range, map, add_inc, SubgraphOf1_glue, SubgraphOf2_glue,
+    simp only [Emb.glue, Set.mem_range, map, add_inc, Emb1_glue, Emb2_glue,
       Set.mem_inter_iff, Sum.inl.injEq, exists_eq, true_and]
     use B.fₑ e
     simp only [Set.mem_range, exists_apply_eq_apply, ↓reduceDIte, Set.rangeSplitting_apply' B.fₑinj]⟩
   inc e := by
     rw [subtype_eq, inter_inc_val]
-    simp only [SubgraphOf.glue, map, Set.mem_range, add_inc, A.inc, SubgraphOf1_glue,
-      SubgraphOf2_glue]
+    simp only [Emb.glue, map, Set.mem_range, add_inc, A.inc, Emb1_glue,
+      Emb2_glue]
     repeat rw [← map_comp]
     congr
   fᵥinj v w h := by simpa only [Subtype.mk.injEq, Sum.inl.injEq, A.fᵥinj.eq_iff] using h
   fₑinj e f h := by simpa only [Subtype.mk.injEq, Sum.inl.injEq, A.fₑinj.eq_iff] using h
   fᵥsurj v := by
     obtain ⟨v', ⟨w, rfl⟩, u, hu⟩ := v
-    simp only [SubgraphOf2_glue_fᵥ, Set.mem_range, SubgraphOf1_glue_fᵥ, Subtype.mk.injEq,
+    simp only [Emb2_glue_fᵥ, Set.mem_range, Emb1_glue_fᵥ, Subtype.mk.injEq,
       Sum.inl.injEq] at hu ⊢
     split_ifs at hu with h
     case pos =>
@@ -1302,7 +1307,7 @@ def glue_inter_Isom (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
       simpa [Set.rangeSplitting_apply' B.fᵥinj] using hu
   fₑsurj e := by
     obtain ⟨e', ⟨w, rfl⟩, u, hu⟩ := e
-    simp only [SubgraphOf2_glue_fₑ, Set.mem_range, SubgraphOf1_glue_fₑ, Subtype.mk.injEq,
+    simp only [Emb2_glue_fₑ, Set.mem_range, Emb1_glue_fₑ, Subtype.mk.injEq,
       Sum.inl.injEq] at hu ⊢
     split_ifs at hu with h
     case pos =>
@@ -1312,7 +1317,7 @@ def glue_inter_Isom (A : G ⊆ᴳ H) (B : G ⊆ᴳ I) :
 
 
 def inter_glue_Isom_union (A : G ⊆ᴳ I) (B : H ⊆ᴳ I) :
-    (inter_SubgraphOf1 A B.toHom).glue (inter_SubgraphOf2 A.toHom B) ≃ᴳ union A.toHom B.toHom where
+    (inter_Emb1 A B.toHom).glue (inter_Emb2 A.toHom B) ≃ᴳ union A.toHom B.toHom where
   fᵥ v := ⟨(A.add B.toHom).fᵥ (match v with
     | Sum.inl v => Sum.inl v
     | Sum.inr v => Sum.inr v.val),
@@ -1324,29 +1329,29 @@ def inter_glue_Isom_union (A : G ⊆ᴳ I) (B : H ⊆ᴳ I) :
   inc e := by
     match e with
     | Sum.inl e =>
-      simp only [Hom.add_fₑ_inl_apply, SubgraphOf.glue, map, inter_SubgraphOf2_fᵥ, Set.mem_range,
-        Function.comp_apply, Subtype.exists, Set.mem_inter_iff, inter_SubgraphOf1_fᵥ, add_inc,
+      simp only [Hom.add_fₑ_inl_apply, Emb.glue, map, inter_Emb2_fᵥ, Set.mem_range,
+        Function.comp_apply, Subtype.exists, Set.mem_inter_iff, inter_Emb1_fᵥ, add_inc,
         subtype_eq, union_inc_val, A.inc]
       repeat rw [← map_comp]
       congr
     | Sum.inr e =>
-      simp only [Hom.add_fₑ_inr_apply, SubgraphOf.glue, map, inter_SubgraphOf2_fᵥ, Set.mem_range,
-        Function.comp_apply, Subtype.exists, Set.mem_inter_iff, inter_SubgraphOf1_fᵥ, add_inc,
+      simp only [Hom.add_fₑ_inr_apply, Emb.glue, map, inter_Emb2_fᵥ, Set.mem_range,
+        Function.comp_apply, Subtype.exists, Set.mem_inter_iff, inter_Emb1_fᵥ, add_inc,
         subtype_eq, union_inc_val, B.inc]
       repeat rw [← map_comp]
       congr
       ext w
-      simp only [inter_SubgraphOf2_fᵥ, Set.mem_range, Function.comp_apply, Subtype.exists,
+      simp only [inter_Emb2_fᵥ, Set.mem_range, Function.comp_apply, Subtype.exists,
         Set.mem_inter_iff]
       split_ifs with hw
       case pos =>
         simp only [Hom.add_fᵥ_inl_apply, Set.apply_rangeSplitting, Subtype.impEmbedding_apply_coe]
         have : B.fᵥ w ∈ Set.range A.fᵥ ∩ Set.range B.fᵥ := by
-          rw [mem_range_inter_SubgraphOf2_fᵥ] at hw
+          rw [mem_range_inter_Emb2_fᵥ] at hw
           simp_all only [Set.mem_range, Set.mem_inter_iff, exists_apply_eq_apply, and_self]
         rw [(by rfl : B.fᵥ w = ↑(⟨B.fᵥ w, this⟩: ↑(Set.range A.fᵥ ∩ Set.range B.fᵥ))),
           ← Subtype.ext_iff_val]
-        apply_fun (inter_SubgraphOf2 A.toHom B).fᵥ using (inter_SubgraphOf2 A.toHom B).fᵥinj
+        apply_fun (inter_Emb2 A.toHom B).fᵥ using (inter_Emb2 A.toHom B).fᵥinj
         simp [Set.apply_rangeSplitting]
         apply_fun (Set.rangeFactorization B.fᵥ) using
           (Set.rangeFactorization_injective_iff B.fᵥ).mpr B.fᵥinj
@@ -1364,14 +1369,14 @@ def inter_glue_Isom_union (A : G ⊆ᴳ I) (B : H ⊆ᴳ I) :
       exfalso
       simp only [Hom.add_fᵥ_inl_apply, Hom.add_fᵥ_inr_apply, B.fᵥinj.eq_iff] at h
       obtain ⟨w, hw⟩ := w
-      rw [Set.mem_compl_iff, mem_range_inter_SubgraphOf2_fᵥ] at hw
+      rw [Set.mem_compl_iff, mem_range_inter_Emb2_fᵥ] at hw
       simp only [Set.mem_range, not_exists] at hw h
       exact hw v h
     | Sum.inr v, Sum.inl w =>
       exfalso
       simp only [Hom.add_fᵥ_inl_apply, A.fᵥinj.eq_iff] at h
       obtain ⟨v, hv⟩ := v
-      rw [Set.mem_compl_iff, mem_range_inter_SubgraphOf2_fᵥ] at hv
+      rw [Set.mem_compl_iff, mem_range_inter_Emb2_fᵥ] at hv
       simp only [Set.mem_range, not_exists, Hom.add_fᵥ_inr_apply] at hv h
       exact hv w h.symm
     | Sum.inr v, Sum.inr w =>
@@ -1387,14 +1392,14 @@ def inter_glue_Isom_union (A : G ⊆ᴳ I) (B : H ⊆ᴳ I) :
       exfalso
       simp only [Hom.add_fₑ_inl_apply, Hom.add_fₑ_inr_apply, A.fₑinj.eq_iff] at h
       obtain ⟨f, hf⟩ := f
-      rw [Set.mem_compl_iff, mem_range_inter_SubgraphOf2_fₑ] at hf
+      rw [Set.mem_compl_iff, mem_range_inter_Emb2_fₑ] at hf
       simp only [Set.mem_range, not_exists, Hom.add_fₑ_inr_apply] at hf h
       exact hf e h
     | Sum.inr e, Sum.inl f =>
       exfalso
       simp only [Hom.add_fₑ_inl_apply, Hom.add_fₑ_inr_apply, B.fₑinj.eq_iff] at h
       obtain ⟨e, he⟩ := e
-      rw [Set.mem_compl_iff, mem_range_inter_SubgraphOf2_fₑ] at he
+      rw [Set.mem_compl_iff, mem_range_inter_Emb2_fₑ] at he
       simp only [Set.mem_range, not_exists, Hom.add_fₑ_inr_apply] at he h
       exact he f h.symm
     | Sum.inr e, Sum.inr f =>
@@ -1403,7 +1408,7 @@ def inter_glue_Isom_union (A : G ⊆ᴳ I) (B : H ⊆ᴳ I) :
   fᵥsurj v := by
     obtain ⟨u, vw, rfl⟩ := v
     simp only [Subtype.mk.injEq, Sum.exists, Hom.add_fᵥ_inl_apply, Hom.add_fᵥ_inr_apply,
-      Subtype.exists, inter_SubgraphOf2_fᵥ, Set.mem_compl_iff, Set.mem_range, Function.comp_apply,
+      Subtype.exists, inter_Emb2_fᵥ, Set.mem_compl_iff, Set.mem_range, Function.comp_apply,
       Set.mem_inter_iff, not_exists, exists_prop]
     match vw with
     | Sum.inl v =>
@@ -1418,7 +1423,7 @@ def inter_glue_Isom_union (A : G ⊆ᴳ I) (B : H ⊆ᴳ I) :
   fₑsurj e := by
     obtain ⟨u, ew, rfl⟩ := e
     simp only [Subtype.mk.injEq, Sum.exists, Hom.add_fₑ_inl_apply, Hom.add_fₑ_inr_apply,
-      Subtype.exists, inter_SubgraphOf2_fₑ, Set.mem_compl_iff, Set.mem_range, Function.comp_apply,
+      Subtype.exists, inter_Emb2_fₑ, Set.mem_compl_iff, Set.mem_range, Function.comp_apply,
       Set.mem_inter_iff, not_exists, exists_prop]
     match ew with
     | Sum.inl e =>

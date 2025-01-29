@@ -1,5 +1,6 @@
 import Mathlib.Data.List.Sym
 import Mathlib.Data.List.DropRight
+import Batteries.Data.Nat.Basic
 
 
 namespace List
@@ -39,10 +40,25 @@ lemma rdropWhile_append_rtakeWhile (p : α → Bool) (l : List α) :
     rw [← reverse_append, List.reverse_eq_iff]
     apply List.takeWhile_append_dropWhile
 
-lemma Chain'.dropLast [DecidableEq α] {r : α → α → Prop} {l : List α} (h : Chain' r l) :
+lemma Chain'.dropLast {r : α → α → Prop} {l : List α} (h : Chain' r l) :
   Chain' r l.dropLast := by
   rw [List.dropLast_eq_take]
   exact take h (l.length - 1)
+
+lemma Chain'.rotate {r : α → α → Prop} {l : List α} (h : Chain' r l) (n : ℕ)
+    (h' : ∀ (x : α), x ∈ l.getLast? → ∀ (y : α), y ∈ l.head? → r x y) : Chain' r (l.rotate n) := by
+  rw [List.rotate_eq_drop_append_take_mod]
+  refine List.Chain'.append (drop h (n % l.length)) (take h (n % l.length)) ?_
+  rintro x hx y hy
+  refine h' x ?_ y ?_
+  · rw [List.getLast?_drop] at hx
+    split_ifs at hx with hlen
+    · simp only [Option.mem_def, reduceCtorEq] at hx
+    · assumption
+  · rw [List.head?_take] at hy
+    split_ifs at hy with hlen
+    · simp only [Option.mem_def, reduceCtorEq] at hy
+    · assumption
 
 def skip [DecidableEq α] (l : List α) : List α :=
 match l with
@@ -57,6 +73,7 @@ decreasing_by
 lemma skip_nil [DecidableEq α] : ([] : List α).skip = [] := by
   unfold skip
   rfl
+
 @[simp]
 lemma skip_ne_nil [DecidableEq α] {l : List α} : l.skip ≠ [] ↔ l ≠ [] := by
   rw [not_iff_not]
@@ -74,8 +91,8 @@ lemma skip_getLast? [DecidableEq α] {l : List α} : l.skip.getLast? = l.getLast
   induction l using Nat.strongRecMeasure with
   | f l => exact l.length
   | ind l ih => match l with
-    | [] => simp only [skip_nil, length_nil, Nat.zero_le]
-    | a :: as =>
+  | [] => simp only [skip_nil, length_nil, Nat.zero_le]
+  | a :: as =>
       simp only [length_cons, Nat.lt_add_one_iff, skip, getLast?_cons, Option.some.injEq] at ih ⊢
       rw [ih (as.rtakeWhile (· != a)) (as.rtakeWhile_length_le_length _)]; clear ih l
       by_cases h : as.rtakeWhile (· != a) = []
@@ -90,8 +107,8 @@ lemma skip_length_le [DecidableEq α] (l : List α) : (l.skip).length ≤ l.leng
   induction l using Nat.strongRecMeasure with
   | f l => exact l.length
   | ind l ih => match l with
-    | [] => simp only [skip_nil, length_nil, Nat.zero_le]
-    | a :: as =>
+  | [] => simp only [skip_nil, length_nil, Nat.zero_le]
+  | a :: as =>
       simp only [length_cons, Nat.lt_add_one_iff, skip, Nat.add_le_add_iff_right, ge_iff_le] at ih ⊢
       have := rtakeWhile_length_le_length (· != a) as
       refine (ih (as.rtakeWhile (· != a)) this).trans this
@@ -100,8 +117,8 @@ lemma skip_sublist [DecidableEq α] (l : List α) : l.skip <+ l := by
   induction l using Nat.strongRecMeasure with
   | f l => exact l.length
   | ind l ih => match l with
-    | [] => simp only [skip_nil, Sublist.refl]
-    | a :: as =>
+  | [] => simp only [skip_nil, Sublist.refl]
+  | a :: as =>
       simp only [length_cons, Nat.lt_add_one_iff, skip, cons_sublist_cons] at ih ⊢
       refine ih (as.rtakeWhile (· != a)) (as.rtakeWhile_length_le_length _) |>.trans ?_
       rw [List.rtakeWhile, ← List.sublist_reverse_iff]
@@ -111,8 +128,8 @@ lemma skip_nodup [DecidableEq α] (l : List α) : (l.skip).Nodup := by
   induction l using Nat.strongRecMeasure with
   | f l => exact l.length
   | ind l ih => match l with
-    | [] => simp only [skip_nil, nodup_nil]
-    | a :: as =>
+  | [] => simp only [skip_nil, nodup_nil]
+  | a :: as =>
       simp only [length_cons, Nat.lt_add_one_iff, skip, nodup_cons] at ih ⊢
       refine ⟨?_, ih (as.rtakeWhile (· != a)) (as.rtakeWhile_length_le_length _)⟩
       apply not_imp_not.mpr (as.rtakeWhile (· != a)).skip_sublist.mem
@@ -302,6 +319,13 @@ theorem getLast_tail_eq_getLast {l : List α} (h : l.tail ≠ []) :
   | a :: as =>
     rw [tail_cons] at h
     simp only [tail_cons, getLast_cons h]
+
+theorem mem_head?_eq_head : ∀ {l : List α} {x : α}, x ∈ l.head? →
+    ∃ (hx : l ≠ []), x = l.head hx
+| [], x, hx => by simp only [head?_nil, Option.mem_def, reduceCtorEq] at hx
+| a :: as, x, hx => by
+  have : a = x := by simpa using hx
+  simp only [this, head_cons, ne_eq, reduceCtorEq, not_false_eq_true, exists_const]
 
 theorem get_zero_eq_head_of_ne_nil {l : List α} (h : l ≠ []) :
     l.get ⟨ 0, length_pos_iff_ne_nil.mpr h ⟩ = l.head h := by

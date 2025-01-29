@@ -1,10 +1,32 @@
 import Kura.Connectivity.Tree
 import Mathlib.Data.Matroid.Dual
+import Matroid.Axioms.Circuit
 
 namespace Graph
 open edge
-variable {V W E F : Type*} [DecidableEq V] (G : Graph V E)
+variable {V W E F : Type*} [DecidableEq V] (G : Graph V E) [DecidableEq E]
 
+
+def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
+  E := Set.univ
+  Circuit C := ∃ (Cyc : G.Cycle), Cyc.edges.toFinset = C
+  empty_not_circuit := by
+    simp only [List.toFinset_eq_empty_iff, not_exists]
+    rintro Cyc
+    exact Cyc.eNonempty
+  circuit_antichain := by
+    simp only [IsAntichain, Set.Pairwise, Set.mem_setOf_eq, ne_eq, Pi.compl_apply, compl_iff_not,
+      forall_exists_index, forall_apply_eq_imp_iff]
+    rintro Cyc1 Cyc2 hne hsub
+    have hssub : Cyc1.edges.toFinset ⊂ Cyc2.edges.toFinset :=
+      HasSubset.Subset.ssubset_of_ne hsub hne
+    clear hsub hne
+    sorry
+  circuit_elimination C₁ C₂ e hC₁ hC₂ hne hmemInter := by
+    obtain ⟨Cyc₁, rfl⟩ := hC₁
+    obtain ⟨Cyc₂, rfl⟩ := hC₂
+    sorry
+  circuit_subset_ground _ _ _ _ := by trivial
 
 def IndepMatroidofFinitary [Undirected G] : IndepMatroid E := by
   refine IndepMatroid.ofFinitary Set.univ (fun A => G{A}ᴳ.acyclic) ?_ ?_ ?_ ?_ ?_
@@ -18,7 +40,7 @@ def IndepMatroidofFinitary [Undirected G] : IndepMatroid E := by
       -- acyclic_of_Es_acyclic_of_Es_subset
     simp_rw [Pi.le_def, not_forall, le_Prop_eq, _root_.not_imp] at this
     obtain ⟨v, w, (hvw : (G.Es B).conn v w), (hvw' : ¬ (G.Es A).conn v w)⟩ := this
-    obtain ⟨n, S, rfl, rfl⟩ := hvw.PathSubgraphOf
+    obtain ⟨n, S, rfl, rfl⟩ := hvw.PathEmb
     have : DecidablePred fun x => ¬ (G.Es A).conn (S.fᵥ 0) (S.fᵥ x) := Classical.decPred _
     let i := Fin.find (fun x => ¬ (G.Es A).conn (S.fᵥ 0) (S.fᵥ x)) |>.get (Fin.isSome_find_iff.mpr
       ⟨Fin.last n, hvw'⟩)
@@ -35,9 +57,9 @@ def IndepMatroidofFinitary [Undirected G] : IndepMatroid E := by
       contrapose! hspec
       apply Relation.ReflTransGen.tail hipredconn
       use ⟨S.fₑ iₑ, hspec⟩
-      rw [← (Es_spanningsubgraph G A).toSubgraphOf.canGo_iff, Es_spanningsubgraph_fᵥ, id_eq, id_eq,
+      rw [← (Es_spanningsubgraph G A).canGo_iff, Es_spanningsubgraph_fᵥ, id_eq, id_eq,
         Es_spanningsubgraph_fₑ]
-      refine (Es_spanningsubgraph G B).toSubgraphOf.canGo <| S.canGo ?_
+      refine (Es_spanningsubgraph G B).canGo <| S.canGo ?_
       convert PathGraph.canGo' iₑ
       exact (i.succ_pred hine0).symm
     use S.fₑ iₑ, (S.fₑ iₑ).prop, hinA
@@ -46,13 +68,13 @@ def IndepMatroidofFinitary [Undirected G] : IndepMatroid E := by
       simp only [Set.image_val_compl, Set.image_singleton, Set.mem_singleton_iff,
         Set.insert_diff_of_mem, Set.diff_singleton_eq_self hinA] : A = _)
     rw [← get_not_conn'_iff_acyclic_of_Es_singleton_compl_acyclic
-      (S'.symm.toSubgraphOf.acyclic hAacyc) (e := ⟨S.fₑ iₑ, Set.mem_insert (↑(S.fₑ iₑ)) A⟩)]
-    apply Function.mt (S'.symm.toSubgraphOf.conn' (s := G.get _))
+      (S'.symm.acyclic hAacyc) (e := ⟨S.fₑ iₑ, Set.mem_insert (↑(S.fₑ iₑ)) A⟩)]
+    apply Function.mt (S'.symm.conn' (s := G.get _))
     simp only [Es_of_Es_Es_symm_fᵥ, id_eq, Sym2.map_id', S']
-    let T := S.trans (Es_spanningsubgraph G _).toSubgraphOf
+    let T := S.trans (Es_spanningsubgraph G _).toEmb
     change ¬(G.Es A).conn' (G.get (T.fₑ iₑ))
     rw [Hom.get, PathGraph_get, Sym2.map_pair_eq]
-    simp only [SubgraphOf.trans_fᵥ, Es_spanningsubgraph_fᵥ, Function.comp_apply, id_eq, T]
+    simp only [Emb.trans_fᵥ, Es_spanningsubgraph_fᵥ, Function.comp_apply, id_eq, T]
     change ¬(G.Es A).conn' s(S.fᵥ ipred, S.fᵥ (i.pred _).succ)
     rw [Fin.succ_pred, conn'_pair]
     exact (hspec <| hipredconn.trans ·)
@@ -93,7 +115,7 @@ def IndepMatroidOfFintype [Fintype V] [Fintype E] [Undirected G] : IndepMatroid 
     use n
     refine ⟨?_⟩
     apply SubG.trans
-    apply (Es_spanningsubgraph_Es_of_subset _ hsu).toSubgraphOf
+    apply (Es_spanningsubgraph_Es_of_subset _ hsu).toEmb
   · rintro A B hAIndep hBIndep hAltB
     have hA := (G.Es A).n_eq_m_add_c_of_acyclic hAIndep
     have hB := (G.Es B).n_eq_m_add_c_of_acyclic hBIndep
@@ -107,7 +129,7 @@ def IndepMatroidOfFintype [Fintype V] [Fintype E] [Undirected G] : IndepMatroid 
     simp only [Setoid.le_def, not_forall, Classical.not_imp] at this; clear hBNCltANC
     obtain ⟨v, w, hvw, hvw'⟩ := this
     simp only [connSetoid] at hvw hvw'
-    obtain ⟨n, S, hSstart, hSfinish⟩ := hvw.PathSubgraphOf
+    obtain ⟨n, S, hSstart, hSfinish⟩ := hvw.PathEmb
     let i := Fin.find (fun x => ¬ (G.Es A).conn v (S.fᵥ x)) |>.get (Fin.isSome_find_iff.mpr
       ⟨Fin.last n, by rwa [hSfinish]⟩)
     have himem : i ∈ Fin.find (fun x => ¬ (G.Es A).conn v (S.fᵥ x)) := Option.get_mem _
@@ -130,11 +152,13 @@ def IndepMatroidOfFintype [Fintype V] [Fintype E] [Undirected G] : IndepMatroid 
     · contrapose! hspec
       apply Relation.ReflTransGen.tail hipredconn
       use ⟨S.fₑ iₑ, hspec⟩
-      rw [← (Es_spanningsubgraph G A).toSubgraphOf.canGo_iff, Es_spanningsubgraph_fᵥ, id_eq, id_eq,
+      rw [← (Es_spanningsubgraph G A).canGo_iff, Es_spanningsubgraph_fᵥ, id_eq, id_eq,
         Es_spanningsubgraph_fₑ]
-      exact (Es_spanningsubgraph G B).toSubgraphOf.canGo <| S.canGo this
+      exact (Es_spanningsubgraph G B).canGo <| S.canGo this
     · simp
       sorry
   · rintro A hAIndep
     simp only [Set.subset_univ]
   done
+
+-- #print axioms IndepMatroidOfFintype

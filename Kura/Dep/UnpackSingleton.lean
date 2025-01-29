@@ -32,9 +32,37 @@ def Sym.Sym'.unpackSingleton {α : Type u} (s : Sym.Sym' α 1) : α :=
 @[simp]
 lemma Sym.oneEquiv_symm_apply {α : Type u} (a : α) : Sym.oneEquiv.symm ⟨{a}, rfl⟩ = a := rfl
 
-lemma Sym.apply_oneEquiv_symm_comm {α : Type u} (s : Sym α 1) (f : α → β) :
-    f (Sym.oneEquiv.symm s) = Sym.oneEquiv.symm (s.map f) := by
-  sorry
+-- lemma Sym.apply_oneEquiv_symm_comm {α : Type u} (s : Sym α 1) (f : α → β) :
+--     f (Sym.oneEquiv.symm s) = Sym.oneEquiv.symm (s.map f) := by
+--   sorry
+
+def Sym2.ofIsDiag (s : Sym2 α) (hs : s.IsDiag) : α :=
+  Sym2.rec (motive := fun (s : Sym2 α) ↦ s.IsDiag → α) (fun p _hp ↦ p.1) (by
+  rintro p q h
+  ext hDiag
+  rw [rel_iff'] at h
+  obtain rfl | h := h
+  · rfl
+  · subst p
+    obtain ⟨q1, q2⟩ := q
+    simp only [isDiag_iff_proj_eq] at hDiag
+    subst q2
+    rfl) s hs
+
+@[simp]
+lemma Sym2.ofIsDiag_pair {a : α} : Sym2.ofIsDiag s(a, a) (by rfl) = a := rfl
+
+lemma Sym2.ofIsDiag_mem (s : Sym2 α) (hs : s.IsDiag) : Sym2.ofIsDiag s hs ∈ s := by
+  induction' s with a b
+  simp only [isDiag_iff_proj_eq] at hs
+  subst b
+  simp only [ofIsDiag_pair, mem_iff, or_self]
+
+lemma Sym2.eq_ofIsDiag (s : Sym2 α) (hs : s.IsDiag) : s = s(s.ofIsDiag hs, s.ofIsDiag hs) := by
+  induction' s with a b
+  simp only [isDiag_iff_proj_eq] at hs
+  subst b
+  rfl
 
 def Multiset.unpackSingleton {α : Type u} (s : Multiset α) (h : Multiset.card s = 1) : α :=
   Sym.oneEquiv.symm ⟨s, h⟩

@@ -120,46 +120,46 @@ def Set.rangeSplitting' {α β : Type*} [Fintype α] [DecidableEq β] (f : α �
       specialize h (Finset.mem_univ a)
       exact h ha)
 
-def Function.Embedding.rangeSplitting' {α β : Type*} [Fintype α] [DecidableEq β] (f : α ↪ β) :
-    Set.range f ↪ α where
-  toFun := Set.rangeSplitting' f
-  inj' := by
-    intro x y h
-    have : Set.rangeSplitting' f x ∈ Finset.univ.filter (fun a => f a = x) := by
-      simp only [Set.rangeSplitting', Finset.unpackSingleton, Multiset.unpackSingleton,
-        Finset.filter_val, Finset.mem_filter, Finset.mem_univ, true_and]
-      rw [Sym.apply_oneEquiv_symm_comm _ f]
-      simp only [Sym.map_mk]
-      sorry
-    rw [h] at this
-    simp at this
-    sorry
+-- def Function.Embedding.rangeSplitting' {α β : Type*} [Fintype α] [DecidableEq β] (f : α ↪ β) :
+--     Set.range f ↪ α where
+--   toFun := Set.rangeSplitting' f
+--   inj' := by
+--     intro x y h
+--     have : Set.rangeSplitting' f x ∈ Finset.univ.filter (fun a => f a = x) := by
+--       simp only [Set.rangeSplitting', Finset.unpackSingleton, Multiset.unpackSingleton,
+--         Finset.filter_val, Finset.mem_filter, Finset.mem_univ, true_and]
+--       rw [Sym.apply_oneEquiv_symm_comm _ f]
+--       simp only [Sym.map_mk]
+--       sorry
+--     rw [h] at this
+--     simp at this
+--     sorry
 
-@[simp]
-lemma Function.Embedding.rangeSplitting'_cancel {α β : Type*} [Fintype α] [DecidableEq β]
-    (f : α ↪ β) (x : Set.range f) : f (f.rangeSplitting' x) = x := by
-  unfold Function.Embedding.rangeSplitting' Set.rangeSplitting'
-  have := Finset.unpackSingleton_mem (Finset.univ.filter (fun a => f a = x)) (by
-    apply le_antisymm
-    · by_contra! h
-      rw [Finset.one_lt_card_iff] at h
-      obtain ⟨a, b, ha, hb, hab⟩ := h
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha hb
-      rw [← hb] at ha
-      exact hab $ f.inj' ha
-    · by_contra! h
-      simp only [Nat.lt_one_iff, Finset.card_eq_zero] at h
-      rw [Finset.filter_eq_empty_iff] at h
-      obtain ⟨b, hb⟩ := x
-      simp only [Set.mem_range] at hb
-      obtain ⟨a, ha⟩ := hb
-      specialize h (Finset.mem_univ a)
-      exact h ha)
-  simpa using this
+-- @[simp]
+-- lemma Function.Embedding.rangeSplitting'_cancel {α β : Type*} [Fintype α] [DecidableEq β]
+--     (f : α ↪ β) (x : Set.range f) : f (f.rangeSplitting' x) = x := by
+--   unfold Function.Embedding.rangeSplitting' Set.rangeSplitting'
+--   have := Finset.unpackSingleton_mem (Finset.univ.filter (fun a => f a = x)) (by
+--     apply le_antisymm
+--     · by_contra! h
+--       rw [Finset.one_lt_card_iff] at h
+--       obtain ⟨a, b, ha, hb, hab⟩ := h
+--       simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha hb
+--       rw [← hb] at ha
+--       exact hab $ f.inj' ha
+--     · by_contra! h
+--       simp only [Nat.lt_one_iff, Finset.card_eq_zero] at h
+--       rw [Finset.filter_eq_empty_iff] at h
+--       obtain ⟨b, hb⟩ := x
+--       simp only [Set.mem_range] at hb
+--       obtain ⟨a, ha⟩ := hb
+--       specialize h (Finset.mem_univ a)
+--       exact h ha)
+--   simpa using this
 
 
-@[simp]
-lemma Function.Embedding.rangeSplitting'_eq_rangeSplitting {α β : Type*} [Fintype α] [DecidableEq β]
-  (f : α ↪ β) (x : Set.range f) : f.rangeSplitting' x = f.rangeSplitting x := by
-  apply_fun f using f.inj'
-  simp only [rangeSplitting'_cancel, rangeSplitting_eq_val]
+-- @[simp]
+-- lemma Function.Embedding.rangeSplitting'_eq_rangeSplitting {α β : Type*} [Fintype α] [DecidableEq β]
+--   (f : α ↪ β) (x : Set.range f) : f.rangeSplitting' x = f.rangeSplitting x := by
+--   apply_fun f using f.inj'
+--   simp only [rangeSplitting'_cancel, rangeSplitting_eq_val]

@@ -30,7 +30,7 @@ lemma conn.trans {G : Graph V E} {u v w : V} : G.conn u v → G.conn v w → G.c
 lemma conn.ofAdj {G : Graph V E} {u v : V} (h : G.adj u v) : G.conn u v :=
     Relation.ReflTransGen.single h
 
-lemma SubgraphOf.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
+lemma Emb.conn {G : Graph V E} {H : Graph W F} (h : G ⊆ᴳ H) {u v : V} (huv : G.conn u v) :
     H.conn (h.fᵥ u) (h.fᵥ v) := by
   induction huv with
   | refl => exact conn.refl _ _
@@ -69,13 +69,13 @@ lemma conn.ofPath (P : G.Path) : G.conn P.start P.finish := by
     exact Walk.vertices_chain'_adj P.toWalk
   · simp only [← Walk.vertices_head_eq_start, List.head_cons_tail, Walk.vertices_getLast_eq_finish]
 
-lemma conn.OfPathSubgraphOf {u v : V} {n : ℕ} (S : (PathGraph n) ⊆ᴳ G) (hSstart : S.fᵥ 0 = u)
+lemma conn.OfPathEmb {u v : V} {n : ℕ} (S : (PathGraph n) ⊆ᴳ G) (hSstart : S.fᵥ 0 = u)
     (hSfinish : S.fᵥ n = v) : G.conn u v := by
   have h := PathGraph_conn_0 n n
   rw [← hSstart, ← hSfinish]
   exact S.conn h
 
-lemma conn.PathSubgraphOf [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (S : (PathGraph n) ⊆ᴳ G),
+lemma conn.PathEmb [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (S : (PathGraph n) ⊆ᴳ G),
     S.fᵥ 0 = u ∧ S.fᵥ (Fin.last n) = v := by
   unfold conn at huv
   induction huv with
@@ -89,10 +89,13 @@ lemma conn.PathSubgraphOf [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n :
     by_cases hb : ∃ i, S.fᵥ i = b
     · obtain ⟨⟨i, hi⟩, rfl⟩ := hb
       use i
-      use (PathGraph_SubgraphOf_Pathgraph (by omega : i + 0 ≤ n)).trans S
+      use (PathGraph_Emb_Pathgraph (by omega : i + 0 ≤ n)).trans S
       constructor
-      · simp [hSstart]
-      · simp [hSfinish, S.fᵥinj.eq_iff]
+      · simp only [Emb.trans_fᵥ, Function.comp_apply, PathGraph_Emb_Pathgraph_fᵥapply,
+        Nat.add_zero, Fin.addNatEmb_apply, Fin.addNat_zero, Fin.castLE_zero, hSstart]
+      · simp only [Emb.trans_fᵥ, Function.comp_apply, PathGraph_Emb_Pathgraph_fᵥapply,
+        Nat.add_zero, Fin.addNatEmb_apply, Fin.addNat_zero, S.fᵥinj.eq_iff, Fin.ext_iff',
+        Fin.coe_castLE, Fin.val_last]
 
     simp at hb
     obtain ⟨e, he⟩ := hadj
@@ -103,8 +106,8 @@ lemma conn.PathSubgraphOf [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n :
     use n + 1
     use (?_ : _ ⊆ᴳ G).Isom (PathGraph_glue_PathGraph_eq_PathGraph n 1) (Isom.refl _)
     rotate_left
-    apply glue_SubgraphOf_of_SubgraphOf ((PathGraph n).EdgelessGraph_SubgraphOf _)
-      ((PathGraph 1).EdgelessGraph_SubgraphOf _) S T ?_ ?_ ?_ ?_
+    apply glue_Emb_of_Emb ((PathGraph n).EdgelessGraph_Emb _)
+      ((PathGraph 1).EdgelessGraph_Emb _) S T ?_ ?_ ?_ ?_
     · ext u
       simp [← hSfinish]
     · ext e
@@ -125,7 +128,7 @@ lemma conn.PathSubgraphOf [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n :
         simp
     · ext f
       simp only [Set.range_const, Set.mem_inter_iff, Set.mem_range, Set.mem_singleton_iff,
-        EdgelessGraph_SubgraphOf_fₑ, Function.comp_apply, IsEmpty.exists_iff, iff_false, not_and,
+        EdgelessGraph_Emb_fₑ, Function.comp_apply, IsEmpty.exists_iff, iff_false, not_and,
         forall_exists_index]
       rintro i rfl rfl
       have := (S.canGo_iff i.castSucc i i.succ).mpr (PathGraph.canGo' i)
@@ -156,7 +159,7 @@ lemma conn'_mk {G : Graph V E} [Undirected G] {p : V × V} :
   change G.conn' (s(p.1, p.2)) ↔ G.conn p.1 p.2
   exact conn'_pair
 
-lemma SubgraphOf.conn' {G : Graph V E} [Undirected G] {H : Graph W F} [Undirected H] (h : G ⊆ᴳ H)
+lemma Emb.conn' {G : Graph V E} [Undirected G] {H : Graph W F} [Undirected H] (h : G ⊆ᴳ H)
     {s : Sym2 V} : G.conn' s → H.conn' (s.map h.fᵥ) := Sym2.rec
   (motive := fun s ↦ G.conn' s → H.conn' (s.map h.fᵥ))
   (by
@@ -192,8 +195,8 @@ lemma not_connected : ¬ G.connected ↔ ∃ u v, ¬ G.conn u v := by
   · rintro ⟨u, v, h⟩ h'
     exact h (h'.all_conn u v)
 
-lemma instSpanningSubgraphOfConnected {G : Graph V E} {H : Graph W F} [G.connected]
-  (h : G.SpanningSubgraphOf H) : H.connected where
+lemma instSpanningEmbConnected {G : Graph V E} {H : Graph W F} [G.connected]
+  (h : G.SpanningEmb H) : H.connected where
   all_conn u v := by
     have : G.conn (h.fᵥEquiv.symm u) (h.fᵥEquiv.symm v) := G.all_conn _ _
     convert h.conn this <;>
@@ -294,7 +297,7 @@ lemma Es_subgraph_conn_eq_conn_iff {G : Graph V E} [Undirected G] {S : Set E}
   (hS : ∀ e ∉ S, G{S}ᴳ.conn (G.v1 e) (G.v2 e)) (u v : V) :
     G{S}ᴳ.conn u v ↔ G.conn u v := by
   let G' := G{S}ᴳ
-  let hSubgraph : G' ⊆ᴳ G := (Es_spanningsubgraph G S).toSubgraphOf
+  let hSubgraph : G' ⊆ᴳ G := (Es_spanningsubgraph G S).toEmb
   have := hSubgraph.Undirected'
   have hadj : G'.adj ≤ G.adj := fun _ _ => hSubgraph.adj
   have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
@@ -415,8 +418,8 @@ lemma edgeCut_upward_closed {S T : Set E} (hST : S ⊆ T) (hCut : G.edgeCut S) :
   obtain ⟨P', hP'start, hP'finish⟩ : ∃ P' : (G.Es Sᶜ).Path, P'.start = u ∧ P'.finish = v := by
     have hSTset : (T : Set E)ᶜ ⊆ (↑S)ᶜ := Set.compl_subset_compl_of_subset hST
     use (G.Es_spanningsubgraph_Es_of_subset hSTset).Path P
-    simp only [Es_spanningsubgraph_Es_of_subset, SubgraphOf.Path_start, hPstart, id_eq,
-      SubgraphOf.Path_finish, hPfinish, and_self]
+    simp only [Es_spanningsubgraph_Es_of_subset, Emb.Path_start, hPstart, id_eq,
+      Emb.Path_finish, hPfinish, and_self]
   rw [← hP'start, ← hP'finish]
   exact conn.ofPath P'
 

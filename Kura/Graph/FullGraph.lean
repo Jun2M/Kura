@@ -91,4 +91,8 @@ lemma adj_v12 [DecidableEq V] : G.adj (G.v1 e) (G.v2 e) := by
   use e
   exact canGo_v1_v2 G e
 
+lemma v1_mem : v1 G e ∈ G.inc e := (G.inc e).v1_mem (G.all_full e)
+
+lemma v2_mem : v2 G e ∈ G.inc e := (G.inc e).v2_mem (G.all_full e)
+
 end Graph

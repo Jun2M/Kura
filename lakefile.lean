@@ -9,6 +9,7 @@ package "Kura" where
   -- add any additional package configuration options here
 
 require "leanprover-community" / "mathlib"
+require "apnelson1" / "Matroid"
 
 @[default_target]
 lean_lib «Kura» where

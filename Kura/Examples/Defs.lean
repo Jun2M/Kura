@@ -23,7 +23,7 @@ instance instEdgelessGraphSimple : Simple (EdgelessGraph V) where
   edge_symm e := e.elim
   inc_inj e := e.elim
 
-def EdgelessGraph_SubgraphOf (fᵥ : W ↪ V) : EdgelessGraph W ⊆ᴳ G where
+def EdgelessGraph_Emb (fᵥ : W ↪ V) : EdgelessGraph W ⊆ᴳ G where
   fᵥ := fᵥ
   fₑ := Empty.elim
   inc := (Empty.elim ·)
@@ -31,10 +31,10 @@ def EdgelessGraph_SubgraphOf (fᵥ : W ↪ V) : EdgelessGraph W ⊆ᴳ G where
   fₑinj := (Empty.elim ·)
 
 @[simp]
-lemma EdgelessGraph_SubgraphOf_fᵥ {fᵥ : W ↪ V} : (EdgelessGraph_SubgraphOf G fᵥ).fᵥ = fᵥ := rfl
+lemma EdgelessGraph_Emb_fᵥ {fᵥ : W ↪ V} : (EdgelessGraph_Emb G fᵥ).fᵥ = fᵥ := rfl
 
 @[simp]
-lemma EdgelessGraph_SubgraphOf_fₑ {fᵥ : W ↪ V} : (EdgelessGraph_SubgraphOf G fᵥ).fₑ = Empty.elim :=
+lemma EdgelessGraph_Emb_fₑ {fᵥ : W ↪ V} : (EdgelessGraph_Emb G fᵥ).fₑ = Empty.elim :=
   rfl
 
 -- def CompleteGraph (n : ℕ) : Graph (Fin n) (Fin (n.choose 2)) where
@@ -144,8 +144,8 @@ lemma PathGraph_get {n : ℕ} (e : Fin n) : (PathGraph n).get e = s(e.castSucc, 
   unfold PathGraph
   simp only [get, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, undir.injEq, Classical.choose_eq']
 
-def PathGraph_SubgraphOf_Pathgraph {n m k : ℕ} (hnm : n + k ≤ m) :
-    (PathGraph n).SubgraphOf (PathGraph m) where
+def PathGraph_Emb_Pathgraph {n m k : ℕ} (hnm : n + k ≤ m) :
+    (PathGraph n).Emb (PathGraph m) where
   fᵥ v := (v.addNatEmb k).castLE (by omega)
   fₑ e := (e.addNatEmb k).castLE (by omega)
   inc e := by
@@ -163,26 +163,26 @@ def PathGraph_SubgraphOf_Pathgraph {n m k : ℕ} (hnm : n + k ≤ m) :
     exact Function.Embedding.injective _ h
 
 @[simp]
-lemma PathGraph_SubgraphOf_Pathgraph_fᵥapply {n m k : ℕ} (hnm : n + k ≤ m) (v : Fin (n+1)) :
-    (PathGraph_SubgraphOf_Pathgraph hnm).fᵥ v = (v.addNatEmb k).castLE (by omega) := by rfl
+lemma PathGraph_Emb_Pathgraph_fᵥapply {n m k : ℕ} (hnm : n + k ≤ m) (v : Fin (n+1)) :
+    (PathGraph_Emb_Pathgraph hnm).fᵥ v = (v.addNatEmb k).castLE (by omega) := by rfl
 
 @[simp]
-lemma PathGraph_SubgraphOf_Pathgraph_fₑapply {n m k : ℕ} (hnm : n + k ≤ m) (e : Fin n) :
-    (PathGraph_SubgraphOf_Pathgraph hnm).fₑ e = (e.addNatEmb k).castLE (by omega) := by rfl
+lemma PathGraph_Emb_Pathgraph_fₑapply {n m k : ℕ} (hnm : n + k ≤ m) (e : Fin n) :
+    (PathGraph_Emb_Pathgraph hnm).fₑ e = (e.addNatEmb k).castLE (by omega) := by rfl
 
 @[simp]
-lemma PathGraph_SubgraphOf_Pathgraph_start {n m k : ℕ} (hnm : n + k ≤ m) :
-    (PathGraph_SubgraphOf_Pathgraph hnm).fᵥ 0 = k := by
-  simp only [PathGraph_SubgraphOf_Pathgraph_fᵥapply, Fin.addNatEmb_apply]
+lemma PathGraph_Emb_Pathgraph_start {n m k : ℕ} (hnm : n + k ≤ m) :
+    (PathGraph_Emb_Pathgraph hnm).fᵥ 0 = k := by
+  simp only [PathGraph_Emb_Pathgraph_fᵥapply, Fin.addNatEmb_apply]
   ext
   simp only [Fin.coe_castLE, Fin.coe_addNat, Fin.val_zero, zero_add, Fin.val_natCast]
   refine (Nat.mod_eq_of_lt ?_).symm
   omega
 
 @[simp]
-lemma PathGraph_SubgraphOf_Pathgraph_end {n m k : ℕ} (hnm : n + k ≤ m) :
-    (PathGraph_SubgraphOf_Pathgraph hnm).fᵥ n = ↑(n + k) := by
-  simp only [PathGraph_SubgraphOf_Pathgraph_fᵥapply, Fin.addNatEmb_apply]
+lemma PathGraph_Emb_Pathgraph_end {n m k : ℕ} (hnm : n + k ≤ m) :
+    (PathGraph_Emb_Pathgraph hnm).fᵥ n = ↑(n + k) := by
+  simp only [PathGraph_Emb_Pathgraph_fᵥapply, Fin.addNatEmb_apply]
   ext
   rw [Fin.val_natCast]
   simp only [Fin.natCast_eq_last, Fin.addNat_last, Fin.coe_castLE, Fin.coe_cast, Fin.val_last]
@@ -190,9 +190,9 @@ lemma PathGraph_SubgraphOf_Pathgraph_end {n m k : ℕ} (hnm : n + k ≤ m) :
   omega
 
 def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
-    (EdgelessGraph_SubgraphOf (PathGraph n)
+    (EdgelessGraph_Emb (PathGraph n)
       ⟨(fun _ => Fin.last n : Fin 1 → Fin (n+1)), Function.injective_of_subsingleton _⟩).glue
-    (EdgelessGraph_SubgraphOf (PathGraph m)
+    (EdgelessGraph_Emb (PathGraph m)
       ⟨(fun _ => 0 : Fin 1 → Fin (m+1)), Function.injective_of_subsingleton _⟩) ≃ᴳ
     PathGraph (n + m) where
   fᵥ v := match v with
@@ -202,9 +202,9 @@ def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
     | Sum.inl e => e.castLE (by omega)
     | Sum.inr e => e.val.natAdd n
   inc e := match e with
-    | Sum.inl e => by simp [SubgraphOf.glue, PathGraph]
+    | Sum.inl e => by simp [Emb.glue, PathGraph]
     | Sum.inr ⟨⟨e, he⟩, hemem⟩ => by
-      cases e <;> simp [SubgraphOf.glue, PathGraph]
+      cases e <;> simp [Emb.glue, PathGraph]
       omega
   fᵥinj v w h := by
     match v, w with
@@ -213,7 +213,7 @@ def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
       exact congrArg Sum.inl h
     | Sum.inl ⟨v, hv⟩, Sum.inr ⟨⟨w, hw⟩, hwmem⟩ =>
       exfalso
-      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_SubgraphOf_fᵥ,
+      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_Emb_fᵥ,
         Function.Embedding.coeFn_mk, Set.range_const, Set.mem_compl_iff, Set.mem_singleton_iff,
         Fin.val_zero] at h hwmem
       omega
@@ -222,7 +222,7 @@ def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
       simp [← Fin.val_inj] at h hwmem
       omega
     | Sum.inr v, Sum.inr w =>
-      simp only [EdgelessGraph_SubgraphOf_fᵥ, Function.Embedding.coeFn_mk, Fin.natAdd_inj] at h
+      simp only [EdgelessGraph_Emb_fᵥ, Function.Embedding.coeFn_mk, Fin.natAdd_inj] at h
       rw [Sum.inr.injEq]
       exact SetCoe.ext h
   fₑinj e₁ e₂ h := by
@@ -233,18 +233,18 @@ def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
       exact congrArg Sum.inl h
     | Sum.inl ⟨e₁, he₁⟩, Sum.inr ⟨⟨e₂, he₂⟩, he₂mem⟩ =>
       exfalso
-      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_SubgraphOf_fₑ,
+      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_Emb_fₑ,
         Function.Embedding.coeFn_mk, Set.range_const, Set.mem_compl_iff, Set.mem_singleton_iff,
         Fin.val_zero] at h he₂mem
       omega
     | Sum.inr ⟨⟨e₁, he₁⟩, he₁mem⟩, Sum.inl ⟨e₂, he₂⟩ =>
       exfalso
-      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_SubgraphOf_fₑ,
+      simp only [Fin.castLE_mk, Fin.natAdd_mk, ← Fin.val_inj, EdgelessGraph_Emb_fₑ,
         Function.Embedding.coeFn_mk, Set.range_const, Set.mem_compl_iff, Set.mem_singleton_iff,
         Fin.val_zero] at h he₁mem
       omega
     | Sum.inr v, Sum.inr w =>
-      simp only [EdgelessGraph_SubgraphOf_fₑ, Function.Embedding.coeFn_mk, Fin.natAdd_inj] at h
+      simp only [EdgelessGraph_Emb_fₑ, Function.Embedding.coeFn_mk, Fin.natAdd_inj] at h
       rw [Sum.inr.injEq]
       exact SetCoe.ext h
   fᵥsurj v := by
@@ -267,7 +267,7 @@ def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
         omega
   fₑsurj e := by
     obtain ⟨e, he⟩ := e
-    simp only [EdgelessGraph_SubgraphOf_fₑ, Fin.ext_iff', Sum.exists, Fin.coe_castLE,
+    simp only [EdgelessGraph_Emb_fₑ, Fin.ext_iff', Sum.exists, Fin.coe_castLE,
       Fin.coe_natAdd, Subtype.exists, Set.mem_compl_iff, Set.mem_range, IsEmpty.exists_iff,
       not_false_eq_true, exists_const]
     by_cases h : e < n
@@ -296,7 +296,7 @@ lemma PathGraph_glue_PathGraph_eq_PathGraph_symm_fᵥ (n m : ℕ) :
       omega⟩) := by
   ext v
   apply_fun (PathGraph_glue_PathGraph_eq_PathGraph n m).fᵥ using (PathGraph_glue_PathGraph_eq_PathGraph n m).fᵥinj
-  simp [EdgelessGraph_SubgraphOf_fᵥ, Function.Embedding.coeFn_mk, EdgelessGraph_SubgraphOf_fₑ,
+  simp [EdgelessGraph_Emb_fᵥ, Function.Embedding.coeFn_mk, EdgelessGraph_Emb_fₑ,
     Isom.fᵥ_symm_fᵥ, PathGraph_glue_PathGraph_eq_PathGraph_fᵥ, Fin.ext_iff']
   split
   · rename_i x y h
@@ -333,7 +333,7 @@ lemma CycleGraph_isLoop_iff (n : ℕ+) : (CycleGraph n).isLoop 0 ↔ n = 1 := by
   simp only [zero_add, Sym2.isDiag_iff_proj_eq, Fin.ext_iff', Fin.val_zero, Fin.val_one',
     Nat.Nat.zero_eq_one_mod_iff, PNat.coe_eq_one_iff]
 
-def CycleGraph_SubgraphOf_of_isLoop (e : E) (h : G.inc e = undir s(i, i)) : CycleGraph 1 ⊆ᴳ G where
+def CycleGraph_Emb_of_isLoop (e : E) (h : G.inc e = undir s(i, i)) : CycleGraph 1 ⊆ᴳ G where
   fᵥ := fun _ => i
   fₑ := fun _ => e
   inc e := by
@@ -341,7 +341,7 @@ def CycleGraph_SubgraphOf_of_isLoop (e : E) (h : G.inc e = undir s(i, i)) : Cycl
   fᵥinj _ _ _ := Subsingleton.elim _ _ (h := Fin.subsingleton_one)
   fₑinj _ _ _ := Subsingleton.elim _ _ (h := Fin.subsingleton_one)
 
-def CycleGraph_SubgraphOf_of_parallel {e f : E} (henef : e ≠ f) (u v : V) (hunev : u ≠ v)
+def CycleGraph_Emb_of_parallel {e f : E} (henef : e ≠ f) (u v : V) (hunev : u ≠ v)
     (h : G.inc e = G.inc f) (huv : G.inc e = undir s(u, v)) : CycleGraph 2 ⊆ᴳ G where
   fᵥ i := if i = 0 then u else v
   fₑ i := if i = 0 then e else f

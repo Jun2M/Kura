@@ -274,6 +274,10 @@ lemma all_iff (s : Sym2 α) (P : α → Prop) : s.all P ↔ (∀ a ∈ s, P a) :
 @[simp]
 lemma equivMultiset_eq (a b : α) : (Sym2.equivMultiset α) s(a, b) = ⟨{a, b}, by simp⟩ := rfl
 
+lemma eq_of_mem_isDiag {s : Sym2 α} {a b : α} (ha : a ∈ s) (hb : b ∈ s) (h : s.IsDiag) : a = b := by
+  induction' s with x y
+  simp_all only [mem_iff, isDiag_iff_proj_eq, or_self]
+
 @[simp 10]
 lemma isDiag_iff_out_fst_eq_out_snd (s : Sym2 α) :
     s.IsDiag ↔ s.out.1 = s.out.2 := by

@@ -25,7 +25,7 @@ def Vmap (G₁ : Graph V₁ E₁) (f : V₁ → V₂) : Graph V₂ E₁ where
 
 def addVertex (G₁ : Graph V₁ E₁) : Graph (WithBot V₁) E₁ := G₁.Vmap some
 
-def addVertex_SubgraphOf (G₁ : Graph V₁ E₁) : G₁ ⊆ᴳ G₁.addVertex where
+def addVertex_Emb (G₁ : Graph V₁ E₁) : G₁ ⊆ᴳ G₁.addVertex where
   fᵥ := some
   fₑ := id
   inc _ := rfl
@@ -42,8 +42,8 @@ def addUndirEdge (G₁ : Graph V₁ E₁) (s : Sym2 V₁) : Graph V₁ (E₁ ⊕
     | Sum.inl e₁ => G₁.inc e₁
     | Sum.inr _ => undir s
 
-def addUndirEdge_SpanningSubgraphOf (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
-    G₁.SpanningSubgraphOf (G₁.addUndirEdge s) where
+def addUndirEdge_SpanningEmb (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
+    G₁.SpanningEmb (G₁.addUndirEdge s) where
   fᵥ := id
   fₑ := Sum.inl
   inc _ := by aesop
@@ -60,12 +60,12 @@ lemma addUndirEdge_inc_inr (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
   (G₁.addUndirEdge s).inc (Sum.inr ()) = undir s := rfl
 
 @[simp]
-lemma addUndirEdge_SpanningSubgraphOf_fᵥ (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
-    (G₁.addUndirEdge_SpanningSubgraphOf s).fᵥ = id := rfl
+lemma addUndirEdge_SpanningEmb_fᵥ (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
+    (G₁.addUndirEdge_SpanningEmb s).fᵥ = id := rfl
 
 @[simp]
-lemma addUndirEdge_SpanningSubgraphOf_fₑ (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
-    (G₁.addUndirEdge_SpanningSubgraphOf s).fₑ = Sum.inl := rfl
+lemma addUndirEdge_SpanningEmb_fₑ (G₁ : Graph V₁ E₁) (s : Sym2 V₁) :
+    (G₁.addUndirEdge_SpanningEmb s).fₑ = Sum.inl := rfl
 
 def Hom.addUndirEdge (s : Sym2 V₁) (A : Hom G₁ G₂) {e : E₂} (he : G₂.inc e = (undir s).map A.fᵥ) :
     Hom (G₁.addUndirEdge s) G₂ where
@@ -87,7 +87,7 @@ lemma Hom.addUndirEdge_fₑ (s : Sym2 V₁) (A : Hom G₁ G₂) {e : E₂}
     | Sum.inl e' => A.fₑ e'
     | Sum.inr _ => e := rfl
 
-def SubgraphOf.addUndirEdge (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (heinj : e ∉ Set.range A.fₑ)
+def Emb.addUndirEdge (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (heinj : e ∉ Set.range A.fₑ)
     (he : G₂.inc e = (undir s).map A.fᵥ) : G₁.addUndirEdge s ⊆ᴳ G₂ where
   toHom := A.toHom.addUndirEdge s he
   fᵥinj := A.fᵥinj
@@ -102,16 +102,16 @@ def SubgraphOf.addUndirEdge (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (h
     | Sum.inr _, Sum.inr _ => simp only
 
 @[simp]
-lemma SubgraphOf.addUndirEdge_fₑ_inl (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (e' : E₁)
+lemma Emb.addUndirEdge_fₑ_inl (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (e' : E₁)
     (heinj : e ∉ Set.range A.fₑ) (he : G₂.inc e = (undir s).map A.fᵥ) :
     (A.addUndirEdge s heinj he).fₑ (Sum.inl e') = A.fₑ e' := by
   simp only [addUndirEdge, Hom.addUndirEdge_fₑ]
 
 @[simp]
-lemma SubgraphOf.addUndirEdge_fₑ_inr (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (heinj : e ∉ Set.range A.fₑ)
+lemma Emb.addUndirEdge_fₑ_inr (s : Sym2 V₁) (A : G₁ ⊆ᴳ G₂) {e : E₂} (heinj : e ∉ Set.range A.fₑ)
     (he : G₂.inc e = (undir s).map A.fᵥ) : (A.addUndirEdge s heinj he).fₑ (Sum.inr ()) = e := rfl
 
-def addUndirEdge_SubgraphOf_iff (s : Sym2 V₁) (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) {e : E₂} :
+def addUndirEdge_Emb_iff (s : Sym2 V₁) (G₁ : Graph V₁ E₁) (G₂ : Graph V₂ E₂) {e : E₂} :
     (∃ (A : G₁.addUndirEdge s ⊆ᴳ G₂), A.fₑ (Sum.inr ()) = e) ↔ ∃ (A : G₁ ⊆ᴳ G₂), e ∉ Set.range A.fₑ ∧ G₂.inc e = (undir s).map A.fᵥ := by
   constructor
   · rintro ⟨A, rfl⟩
@@ -129,7 +129,7 @@ def addUndirEdge_SubgraphOf_iff (s : Sym2 V₁) (G₁ : Graph V₁ E₁) (G₂ :
     · simp [A.inc]
   · rintro ⟨A, hinj, he⟩
     refine ⟨A.addUndirEdge s hinj he, ?_⟩
-    simp only [SubgraphOf.addUndirEdge_fₑ_inr]
+    simp only [Emb.addUndirEdge_fₑ_inr]
 
 instance instAddUndirEdgeUndirected [Undirected G₁] (s : Sym2 V₁) :
     Undirected (G₁.addUndirEdge s) where
@@ -145,7 +145,7 @@ def addApex (vs : Set V₁) : Graph (V₁ ⊕ Unit) (E₁ ⊕ vs) where
     | Sum.inl e₁ => (G₁.inc e₁).map Sum.inl
     | Sum.inr v => undir s(Sum.inr (), Sum.inl v.val)
 
-def addApex_SubgraphOf (vs : Set V₁) : G₁ ⊆ᴳ G₁.addApex vs where
+def addApex_Emb (vs : Set V₁) : G₁ ⊆ᴳ G₁.addApex vs where
   fᵥ := Sum.inl
   fₑ := Sum.inl
   inc _ := rfl
@@ -153,10 +153,10 @@ def addApex_SubgraphOf (vs : Set V₁) : G₁ ⊆ᴳ G₁.addApex vs where
   fₑinj _ _ a := Sum.inl_injective a
 
 @[simp]
-lemma addApex_SubgraphOf_fᵥ (vs : Set V₁) : (G₁.addApex_SubgraphOf vs).fᵥ = Sum.inl := rfl
+lemma addApex_Emb_fᵥ (vs : Set V₁) : (G₁.addApex_Emb vs).fᵥ = Sum.inl := rfl
 
 @[simp]
-lemma addApex_SubgraphOf_fₑ (vs : Set V₁) : (G₁.addApex_SubgraphOf vs).fₑ = Sum.inl := rfl
+lemma addApex_Emb_fₑ (vs : Set V₁) : (G₁.addApex_Emb vs).fₑ = Sum.inl := rfl
 
 instance instAddApexUndir [Undirected G₁] {vs : Set V₁} :
     Undirected (G₁.addApex vs) where

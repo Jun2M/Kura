@@ -50,6 +50,20 @@ variable {V W E F : Type*} {G : Graph V E} [Undirected G] {H : Graph W F} [Undir
 -- lemma mem_finishAt_iff_mem_get : v ∈ G.finishAt e ↔ v ∈ G.get e := by
 --   simp only [finishAt, inc_eq_undir_get, mem_finishAt_undir]
 
+def ofIsLoop {e : E} (he : G.isLoop e) : V := (G.inc e).ofIsLoop he
+
+omit [Undirected G] in
+lemma ofIsLoop_mem (he : G.isLoop e) : G.ofIsLoop he ∈ G.inc e := (G.inc e).ofIsLoop_mem he
+
+lemma inc_eq_ofIsLoop (he : G.isLoop e) : G.inc e = undir s(G.ofIsLoop he, G.ofIsLoop he) :=
+  edge.eq_ofIsLoop_of_undir he (G.edge_symm e)
+
+@[simp]
+lemma v1_eq_ofIsLoop (he : G.isLoop e) : G.v1 e = G.ofIsLoop he := edge.v1_eq_ofIsLoop he
+
+@[simp]
+lemma v2_eq_ofIsLoop (he : G.isLoop e) : G.v2 e = G.ofIsLoop he := edge.v2_eq_ofIsLoop he
+
 noncomputable def get : Sym2 V := (exist_of_isUndir (G.edge_symm e)).choose
 
 @[simp high]
@@ -118,7 +132,7 @@ lemma adj_comm [DecidableEq V] : G.adj u v ↔ G.adj v u := by
   simp only [adj, canGo_symm]
 
 omit [Undirected H] in
-lemma SubgraphOf.Undirected' (hGH : H ⊆ᴳ G) : Undirected H where
+lemma Emb.Undirected' (hGH : H ⊆ᴳ G) : Undirected H where
   all_full e := by
     unfold isFull
     rw [← map_isFull_iff, ← hGH.inc e]
@@ -128,14 +142,14 @@ lemma SubgraphOf.Undirected' (hGH : H ⊆ᴳ G) : Undirected H where
     rw [← map_isUndir_iff, ← hGH.inc e]
     exact edge_symm G _
 
-lemma SubgraphOf_v12 (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H.v2 (A.fₑ e) =
+lemma Emb_v12 (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H.v2 (A.fₑ e) =
     A.fᵥ (G.v2 e) ∨ H.v1 (A.fₑ e) = A.fᵥ (G.v2 e) ∧ H.v2 (A.fₑ e) = A.fᵥ (G.v1 e) := by
   have := A.inc e
   simp only [inc_eq_undir_v12, map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff',
     Prod.mk.injEq, Prod.swap_prod_mk] at this
   exact this
 
--- lemma SubgraphOf_v12' (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H.v2 (A.fₑ e) =
+-- lemma Emb_v12' (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H.v2 (A.fₑ e) =
 --     A.fᵥ (G.v2 e) ∨ H.v1 (A.fₑ e) = A.fᵥ (G.v2 e) ∧ H.v2 (A.fₑ e) = A.fᵥ (G.v1 e) := by
 --   have := A.inc e
 --   simp [-inc_eq_undir_v12, map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff',
