@@ -357,6 +357,123 @@ lemma sym2_notDiag_length [DecidableEq α] {l : List α} (h : l.Nodup) :
     (l.sym2.filter (¬·.IsDiag)).length = l.length.choose 2 := by
   sorry
 
+
+-- Given an infix `ll` of `l`, split `l` into three parts: the prefix of `ll`, `ll`, and the suffix of `ll`.
+def splitByInfix.loop [DecidableEq α] (l ll p : List α) (hl : ll <:+: l) : List α × List α × List α :=
+match l with
+| [] => (p.reverse, [], [])
+| a :: l => if h : ll = (a :: l).take ll.length
+  then (p.reverse, ll, (a :: l).drop ll.length)
+  else (splitByInfix.loop l ll (a :: p) (by
+    rw [← List.prefix_iff_eq_take] at h
+    simpa only [infix_cons_iff, h, false_or] using hl))
+
+-- Given an infix `ll` of `l`, split `l` into three parts: the prefix of `ll`, `ll`, and the suffix of `ll`.
+def splitByInfix [DecidableEq α] (l ll : List α) (hl : ll <:+: l) : List α × List α × List α :=
+  splitByInfix.loop l ll [] hl
+
+lemma splitByInfix.loop_nil [DecidableEq α] {l p : List α} (hl : [] <:+: l) :
+    let (p', ll', l') := splitByInfix.loop l [] p hl
+    p' = p.reverse ∧ ll' = [] ∧ l' = l := by
+  match l with
+  | [] => simp only [loop, and_self]
+  | a :: l => simp only [loop, length_nil, take_zero, ↓reduceDIte, drop_zero, and_self]
+
+lemma splitByInfix.loop_append [DecidableEq α] {l ll p : List α} (hl : ll <:+: l) :
+    let (p', ll', l') := splitByInfix.loop l ll p hl
+    p' ++ ll' ++ l' = p.reverse ++ l := by
+  induction l generalizing p with
+  | nil =>
+    rw [infix_nil] at hl
+    subst ll
+    simp only [loop, append_nil]
+  | cons a l ih =>
+    by_cases h : ll = (a :: l).take ll.length
+    · simp [splitByInfix.loop, ← h, eq_self_iff_true, if_true]
+      conv_rhs => rw [← (a :: l).take_append_drop ll.length]
+      rw [← h, append_right_inj]
+    · simp only [loop, h, ↓reduceDIte, append_assoc]
+      simp only [append_assoc] at ih
+      rw [← List.prefix_iff_eq_take] at h
+      simp only [infix_cons_iff, h, false_or] at hl
+      rw [ih (p := a :: p) hl]
+      simp only [reverse_cons, append_assoc, singleton_append]
+
+lemma splitByInfix_nil [DecidableEq α] {l : List α} (hl : [] <:+: l) :
+    let (A, ll, B) := splitByInfix l [] hl
+    A = [] ∧ ll = [] ∧ B = l := by
+  unfold splitByInfix
+  exact splitByInfix.loop_nil hl
+
+lemma splitByInfix_append [DecidableEq α] {l ll : List α} (hl : ll <:+: l) :
+    let (A, ll, B) := splitByInfix l ll hl
+    A ++ ll ++ B = l := by
+  unfold splitByInfix
+  exact splitByInfix.loop_append hl
+
+lemma IsPrefix.Nodup [DecidableEq α] {l p : List α} (h : p <+: l) (hnodup : l.Nodup) : p.Nodup := by
+  obtain ⟨_o, rfl⟩ := h
+  exact Nodup.of_append_left hnodup
+
+lemma IsSuffix.Nodup [DecidableEq α] {l p : List α} (h : p <:+ l) (hnodup : l.Nodup) : p.Nodup := by
+  obtain ⟨_o, rfl⟩ := h
+  exact Nodup.of_append_right hnodup
+
+lemma IsInfix.Nodup [DecidableEq α] {l p : List α} (h : p <:+: l) (hnodup : l.Nodup) : p.Nodup := by
+  obtain ⟨o, l, rfl⟩ := h
+  exact Nodup.of_append_right <| Nodup.of_append_left hnodup
+
+-- lemma head?_dropWhile_eq_find? {l : List α} {p : α → Bool} :
+--     (List.dropWhile (¬ p ·) l).head? = List.find? p l := by
+--   induction l with
+--   | nil => simp only [dropWhile_nil, head?_nil, find?_nil]
+--   | cons a l ih =>
+--     by_cases h : p a
+--     · rw [find?_cons_of_pos _ h, dropWhile_cons_of_neg (by simp_all), head?_cons]
+--     · rwa [find?_cons_of_neg _ h, dropWhile_cons_of_pos (by simp_all)]
+
+lemma eq_dropWhile_head_of_mem_find? {l : List α} {p : α → Bool} {a : α} (h : a ∈ List.find? p l)
+    (h' : List.dropWhile (!p ·) l ≠ []) : a = (List.dropWhile (!p ·) l).head h' := by
+  rw [find?_eq_head?_dropWhile_not] at h
+  rwa [eq_comm, head_eq_iff_head?_eq_some h']
+
+lemma takeWhile_ne_find?_eq_takeWhile [DecidableEq α] {l : List α} {p : α → Bool} {a : α}
+    (h : a ∈ List.find? p l) : List.takeWhile (· ≠ a) l = List.takeWhile (! p ·) l := by
+  induction l with
+  | nil => simp only [find?_nil, Option.mem_def, reduceCtorEq] at h
+  | cons b l ih =>
+    by_cases h' : p b
+    · rw [takeWhile_cons_of_neg, takeWhile_cons_of_neg]
+      exact Bool.not_not_eq.mpr h'
+      simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
+        Decidable.not_not]
+      simpa only [find?_cons_of_pos _ h', Option.mem_def, Option.some.injEq] using h
+    · rw [find?_cons_of_neg _ h'] at h
+      rw [takeWhile_cons_of_pos, takeWhile_cons_of_pos, cons_inj_right, ih h]
+      exact Bool.not_iff_not.mpr h'
+      simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
+      rintro rfl
+      exact h' <| List.find?_some h
+
+lemma dropWhile_ne_find?_eq_dropWhile [DecidableEq α] {l : List α} {p : α → Bool} {a : α}
+    (h : a ∈ List.find? p l) : List.dropWhile (· ≠ a) l = List.dropWhile (! p ·) l := by
+  induction l with
+  | nil => simp only [find?_nil, Option.mem_def, reduceCtorEq] at h
+  | cons b l ih =>
+    by_cases h' : p b
+    · rw [dropWhile_cons_of_neg, dropWhile_cons_of_neg]
+      exact Bool.not_not_eq.mpr h'
+      simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
+        Decidable.not_not]
+      simpa only [find?_cons_of_pos _ h', Option.mem_def, Option.some.injEq] using h
+    · rw [find?_cons_of_neg _ h'] at h
+      rw [dropWhile_cons_of_pos, dropWhile_cons_of_pos, ih h]
+      exact Bool.not_iff_not.mpr h'
+      simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
+        Decidable.not_not]
+      rintro rfl
+      exact h' <| List.find?_some h
+
 lemma singlton_ne_nil {a : α} : [a] ≠ [] := by
   simp only [ne_eq, cons_ne_self, not_false_eq_true]
 

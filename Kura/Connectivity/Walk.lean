@@ -37,22 +37,6 @@ lemma ext_iff_ne_nil' (w₁ w₂ : Walk G) (h : w₂.steps ≠ []) : w₁ = w₂
 instance instDecidableEqWalk [DecidableEq E] : DecidableEq G.Walk :=
   fun _ _ => decidable_of_decidable_of_iff Walk.ext_iff.symm
 
-def finish : V := match h : w.steps with
-  | [] => w.start
-  | a :: as => (w.steps.getLast (h ▸ List.cons_ne_nil a as)).snd.snd
-
-lemma finish_eq_start (h : w.steps = []) : w.finish = w.start := by
-  unfold finish
-  split
-  next h => exact rfl
-  next a as has => exfalso; simp only [has, reduceCtorEq] at h
-
-lemma steps_getLast_ssnd_eq_finish (hn : w.steps ≠ []) : w.finish = (w.steps.getLast hn).snd.snd := by
-  unfold finish
-  split
-  next h => exact (hn h).elim
-  next a as has => rfl
-
 lemma steps_head_fst_eq_start (hn : w.steps ≠ []) : w.start = (w.steps.head hn).fst :=
   w.start_spec hn
 
@@ -108,17 +92,20 @@ lemma steps_ssnd_vertices : w.steps.map (·.snd.snd) = w.vertices.tail := by
 @[simp]
 lemma vertices_head_eq_start : w.vertices.head w.vertices_ne_nil = w.start := rfl
 
-@[simp]
-lemma vertices_getLast_eq_finish : w.vertices.getLast (w.vertices_ne_nil) = w.finish := by
-  unfold finish vertices
-  split
-  next h =>
-    have : [w.start].getLast (List.cons_ne_nil w.start []) = w.start := by rfl
-    convert this
-    simp only [h, List.map_nil]
-  next a as h =>
-    rw [List.getLast_cons (by simp only [h, List.map_cons, ne_eq, reduceCtorEq, not_false_eq_true])]
-    simp only [List.getLast_map]
+def finish : V := w.vertices.getLast w.vertices_ne_nil
+
+lemma vertices_getLast_eq_finish : w.vertices.getLast w.vertices_ne_nil = w.finish := rfl
+
+lemma finish_eq_start (h : w.steps = []) : w.finish = w.start := by
+  simp only [finish, vertices, h, List.map_nil, List.getLast_singleton]
+
+lemma steps_getLast_ssnd_eq_finish (hn : w.steps ≠ []) : w.finish = (w.steps.getLast hn).snd.snd := by
+  simp only [finish, vertices]
+  rw [List.getLast_cons, List.getLast_map]
+  simpa only [ne_eq, List.map_eq_nil_iff]
+
+lemma vertices_eq_steps_fst_finish : w.vertices = w.steps.map (·.fst) ++ [w.finish] := by
+  rw [← w.vertices.dropLast_append_getLast, finish, steps_fst_vertices]
 
 lemma vertices_chain'_adj : w.vertices.Chain' G.adj :=
   match h : w.vertices with
@@ -137,6 +124,12 @@ lemma vertices_chain'_adj : w.vertices.Chain' G.adj :=
 lemma vertices_length : w.vertices.length = w.length + 1 := by
   simp only [vertices, length, List.length_cons, List.length_map]
 
+lemma eq_start_of_mem_vertices_steps_nil (v : V) (h : v ∈ w.vertices) (hstep : w.steps = []) : v = w.start := by
+  simp only [vertices, List.mem_cons, List.mem_map, exists_eq_right] at h
+  obtain rfl | ⟨a, H2, H3⟩ := h
+  · rfl
+  · simp only [hstep, List.not_mem_nil] at H2
+
 def edges : List E := w.steps.map (·.snd.fst)
 
 lemma length_ne_zero_iff_edges_ne_nil : w.length ≠ 0 ↔ w.edges ≠ [] := by
@@ -147,6 +140,15 @@ lemma edges_length : w.edges.length = w.length := by
   simp only [edges, length, List.length_map]
 
 -- same path iff same start and same edges
+
+-- def OfVerticesInfix (vs : List V) (hvs : vs ≠ []) (h : vs <:+: w.vertices) : Walk G where
+-- start := vs.head hvs
+-- steps :=
+--   let (A, vs, B) := w.vertices.splitByInfix vs h
+--   (w.steps.drop A.length).rdrop B.length
+-- start_spec hn := by
+--   simp [List.rdrop, List.head_take]
+--   rw [← w.steps.getElem_map (f := fun x => x.fst)]
 
 def nil (u : V) : Walk G where
   start := u
@@ -165,7 +167,8 @@ lemma nil_steps (u : V) : (nil (G := G) u).steps = [] := rfl
 lemma nil_length (u : V) : (nil (G := G) u).length = 0 := rfl
 
 @[simp]
-lemma nil_finish (u : V) : (nil (G := G) u).finish = u := by simp only [finish, nil]
+lemma nil_finish (u : V) : (nil (G := G) u).finish = u := by simp only [nil_steps, finish_eq_start,
+  nil_start]
 
 lemma nil_of_length_zero (w : Walk G) (h : w.length = 0) : w = nil w.start := by
   ext n s
@@ -275,27 +278,12 @@ lemma append_start (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
 
 lemma append_finish (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
     (w₁.append w₂ hconn).finish = w₂.finish := by
-  simp [append, finish]
-  split
-  rename_i happ
-  simp at happ
-  · split
-    · rw [← hconn]
-      exact (w₁.finish_eq_start happ.1).symm
-    · exfalso
-      simp_all
-  · rename_i a as happ
-    split
-    · rename_i h2
-      rw [List.getLast_append]
-      simp only [h2, List.isEmpty_nil, ↓reduceDIte]
-      have h1 : w₁.steps ≠ [] := by
-        simp [h2] at happ
-        simp [happ]
-      rw [← hconn, w₁.steps_getLast_ssnd_eq_finish h1]
-    · rename_i b bs h2
-      rw [List.getLast_append]
-      simp only [h2, List.isEmpty_cons, Bool.false_eq_true, ↓reduceDIte]
+  simp [append, finish, vertices]
+  by_cases h : List.map (fun x ↦ x.2.2) w₂.steps = []
+  · simp only [h, List.append_nil, List.getLast_singleton]
+    exact hconn
+  · rw [List.getLast_cons, List.getLast_cons, List.getLast_append']
+    exact h
 
 @[simp]
 lemma append_length (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
@@ -306,6 +294,14 @@ lemma append_length (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
 lemma append_vertices (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
     (w₁.append w₂ hconn).vertices = w₁.vertices ++ w₂.vertices.tail := by
   simp only [vertices, append, List.map_append, List.tail_cons, List.cons_append]
+
+lemma append_vertices' (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
+    (w₁.append w₂ hconn).vertices = w₁.vertices.dropLast ++ w₂.vertices := by
+  rw [append_vertices]
+  conv_lhs => rw [← List.dropLast_append_getLast (vertices_ne_nil w₁)]
+  conv_rhs => rw [← List.head_cons_tail _ (vertices_ne_nil w₂), ← List.singleton_append]
+  rw [List.append_assoc, List.append_right_inj, List.append_left_inj, List.singleton_inj]
+  exact hconn
 
 @[simp]
 lemma append_edges (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
@@ -362,68 +358,156 @@ lemma take_eq_self (w : Walk G) (n : ℕ) (hn : w.length ≤ n): w.take n = w :=
 
 def stopAt (w : Walk G) (v : V) : Walk G where
   start := w.start
-  steps := w.steps.take (w.steps.map (fun x ↦ x.2.2) |>.indexOf v)
-  start_spec := by
-    intro hn
-    rw [List.head_take hn]
-    exact w.start_spec (List.ne_nil_of_take_ne_nil hn)
-  step_spec := by
-    intro uev hin
-    refine w.step_spec uev (List.mem_of_mem_take hin)
-  next_step := List.Chain'.take w.next_step _
+  steps := w.steps.takeWhile fun x => x.1 ≠ v
+  start_spec hn := by
+    rw [List.head_takeWhile]
+    refine w.start_spec _
+  step_spec uev hin := by
+    refine w.step_spec uev ?_
+    exact (List.takeWhile_prefix _).mem hin
+  next_step := List.Chain'.prefix w.next_step (List.takeWhile_prefix _)
 
-lemma stopAt_vertices_IsPrefix (w : Walk G) (v : V) :
-    (w.stopAt v).vertices.IsPrefix w.vertices := by
-  simp only [vertices, stopAt, List.map_take, List.cons_prefix_cons, true_and]
-  exact List.take_prefix (List.indexOf v (List.map (fun x ↦ x.2.2) w.steps))
-      (List.map (fun x ↦ x.2.2) w.steps)
+def startFrom (w : Walk G) (v : V) : Walk G where
+  start := v
+  steps := w.steps.dropWhile fun x => x.1 ≠ v
+  start_spec hnenil := by
+    have := List.head_dropWhile_not (fun x => x.1 ≠ v) w.steps hnenil
+    simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_false, decide_eq_true_eq] at this ⊢
+    exact this.symm
+  step_spec uev hin := by
+    refine w.step_spec uev ?_
+    exact (List.dropWhile_suffix _).mem hin
+  next_step := w.next_step.suffix (List.dropWhile_suffix _)
 
 @[simp]
 lemma stopAt_start (v : V) :
   (w.stopAt v).start = w.start := rfl
 
 @[simp]
+lemma startFrom_start (v : V) :
+  (w.startFrom v).start = v := rfl
+
+lemma stopAt_vertices_IsPrefix (w : Walk G) (v : V) :
+    (w.stopAt v).vertices.IsPrefix w.vertices := by
+  simp only [vertices, stopAt, ne_eq, decide_not, List.cons_prefix_cons, true_and]
+  exact (List.takeWhile_prefix _).map _
+
+lemma startFrom_finish (w : Walk G) (v : V) (h : v ∈ w.vertices) :
+    (w.startFrom v).finish = w.finish := by
+  by_cases hsteps : w.steps = []
+  · have := eq_start_of_mem_vertices_steps_nil w v h hsteps
+    simpa only [startFrom, ne_eq, decide_not, hsteps, List.dropWhile_nil, finish_eq_start]
+  · by_cases hSFsteps : (w.startFrom v).steps = []
+    · have := finish_eq_start _ hSFsteps
+      simp only [vertices_eq_steps_fst_finish w, List.mem_append, List.mem_map, Prod.exists,
+        exists_and_right, exists_eq_right, List.mem_singleton, startFrom, ne_eq, decide_not,
+        List.dropWhile_eq_nil_iff, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
+        Prod.forall] at h hSFsteps
+      obtain ⟨a, b, hb⟩ | h := h
+      · exact False.elim (hSFsteps v a b hb rfl)
+      · rw [← h, this, startFrom_start]
+    · simp only [finish, vertices, startFrom, ne_eq, decide_not]
+      rw [List.getLast_cons, List.getLast_cons, List.getLast_map, List.getLast_map]
+      congr 2
+      apply List.IsSuffix.getLast
+      exact List.dropWhile_suffix _
+      all_goals rw [ne_eq, List.map_eq_nil_iff]
+      assumption
+      simpa only [startFrom, decide_not] using hSFsteps
+
+lemma stopAt_steps_append_startFrom_steps (v : V) :
+    (w.stopAt v).steps ++ (w.startFrom v).steps = w.steps := by
+  simp only [stopAt, ne_eq, decide_not, startFrom, List.takeWhile_append_dropWhile]
+
+lemma stopAt_vertices_append_startFrom_vertices_tail (v : V) :
+  (w.stopAt v).vertices ++ (w.startFrom v).vertices.tail = w.vertices := by
+  simp [vertices, stopAt, startFrom, List.takeWhile_append_dropWhile]
+  rw [← List.map_append]
+  congr
+  exact List.takeWhile_append_dropWhile (fun x ↦ !decide (x.1 = v)) w.steps
+
+lemma stopAt_vertices_dropLast_append_startFrom_vertices (v : V) (hv : v ∈ w.vertices) :
+  (w.stopAt v).vertices.dropLast ++ (w.startFrom v).vertices = w.vertices := by
+  rw [← steps_fst_vertices, ← (w.startFrom v).vertices.dropLast_append_getLast (vertices_ne_nil (w.startFrom v)),
+    ← steps_fst_vertices, vertices_getLast_eq_finish, ← List.dropLast_append_getLast (w.vertices_ne_nil),
+    startFrom_finish w v hv, vertices_getLast_eq_finish, ← List.append_assoc, ← List.map_append,
+    stopAt_steps_append_startFrom_steps, steps_fst_vertices]
+
+@[simp]
 lemma stopAt_finish (v : V) (hv : v ∈ w.vertices) : (w.stopAt v).finish = v := by
-  sorry
+  have := (stopAt_vertices_append_startFrom_vertices_tail w v).trans (stopAt_vertices_dropLast_append_startFrom_vertices w v hv).symm
+  conv_lhs at this => rw [← (w.stopAt v).vertices.dropLast_append_getLast (vertices_ne_nil (w.stopAt v))]
+  conv_rhs at this => rw [← (w.startFrom v).vertices.head_cons_tail (vertices_ne_nil (w.startFrom v)), ← List.singleton_append]
+  rw [List.append_assoc, List.append_right_inj, List.append_left_inj, List.singleton_inj] at this
+  simpa only [vertices_getLast_eq_finish, vertices_head_eq_start, startFrom_start] using this
 
-lemma stopAt_steps_eq_nil_iff (v : V) (hw : w.steps ≠ []) :
-    (w.stopAt v).steps = [] ↔ v = w.start := by
-  sorry
+lemma startFrom_vertices (w : Walk G) (v : V) (hv : v ∈ w.vertices) :
+    (w.startFrom v).vertices = w.vertices.dropWhile fun x => x ≠ v := by
+  rw [vertices_eq_steps_fst_finish, vertices_eq_steps_fst_finish, startFrom_finish _ _ hv,
+    List.dropWhile_append]
+  simp [vertices_eq_steps_fst_finish] at hv
+  split_ifs with h <;> simp at h
+  · obtain ⟨e, u, hu⟩ | rfl := hv
+    · exact (h v e u hu rfl).elim
+    · simpa only [startFrom, ne_eq, decide_not, decide_true, Bool.not_true, Bool.false_eq_true,
+      not_false_eq_true, List.dropWhile_cons_of_neg, List.append_left_eq_self, List.map_eq_nil_iff,
+      List.dropWhile_eq_nil_iff, Bool.not_eq_eq_eq_not, decide_eq_false_iff_not, Prod.forall]
+  · simp only [startFrom, ne_eq, decide_not, List.dropWhile_map, List.append_cancel_right_eq]
+    rfl
 
-def startFrom (v : V) : Walk G where
-  start := v
-  steps := w.steps.drop (w.vertices.indexOf v)
-  start_spec := by
-    rintro hn
-    simp only [ne_eq, List.drop_eq_nil_iff, not_le] at hn
-    simp only [List.head_drop]
-    sorry
-  step_spec := by
-    intro uev hin
-    refine w.step_spec uev (List.mem_of_mem_drop hin)
-  next_step := List.Chain'.drop w.next_step _
+lemma startFrom_vertices_IsSuffix (w : Walk G) (v : V) (h : v ∈ w.vertices) :
+    (w.startFrom v).vertices.IsSuffix w.vertices := by
+  have := startFrom_vertices w v h
+  exact this ▸ List.dropWhile_suffix _
 
-lemma startFrom_vertices_IsSuffix (w : Walk G) (v : V) :
-  (w.startFrom v).vertices.IsSuffix w.vertices := by
-  sorry
+@[simp]
+lemma stopAt_append_startFrom (v : V) (h : v ∈ w.vertices) :
+    (w.stopAt v).append (w.startFrom v) (stopAt_finish _ _ h) = w := by
+  ext1
+  · simp only [append_start, stopAt_start]
+  · simp only [append, stopAt_start]
+    exact stopAt_steps_append_startFrom_steps w v
 
-lemma startFrom_start (w : Walk G) (v : V) :
-  (w.startFrom v).start = v := by
-  sorry
+lemma stopAt_vertices (w : Walk G) (v : V) (hv : v ∈ w.vertices) :
+    (w.stopAt v).vertices = (w.vertices.takeWhile fun x => x ≠ v) ++ [v] := by
+  rw [vertices_eq_steps_fst_finish, vertices_eq_steps_fst_finish, stopAt_finish _ _ hv,
+    List.append_left_inj, List.takeWhile_append]
+  split_ifs with h <;> simp at h ⊢
+  · rw [List.takeWhile_map, List.length_map] at h
+    have : List.takeWhile (fun x ↦ !decide (x.1 = v)) w.steps = w.steps :=
+      List.IsPrefix.eq_of_length (List.takeWhile_prefix _) h
+    simp only [stopAt, ne_eq, decide_not, this, List.self_eq_append_right,
+      List.takeWhile_eq_nil_iff, List.length_singleton, Nat.lt_one_iff, pos_of_gt, Fin.zero_eta,
+      Fin.isValue, List.get_eq_getElem, Fin.val_eq_zero, List.getElem_cons_zero,
+      Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not, Decidable.not_not,
+      forall_const]
+    simp only [vertices_eq_steps_fst_finish, List.mem_append, List.mem_map,
+      List.mem_singleton] at hv
+    obtain ⟨a, ha, rfl⟩ | rfl := hv
+    · simp only [List.takeWhile_eq_self_iff, Bool.not_eq_eq_eq_not, Bool.not_true,
+        decide_eq_false_iff_not] at this
+      exact (this a ha rfl).elim
+    · rfl
+  · simp only [stopAt, ne_eq, decide_not]
+    rw [List.takeWhile_map]
+    rfl
+
+lemma meet_prop (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) :
+    (List.find? (fun x ↦ decide (x ∈ w₂.vertices)) w₁.vertices).isSome = true := by
+  simp only [List.find?_isSome, decide_eq_true_eq]
+  use w₁.finish
+  use w₁.vertices_getLast_eq_finish ▸ List.getLast_mem w₁.vertices_ne_nil
+  use h ▸ w₂.vertices_head_eq_start ▸ List.head_mem w₂.vertices_ne_nil
 
 def meet (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) :=
-  (w₁.vertices.find? (· ∈ w₂.vertices)).get (by
-    simp only [List.find?_isSome, decide_eq_true_eq]
-    use w₁.finish
-    use w₁.vertices_getLast_eq_finish ▸ List.getLast_mem w₁.vertices_ne_nil
-    use h ▸ w₂.vertices_head_eq_start ▸ List.head_mem w₂.vertices_ne_nil)
+  (w₁.vertices.find? (· ∈ w₂.vertices)).get (meet_prop w₁ w₂ h)
 
 lemma meet_mem_left (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) : w₁.meet w₂ h ∈ w₁.vertices := by
   simp only [meet, List.get_find?_mem]
 
 lemma meet_mem_right (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) : w₁.meet w₂ h ∈ w₂.vertices := by
-  simp only [meet]
-  sorry
+  have := List.find?_some (Option.some_get (meet_prop w₁ w₂ h)).symm
+  simpa only [decide_eq_true_eq] using this
 
 lemma left_indexOf_meet_eq_zero_eq_start (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) :
   w₁.vertices.indexOf (w₁.meet w₂ h) = 0 ↔ (w₁.meet w₂ h) = w₁.start := by
@@ -439,16 +523,11 @@ lemma left_indexOf_meet_eq_zero_eq_start (w₁ w₂ : Walk G) (h : w₁.finish =
 def reverse [Undirected G] (w : Walk G) : Walk G where
   start := w.finish
   steps := w.steps.reverse.map (λ ⟨u, e, v⟩ => (v, e, u))
-  start_spec := by
-    intro hn
+  start_spec hn := by
     simp only [List.map_reverse, ne_eq, List.reverse_eq_nil_iff, List.map_eq_nil_iff] at hn
-    unfold finish
-    split
-    · exfalso
-      exact hn (by assumption)
-    · simp only [List.map_reverse, List.head_reverse, List.getLast_map]
-  step_spec := by
-    intro uev hin
+    simp only [finish, vertices, List.map_reverse, List.head_reverse, List.getLast_map]
+    rw [List.getLast_cons (by simpa only [ne_eq, List.map_eq_nil_iff]), List.getLast_map]
+  step_spec uev hin := by
     rw [List.mem_map] at hin
     rcases hin with ⟨⟨u, e, v⟩, hin, rfl⟩
     rw [List.mem_reverse] at hin
@@ -463,21 +542,16 @@ def reverse [Undirected G] (w : Walk G) : Walk G where
 lemma reverse_start [Undirected G] (w : Walk G) : (w.reverse).start = w.finish := rfl
 
 @[simp]
-lemma reverse_finish [Undirected G] (w : Walk G) : (w.reverse).finish = w.start := by
-  simp only [finish, reverse, List.map_reverse, List.getLast_reverse, List.head_map]
-  split
-  · rename_i h
-    simp at h
-    split
-    · rfl
-    · exfalso
-      rename_i hcons
-      exact (hcons ▸ List.cons_ne_nil _ _) h
-  · apply (w.start_spec _).symm
+lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.vertices.reverse := by
+  conv_rhs => rw [vertices_eq_steps_fst_finish]
+  simp only [vertices, reverse, List.map_reverse, List.map_map, List.reverse_append,
+    List.reverse_cons, List.reverse_nil, List.nil_append, List.singleton_append, List.cons.injEq,
+    List.reverse_inj, List.map_inj_left, Function.comp_apply, implies_true, and_self]
 
 @[simp]
-lemma reverse_vertices [Undirected G] (w : Walk G) : (w.reverse).vertices = w.vertices.reverse := by
-  sorry
+lemma reverse_finish [Undirected G] (w : Walk G) : (w.reverse).finish = w.start := by
+  unfold finish
+  simp_rw [reverse_vertices, List.getLast_reverse, vertices_head_eq_start]
 
 -- def extensions (w : Walk G) [Fintype E] [DecidableEq E] : Finset (Walk G) :=
 --   let u := w.finish
@@ -577,9 +651,49 @@ def stopAt (p : Path G) (v : V) : Path G where
   toWalk := p.toWalk.stopAt v
   vNodup := (p.toWalk.stopAt_vertices_IsPrefix v).sublist.nodup p.vNodup
 
-def startFrom (p : Path G) (v : V) : Path G where
+def startFrom (p : Path G) (v : V) (h : v ∈ p.vertices) : Path G where
   toWalk := p.toWalk.startFrom v
-  vNodup := (p.toWalk.startFrom_vertices_IsSuffix v).sublist.nodup p.vNodup
+  vNodup := (p.toWalk.startFrom_vertices_IsSuffix v h).sublist.nodup p.vNodup
+
+@[simp]
+lemma startFrom_start (p : Path G) (v : V) (h : v ∈ p.vertices) : (p.startFrom v h).start = v := rfl
+
+@[simp]
+lemma stopAt_start (p : Path G) (v : V) : (p.stopAt v).start = p.start := rfl
+
+lemma stopAt_vertices_IsPrefix (p : Path G) (v : V) :
+    (p.stopAt v).vertices.IsPrefix p.vertices := Walk.stopAt_vertices_IsPrefix p.toWalk v
+
+lemma startFrom_finish (p : Path G) (v : V) (h : v ∈ p.vertices) :
+    (p.startFrom v h).finish = p.finish := Walk.startFrom_finish p.toWalk v h
+
+lemma stopAt_steps_append_startFrom_steps (p : Path G) (v : V) (h : v ∈ p.vertices):
+    (p.stopAt v).steps ++ (p.startFrom v h).steps = p.steps :=
+  Walk.stopAt_steps_append_startFrom_steps p.toWalk v
+
+lemma stopAt_vertices_append_startFrom_vertices_tail (p : Path G) (v : V) (h : v ∈ p.vertices):
+    (p.stopAt v).vertices ++ (p.startFrom v h).vertices.tail = p.vertices :=
+  Walk.stopAt_vertices_append_startFrom_vertices_tail p.toWalk v
+
+lemma stopAt_vertices_dropLast_append_startFrom_vertices (p : Path G) (v : V) (h : v ∈ p.vertices) :
+    (p.stopAt v).vertices.dropLast ++ (p.startFrom v h).vertices = p.vertices :=
+  Walk.stopAt_vertices_dropLast_append_startFrom_vertices p.toWalk v h
+
+@[simp]
+lemma stopAt_finish (p : Path G) (v : V) (h : v ∈ p.vertices) : (p.stopAt v).finish = v :=
+  Walk.stopAt_finish p.toWalk v h
+
+lemma startFrom_vertices (w : Walk G) (v : V) (hv : v ∈ w.vertices) :
+    (w.startFrom v).vertices = w.vertices.dropWhile fun x => x ≠ v :=
+  Walk.startFrom_vertices w v hv
+
+lemma startFrom_vertices_IsSuffix (w : Walk G) (v : V) (h : v ∈ w.vertices) :
+    (w.startFrom v).vertices.IsSuffix w.vertices :=
+  Walk.startFrom_vertices_IsSuffix w v h
+
+lemma stopAt_vertices (w : Walk G) (v : V) (hv : v ∈ w.vertices) :
+    (w.stopAt v).vertices = (w.vertices.takeWhile fun x => x ≠ v) ++ [v] :=
+  Walk.stopAt_vertices w v hv
 
 def nil (u : V) : Path G where
   toWalk := Walk.nil u
@@ -651,80 +765,45 @@ lemma mem_some_edges (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u �
     List.not_mem_nil, or_false]
 
 /-- Append two paths. To keep the result vertex unique, take the second path in the first shared vertex. -/
--- def append (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) : Path G where
---   start := p₁.start
---   steps := (p₁.stopAt (p₁.meet p₂.toWalk hfs)).steps ++ (p₂.startFrom (p₁.meet p₂.toWalk hfs)).steps
---   start_spec := by
---     intro hn
---     rw [List.head_append hn]
---     split_ifs with h
---     · simp only [stopAt, Walk.stopAt, List.isEmpty_eq_true, List.take_eq_nil_iff, ne_eq,
---       Walk.vertices_ne_nil, not_false_eq_true, List.indexOf_eq_zero_iff,
---       Walk.vertices_head_eq_start] at h
---       rcases h with h | h
---       · rw [h]
---         convert (p₂.startFrom_start (p₁.meet p₂.toWalk hfs)).symm
---         refine ((p₂.startFrom (p₁.meet p₂.toWalk hfs)).start_spec _).symm
---       · rw [← Walk.finish_eq_start _ h, hfs]
---         rename_i hstop
---         simp only [List.isEmpty_eq_true] at hstop
---         rw [← Walk.length_eq_zero_iff, length_zero_iff_eq_nil] at h
---         sorry
---     · convert (p₁.stopAt_start (p₁.meet p₂.toWalk hfs)).symm
---       refine ((p₁.stopAt (p₁.meet p₂.toWalk hfs)).start_spec _).symm
---   step_spec := by
---     intro uev hin
---     rw [List.mem_append] at hin
---     rcases hin with hin₁| hin₂
---     · refine p₁.step_spec uev (List.mem_of_mem_take hin₁)
---     · refine p₂.step_spec uev (List.mem_of_mem_drop hin₂)
---   next_step := by
---     refine List.Chain'.append (p₁.next_step.take _) (p₂.next_step.drop _) ?_
---     intro a ha b hb
---     simp at ha hb
+def append (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) : Path G where
+  toWalk := (p₁.stopAt (p₁.meet p₂.toWalk hfs)).toWalk.append (p₂.startFrom (p₁.meet p₂.toWalk hfs) (Walk.meet_mem_right _ _ _)).toWalk (by
+    rw [startFrom_start, stopAt_finish]
+    exact Walk.meet_mem_left p₁.toWalk p₂.toWalk hfs)
+  vNodup := by
+    rw [Walk.append_vertices']
+    refine List.Nodup.append ?_ ?_ ?_
+    · exact ((List.dropLast_prefix _).trans (p₁.stopAt_vertices_IsPrefix _)).Nodup p₁.vNodup
+    · apply (p₂.toWalk.startFrom_vertices_IsSuffix _ ?_).Nodup p₂.vNodup
+      exact Walk.meet_mem_right p₁.toWalk p₂.toWalk hfs
+    · rintro v hv1 hv2
+      have hv1' := p₁.toWalk.stopAt_vertices (p₁.meet p₂.toWalk hfs) (Walk.meet_mem_left _ _ _) ▸ hv1
+      simp only [List.dropLast_concat] at hv1'; clear hv1
+      have hv2' := p₂.toWalk.startFrom_vertices (p₁.meet p₂.toWalk hfs) (Walk.meet_mem_right _ _ _) ▸ hv2
+      simp at hv2'; clear hv2
+      have hv2'' : v ∈ p₂.vertices := (List.dropWhile_suffix _).mem hv2'; clear hv2'
+      rw [List.takeWhile_ne_find?_eq_takeWhile (by simp only [Walk.meet, Option.mem_def,
+        Option.some_get] : p₁.meet p₂.toWalk hfs ∈ List.find? (· ∈ p₂.vertices) p₁.vertices)] at hv1'
+      have := List.mem_takeWhile_imp hv1'
+      simp only [hv2'', decide_true, Bool.not_true, Bool.false_eq_true] at this
 
-    -- simp [List.getLast?_take] at ha
-    -- split_ifs at ha with hi
-    -- simp at ha
+@[simp]
+lemma append_start (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
+    (p₁.append p₂ hfs).start = p₁.start := rfl
 
-    -- simp [List.head?_drop] at hb
-    -- have : ∃ n : ℕ, List.indexOf (p₁.meet p₂ h) p₂.vertices.reverse = 1 + n := by
-    --   sorry
-    -- obtain ⟨n, hn⟩ := this
-    -- rw [hn, Nat.sub_add_eq, ← List.getElem?_reverse] at hb
+@[simp]
+lemma append_finish (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
+    (p₁.append p₂ hfs).finish = p₂.finish := by
+  sorry
 
+@[simp]
+lemma mem_append_vertices (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (v : V) :
+    v ∈ (p₁.append p₂ hfs).vertices ↔ v ∈ p₁.vertices ∨ v ∈ p₂.vertices := by
+  sorry
 
-    -- rw [List.getLast?_eq_some_iff] at ha
-    -- obtain ⟨L1, hL1⟩ := ha
-    -- apply_fun (·.map (·.snd.snd)) at hL1
-    -- simp [Walk.steps_ssnd_vertices] at hL1
-    -- apply_fun (·.getLast?) at hL1
-    -- simp [List.getLast?_take] at hL1
-    -- split_ifs at hL1 with h
-    -- simp only [Option.or_eq_some, List.getElem?_eq_none_iff, List.length_tail, tsub_le_iff_right] at hL1
-
-  --   sorry
-  -- vNodup := by
-  --   sorry
-
--- @[simp]
--- lemma append_start (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
---     (p₁.append p₂ hfs).start = p₁.start := rfl
-
--- @[simp]
--- lemma append_finish (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
---     (p₁.append p₂ hfs).finish = p₂.finish := by
---   sorry
-
--- @[simp]
--- lemma mem_append_vertices (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (v : V) :
---     v ∈ (p₁.append p₂ hfs).vertices ↔ v ∈ p₁.vertices ∨ v ∈ p₂.vertices := by
---   sorry
-
--- @[simp]
--- lemma mem_append_edges (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (e : E) :
---     e ∈ (p₁.append p₂ hfs).edges ↔ e ∈ p₁.edges ∨ e ∈ p₂.edges := by
---   sorry
+@[simp]
+lemma mem_append_edges (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (e : E) :
+    e ∈ (p₁.append p₂ hfs).edges ↔ e ∈ p₁.edges ∨ e ∈ p₂.edges := by
+  sorry
 
 
 def reverse [Undirected G] (p : Path G) : Path G where
