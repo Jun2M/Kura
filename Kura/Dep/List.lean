@@ -1,6 +1,7 @@
 import Mathlib.Data.List.Sym
 import Mathlib.Data.List.DropRight
 import Batteries.Data.Nat.Basic
+import Kura.Dep.Fin
 
 
 namespace List
@@ -292,6 +293,22 @@ lemma sizeOf_filter_lt_filter {p q : α → Prop} [DecidablePred p] [DecidablePr
   sizeOf_filter_lt_filter' (fun a h ↦ by simp_all only [decide_eq_true_eq, decide_true]) s hs
     (by simpa only [decide_eq_true_eq]) (by simpa only [decide_eq_true_eq])
 
+@[simp]
+lemma sizeOf_map {β : Type*} (f : α → β) (l : List α) : sizeOf (l.map f) = sizeOf l := by
+  induction l with
+  | nil => simp only [map, nil.sizeOf_spec]
+  | cons a as ih => simp only [map, cons.sizeOf_spec, sizeOf_default, add_zero, ih]
+
+@[simp]
+lemma sizeOf_map_nat {f : ℕ → ℕ} (hf : ∀ x, f x ≤ x) (l : List ℕ) :
+    sizeOf (l.map f) ≤ sizeOf l := by
+  induction l with
+  | nil => simp only [map, nil.sizeOf_spec, le_refl]
+  | cons a as ih =>
+    simp only [map, cons.sizeOf_spec, sizeOf_nat]
+    specialize hf a
+    omega
+
 lemma not_mem_of_length_eq_zero {l : List α} {a : α} (h : l.length = 0) : a ∉ l := by
   intro h'
   rw [length_eq_zero] at h
@@ -357,6 +374,92 @@ lemma sym2_notDiag_length [DecidableEq α] {l : List α} (h : l.Nodup) :
     (l.sym2.filter (¬·.IsDiag)).length = l.length.choose 2 := by
   sorry
 
+lemma getElem_val_eq_self {n : ℕ} {l : List α} (hn : n ≤ l.length) {i : Fin n}
+    {htake : i.val < (l.take n).length} : l[i.val] = (l.take n)[i.val] := by
+  simp only [getElem_take]
+
+
+lemma Chain.prefix {l1 l2 : List α} {a : α} {p : α → α → Prop} (h : List.Chain p a l2) (h' : l1 <+: l2) :
+    List.Chain p a l1 := by
+  rw [← List.prefix_cons_inj a] at h'
+  have h1 : (a::l2).Chain' p := h
+  exact h1.prefix h'
+
+lemma chain'_pair_infix {l : List α} {x y : α} {p : α → α → Prop} (h : Chain' p l)
+    (hinfix : [x, y] <:+: l) : p x y := by
+  obtain ⟨l1, l2, happ⟩ := hinfix
+  induction l2 using List.reverseRecOn generalizing l with
+  | nil =>
+    induction l1 generalizing l with
+    | nil =>
+      simp only [nil_append, append_nil] at happ
+      subst l
+      simpa only [chain'_cons, chain'_singleton, and_true] using h
+    | cons a l1 ih =>
+      simp at happ ih
+      obtain ⟨rfl, rfl⟩ := happ
+      refine ih ?_ rfl
+      refine h.suffix ?_
+      exact suffix_cons a (l1 ++ [x, y])
+  | append_singleton l2 b ih =>
+    refine ih ?_ rfl
+    subst l
+    refine h.prefix ?_
+    simp only [append_assoc, cons_append, singleton_append, prefix_append_right_inj,
+      cons_prefix_cons, prefix_append, and_self]
+
+
+
+-- lemma findJump {l : List α} {p : α → Bool} {a : α} (hhead : p a) (hlast : ¬ p (a::l)[l.length]) :
+--     ∃ i j : Fin (a::l).length, i.val + 1 = j ∧ p ((a::l)[i]) ∧ ¬ p ((a::l)[j]) := by
+--   let j := Fin.find (fun i ↦ ¬ p ((a::l).get i)) |>.get (Fin.isSome_find_iff.mpr ⟨Fin.last l.length, hlast⟩)
+--   have _ : NeZero (a::l).length := by
+--     rw [length_cons]
+--     exact Nat.instNeZeroSucc
+--   have hj : ¬p ((a :: l).get j) = true := by
+--     refine Fin.find_spec _ (?_ : j ∈ Fin.find (fun i ↦ ¬ p ((a::l).get i)))
+--     exact Option.get_mem _
+--   have hj0 : j ≠ 0 := by
+--     intro hj0
+--     simp only [hj0, get_eq_getElem, length_cons, Fin.val_zero, getElem_cons_zero, hhead,
+--       not_true_eq_false] at hj
+--   have hj0' : j.val ≠ 0 := by simpa only [length_cons, ne_eq, ← Fin.val_inj, Fin.val_zero] using hj0
+--   let i := (j.pred hj0).castSucc
+--   use i, j, (by simp [i]; omega)
+--   refine ⟨?_, hj⟩
+--   let a := Fin.find_min (i := j) (Option.get_mem _) (j := i) (by simp [i, Fin.lt_iff_val_lt_val]; omega)
+--   rw [not_not] at a
+--   exact a
+
+lemma findJump {l : List α} {p : α → Bool} {a : α} (hhead : p a) (hlast : ¬ p (a::l)[l.length]) :
+    ∃ x y, [x, y] <:+: a :: l ∧ p x ∧ ¬ p y := by
+  let j := Fin.find (fun i ↦ ¬ p ((a::l).get i)) |>.get (Fin.isSome_find_iff.mpr ⟨Fin.last l.length, hlast⟩)
+  have _ : NeZero (a::l).length := by
+    rw [length_cons]
+    exact Nat.instNeZeroSucc
+  have hj : ¬p ((a :: l).get j) = true := by
+    refine Fin.find_spec _ (?_ : j ∈ Fin.find (fun i ↦ ¬ p ((a::l).get i)))
+    exact Option.get_mem _
+  have hj0 : j ≠ 0 := by
+    intro hj0
+    simp only [hj0, get_eq_getElem, length_cons, Fin.val_zero, getElem_cons_zero, hhead,
+      not_true_eq_false] at hj
+  have hj0' : j.val ≠ 0 := by simpa only [length_cons, ne_eq, ← Fin.val_inj, Fin.val_zero] using hj0
+  let i := (j.pred hj0).castSucc
+  use (a::l).get i, (a::l).get j, ?_, ?_, hj
+  · rw [List.infix_iff_suffix_prefix]
+    use (a::l).take (j+1)
+    simp only [get_eq_getElem, length_cons]
+    refine ⟨?_, take_prefix _ _⟩
+    use (a::l).take i
+    simp only [Fin.coe_castSucc, Fin.coe_pred, i]
+    rw [← [(a :: l)[j.val]].singleton_append, ← List.append_assoc, take_append_getElem,
+      ← (a::l).take_append_getElem j.val, append_left_inj]
+    congr
+    omega
+  · let a := Fin.find_min (i := j) (Option.get_mem _) (j := i) (by simp [i, Fin.lt_iff_val_lt_val]; omega)
+    rw [not_not] at a
+    exact a
 
 -- Given an infix `ll` of `l`, split `l` into three parts: the prefix of `ll`, `ll`, and the suffix of `ll`.
 def splitByInfix.loop [DecidableEq α] (l ll p : List α) (hl : ll <:+: l) : List α × List α × List α :=

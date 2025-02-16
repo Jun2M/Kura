@@ -61,24 +61,24 @@ lemma eq_iff_out_eq_or_out_swap (x : Sym2 α) (v w : α) :
 --   done
 
 
-lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Sym2 α) :
-  Sym2.map f.rangeFactorization a = (a.map f).pmap Subtype.mk (fun a ha => by
-    simp_all [mem_map, Set.mem_range]; obtain ⟨y, hy, hyy⟩ := ha; exact ⟨y, hyy⟩) := by
-  simp [Function.Embedding.rangeFactorization_coe]
-  ext ⟨x, hx⟩
-  obtain ⟨x, rfl⟩ := hx
-  constructor
-  · rintro ⟨⟨y, hy⟩, heq⟩
-    obtain ⟨y, rfl⟩ := hy
-    have : a = s(x, y) := by
-      sorry
-    subst a
-    simp only [map_pair_eq, Set.mem_range, EmbeddingLike.apply_eq_iff_eq, exists_eq, pmap_pair,
-      mem_iff, Subtype.mk.injEq, true_or]
-  · rintro h
-    simp only [mem_map, Subtype.mk.injEq]
-    simp at h
-    sorry
+-- lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Sym2 α) :
+--   Sym2.map f.rangeFactorization a = (a.map f).pmap Subtype.mk (fun a ha => by
+--     simp_all [mem_map, Set.mem_range]; obtain ⟨y, hy, hyy⟩ := ha; exact ⟨y, hyy⟩) := by
+--   simp [Function.Embedding.rangeFactorization_coe]
+--   ext ⟨x, hx⟩
+--   obtain ⟨x, rfl⟩ := hx
+--   constructor
+--   · rintro ⟨⟨y, hy⟩, heq⟩
+--     obtain ⟨y, rfl⟩ := hy
+--     have : a = s(x, y) := by
+--       sorry
+--     subst a
+--     simp only [map_pair_eq, Set.mem_range, EmbeddingLike.apply_eq_iff_eq, exists_eq, pmap_pair,
+--       mem_iff, Subtype.mk.injEq, true_or]
+--   · rintro h
+--     simp only [mem_map, Subtype.mk.injEq]
+--     simp at h
+--     sorry
 
 @[simp]
 theorem equivSym_pair_eq {a b : α} : (equivSym α) s(a, b) = ⟨{a, b}, rfl⟩ := rfl
@@ -291,6 +291,13 @@ lemma map_IsDiag_iff (f : α ↪ β) (s : Sym2 α) :
   simp only [map_pair_eq, isDiag_iff_proj_eq, EmbeddingLike.apply_eq_iff_eq]
 
 lemma map_mk {α β : Type*} (f : α → β) (p : α × α) : (Sym2.mk p).map f = s(f p.1, f p.2) := rfl
+
+@[simp]
+lemma pmap_eq_pmap_of_imp {P Q : α → Prop} {s : Sym2 α} {f : ∀ a, Q a → β} (h : ∀ a, P a → Q a)
+    (hP : ∀ a ∈ s, P a) :
+    s.pmap f (fun a ha => h a (hP a ha)) = s.pmap (fun a ha => f a (h a ha)) hP := by
+  induction' s with x y
+  simp only [pmap_pair]
 
 -- example {α β : Type*} :
 --   α × β ≃ { a : Sym2 (α ⊕ β) // a.toMultiset.countP (Sum.isLeft ·) = 1 } where

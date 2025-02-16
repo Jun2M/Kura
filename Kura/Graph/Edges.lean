@@ -762,6 +762,15 @@ def pmap {P : V → Prop} (f : ∀ a, P a → W) (e : edge V) : (∀ v ∈ e, P 
     refine undir (s.pmap f fun v hv => H v ?_)
     simp_all [instedgeMem]
 
+lemma pmap_eq_pmap_of_imp {P Q : V → Prop} {e : edge V} {f : ∀ a, Q a → W} (hPQ : ∀ v, P v → Q v)
+    (h : ∀ v ∈ e, P v) :
+    e.pmap f (fun v hv => hPQ v (h v hv)) = (e.pmap (fun v hv => f v (hPQ v hv)) h) := by
+  match e with
+  | dir (a, b) => simp only [pmap, Option.pmap_eq_pmap_of_imp]
+  | undir s =>
+    simp only [pmap, undir.injEq]
+    rw [Sym2.pmap_eq_pmap_of_imp]
+
 @[simp]
 lemma pmap_dir {P : V → Prop} (f : ∀ a, P a → W) (a b : Option V) (h : ∀ v ∈ dir (a, b), P v) :
     (dir (a, b)).pmap f h = dir (a.pmap f fun v hv => (by simp_all only [Option.mem_def,

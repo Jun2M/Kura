@@ -1,6 +1,19 @@
 import Mathlib.Data.Fin.SuccPred
 import Mathlib.Tactic
+import Kura.Dep.Toss
 
+
+@[simp]
+lemma Nat.pos_of_neZero_simp (n : ℕ) [NeZero n] : n > 0 := Nat.pos_of_neZero n
+
+@[simp]
+lemma Nat.sub_one_add_one_eq_self (n : ℕ) [NeZero n] : n - 1 + 1 = n := by
+  have := NeZero.one_le (n := n)
+  omega
+
+lemma Nat.exist_of_NeZero (n : ℕ) [NeZero n] : ∃ m : ℕ, n = m + 1 := by
+  use n - 1
+  exact (sub_one_add_one_eq_self n).symm
 
 namespace Fin
 
@@ -50,8 +63,8 @@ lemma natAdd_injective {n : ℕ} (m : ℕ) :
 @[simp]
 lemma ext_iff' {n : ℕ} (i j : Fin n) : i = j ↔ i.val = j.val := Fin.ext_iff
 
-@[simp]
-lemma le_iff_le {n : ℕ} (i j : Fin n) : i ≤ j ↔ i.val ≤ j.val := by exact le_def
+-- @[simp]
+lemma le_iff_le {n : ℕ} (i j : Fin n) : i ≤ j ↔ i.val ≤ j.val := le_def
 
 @[simp]
 lemma coe_neg_one' {n : ℕ+} : (-1 : Fin n).val = n - 1 := by
@@ -113,6 +126,67 @@ lemma cast_OfNat {n m i: ℕ} [NeZero n] [NeZero m] {h : n = m} :
     @OfNat.ofNat (Fin m) i Fin.instOfNat := by
   subst m
   simp only [cast_eq_self]
+
+lemma val_add_one_of_lt' {n : ℕ} [NeZero n] {i j : Fin n} (h : i.val < j.val) :
+    (i + 1).val = i.val + 1 := by
+  obtain (_ | m) := n
+  · exfalso
+    exact i.elim0
+  · apply val_add_one_of_lt
+    rw [Fin.lt_last_iff_ne_last]
+    exact ne_last_of_lt h
+
+def last' (n : ℕ) [NeZero n] : Fin n where
+  val := n-1
+  isLt := by simp only [tsub_lt_self_iff, Nat.pos_of_neZero_simp, Nat.lt_one_iff, pos_of_gt, and_self]
+
+@[simp]
+lemma val_last' {n : ℕ} [NeZero n] : (last' n).val = n-1 := rfl
+
+lemma last_eq_last' {n : ℕ} : last n = last' (n+1) := rfl
+
+lemma last'_eq_last {n : ℕ} [NeZero n] : last' n = (last (n-1)).cast (Nat.sub_one_add_one_eq_self _) := by
+  ext
+  simp only [val_last', coe_cast, val_last]
+
+lemma neg_one_eq_last' {n : ℕ} [NeZero n] : (-1 : Fin n) = last' n := by
+  cases n
+  · exfalso; exact (neZero_zero_iff_false (α := ℕ)).mp (by assumption)
+  · simp only [neg_one_eq_last, ext_iff', val_last, val_last', add_tsub_cancel_right]
+
+-- @[simp]
+lemma eq_last_of_add_one_val_eq_zero {n : ℕ} [NeZero n] {i : Fin n} (h : i + 1 = 0) :
+    i = last' n := by
+  rw [add_toss_eq, zero_sub] at h
+  subst i
+  exact neg_one_eq_last'
+
+instance instFinZeroLEOneClass {n : ℕ} [NeZero n] : ZeroLEOneClass (Fin n) where
+  zero_le_one := Fin.zero_le' 1
+
+lemma le_last' {n : Nat} [NeZero n] (i : Fin n) : i ≤ last' n := by
+  apply Nat.le_of_lt_succ
+  simp only [val_last', Nat.succ_eq_add_one, Nat.sub_one_add_one_eq_self, is_lt]
+
+@[simp]
+theorem last_le_iff' {n : Nat} [NeZero n] {k : Fin n} : last' n ≤ k ↔ k = last' n := by
+  rw [Fin.ext_iff, Nat.le_antisymm_iff, le_def, and_iff_right (by apply le_last')]
+
+@[simp]
+theorem le_last_iff' {n : Nat} [NeZero n] {k : Fin n} : k < last' n ↔ k ≠ last' n := by
+  rw [ne_eq, ← last_le_iff', not_le]
+
+@[simp]
+theorem add_one_le_iff' {n : Nat} [NeZero n] {k : Fin n} : k + 1 ≤ k ↔ k = last' n := by
+  obtain ⟨m, hm⟩ := Nat.exist_of_NeZero n
+  subst n
+  exact add_one_le_iff
+
+lemma lt_add_one_iff' {n : ℕ} {k : Fin n} [NeZero n] : k < k + 1 ↔ k < last' n := by
+  rw [← Decidable.not_iff_not, not_lt, not_lt]
+  simp
+
+
 
 -- lemma OfNat_eq_cast {l n m : ℕ} [NeZero l] [NeZero n] (i : Fin n) :
 --     (@OfNat.ofNat (Fin l) m).val.cast = @OfNat.ofNat (Fin n) m := by

@@ -92,6 +92,14 @@ lemma map_rangeFactorization {α β : Type*} (f : α ↪ β) (a : Option α) :
   | none => rfl
   | some a => rfl
 
+@[simp]
+lemma pmap_eq_pmap_of_imp {P Q : α → Prop} {o : Option α} {f : ∀ a, Q a → β} (h : ∀ a, P a → Q a)
+    (hP : ∀ a ∈ o, P a) :
+    o.pmap (fun a ha => f a (h a ha)) hP = o.pmap f (fun a ha => h a (hP a ha)) := by
+  match o with
+  | none => rfl
+  | some a => rfl
+
 -- def propOrFalse {α : Type u} (p : α → Prop) : Option α → Prop :=
 --   fun o => o.elim False p
 

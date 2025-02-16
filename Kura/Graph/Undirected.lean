@@ -82,6 +82,11 @@ lemma get_eq_v12 : G.get e = s(G.v1 e, G.v2 e) := by
 lemma inc_eq_get (e : E) : G.inc e = undir (G.get e) := by
   simp only [inc_eq_undir_v12, get, undir.injEq, Classical.choose_eq']
 
+lemma get_eq_of_canGo [DecidableEq V] {v w : V} {e : E} (h : G.canGo v e w) : G.get e = s(v, w) := by
+  simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
+    Prod.swap_prod_mk, get, undir.injEq, Classical.choose_eq'] at h ⊢
+  assumption
+
 lemma lift_v12 {α : Type*} {f : V → V → α} (hf : ∀ (a₁ a₂ : V), f a₁ a₂ = f a₂ a₁) (e : E) :
     f (G.v1 e) (G.v2 e) = Sym2.lift ⟨f, hf⟩ (G.get e) := by
   simp only [get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq', Sym2.lift_mk]
@@ -155,3 +160,30 @@ lemma Emb_v12 (A : G ⊆ᴳ H) (e : E) : H.v1 (A.fₑ e) = A.fᵥ (G.v1 e) ∧ H
 --   simp [-inc_eq_undir_v12, map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff',
 --     Prod.mk.injEq, Prod.swap_prod_mk] at this
 --   exact this
+end Graph
+
+namespace Graph
+variable {G : Graph V E} [Simple G]
+
+@[simp]
+lemma inc_inj_iff {e e' : E} : G.inc e = G.inc e' ↔ e = e' := by
+  constructor
+  · apply G.inc_inj
+  · rintro rfl
+    rfl
+
+lemma get_injective : Function.Injective G.get := by
+  rintro e f h
+  apply G.inc_inj
+  rw [inc_eq_get, inc_eq_get, h]
+
+@[simp]
+lemma get_inj_iff {e e' : E} : G.get e = G.get e' ↔ e = e' := by
+  constructor
+  · apply get_injective
+  · rintro rfl
+    rfl
+
+
+
+end Graph

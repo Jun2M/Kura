@@ -4,7 +4,7 @@ import Kura.Dep.Rel
 import Kura.Graph.Searchable
 import Kura.Dep.Equiv
 import Kura.Dep.Quot
-
+import Kura.Graph.Subgraph
 
 namespace Graph
 open edge
@@ -44,6 +44,10 @@ lemma PathGraph_conn_0 (n : ℕ) (v : Fin (n+1)) : (PathGraph n).conn 0 v := by
     apply ih.tail ; clear ih
     rw [PathGraph.adj_iff]
     simp only [Fin.mk_lt_mk, lt_add_iff_pos_right, zero_lt_one]
+
+lemma conn.adj_chain (u v : V) (huv : G.conn u v) :
+    ∃ l, List.Chain G.adj u l ∧ (u :: l).getLast (l.cons_ne_nil u) = v ∧ (u :: l).Nodup :=
+  List.exists_nodup_chain_of_relationReflTransGen huv
 
 lemma conn.path (u v : V) (huv : G.conn u v) : ∃ P : G.Path, P.start = u ∧ P.finish = v := by
   unfold conn at huv
@@ -109,28 +113,30 @@ lemma conn.PathEmb [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (
     apply glue_Emb_of_Emb ((PathGraph n).EdgelessGraph_Emb _)
       ((PathGraph 1).EdgelessGraph_Emb _) S T ?_ ?_ ?_ ?_
     · ext u
-      simp [← hSfinish]
+      simp only [EdgelessGraph_Emb_fᵥ, Function.Embedding.coeFn_mk, Function.comp_apply, hSfinish,
+        Nat.reduceAdd, Fin.isValue, Fin.ext_iff', Fin.val_zero, ↓reduceIte, T]
     · ext e
       exact e.elim
     · ext v
       simp [hSfinish]
       constructor
       · rintro ⟨⟨x, rfl⟩, ⟨y, hy⟩⟩
-        rw [← hy]
+        simp only [← hy, Nat.reduceAdd, Fin.isValue, Fin.ext_iff', Fin.val_zero, T]
         split_ifs with hyval
         · rfl
-        · simp [hyval] at hy
+        · simp only [Nat.reduceAdd, Fin.isValue, Fin.ext_iff', Fin.val_zero, hyval, ↓reduceIte,
+          T] at hy
           specialize hb x
-          simp [hy] at hb
+          simp only [hy, not_true_eq_false, T] at hb
       · rintro rfl
-        simp [← hSfinish]
+        simp only [← hSfinish, exists_apply_eq_apply, true_and, T]
         use 0
-        simp
+        simp only [Nat.reduceAdd, Fin.isValue, ↓reduceIte, T]
     · ext f
-      simp only [Set.range_const, Set.mem_inter_iff, Set.mem_range, Set.mem_singleton_iff,
-        EdgelessGraph_Emb_fₑ, Function.comp_apply, IsEmpty.exists_iff, iff_false, not_and,
-        forall_exists_index]
-      rintro i rfl rfl
+      simp only [Nat.reduceAdd, Set.mem_inter_iff, Set.mem_range, EdgelessGraph_Emb_fₑ,
+        Function.comp_apply, IsEmpty.exists_iff, iff_false, not_and, not_exists,
+        forall_exists_index, T]
+      rintro i rfl z rfl
       have := (S.canGo_iff i.castSucc i i.succ).mpr (PathGraph.canGo' i)
       obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := G.canGo_eq (S.fₑ i) this he
       · specialize hb i.succ
@@ -138,7 +144,9 @@ lemma conn.PathEmb [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (
       · specialize hb i.castSucc
         simp at hb
 
-    simp
+    simp only [Nat.reduceAdd, Fin.isValue, EdgelessGraph_Emb_fᵥ, Function.Embedding.coeFn_mk,
+      EdgelessGraph_Emb_fₑ, Emb.Isom_fᵥ, Isom.refl_fᵥ, Equiv.coe_refl, glue_Emb_of_Emb_fᵥ,
+      Function.comp_apply, id_eq, T]
     rw [PathGraph_glue_PathGraph_eq_PathGraph_symm_fᵥ]
     simp [hSstart]
 
@@ -318,6 +326,51 @@ lemma Es_subgraph_conn_eq_conn_iff {G : Graph V E} [Undirected G] {S : Set E}
     exact (Relation.ReflTransClosure.idempotent _).symm
 
   rw [le_antisymm hconn hconn']
+
+lemma not_connected_of_Sᵥ_not_adj (Sᵥ : Set V) (hSᵥadj : ∀ u v, u ∈ Sᵥ → v ∈ Sᵥᶜ → ¬ G.adj u v) :
+    ∀ u v, u ∈ Sᵥ → v ∈ Sᵥᶜ → ¬ G.conn u v := by
+  intro u v hu hv hconn
+  have := Classical.decPred (fun e ↦ e ∈ Sᵥ)
+  obtain ⟨L, hLchain, hLlast, hLnodup⟩ := hconn.adj_chain
+  obtain ⟨i, j, hij, hi, hj⟩ := List.findJump (p := fun e ↦ e ∈ Sᵥ) (decide_eq_true hu)
+    (by rw [decide_eq_true_eq, ← List.getLast_eq_getElem, hLlast]; exact hv : ¬ decide ((u :: L)[(u::L).length - 1] ∈ Sᵥ))
+  simp only [List.length_cons, decide_eq_true_eq] at hi hj
+  apply hSᵥadj i j hi hj; clear hSᵥadj
+  have hLchain' : List.Chain' G.adj (u :: L) := hLchain
+  exact List.chain'_pair_infix hLchain' hij
+
+
+lemma PathGraph_Es_not_conn_le_lt (n : ℕ) (e : Fin n) (v w : Fin (n+1)) (hv : v.val ≤ e.val) (hw : e.val < w.val) :
+    ¬ (PathGraph n){{e}ᶜ}ᴳ.conn v w := by
+  apply not_connected_of_Sᵥ_not_adj {i | i.val ≤ e.val} ?_ _ _ hv
+  · simpa only [Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
+  · rintro x y hx hy h; clear hv hw v w
+    simp only [Set.mem_setOf_eq, Set.mem_compl_iff, not_le] at hx hy
+    have h'' := (PathGraph n).Es_spanningsubgraph {e}ᶜ |>.toEmb.adj h
+    simp at h''
+    rw [PathGraph.adj_iff (by omega)] at h''
+    rw [← h''] at hy
+    have : x.val = e.val := by omega
+
+    obtain ⟨f, hf⟩ := h
+    apply f.2
+    rw [Set.mem_singleton_iff, ← get_inj_iff (G := PathGraph n)]
+    have h' := (PathGraph n).Es_spanningsubgraph {e}ᶜ |>.toEmb.canGo hf
+    simp only [Es_spanningsubgraph_fᵥ, id_eq, Es_spanningsubgraph_fₑ, PathGraph.canGo_iff] at h'
+    rw [PathGraph_get f.val, h', PathGraph_get]
+    simp
+    left
+    rw [← h'', this]
+    tauto
+
+lemma PathGraph_Es_not_conn {n : ℕ} {e : Fin n} : ¬ (PathGraph n){{e}ᶜ}ᴳ.connected := by
+  intro _
+  apply PathGraph_Es_not_conn_le_lt n e e.castSucc e.succ (by simp) (by simp)
+  exact (PathGraph n){{e}ᶜ}ᴳ.all_conn e.castSucc e.succ
+
+lemma PathGraph_Es_not_conn_get {n : ℕ} {e : Fin n} : ¬ (PathGraph n){{e}ᶜ}ᴳ.conn' ((PathGraph n).get e) := by
+  rw [PathGraph_get, conn'_pair]
+  apply PathGraph_Es_not_conn_le_lt n e _ _ (by simp) (by simp)
 
 -- lemma Es_singleton_compliment_NumberOfComponents_eq_NumberOfComponents_or_NumberOfComponents_pred
 --   [Fintype V] [Fintype E] [Searchable G] [Undirected G] (e : E) :

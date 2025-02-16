@@ -202,7 +202,12 @@ def PathGraph_glue_PathGraph_eq_PathGraph (n m : ℕ) :
     | Sum.inl e => e.castLE (by omega)
     | Sum.inr e => e.val.natAdd n
   inc e := match e with
-    | Sum.inl e => by simp [Emb.glue, PathGraph]
+    | Sum.inl e => by simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ,
+      EdgelessGraph_Emb_fᵥ, Function.Embedding.coeFn_mk, EdgelessGraph_Emb_fₑ, Emb.glue,
+      Set.range_const, Set.mem_singleton_iff, Fin.ext_iff', Fin.val_zero, map_inc, add_inc,
+      map_undir, Sym2.map_pair_eq, Fin.castLE_castSucc, Fin.castLE_succ, undir.injEq, Sym2.eq,
+      Sym2.rel_iff', Prod.mk.injEq, Fin.coe_castSucc, Fin.coe_castLE, and_self, Prod.swap_prod_mk,
+      Fin.val_succ, self_eq_add_right, one_ne_zero, add_right_eq_self, or_false]
     | Sum.inr ⟨⟨e, he⟩, hemem⟩ => by
       cases e <;> simp [Emb.glue, PathGraph]
       omega

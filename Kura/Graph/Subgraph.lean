@@ -1,7 +1,8 @@
 import Kura.Graph.Remove
 
-
+namespace Graph
 variable {V W E F : Type*} {G : Graph V E}
+
 
 structure Subgraph (G : Graph V E) where
   Sᵥ : Set V := Set.univ
@@ -18,11 +19,39 @@ lemma ext {S T : Subgraph G} (hS : S.Sᵥ = T.Sᵥ) (hT : S.Sₑ = T.Sₑ) : S =
   exact ⟨hS, hT⟩
 
 @[coe]
-def toGraph (S : Subgraph G) : Graph S.Sᵥ S.Sₑ where
+def val (S : Subgraph G) : Graph S.Sᵥ S.Sₑ where
   inc e := edge.pmap Subtype.mk (G.inc e) (S.spec e.val e.prop)
 
 instance instCoeSubgraph (S : Subgraph G): CoeDep (Subgraph G) S (Graph S.Sᵥ S.Sₑ) where
-  coe := S.toGraph
+  coe := S.val
+
+def toGraph (S : Subgraph G) {V' E' : Type _} (hSv : S.Sᵥ.Elem ≃ V') (hSe : S.Sₑ.Elem ≃ E') :
+    Graph V' E' where
+  inc e :=
+    let e' : S.Sₑ.Elem := hSe.symm e
+    edge.pmap (fun a b => hSv (Subtype.mk a b)) (G.inc e') (S.spec e'.val e'.prop)
+
+def val_Isom_toGraph (S : Subgraph G) {V' E' : Type*} (hSv : S.Sᵥ.Elem ≃ V') (hSe : S.Sₑ.Elem ≃ E') :
+    S.val ≃ᴳ S.toGraph hSv hSe where
+  fᵥ v := hSv v
+  fₑ e := hSe e
+  inc e := by
+    simp [toGraph, val]
+    rw [edge.map_pmap]
+    apply edge.pmap_eq_pmap_of_imp
+  fᵥinj v w h := by simpa only [EmbeddingLike.apply_eq_iff_eq] using h
+  fₑinj e f h := by simpa only [EmbeddingLike.apply_eq_iff_eq] using h
+  fᵥsurj v := by
+    simp only [Subtype.exists]
+    use hSv.symm v, Subtype.coe_prop (hSv.symm v)
+    simp only [Subtype.coe_prop, Subtype.coe_eta, Equiv.apply_symm_apply]
+  fₑsurj e := by
+    simp only [Subtype.exists]
+    use hSe.symm e, Subtype.coe_prop (hSe.symm e)
+    simp only [Subtype.coe_prop, Subtype.coe_eta, Equiv.apply_symm_apply]
+
+def valEs (S : Subgraph G) (hSv : S.Sᵥ = Set.univ) : Graph V S.Sₑ :=
+  S.toGraph (hSv ▸ Equiv.Set.univ _) (Equiv.refl _)
 
 instance instLatticeSubgraph : Lattice (Subgraph G) where
   le S T := S.Sᵥ ⊆ T.Sᵥ ∧ S.Sₑ ⊆ T.Sₑ
@@ -74,9 +103,8 @@ instance instSubgraphCompl : HasCompl (Subgraph G) where
 
 end Subgraph
 
--- def Separation (Sₑ : Set E) : Subgraph G × Subgraph G where
---   fst := ⟨G.incEsV Sₑ, Sₑ, G.incEsV_spec Sₑ⟩
---   snd := ⟨G.incEsV Sₑᶜ, Sₑᶜ, G.incEsV_spec Sₑᶜ⟩
+def toSubgraph (G : Graph V E) {Sᵥ : Set V} {Sₑ : Set E} (hS : ∀ e ∈ Sₑ, ∀ v ∈ G.inc e, v ∈ Sᵥ) : Subgraph G :=
+  ⟨Sᵥ, Sₑ, hS⟩
 
 structure Separation (G : Graph V E) where
   G₁ : Subgraph G
@@ -90,3 +118,4 @@ noncomputable def order (Sep : Separation G) : ℕ := (Sep.G₁.Sᵥ ∩ Sep.G�
 
 
 end Separation
+end Graph
