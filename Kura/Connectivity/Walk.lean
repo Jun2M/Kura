@@ -102,7 +102,7 @@ lemma vertices_getLast_eq_finish : w.vertices.getLast w.vertices_ne_nil = w.fini
 lemma finish_eq_start (h : w.steps = []) : w.finish = w.start := by
   simp only [finish, vertices, h, List.map_nil, List.getLast_singleton]
 
-lemma steps_getLast_ssnd_eq_finish (hn : w.steps ≠ []) : w.finish = (w.steps.getLast hn).snd.snd := by
+lemma steps_getLast_ssnd_eq_finish (hn : w.steps ≠ []) :  (w.steps.getLast hn).snd.snd = w.finish := by
   simp only [finish, vertices]
   rw [List.getLast_cons, List.getLast_map]
   simpa only [ne_eq, List.map_eq_nil_iff]
@@ -160,7 +160,7 @@ lemma edges_get_get_vertices [Undirected G] (w : Walk G) (i : ℕ) (hi : i < w.e
 --   simp [List.rdrop, List.head_take]
 --   rw [← w.steps.getElem_map (f := fun x => x.fst)]
 
-def nil (u : V) : Walk G where
+def nil (G : Graph V E) (u : V) : Walk G where
   start := u
   steps := []
   start_spec := fun hn => (hn rfl).elim
@@ -168,26 +168,26 @@ def nil (u : V) : Walk G where
   next_step := List.chain'_nil
 
 @[simp]
-lemma nil_start (u : V) : (nil (G := G) u).start = u := rfl
+lemma nil_start (G : Graph V E) (u : V) : (nil G u).start = u := rfl
 
 @[simp]
-lemma nil_steps (u : V) : (nil (G := G) u).steps = [] := rfl
+lemma nil_steps (G : Graph V E) (u : V) : (nil G u).steps = [] := rfl
 
 @[simp]
-lemma nil_length (u : V) : (nil (G := G) u).length = 0 := rfl
+lemma nil_length (G : Graph V E) (u : V) : (nil G u).length = 0 := rfl
 
 @[simp]
-lemma nil_finish (u : V) : (nil (G := G) u).finish = u := by simp only [nil_steps, finish_eq_start,
+lemma nil_finish (G : Graph V E) (u : V) : (nil G u).finish = u := by simp only [nil_steps, finish_eq_start,
   nil_start]
 
-lemma nil_of_length_zero (w : Walk G) (h : w.length = 0) : w = nil w.start := by
+lemma nil_of_length_zero (w : Walk G) (h : w.length = 0) : w = nil G w.start := by
   ext n s
   rfl
   simp only [length, List.length_eq_zero] at h
   simp only [h, List.getElem?_nil, Option.mem_def, reduceCtorEq, nil_steps]
 
 @[simp]
-lemma length_zero_iff_eq_nil (w : Walk G) : w.length = 0 ↔ w = nil w.start  := by
+lemma length_zero_iff_eq_nil (w : Walk G) : w.length = 0 ↔ w = nil G w.start  := by
   constructor
   · exact nil_of_length_zero w
   · intro h
@@ -214,7 +214,7 @@ lemma nil_edges (u : V) : (nil (G := G) u).edges = [] := by
 @[simp]
 lemma not_mem_nil_edges (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e
 
-lemma eq_nil_iff_edges_nil (w : Walk G) : w = nil w.start ↔ w.edges = [] := by
+lemma eq_nil_iff_edges_nil (w : Walk G) : w = nil G w.start ↔ w.edges = [] := by
   constructor
   · intro h
     rw [h]
@@ -226,7 +226,7 @@ lemma eq_nil_iff_edges_nil (w : Walk G) : w = nil w.start ↔ w.edges = [] := by
     · rw [h]
       rfl
 
-lemma eq_nil [IsEmpty E] (w : Walk G) : w = nil w.start := by
+lemma eq_nil [IsEmpty E] (w : Walk G) : w = nil G w.start := by
   rw [eq_nil_iff_edges_nil]
   exact List.eq_nil_of_IsEmpty w.edges
 
@@ -278,7 +278,7 @@ def append (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) : Walk G wher
     intro a ha b hb
     convert hconn
     · obtain ⟨hn, rfl⟩ := List.mem_getLast?_eq_getLast ha
-      exact Eq.symm (w₁.steps_getLast_ssnd_eq_finish hn)
+      exact w₁.steps_getLast_ssnd_eq_finish hn
     · have hn := List.ne_nil_of_mem (List.mem_of_mem_head? hb)
       rw [Option.mem_iff, ← List.head_eq_iff_head?_eq_some hn] at hb
       exact hb ▸ (w₂.start_spec hn).symm
@@ -294,7 +294,7 @@ lemma append_finish (w₁ w₂ : Walk G) (hconn : w₁.finish = w₂.start) :
   by_cases h : List.map (fun x ↦ x.2.2) w₂.steps = []
   · simp only [h, List.append_nil, List.getLast_singleton]
     exact hconn
-  · rw [List.getLast_cons, List.getLast_cons, List.getLast_append']
+  · rw [List.getLast_cons, List.getLast_cons, List.getLast_append_of_right_ne_nil]
     exact h
 
 @[simp]
@@ -335,7 +335,7 @@ lemma append_some_length (w : Walk G) (u : V) (e : E) (v : V) (h : G.canGo u e v
 lemma of_chain'_adj {u : V} {l : List V} (h : l.Chain G.adj u) :
     ∃ w : Walk G, w.vertices = (u ::l) := by
   induction l generalizing u with
-  | nil => exact ⟨nil u, nil_vertices u⟩
+  | nil => exact ⟨nil G u, nil_vertices u⟩
   | cons v vs ih =>
     specialize ih (List.chain_of_chain_cons h)
     obtain ⟨w, hw⟩ := ih
@@ -571,15 +571,15 @@ lemma meet_mem_right (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) : w₁.
   simpa only [decide_eq_true_eq] using this
 
 lemma left_indexOf_meet_eq_zero_eq_start (w₁ w₂ : Walk G) (h : w₁.finish = w₂.start) :
-  w₁.vertices.indexOf (w₁.meet w₂ h) = 0 ↔ (w₁.meet w₂ h) = w₁.start := by
+  w₁.vertices.idxOf (w₁.meet w₂ h) = 0 ↔ (w₁.meet w₂ h) = w₁.start := by
   constructor
   · intro hz
-    rw [← List.indexOf_inj (meet_mem_left w₁ w₂ h), hz]
+    rw [← List.idxOf_inj (meet_mem_left w₁ w₂ h), hz]
     unfold vertices
-    rw [List.indexOf_cons_self]
+    rw [List.idxOf_cons_self]
     apply List.mem_cons_self
   · intro hms
-    refine List.indexOf_cons_eq _ hms.symm
+    refine List.idxOf_cons_eq _ hms.symm
 
 def reverse [Undirected G] (w : Walk G) : Walk G where
   start := w.finish
@@ -762,30 +762,30 @@ lemma stopAt_vertices (w : Walk G) (v : V) (hv : v ∈ w.vertices) :
     (w.stopAt v).vertices = (w.vertices.takeWhile fun x => x ≠ v) ++ [v] :=
   Walk.stopAt_vertices w v hv
 
-def nil (u : V) : Path G where
-  toWalk := Walk.nil u
+def nil (G : Graph V E) (u : V) : Path G where
+  toWalk := Walk.nil G u
   vNodup := List.nodup_singleton _
 
 @[simp]
-lemma nil_start (u : V) : (nil (G := G) u).start = u := rfl
+lemma nil_start (G : Graph V E) (u : V) : (nil G u).start = u := rfl
 
 @[simp]
-lemma nil_steps (u : V) : (nil (G := G) u).steps = [] := rfl
+lemma nil_steps (G : Graph V E) (u : V) : (nil G u).steps = [] := rfl
 
 @[simp]
-lemma nil_length (u : V) : (nil (G := G) u).length = 0 := rfl
+lemma nil_length (G : Graph V E) (u : V) : (nil G u).length = 0 := rfl
 
 @[simp]
-lemma nil_finish (u : V) : (nil (G := G) u).finish = u := Walk.nil_finish u
+lemma nil_finish (G : Graph V E) (u : V) : (nil G u).finish = u := Walk.nil_finish G u
 
-lemma nil_of_length_zero (p : Path G) (h : p.length = 0) : p = nil p.start := by
+lemma nil_of_length_zero (p : Path G) (h : p.length = 0) : p = nil G p.start := by
   ext n s
   rfl
   simp only [Walk.length, List.length_eq_zero] at h
   simp only [h, List.getElem?_nil, Option.mem_def, reduceCtorEq, nil_steps]
 
 @[simp]
-lemma length_zero_iff_eq_nil (p : Path G) : p.length = 0 ↔ p = nil p.start  := by
+lemma length_zero_iff_eq_nil (p : Path G) : p.length = 0 ↔ p = nil G p.start  := by
   constructor
   · exact nil_of_length_zero p
   · intro h
@@ -793,18 +793,18 @@ lemma length_zero_iff_eq_nil (p : Path G) : p.length = 0 ↔ p = nil p.start  :=
     rfl
 
 @[simp]
-lemma nil_vertices (u : V) : (nil (G := G) u).vertices = [u] := by
+lemma nil_vertices (G : Graph V E) (u : V) : (nil G u).vertices = [u] := by
   simp only [Walk.vertices, nil_start, nil_steps, List.map_nil]
 
 @[simp]
-lemma mem_nil_vertices (u v : V) : v ∈ (nil (G := G) u).vertices ↔ v = u := List.mem_singleton
+lemma mem_nil_vertices (G : Graph V E) (u v : V) : v ∈ (nil G u).vertices ↔ v = u := List.mem_singleton
 
 @[simp]
-lemma nil_edges (u : V) : (nil (G := G) u).edges = [] := by
+lemma nil_edges (G : Graph V E) (u : V) : (nil G u).edges = [] := by
   simp only [Walk.edges, nil_steps, List.map_nil]
 
 @[simp]
-lemma not_mem_nil_edges (e : E) : e ∉ (nil (G := G) u).edges := List.not_mem_nil e
+lemma not_mem_nil_edges (G : Graph V E) (u : V) (e : E) : e ∉ (nil G u).edges := List.not_mem_nil e
 
 def some (u : V) (e : E) (v : V) (hgo : G.canGo u e v) (hnloop : u ≠ v) : Path G where
   toWalk := Walk.some u e v hgo

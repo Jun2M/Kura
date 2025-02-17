@@ -73,7 +73,7 @@ def Qs (G : Graph V E) (S : Set V) [DecidablePred (· ∈ S)] (v : V) (hv : v �
       · exact hv
       · assumption)
 
-def Qf (G : Graph V E) (f : V → V) (hf : ∀ v, f (f v) = f v) : Graph (Set.range f) E where
+def Qf (G : Graph V E) (f : V → V) (_ : ∀ v, f (f v) = f v) : Graph (Set.range f) E where
   inc e := G.inc e
     |>.map f
     |>.pmap Subtype.mk (fun v hv => by
@@ -81,7 +81,7 @@ def Qf (G : Graph V E) (f : V → V) (hf : ∀ v, f (f v) = f v) : Graph (Set.ra
       obtain ⟨u, _hu, rfl⟩ := hv
       simp only [Set.mem_range, exists_apply_eq_apply])
 
-def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (hf : ∀ v, f (f v) = f v)
+def Qfp (G : Graph V E) (f : V → V) {P : V → Prop} (_ : ∀ v, f (f v) = f v)
   (hfRange : ∀ v, v ∈ Set.range f ↔ P v) : Graph (Subtype P) E where
   inc e := G.inc e
     |>.map f

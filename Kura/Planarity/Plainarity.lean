@@ -92,7 +92,7 @@ instance instEdgelessGraphPlanar_by_AbstractDual (n : ℕ) :
       exact empty_not_minEdgeCut h
     · have : c.edges = [] := List.eq_nil_of_IsEmpty c.edges
       exfalso
-      exact c.eNonempty this
+      exact c.stepsNeNil this
 
 instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
     Planar_by_AbstractDual G where
@@ -113,7 +113,7 @@ instance instPlanar_by_AbstractDualOfEdgeIsEmpty [IsEmpty E] :
       exact empty_not_minEdgeCut h
     · have : c.edges = [] := List.eq_nil_of_IsEmpty c.edges
       exfalso
-      exact c.eNonempty this
+      exact c.stepsNeNil this
 
 -- The following definitions should be sufficient to show that any planar graph is planar by
 -- abstract dual.

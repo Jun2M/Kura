@@ -13,7 +13,7 @@ def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
   empty_not_circuit := by
     simp only [List.toFinset_eq_empty_iff, not_exists]
     rintro Cyc
-    exact Cyc.eNonempty
+    exact Cyc.stepsNeNil
   circuit_antichain := by
     simp only [IsAntichain, Set.Pairwise, Set.mem_setOf_eq, ne_eq, Pi.compl_apply, compl_iff_not,
       forall_exists_index, forall_apply_eq_imp_iff]

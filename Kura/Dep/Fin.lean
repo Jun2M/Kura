@@ -1,7 +1,7 @@
 import Mathlib.Data.Fin.SuccPred
 import Mathlib.Tactic
 import Kura.Dep.Toss
-
+import Mathlib.Data.Nat.ChineseRemainder
 
 @[simp]
 lemma Nat.pos_of_neZero_simp (n : ℕ) [NeZero n] : n > 0 := Nat.pos_of_neZero n
@@ -14,6 +14,38 @@ lemma Nat.sub_one_add_one_eq_self (n : ℕ) [NeZero n] : n - 1 + 1 = n := by
 lemma Nat.exist_of_NeZero (n : ℕ) [NeZero n] : ∃ m : ℕ, n = m + 1 := by
   use n - 1
   exact (sub_one_add_one_eq_self n).symm
+
+@[simp]
+lemma Nat.ne_zero_of_mod_ne_zero {n m : ℕ} (h : n % m ≠ 0) : n ≠ 0 := by
+  by_contra! hn
+  subst n
+  simp only [zero_mod, ne_eq, not_true_eq_false] at h
+
+lemma Nat.mod_sub_eq_sub_mod {l n m : ℕ} (h : m ≤ l % n): l % n - m = (l - m) % n := by
+  induction l, n using Nat.mod.inductionOn with
+  | base x y ih =>
+    simp at ih
+    by_cases hy : y = 0
+    · subst y
+      simp only [mod_zero]
+    · specialize ih (by omega)
+      rw [Nat.mod_eq_of_lt ih, eq_comm]
+      exact Nat.mod_eq_of_lt (by omega)
+  | ind x y ih hh =>
+    obtain ⟨h0y, hyx⟩ := ih
+    rw [← Nat.mod_eq_sub_mod hyx, Nat.sub_right_comm, ← Nat.mod_eq_sub_mod] at hh
+    exact hh h
+    clear hh
+    have := Nat.div_mul_self_eq_mod_sub_self (x := x) (k := y)
+    rw [← add_toss_eq' (by simp only [Nat.div_pos_iff, h0y, hyx, and_self,
+      mul_pos_iff_of_pos_left])] at this
+    rw [← this, Nat.add_sub_assoc h, ge_iff_le]; clear this
+    refine le_add_right_of_le ?_
+    nth_rw 1 [← one_mul y, ← Nat.div_self h0y]
+    refine Nat.mul_le_mul_right y ?_
+    exact Nat.div_le_div_right hyx
+
+
 
 namespace Fin
 

@@ -317,10 +317,10 @@ lemma not_mem_of_length_eq_zero {l : List α} {a : α} (h : l.length = 0) : a �
 
 @[simp]
 theorem indexOf_eq_zero_iff [BEq α] [LawfulBEq α] {l : List α} (hl : l ≠ []) {a : α} :
-    indexOf a l = 0 ↔ l.head hl = a := by
+    idxOf a l = 0 ↔ l.head hl = a := by
   match l, hl with
   | x :: xs, h =>
-    simp only [indexOf, head_cons]
+    simp only [idxOf, head_cons]
     rw [findIdx_cons]
     by_cases h' : x == a
     · simp only [h', cond_true, true_iff]
@@ -588,6 +588,38 @@ lemma eq_nil_of_IsEmpty [IsEmpty α] (l : List α) : l = [] := by
 lemma forall₂_iff_forall {l : List α} {P : α → α → Prop} :
     List.Forall₂ P l l ↔ List.Forall (fun a ↦ P a a) l := by
   rw [List.forall₂_same, List.forall_iff_forall_mem]
+
+lemma head_rotate {α : Type*} {l : List α} {n : ℕ} (h : l ≠ []) (hlen : n % l.length < l.length) :
+    (l.rotate n).head (by simp [h]) = l[(n % l.length)] := by
+  simp only [rotate_eq_drop_append_take_mod]
+  rw [head_append_of_ne_nil, head_drop]
+  simpa only [ne_eq, drop_eq_nil_iff, not_le]
+
+lemma getLast_rotate {α : Type*} {l : List α} {n : ℕ} (h : l ≠ []) (hlen : (n + l.length - 1) % l.length < l.length) :
+    (l.rotate n).getLast (by simp [h]) = l[(n + l.length - 1) % l.length] := by
+  simp only [rotate_eq_drop_append_take_mod]
+  by_cases htake : take (n % l.length) l = []
+  · simp only [htake, append_nil, getLast_drop, List.getLast_eq_getElem l h]
+    congr
+    simp only [take_eq_nil_iff, h, or_false] at htake
+    rw [Nat.add_sub_assoc, Nat.add_mod, htake, zero_add, Nat.mod_mod, eq_comm, Nat.mod_eq_iff_lt]
+    all_goals omega
+  · rw [getLast_append_of_ne_nil htake, getLast_take]
+    simp only [take_eq_nil_iff, h, or_false] at htake
+    have : n % l.length - 1 < l.length := by
+      have := Nat.mod_lt n (y := l.length)
+      all_goals omega
+    rw [List.getElem?_eq_getElem this, Option.getD_some]
+    congr
+    rw [Nat.sub_add_comm, Nat.add_mod, Nat.mod_self, add_zero, Nat.mod_mod]
+    exact Nat.mod_sub_eq_sub_mod (by omega)
+    have := Nat.ne_zero_of_mod_ne_zero htake
+    omega
+
+lemma chain'_getElem {l : List α} {p : α → α → Prop} (h : List.Chain' p l) (i : ℕ)
+    (hlen : i < l.length - 1) : p (l[i]) (l[i + 1]) := by
+  rw [List.chain'_iff_get] at h
+  exact h i hlen
 
 /- ------------------------------------------------------------------------------------ -/
 
