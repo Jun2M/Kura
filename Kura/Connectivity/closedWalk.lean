@@ -1,6 +1,6 @@
 import Kura.Connectivity.Walk
 import Init.Data.List.Nat.TakeDrop
-
+import Kura.Graph.Separation
 namespace Graph
 open edge
 variable {V W E F : Type*} [DecidableEq V] [DecidableEq W] (G : Graph V E)
@@ -19,6 +19,11 @@ lemma Closed.ext (c1 c2 : G.Closed) : c1.toWalk = c2.toWalk → c1 = c2 := by
 
 namespace Closed
 
+variable {G}
+
+instance instLengthNeZero {C : G.Closed} : NeZero C.length where
+  out h := C.stepsNeNil (List.eq_nil_of_length_eq_zero h)
+
 lemma vertices_tail_eq_vertices_dropLast_rotate {C : G.Closed} :
     C.vertices.tail = (C.vertices.dropLast.rotate 1) := by
   by_cases h : C.steps = []
@@ -32,23 +37,23 @@ lemma vertices_tail_eq_vertices_dropLast_rotate {C : G.Closed} :
     all_goals simpa only [ne_eq, List.map_eq_nil_iff]
 
 @[simp]
-lemma toWalk_ne_nil {C : G.Closed} : C.toWalk ≠ Walk.nil G C.start := by
+lemma toWalk_ne_nil (C : G.Closed) : C.toWalk ≠ Walk.nil G C.start := by
   intro h
   apply C.stepsNeNil
   have := Walk.nil_steps G C.start
   rwa [← h] at this
 
-lemma one_le_length {C : G.Closed} : 1 ≤ C.length := by
+lemma one_le_length (C : G.Closed) : 1 ≤ C.length := by
   by_contra! h
   simp only [Nat.lt_one_iff, Walk.length_zero_iff_eq_nil, toWalk_ne_nil] at h
 
 @[simp]
-lemma vertices_dropLast_ne_nil {C : G.Closed} : C.vertices.dropLast ≠ [] := by
+lemma vertices_dropLast_ne_nil (C : G.Closed) : C.vertices.dropLast ≠ [] := by
   rw [← Walk.steps_fst_vertices]
   simp only [ne_eq, List.map_eq_nil_iff, C.stepsNeNil, not_false_eq_true]
 
 @[simp]
-lemma vertices_tail_ne_nil {C : G.Closed} : C.vertices.tail ≠ [] := by
+lemma vertices_tail_ne_nil (C : G.Closed) : C.vertices.tail ≠ [] := by
   rw [← Walk.steps_ssnd_vertices]
   simp only [ne_eq, List.map_eq_nil_iff, C.stepsNeNil, not_false_eq_true]
 
@@ -69,16 +74,16 @@ def ofWalkEndAdj (W : G.Walk) (e : E) (he : G.canGo W.finish e W.start) : G.Clos
 
 @[simp]
 lemma ofWalkEndAdj_start (W : G.Walk) (e : E) (he : G.canGo W.finish e W.start) :
-    (Closed.ofWalkEndAdj G W e he).start = W.start := by simp only [ofWalkEndAdj, Walk.append_start]
+    (Closed.ofWalkEndAdj W e he).start = W.start := by simp only [ofWalkEndAdj, Walk.append_start]
 
 @[simp]
 lemma ofWalkEndAdj_finish (W : G.Walk) (e : E) (he : G.canGo W.finish e W.start) :
-    (Closed.ofWalkEndAdj G W e he).finish = W.start := by simp only [ofWalkEndAdj,
+    (Closed.ofWalkEndAdj W e he).finish = W.start := by simp only [ofWalkEndAdj,
       Walk.append_finish, Walk.some_finish]
 
 @[simp]
 lemma ofWalkEndAdj_vertices (W : G.Walk) (e : E) (he : G.canGo W.finish e W.start) :
-    (Closed.ofWalkEndAdj G W e he).vertices = W.vertices ++ [W.start] := by
+    (Closed.ofWalkEndAdj W e he).vertices = W.vertices ++ [W.start] := by
   simp only [ofWalkEndAdj, Walk.append_vertices, Walk.some_vertices, List.tail_cons]
 
 lemma isLoop_of_length_one {C : G.Closed} (hC : C.length = 1) (hedge : C.edges ≠ []) :
@@ -95,49 +100,75 @@ lemma isLoop_of_length_one {C : G.Closed} (hC : C.length = 1) (hedge : C.edges �
       not_false_eq_true, List.getLast_cons, List.getLast_singleton, List.head_cons]
   · simp only [hstep, ne_eq, List.cons_ne_self, not_false_eq_true]
 
-def exist_CycleGraph_Hom [Undirected G] (C : G.Closed) (n : ℕ+) (hn : n.val = C.length):
-    (CycleGraph n).Hom G where
+lemma steps_getElem_ssnd_eq_vertices_getElem_add_one {C : G.Closed} {e : Fin C.length}
+    (he : e.val < C.steps.length) (h : e.val + 1 < C.vertices.length) :
+    C.steps[e.val].2.2 = C.vertices[(e + 1).val] := by
+  by_cases h : e = Fin.last' C.length
+  · subst e
+    simp only [Fin.getElem_fin, Fin.val_last', Fin.last'_add_one_eq_zero, Fin.val_zero,
+      List.getElem_zero, Walk.vertices_head_eq_start, C.startFinish]
+    rw [← C.steps_getLast_ssnd_eq_finish C.stepsNeNil]
+    congr
+    apply C.steps.getElem_length_sub_one_eq_getLast
+  · convert C.steps_getElem_snd_snd_eq_vertices_getElem_add_one e.val ?_ ?_
+    rw [e.val_add_one']
+    simp only [h, ↓reduceIte]
+    · simp only [Fin.is_lt]
+    · simp only [Walk.vertices_length, add_lt_add_iff_right, Fin.is_lt]
+
+def exist_CycleGraph_Hom [Undirected G] (C : G.Closed):
+    (CycleGraph C.length).Hom G where
   fᵥ v := by
     have hv : v.val < C.vertices.length := by
-      simp only [Walk.vertices_length, ← hn]
-      omega
+      rw [Walk.vertices_length]
+      exact Nat.lt_add_right 1 v.prop
     exact C.vertices[v.val]
   fₑ e := by
     have he : e.val < C.edges.length := by
-      simp only [Walk.edges_length, ← hn, Fin.is_lt]
+      rw [Walk.edges_length]
+      exact e.prop
     exact C.edges[e.val]
   inc e := by
-    simp only [inc_eq_get, Walk.edges_get_get_vertices, List.get_eq_getElem, CycleGraph, map_undir,
-      Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+    simp only [C.inc_edges_getElem_eq_steps_fst_ssnd e.val, CycleGraph, map_undir, Sym2.map_pair_eq,
+      undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
     left
-    refine ⟨?_, ?_⟩
-    · simp_rw [Walk.vertices_eq_steps_fst_finish]
-      rw [List.getElem_append_left, List.getElem_map]
-      simp only [List.length_map, Walk.step_length_eq_length, ← hn, Fin.is_lt]
-    · simp only [Walk.vertices, List.getElem_cons, List.getElem_map]
-      split_ifs with h
-      · have := Fin.eq_last_of_add_one_val_eq_zero (by ext; exact h)
-        subst this; clear h
-        simp_rw [Fin.val_last', hn, Walk.length]
-        rw [List.getElem_length_sub_one_eq_getLast, C.startFinish]
-        exact C.toWalk.steps_getLast_ssnd_eq_finish _
-      · congr
-        refine Nat.eq_sub_of_add_eq (Fin.val_add_one_of_lt' (?_ : e < e + 1)).symm
-        rw [Fin.lt_add_one_iff', Fin.le_last_iff']
-        rintro rfl
-        rw [← Fin.neg_one_eq_last'] at h
-        simp only [neg_add_cancel, Fin.val_zero, not_true_eq_false] at h
+    refine ⟨C.steps_getElem_fst_eq_vertices_getElem _ _ _,
+      steps_getElem_ssnd_eq_vertices_getElem_add_one e.prop ?_⟩
+    simp only [Walk.vertices_length, add_lt_add_iff_right, Fin.is_lt]
 
-variable {G}
+-- def exist_CycleGraph_Hom [Undirected G] (C : G.Closed) (n : ℕ+) (hn : n.val = C.length):
+--     (CycleGraph n).Hom G where
+--   fᵥ v := by
+--     have hv : v.val < C.vertices.length := by
+--       simp only [Walk.vertices_length, ← hn]
+--       omega
+--     exact C.vertices[v.val]
+--   fₑ e := by
+--     have he : e.val < C.edges.length := by
+--       simp only [Walk.edges_length, ← hn, Fin.is_lt]
+--     exact C.edges[e.val]
+--   inc e := by
+--     simp only [C.inc_edges_getElem_eq_steps_fst_ssnd e.val, CycleGraph, map_undir, Sym2.map_pair_eq,
+--       undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+--     left
+--     refine ⟨C.steps_getElem_fst_eq_vertices_getElem _ _ _, ?_⟩
+--     by_cases h : e = Fin.last' n
+--     · subst e
+--       simp only [Fin.val_last', hn, Fin.last'_add_one_eq_zero, Fin.val_zero, List.getElem_zero,
+--         Walk.vertices_head_eq_start, C.startFinish]
+--       rw [← C.steps_getLast_ssnd_eq_finish C.stepsNeNil]
+--       congr
+--       apply C.steps.getElem_length_sub_one_eq_getLast
+--     · convert C.steps_getElem_snd_snd_eq_vertices_getElem_add_one e.val _ _
+--       rw [e.val_add_one']
+--       simp only [h, ↓reduceIte]
+--       simp only [← hn, Fin.is_lt]
+--       simp only [Walk.vertices_length, ← hn, add_lt_add_iff_right, Fin.is_lt]
 
 /-- ClosedWalk has some start point by the definition. rotate it. -/
 def rotate (C : G.Closed) (n : ℕ) : G.Closed where
   start := (C.vertices.dropLast.rotate n).head (by simp only [ne_eq, List.rotate_eq_nil_iff,
     vertices_dropLast_ne_nil, not_false_eq_true])
-    -- match hsteps : C.steps with
-    -- | [] => C.start
-    -- | _ :: _ => ((C.steps.rotate n).head
-    --   (List.rotate_eq_nil_iff.not.mpr (hsteps ▸ List.cons_ne_nil _ _))).fst
   steps := C.steps.rotate n
   start_spec h := by
     simp only [ne_eq, List.rotate_eq_nil_iff] at h
@@ -172,7 +203,7 @@ def rotate (C : G.Closed) (n : ℕ) : G.Closed where
         C.startFinish]
         rw [← C.steps_getLast_ssnd_eq_finish h, List.getLast_eq_getElem]
         congr
-        rw [Nat.add_sub_assoc (one_le_length G), Nat.add_mod]
+        rw [Nat.add_sub_assoc C.one_le_length, Nat.add_mod]
         simp only [hmod, Nat.self_sub_mod, zero_add, Walk.step_length_eq_length]
       · have := List.chain'_getElem C.next_step (n % C.length - 1)
           (by rw [Nat.sub_lt_sub_iff_right (by omega)]; exact Nat.mod_lt n (C.one_le_length))
@@ -236,29 +267,59 @@ lemma vertices_dropLast_nodup {C : G.Cycle} : C.vertices.dropLast.Nodup := by
   rwa [Closed.vertices_tail_eq_vertices_dropLast_rotate, List.nodup_rotate] at this
 
 def ofLoop (e : E) (he : G.isLoop e) : G.Cycle where
-  toClosed := Closed.ofLoop G e he
+  toClosed := Closed.ofLoop e he
   vNodup' := by simp only [Walk.vertices, Closed.ofLoop, Walk.some, List.map_cons, List.map_nil,
     List.tail_cons, List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil, and_self]
   eNodup' := by simp only [Closed.ofLoop, Walk.some_edges, List.nodup_cons, List.not_mem_nil,
     not_false_eq_true, List.nodup_nil, and_self]
 
-def exist_CycleGraph_Emb [Undirected G] (C : G.Cycle) (n : ℕ+) (hn : n.val = C.length) :
-    (CycleGraph n).Emb G where
-  toHom := C.exist_CycleGraph_Hom G n hn
+def CycleGraph_Emb [Undirected G] (C : G.Cycle) :
+    (CycleGraph C.length).Emb G where
+  toHom := C.exist_CycleGraph_Hom
   fᵥinj v w h := by
     ext
     simp only [Closed.exist_CycleGraph_Hom] at h
-    rw [List.getElem_val_eq_self (by simp [hn]) (htake := by simp [← hn])] at h
+    have h1 : C.length ≤ C.vertices.length := by simp only [Walk.vertices_length,
+      le_add_iff_nonneg_right, zero_le]
+    rw [List.getElem_val_eq_self h1 (htake := by simp only [List.length_take, Walk.vertices_length,
+        le_add_iff_nonneg_right, zero_le, inf_of_le_left, Fin.is_lt])] at h
     conv at h =>
       rhs
-      rw [List.getElem_val_eq_self (by simp [hn]) (htake := by simp [← hn])]
+      rw [List.getElem_val_eq_self (by simp only [Walk.vertices_length, le_add_iff_nonneg_right,
+        zero_le]) (htake := by simp)]
     have : C.length + 1 = C.vertices.length := by simp only [Walk.vertices_length]
-    simp_rw [hn, List.take_eq_dropLast this] at h
+    simp_rw [List.take_eq_dropLast this] at h
     rwa [List.Nodup.getElem_inj_iff C.vertices_dropLast_nodup] at h
   fₑinj e1 e2 h := by
     ext
     simp only [Closed.exist_CycleGraph_Hom] at h
     rwa [List.Nodup.getElem_inj_iff C.eNodup'] at h
+
+-- def CycleGraph_equiv_subgraph [Undirected G] [DecidableEq E] (C : G.Cycle) (n : ℕ+)
+--     (hn : n.val = C.length) : (CycleGraph n) ≃ᴳ
+--     (G.toSubgraph (Sᵥ := C.vertices.toFinset) (Sₑ := C.edges.toFinset) (fun e he v hv => by
+--       simp only [List.coe_toFinset, Set.mem_setOf_eq] at he ⊢
+--       exact Walk.mem_vertices_of_mem_inc_edges C.toWalk he hv)).val where
+--   fᵥ v := by
+--     have hv : v.val < C.vertices.length := by
+--       simp only [Walk.vertices_length, ← hn]
+--       omega
+--     refine ⟨C.vertices[v.val], ?_⟩
+--     simp only [List.coe_toFinset, toSubgraph_val_Sᵥ, Set.mem_setOf_eq, List.getElem_mem]
+--   fₑ e := by
+--     have he : e.val < C.edges.length := by
+--       simp only [Walk.edges_length, ← hn, Fin.is_lt]
+--     refine ⟨C.edges[e.val], ?_⟩
+--     simp only [List.coe_toFinset, toSubgraph_val_Sₑ, Set.mem_setOf_eq, List.getElem_mem]
+--   inc e := by
+--     simp only [toSubgraph_val_inc, Walk.inc_edges_getElem_eq_steps_fst_ssnd, pmap_undir, CycleGraph,
+--       map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.pmap_pair]
+--     simp only [Finset.coe_sort_coe, id_eq, Set.mem_setOf_eq, eq_mp_eq_cast, eq_mpr_eq_cast,
+--       toSubgraph_val_Sᵥ, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Subtype.mk.injEq, Prod.swap_prod_mk]
+--     left
+--     refine ⟨?_, ?_⟩
+--     · exact C.steps_getElem_fst_eq_vertices_getElem e.val _ _
+--     · convert C.steps_getElem_snd_snd_eq_vertices_getElem_add_one e.val _ _
 
 
 -- def OfPathEndsAdj (P : G.Path) (e : E) (he : G.canGo P.finish e P.start) (h : [e] ≠ P.edges) : G.Cycle where

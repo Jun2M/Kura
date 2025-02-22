@@ -64,9 +64,12 @@ lemma v1_eq_ofIsLoop (he : G.isLoop e) : G.v1 e = G.ofIsLoop he := edge.v1_eq_of
 @[simp]
 lemma v2_eq_ofIsLoop (he : G.isLoop e) : G.v2 e = G.ofIsLoop he := edge.v2_eq_ofIsLoop he
 
-noncomputable def get : Sym2 V := (exist_of_isUndir (G.edge_symm e)).choose
+noncomputable def get' : Sym2 V := (exist_of_isUndir (G.edge_symm e)).choose
 
-@[simp high]
+def get : Sym2 V := match h : G.inc e with
+  | dir (a, b) => (not_isUndir_of_dir (a, b) (h ▸ G.edge_symm e)).elim
+  | undir s => s
+
 lemma inc_eq_undir_v12 : G.inc e = undir s(G.v1 e, G.v2 e) := by
   match h : G.inc e with
   | dir (a, b) =>
@@ -77,19 +80,32 @@ lemma inc_eq_undir_v12 : G.inc e = undir s(G.v1 e, G.v2 e) := by
     simp only [v1, h, undir_v1, v2, undir_v2, Prod.mk.eta, Quot.out_eq]
 
 lemma get_eq_v12 : G.get e = s(G.v1 e, G.v2 e) := by
-  simp only [get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq']
+  -- simp only [get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq']
+  unfold get
+  split
+  · rename_i a b h
+    rw [inc_eq_undir_v12] at h
+    simp only [reduceCtorEq] at h
+  · rename_i s h
+    rw [inc_eq_undir_v12, eq_comm] at h
+    simpa only [undir.injEq] using h
 
+@[simp]
 lemma inc_eq_get (e : E) : G.inc e = undir (G.get e) := by
-  simp only [inc_eq_undir_v12, get, undir.injEq, Classical.choose_eq']
+  -- simp only [inc_eq_undir_v12, get, undir.injEq, Classical.choose_eq']
+  unfold get
+  split
+  · rename_i a b h
+    rw [inc_eq_undir_v12] at h
+    simp only [reduceCtorEq] at h
+  · assumption
 
-lemma get_eq_of_canGo [DecidableEq V] {v w : V} {e : E} (h : G.canGo v e w) : G.get e = s(v, w) := by
-  simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq,
-    Prod.swap_prod_mk, get, undir.injEq, Classical.choose_eq'] at h ⊢
-  assumption
+lemma get_eq_iff_canGo [DecidableEq V] {v w : V} {e : E} : G.get e = s(v, w) ↔ G.canGo v e w := by
+  simp only [get, canGo, inc_eq_get, canGo_iff_eq_of_undir]
 
 lemma lift_v12 {α : Type*} {f : V → V → α} (hf : ∀ (a₁ a₂ : V), f a₁ a₂ = f a₂ a₁) (e : E) :
     f (G.v1 e) (G.v2 e) = Sym2.lift ⟨f, hf⟩ (G.get e) := by
-  simp only [get, inc_eq_undir_v12, undir.injEq, Classical.choose_eq', Sym2.lift_mk]
+  simp only [get_eq_v12, Sym2.lift_mk]
 
 lemma Hom.get (A : G ⊆ᴳ H) (e : E) : H.get (A.fₑ e) = (G.get e).map A.fᵥ := by
   have := A.inc e

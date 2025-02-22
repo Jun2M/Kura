@@ -3,6 +3,7 @@ import Mathlib.Tactic
 import Kura.Dep.Toss
 import Mathlib.Data.Nat.ChineseRemainder
 
+
 @[simp]
 lemma Nat.pos_of_neZero_simp (n : ℕ) [NeZero n] : n > 0 := Nat.pos_of_neZero n
 
@@ -45,7 +46,8 @@ lemma Nat.mod_sub_eq_sub_mod {l n m : ℕ} (h : m ≤ l % n): l % n - m = (l - m
     refine Nat.mul_le_mul_right y ?_
     exact Nat.div_le_div_right hyx
 
-
+@[simp]
+lemma Nat.succ_pred' (n : ℕ) [NeZero n] : n.pred.succ = n := Nat.succ_pred (NeZero.ne n)
 
 namespace Fin
 
@@ -159,6 +161,33 @@ lemma cast_OfNat {n m i: ℕ} [NeZero n] [NeZero m] {h : n = m} :
   subst m
   simp only [cast_eq_self]
 
+def castOfEqRingHom {n m : ℕ} [NeZero n] [NeZero m] (h : n = m) :
+    RingHom (Fin n) (Fin m) where
+  toFun := Fin.cast h
+  map_one' := by
+    subst n
+    rfl
+  map_mul' := by
+    subst n
+    simp only [cast_eq_self, implies_true]
+  map_zero' := by
+    subst n
+    rfl
+  map_add' := by
+    subst n
+    simp only [cast_eq_self, implies_true]
+
+@[simp]
+lemma castOfEqRingHom_apply {n m : ℕ} [NeZero n] [NeZero m] (h : n = m) (i : Fin n) :
+    castOfEqRingHom h i = i.cast h := rfl
+
+@[simp]
+lemma val_cast {n m : ℕ} [NeZero n] [NeZero m] (h : n = m) (i : Fin n) :
+    (i.cast h).val = i.val := by
+  subst m
+  simp only [cast_eq_self]
+
+
 lemma val_add_one_of_lt' {n : ℕ} [NeZero n] {i j : Fin n} (h : i.val < j.val) :
     (i + 1).val = i.val + 1 := by
   obtain (_ | m) := n
@@ -181,6 +210,7 @@ lemma last'_eq_last {n : ℕ} [NeZero n] : last' n = (last (n-1)).cast (Nat.sub_
   ext
   simp only [val_last', coe_cast, val_last]
 
+@[simp]
 lemma neg_one_eq_last' {n : ℕ} [NeZero n] : (-1 : Fin n) = last' n := by
   cases n
   · exfalso; exact (neZero_zero_iff_false (α := ℕ)).mp (by assumption)
@@ -218,7 +248,34 @@ lemma lt_add_one_iff' {n : ℕ} {k : Fin n} [NeZero n] : k < k + 1 ↔ k < last'
   rw [← Decidable.not_iff_not, not_lt, not_lt]
   simp
 
+lemma val_add_one' {n : ℕ} {k : Fin n} [NeZero n] : (k + 1).val = if k = last' n then 0 else k.val + 1 := by
+  obtain ⟨m, hm⟩ := Nat.exist_of_NeZero n
+  subst n
+  exact val_add_one k
 
+@[simp]
+lemma last'_add_one_eq_zero {n : ℕ} [NeZero n] : last' n + 1 = 0 := by
+  obtain ⟨m, hm⟩ := Nat.exist_of_NeZero n
+  subst n
+  exact last_add_one _
+
+def singleton_comple_equiv_pred' {m : ℕ} [NeZero m]:
+    ({-1}ᶜ : Set (Fin m)).Elem ≃ Fin (m - 1) where
+  toFun x := x.val.castPred (by
+    simp only [ne_eq, ext_iff', val_natCast, Nat.sub_one_add_one_eq_self,
+      Nat.mod_eq_of_lt x.val.prop, val_last]
+    have := x.prop
+    simpa [-Subtype.coe_prop, neg_one_eq_last'] using this)
+  invFun x := ⟨x.castSucc, by
+    simp only [coe_castSucc, Set.mem_compl_iff, Set.mem_singleton_iff, ext_iff', val_natCast]
+    rw [Nat.mod_eq_of_lt (by omega), neg_one_eq_last', val_last']
+    exact x.prop.ne⟩
+  left_inv x := by simp only [castSucc_castPred, val_natCast, Nat.sub_one_add_one_eq_self,
+    Nat.mod_eq_of_lt x.val.prop, cast_val_eq_self, Subtype.coe_eta]
+  right_inv x := by
+    simp only [coe_castSucc, val_natCast, ext_iff', coe_castPred, Nat.sub_one_add_one_eq_self,
+      dvd_refl, Nat.mod_mod_of_dvd]
+    exact Nat.mod_eq_of_lt (by omega)
 
 -- lemma OfNat_eq_cast {l n m : ℕ} [NeZero l] [NeZero n] (i : Fin n) :
 --     (@OfNat.ofNat (Fin l) m).val.cast = @OfNat.ofNat (Fin n) m := by

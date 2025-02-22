@@ -1,8 +1,7 @@
 import Mathlib.Data.Sym.Sym2.Order
 import Kura.Dep.Embedding
--- import Mathlib
-
-
+import Kura.Dep.UnpackSingleton
+import Mathlib.Data.Sym.Card
 
 
 namespace Sym2
@@ -237,8 +236,6 @@ lemma pmap_toMultiset (P : α → Prop) (f : ∀ a, P a → β) (s : Sym2 α) (h
   induction' s with x y
   rfl
 
-def Nodup (s : Sym2 α) : Prop := ¬ s.IsDiag
-
 lemma sup_mem [LinearOrder α] (s : Sym2 α) : s.sup ∈ s := by
   rw [eq_mk_out s, Sym2.sup_mk, Sym2.mem_iff, sup_eq_left, sup_eq_right]
   exact le_total _ _
@@ -278,7 +275,6 @@ lemma eq_of_mem_isDiag {s : Sym2 α} {a b : α} (ha : a ∈ s) (hb : b ∈ s) (h
   induction' s with x y
   simp_all only [mem_iff, isDiag_iff_proj_eq, or_self]
 
-@[simp 10]
 lemma isDiag_iff_out_fst_eq_out_snd (s : Sym2 α) :
     s.IsDiag ↔ s.out.1 = s.out.2 := by
   conv_lhs => rw [s.eq_mk_out]
@@ -298,6 +294,39 @@ lemma pmap_eq_pmap_of_imp {P Q : α → Prop} {s : Sym2 α} {f : ∀ a, Q a → 
     s.pmap f (fun a ha => h a (hP a ha)) = s.pmap (fun a ha => f a (h a ha)) hP := by
   induction' s with x y
   simp only [pmap_pair]
+
+def IsDiag_equiv (α : Type*) : {e : Sym2 α // e.IsDiag} ≃ α where
+  toFun e := Sym2.ofIsDiag e e.2
+  invFun a := ⟨s(a, a), by simp⟩
+  left_inv e := by
+    obtain ⟨e, he⟩ := e
+    ext1
+    exact eq_ofIsDiag e he
+  right_inv a := ofIsDiag_pair
+
+lemma IsDiag_card_eq [DecidableEq α] [Fintype α] :
+    Fintype.card {e : Sym2 α // e.IsDiag} = Fintype.card α := by
+  rw [Fintype.card_eq]
+  exact ⟨IsDiag_equiv α⟩
+
+lemma card_not_IsDiag_eq_choose_two [DecidableEq α] [Fintype α] :
+    Fintype.card {e : Sym2 α // ¬ e.IsDiag} = (Fintype.card α).choose 2 := by
+  simp only [Fintype.card_subtype_compl, IsDiag_card_eq, Fintype.card_fin, Sym2.card]
+  rw [Nat.choose_two_right, Nat.choose_two_right, Nat.add_sub_cancel]
+  let n := Fintype.card α
+  change (n+1) * n / 2 - n = n * (n + 1 - 2) / 2
+  apply_fun (· * 2)
+  beta_reduce
+  rw [Nat.div_mul_cancel, Nat.sub_mul, Nat.div_mul_cancel, mul_comm, ← Nat.mul_sub]
+  · convert Nat.factorial_dvd_ascFactorial n 2 using 1
+    simp only [Nat.ascFactorial_succ, add_zero, Nat.ascFactorial_zero, mul_one]
+  · by_cases hn : n = 0
+    · rw [hn]
+      simp only [zero_add, Nat.one_le_ofNat, Nat.sub_eq_zero_of_le, mul_zero, dvd_zero]
+    · convert Nat.factorial_dvd_ascFactorial (n - 1) 2 using 1
+      simp [Nat.ascFactorial_succ, add_zero, Nat.ascFactorial_zero, mul_one, Nat.sub_add_cancel (by omega : 1 ≤ n)]
+  · rintro a b h
+    simpa only [mul_eq_mul_right_iff, OfNat.ofNat_ne_zero, or_false] using h
 
 -- example {α β : Type*} :
 --   α × β ≃ { a : Sym2 (α ⊕ β) // a.toMultiset.countP (Sum.isLeft ·) = 1 } where

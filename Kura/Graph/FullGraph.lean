@@ -3,26 +3,26 @@ import Kura.Graph.Defs
 
 namespace Graph
 open edge
-variable {V W E F : Type*} (G : Graph V E) [fullGraph G] (e : E) (u v w : V)
+variable {V W E F : Type*} (G : Graph V E) [FullGraph G] (e : E) (u v w : V)
 
 
 @[simp]
 lemma not_dir_none_none : G.inc e ≠ dir (none, none) := by
   intro h
-  have := fullGraph.all_full (G := G) e
+  have := FullGraph.all_full (G := G) e
   simp only [isFull, edge.isFull, h, Bool.false_eq_true] at this
 
 
 @[simp]
 lemma not_dir_some_none : G.inc e ≠ dir (some u, none) := by
   intro h
-  have := fullGraph.all_full (G := G) e
+  have := FullGraph.all_full (G := G) e
   simp only [isFull, edge.isFull, h, Bool.false_eq_true] at this
 
 @[simp]
 lemma not_dir_none_some : G.inc e ≠ dir (none, some u) := by
   intro h
-  have := fullGraph.all_full (G := G) e
+  have := FullGraph.all_full (G := G) e
   simp only [isFull, edge.isFull, h, Bool.false_eq_true] at this
 
 @[simp]
@@ -44,14 +44,14 @@ lemma gofrom?_isSome_iff_mem_startAt [DecidableEq V] (v : V) (e : E) :
   | dir (a, b) => cases a <;> cases b <;> simp_all ; rw [Eq.comm]
   | undir s => simp only [Option.isSome_dite, Sym2.mem_toMultiset_iff]
 
-theorem exist (G : Graph V E) [fullGraph G] : IsEmpty E ∨ Nonempty V := by
+theorem exist (G : Graph V E) [FullGraph G] : IsEmpty E ∨ Nonempty V := by
   by_cases hE : IsEmpty E
   · exact Or.inl hE
   · simp at hE
     choose v _ using exist_two_mem G (@Classical.ofNonempty _ hE)
     exact Or.inr (Nonempty.intro v)
 
-lemma NonemptyV_of_e (G : Graph V E) [fullGraph G] (e : E) : Nonempty V := by
+lemma NonemptyV_of_e (G : Graph V E) [FullGraph G] (e : E) : Nonempty V := by
   obtain h | h := G.exist
   · exfalso
     exact IsEmpty.false e

@@ -1,7 +1,7 @@
 import Kura.Graph.Undirected
 import Mathlib.Data.Finset.Basic
 import Mathlib.Logic.OpClass
-import Kura.Examples.Defs
+import Kura.Graph.Examples
 
 
 namespace Graph

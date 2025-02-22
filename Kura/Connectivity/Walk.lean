@@ -1,6 +1,6 @@
 import Kura.Graph.Add
 import Kura.Dep.List
-import Kura.Examples.Defs
+import Kura.Graph.Examples
 
 namespace Graph
 open edge
@@ -133,6 +133,16 @@ lemma eq_start_of_mem_vertices_steps_nil (v : V) (h : v ∈ w.vertices) (hstep :
   · rfl
   · simp only [hstep, List.not_mem_nil] at H2
 
+lemma steps_getElem_fst_eq_vertices_getElem (w : Walk G) (i : ℕ) (hi : i < w.length)
+    (hi' : i < w.vertices.length) : w.steps[i].1 = w.vertices[i] := by
+  simp_rw [vertices_eq_steps_fst_finish]
+  rw [List.getElem_append_left, List.getElem_map]
+  simpa only [List.length_map, Walk.step_length_eq_length, Fin.is_lt]
+
+lemma steps_getElem_snd_snd_eq_vertices_getElem_add_one (w : Walk G) (i : ℕ) (hi : i < w.length)
+    (hi' : i + 1 < w.vertices.length) : w.steps[i].2.2 = w.vertices[i + 1] := by
+  simp only [vertices, List.getElem_cons_succ, List.getElem_map]
+
 def edges : List E := w.steps.map (·.snd.fst)
 
 lemma length_ne_zero_iff_edges_ne_nil : w.length ≠ 0 ↔ w.edges ≠ [] := by
@@ -142,12 +152,36 @@ lemma length_ne_zero_iff_edges_ne_nil : w.length ≠ 0 ↔ w.edges ≠ [] := by
 lemma edges_length : w.edges.length = w.length := by
   simp only [edges, length, List.length_map]
 
-lemma edges_get_get_vertices [Undirected G] (w : Walk G) (i : ℕ) (hi : i < w.edges.length) :
-    G.get (w.edges[i]) = (fun x => s(x.1, x.2.2)) (w.steps.get ⟨i, by rwa [edges_length] at hi⟩) := by
-  simp [edges]
-  apply get_eq_of_canGo
+@[simp]
+lemma get_edges_getElem_eq_steps_fst_ssnd [Undirected G] (w : Walk G) (i : ℕ) (hi : i < w.edges.length) :
+    G.get (w.edges[i]) = (fun x => s(x.1, x.2.2)) (w.steps[i]'(by rwa [edges_length] at hi)) := by
+  simp only [edges, List.getElem_map]
+  apply get_eq_iff_canGo.mpr
   apply w.step_spec
   exact List.getElem_mem _
+
+@[simp]
+lemma inc_edges_getElem_eq_steps_fst_ssnd [Undirected G] (w : Walk G) (i : ℕ) (hi : i < w.edges.length) :
+    G.inc (w.edges[i]) = undir ((fun x => s(x.1, x.2.2)) (w.steps[i]'(by rwa [edges_length] at hi))) := by
+  simp only [inc_eq_get, undir.injEq]
+  exact w.get_edges_getElem_eq_steps_fst_ssnd i hi
+
+lemma mem_vertices_of_mem_inc_edges (w : Walk G) {e : E} (he : e ∈ w.edges) {v : V}
+    (hv : v ∈ G.inc e) : v ∈ w.vertices := by
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem he
+  have : i < w.length := by rwa [← edges_length]
+  simp only [edges, List.getElem_map] at hv
+  have hcanGo := w.step_spec (w.steps[i]) (List.getElem_mem this)
+  obtain rfl | rfl := G.eq_of_canGo_of_mem _ _ _ _ hcanGo hv
+  · rw [vertices_eq_steps_fst_finish, ← w.steps.getElem_map (f := fun x => x.fst)]
+    apply List.mem_append_left
+    refine List.getElem_mem ?_
+    simpa only [List.length_map, step_length_eq_length]
+  · rw [vertices, ← w.steps.getElem_map (f := fun x => x.snd.snd)]
+    apply List.mem_cons_of_mem
+    refine List.getElem_mem ?_
+    simpa only [List.length_map, step_length_eq_length]
+
 
 -- same path iff same start and same edges
 
@@ -903,38 +937,13 @@ lemma append_finish (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) :
     (p₁.append p₂ hfs).finish = p₂.finish := by
   simp only [append, Walk.append_finish, startFrom_finish]
 
--- @[simp]
--- lemma mem_append_vertices (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (v : V) :
---     v ∈ (p₁.append p₂ hfs).vertices ↔ v ∈ p₁.vertices ∨ v ∈ p₂.vertices := by
---   sorry
 
--- @[simp]
--- lemma mem_append_edges (p₁ p₂ : Path G) (hfs : p₁.finish = p₂.start) (e : E) :
---     e ∈ (p₁.append p₂ hfs).edges ↔ e ∈ p₁.edges ∨ e ∈ p₂.edges := by
---   sorry
-
-
+@[simp]
 def reverse [Undirected G] (p : Path G) : Path G where
   toWalk := p.toWalk.reverse
   vNodup := by
     rw [Walk.reverse_vertices, List.nodup_reverse]
     exact p.vNodup
-
-@[simp]
-lemma reverse_start [Undirected G] (p : Path G) : (p.reverse).start = p.finish := rfl
-
-@[simp]
-lemma reverse_finish [Undirected G] (p : Path G) : (p.reverse).finish = p.start := p.toWalk.reverse_finish
-
-@[simp]
-lemma mem_reverse_vertices [Undirected G] (p : Path G) (v : V) :
-    v ∈ p.reverse.vertices ↔ v ∈ p.vertices := by
-  sorry
-
-@[simp]
-lemma mem_reverse_edges [Undirected G] (p : Path G) (e : E) :
-    e ∈ p.reverse.edges ↔ e ∈ p.edges := by
-  sorry
 
 end Path
 

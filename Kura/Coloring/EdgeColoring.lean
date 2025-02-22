@@ -1,5 +1,5 @@
 import Kura.Graph.Undirected
-import Kura.Graph.Searchable
+import Kura..Ignore.Searchable
 
 namespace Graph
 open edge Sym2

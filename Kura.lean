@@ -8,8 +8,8 @@ import Kura.Graph.Remove
 import Kura.Graph.Translation
 import Kura.Graph.Bipartite
 import Kura.Graph.Edges
-import Kura.Graph.Searchable
-import Kura.Graph.Subgraph
+import Kura..Ignore.Searchable
+import Kura.Graph.Separation
 import Kura.Connectivity.Conn
 import Kura.Connectivity.Walk
 import Kura.Connectivity.closedWalk
@@ -17,7 +17,7 @@ import Kura.Connectivity.nConn
 import Kura.Connectivity.Minor
 import Kura.Connectivity.Tree
 import Kura.Connectivity.Matroid
-import Kura.Examples.Defs
+import Kura.Graph.Examples
 import Kura.Examples.Conn
 import Kura.Planarity.Plainarity
 import Kura.Planarity.Euler

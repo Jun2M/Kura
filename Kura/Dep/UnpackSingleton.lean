@@ -58,7 +58,8 @@ lemma Sym2.ofIsDiag_mem (s : Sym2 α) (hs : s.IsDiag) : Sym2.ofIsDiag s hs ∈ s
   subst b
   simp only [ofIsDiag_pair, mem_iff, or_self]
 
-lemma Sym2.eq_ofIsDiag (s : Sym2 α) (hs : s.IsDiag) : s = s(s.ofIsDiag hs, s.ofIsDiag hs) := by
+@[simp]
+lemma Sym2.eq_ofIsDiag (s : Sym2 α) (hs : s.IsDiag) : s(s.ofIsDiag hs, s.ofIsDiag hs) = s := by
   induction' s with a b
   simp only [isDiag_iff_proj_eq] at hs
   subst b

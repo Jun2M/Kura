@@ -179,6 +179,14 @@ lemma mem_undir_iff {e : Sym2 V} {v : V} : v ∈ undir e ↔ v ∈ e := by
   simp only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero, List.foldl_cons,
     Multiset.cons_zero, List.foldl_nil, mem_toMultiset_iff]
 
+@[simp]
+lemma mem_dir_iff {a b : Option V} {v : V} : v ∈ dir (a, b) ↔ v ∈ a ∨ v ∈ b := by
+  cases a <;> cases b <;> simp only [instedgeMem, endAt, Multiset.insert_eq_cons,
+    Multiset.empty_eq_zero, List.foldl_cons, Multiset.cons_zero, List.foldl_nil,
+    Multiset.mem_singleton, Option.mem_def, eq_comm, Option.some.injEq, reduceCtorEq, or_false,
+    Multiset.mem_cons, reduceCtorEq, false_or, Multiset.not_mem_zero, or_self]
+
+
 def startAt : Multiset V := match e with
   | dir (a, _) =>
     match a with
@@ -461,6 +469,18 @@ lemma canGo_iff_eq_of_dir [DecidableEq V] (v w : V) :
   · rintro rfl
     exact dir_canGo v w
 
+lemma eq_of_canGo_of_mem [DecidableEq V] (u v w : V) (e : edge V) (he : e.canGo u v) (h : w ∈ e) :
+    u = w ∨ v = w := by
+  match e with
+  | dir (a, b) =>
+    simp only [canGo, gofrom?, Option.mem_def, Option.ite_none_right_eq_some, Bool.decide_and,
+      Bool.and_eq_true, decide_eq_true_eq] at he
+    obtain ⟨rfl, rfl⟩ := he
+    simpa only [mem_dir_iff, Option.mem_def, Option.some.injEq] using h
+  | undir s =>
+    simp only [canGo_iff_eq_of_undir] at he
+    subst s
+    simpa only [mem_undir_iff, mem_iff, eq_comm] using h
 
 @[simp]
 def flip : edge V := match e with
@@ -501,7 +521,7 @@ def any (P : V → Prop) : Prop := match e with
 @[simp]
 lemma any_iff {P : V → Prop} : e.any P ↔ (∃ v ∈ e, P v) := by match e with
   | dir (a, b) =>
-    cases a <;> cases b <;> simp_all [instedgeMem, any, Or.comm, endAt]
+    cases a <;> cases b <;> simp_all [instedgeMem, any, Or.comm, endAt, -mem_dir_iff]
   | undir s => simp only [any, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, mem_undir_iff, Sym2.any_iff]
 
@@ -512,7 +532,7 @@ def all (P : V → Prop) : Prop := match e with
 @[simp]
 lemma all_iff {P : V → Prop} : e.all P ↔ (∀ v ∈ e, P v) := by match e with
   | dir (a, b) =>
-    cases a <;> cases b <;> simp_all [instedgeMem, all, And.comm, endAt]
+    cases a <;> cases b <;> simp_all [instedgeMem, all, And.comm, endAt, -mem_dir_iff]
   | undir s => simp only [all, instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
     List.foldl_cons, Multiset.cons_zero, List.foldl_nil, mem_undir_iff, Sym2.all_iff]
 
@@ -537,8 +557,8 @@ lemma mem_map_of_mem (f : V → W) (v : V) (e : edge V) : v ∈ e → f v ∈ e.
 lemma mem_map {f : V → W} (v : W) (e : edge V) (h : v ∈ e.map f): ∃ y ∈ e, f y = v := by
   match e with
   | dir (a, b) =>
-    cases a<;> cases b<;> simp_all [instedgeMem, map, endAt]
-    rcases h with rfl | rfl <;> simp
+    cases a <;> cases b <;> simp_all [instedgeMem, map, endAt, -mem_dir_iff]
+    rcases h with rfl | rfl <;> tauto
   | undir s =>
     simp_all only [instedgeMem, endAt, Multiset.insert_eq_cons, Multiset.empty_eq_zero,
       List.foldl_cons, Multiset.cons_zero, List.foldl_nil, map, mem_toMultiset_iff,
@@ -639,9 +659,17 @@ lemma map_finishAt [DecidableEq W] {f : V → W} {e : edge V} :
 lemma map_id : e.map id = e := by
   cases e <;> simp only [map, Option.map_id_fun, id_eq, Prod.mk.eta, map_id']
 
-@[simp]
+lemma map_map {f : V → W} (g : W → U) {e : edge V} : (e.map f).map g = e.map (g ∘ f) := by
+  match e with
+  | dir (a, b) =>
+    cases a <;> cases b <;> simp only [map, Option.map_map]
+  | undir s =>
+    simp only [map, Function.comp_apply, undir.injEq]
+    rw [Sym2.map_map]
+    rfl
+
 lemma map_comp {f : V → W} (g : W → U) {e : edge V} : e.map (g ∘ f) = (e.map f).map g := by
-  cases e <;> simp only [map, Option.map_map, map_map]
+  cases e <;> simp only [map, Option.map_map, Sym2.map_map]
 
 lemma map_canGo [DecidableEq V] [DecidableEq W] (f : V → W) (v w : V) (h : e.canGo v w) :
     (e.map f).canGo (f v) (f w) := by
@@ -841,6 +869,7 @@ lemma pmap_map {P : W → Prop} {e : edge V} {f : V → W} (h : ∀ v ∈ e, P (
     simp only [map, pmap, undir.injEq]
     rfl
 
+@[simp]
 lemma pmap_eq_map {P : V → Prop} {e : edge V} (f : V → W) (h : ∀ v ∈ e, P v) :
     e.pmap (fun v _ => f v) (fun v hv => h v hv) = e.map f := by
   match e with
@@ -887,6 +916,41 @@ lemma pmap_congr {P Q : V → Prop} {e : edge V} {f : ∀ a, P a → W} {g : ∀
     simp only [pmap_undir, undir.injEq, pmap_pair]
     congr <;> apply hfg <;> simp only [mem_undir_iff, mem_iff, or_true, true_or]
 
+@[simp]
+lemma pmap_isDir_iff {P : V → Prop} {e : edge V} {f : ∀ a, P a → W} (h : ∀ v ∈ e, P v) :
+    (e.pmap f h).isDir ↔ e.isDir := by
+  match e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all only [isDir, pmap_dir, Option.pmap_none,
+    Option.pmap_some]
+  | undir _ => simp only [isDir, pmap_undir, Sym2.pmap_eq_pmap_of_imp, Bool.false_eq_true]
+
+@[simp]
+lemma pmap_isUndir_iff {P : V → Prop} {e : edge V} {f : ∀ a, P a → W} (h : ∀ v ∈ e, P v) :
+    (e.pmap f h).isUndir ↔ e.isUndir := by
+  match e with
+  | dir _ => simp only [isUndir, pmap_eq_undir_iff, Sym2.pmap_eq_pmap_of_imp, reduceCtorEq,
+    IsEmpty.exists_iff, exists_false, imp_self, implies_true, Bool.false_eq_true]
+  | undir _ => simp only [isUndir, pmap_undir, Sym2.pmap_eq_pmap_of_imp]
+
+lemma pmap_isLoop {P : V → Prop} {e : edge V} {f : ∀ a, P a → W} (h : ∀ v ∈ e, P v) (he : e.isLoop) :
+    (e.pmap f h).isLoop := by
+  match e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all only [isLoop, Bool.false_eq_true, pmap_dir,
+    Option.pmap_some]
+  | undir s =>
+    induction' s with x y
+    simp only [isLoop, isDiag_iff_proj_eq, map, map_pair_eq] at he ⊢
+    subst x
+    rfl
+
+@[simp]
+lemma pmap_isFull_iff {P : V → Prop} {e : edge V} {f : ∀ a, P a → W} (h : ∀ v ∈ e, P v) :
+    (e.pmap f h).isFull ↔ e.isFull := by
+  match e with
+  | dir (a, b) => cases a <;> cases b <;> simp_all only [isFull, pmap_dir, Option.pmap_none,
+    Option.pmap_some, Bool.false_eq_true]
+  | undir _ => simp only [isFull, pmap_undir, Sym2.pmap_eq_pmap_of_imp]
+
 -- lemma pmap_id {P : V → Prop} {e : edge V} (h : ∀ v ∈ e, P v) : e.pmap (fun a _ => a) h = e := by
 --   cases e <;> simp only [pmap, dir.injEq, undir.injEq]
 
@@ -926,7 +990,7 @@ lemma eq_ofIsLoop_of_undir {e : edge V} (he : e.isLoop) (heUndir : e.isUndir) :
     e = undir s(ofIsLoop e he, ofIsLoop e he) := match e with
   | undir s => by
     simp only [undir_isLoop_iff, undir.injEq] at he ⊢
-    nth_rewrite 1 [Sym2.eq_ofIsDiag s he]
+    nth_rewrite 1 [← Sym2.eq_ofIsDiag s he]
     congr
 
 lemma canGo_ofIsLoop [DecidableEq V] {e : edge V} (he : e.isLoop) :

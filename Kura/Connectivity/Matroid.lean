@@ -9,10 +9,11 @@ variable {V W E F : Type*} [DecidableEq V] (G : Graph V E) [DecidableEq E]
 
 def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
   E := Set.univ
-  Circuit C := ∃ (Cyc : G.Cycle), Cyc.edges.toFinset = C
-  empty_not_circuit := by
+  IsCircuit C := ∃ (Cyc : G.Cycle), Cyc.edges.toFinset = C
+  empty_not_isCircuit := by
     simp only [List.toFinset_eq_empty_iff, not_exists]
     rintro Cyc
+    simp only [Walk.edges, List.map_eq_nil_iff, ne_eq]
     exact Cyc.stepsNeNil
   circuit_antichain := by
     simp only [IsAntichain, Set.Pairwise, Set.mem_setOf_eq, ne_eq, Pi.compl_apply, compl_iff_not,
@@ -21,6 +22,7 @@ def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
     have hssub : Cyc1.edges.toFinset ⊂ Cyc2.edges.toFinset :=
       HasSubset.Subset.ssubset_of_ne hsub hne
     clear hsub hne
+    
     sorry
   circuit_elimination C₁ C₂ e hC₁ hC₂ hne hmemInter := by
     obtain ⟨Cyc₁, rfl⟩ := hC₁
