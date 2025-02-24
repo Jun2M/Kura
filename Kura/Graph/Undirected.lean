@@ -111,7 +111,7 @@ lemma Hom.get (A : G ⊆ᴳ H) (e : E) : H.get (A.fₑ e) = (G.get e).map A.fᵥ
   have := A.inc e
   rwa [inc_eq_get, inc_eq_get, edge.map_undir, undir.injEq] at this
 
-lemma canGo_symm [DecidableEq V] : G.canGo u e v = G.canGo v e u := by
+lemma canGo_comm [DecidableEq V] : G.canGo u e v = G.canGo v e u := by
   simp only [canGo, inc_eq_undir_v12]
   rw [← canGo_flip, flip_self]
 
@@ -150,7 +150,7 @@ lemma mem_incEE_of_both_mem_incVE [DecidableEq V] (hne : e ≠ e') (h : e ∈ G.
   exact Multiset.ne_zero_of_mem <| Multiset.mem_inter.mpr ⟨ h, h' ⟩
 
 lemma adj_comm [DecidableEq V] : G.adj u v ↔ G.adj v u := by
-  simp only [adj, canGo_symm]
+  simp only [adj, canGo_comm]
 
 omit [Undirected H] in
 lemma Emb.Undirected' (hGH : H ⊆ᴳ G) : Undirected H where

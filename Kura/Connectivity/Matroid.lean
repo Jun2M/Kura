@@ -22,7 +22,43 @@ def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
     have hssub : Cyc1.edges.toFinset ⊂ Cyc2.edges.toFinset :=
       HasSubset.Subset.ssubset_of_ne hsub hne
     clear hsub hne
-    
+    have ⟨H1, H2⟩ := hssub
+    rw [Finset.ssubset_iff_exists_cons_subset] at hssub
+    obtain ⟨e, he, hsu⟩ := hssub
+    let iₑ : Fin (Cyc2.edges.length) := sorry
+    let G₁ := (Cyc1.CycleGraph_Emb).toHom.range
+    let G₂ := (Cyc2.CycleGraph_Emb).toHom.range
+    let G₂' := G.toSubgraph G₂.Sᵥ (G₂.Sₑ \ {e}) ?_
+
+    have hG₁' : G₁ ≤ G₂' := by
+      rw [Subgraph.le_iff]
+      constructor
+      · unfold G₂'
+        rw [toSubgraph_val_Sᵥ]
+        sorry
+      · unfold G₂' G₂ G₁
+        rw [toSubgraph_val_Sₑ, Set.subset_diff_singleton_iff]
+        simp only [Cycle.CycleGraph_Emb, Closed.exist_CycleGraph_Hom, Hom.range_Sₑ, Set.mem_range,
+          not_exists]
+        constructor
+        · rintro f hf
+          simp only [Set.mem_range] at hf ⊢
+          obtain ⟨y, rfl⟩ := hf
+          specialize H1 (by simp only [Fin.getElem_fin, List.mem_toFinset, List.getElem_mem]: Cyc1.edges[y] ∈ _)
+          simp only [Fin.getElem_fin, List.mem_toFinset] at H1
+          obtain ⟨z, hzlt, hz⟩ := List.getElem_of_mem H1
+          use z
+          convert hz
+          simp only [Walk.edges_length] at hzlt
+          rw [Fin.val_natCast, Nat.mod_eq_of_lt hzlt]
+        · rintro x rfl
+          simp only [List.mem_toFinset, List.getElem_mem, not_true_eq_false] at he
+
+    apply ((PathGraph_acyclic (Cyc2.length-1)) Cyc1.length inferInstance).false
+    refine Emb.trans (?_) (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph Cyc2.length iₑ).toEmb
+    refine (Cycle.CycleGraph_Emb G Cyc1).range_Isom.toEmb.trans ?_
+    refine (Subgraph.Emb_of_le hG₁').trans ?_
+    sorry
     sorry
   circuit_elimination C₁ C₂ e hC₁ hC₂ hne hmemInter := by
     obtain ⟨Cyc₁, rfl⟩ := hC₁

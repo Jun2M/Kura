@@ -322,34 +322,45 @@ def CycleGraph_Emb [Undirected G] (C : G.Cycle) :
 --     · convert C.steps_getElem_snd_snd_eq_vertices_getElem_add_one e.val _ _
 
 
--- def OfPathEndsAdj (P : G.Path) (e : E) (he : G.canGo P.finish e P.start) (h : [e] ≠ P.edges) : G.Cycle where
---   toClosed := Closed.ofWalkEndAdj G P.toWalk e he
---   vNodup' := by
---     simp only [Closed.ofWalkEndAdj_vertices, ne_eq, Walk.vertices_ne_nil, not_false_eq_true,
---       List.tail_append_of_ne_nil]
---     rw [List.IsRotated.nodup_iff]
---     exact P.vNodup
---     convert List.IsRotated.forall _ 1
---     rw [List.rotate_eq_drop_append_take (by simp only [Walk.vertices_length, le_add_iff_nonneg_left,
---       zero_le])]
---     simp only [List.drop_one, List.append_cancel_left_eq, List.take_one, Walk.vertices]
---     rfl
---   eNodup' := by
---     simp only [Closed.ofWalkEndAdj, Walk.append_edges, Walk.some_edges]
---     rw [List.nodup_append]
---     simp []
---   eNonempty := by
---     simp only [Closed.ofWalkEndAdj, Walk.some_edges, ne_eq, List.cons_ne_self, not_false_eq_true]
-
+def OfPathEndsAdj (P : G.Path) (e : E) (he : G.canGo P.finish e P.start) (h : e ∉ P.edges) :
+    G.Cycle where
+  toClosed := Closed.ofWalkEndAdj P.toWalk e he
+  vNodup' := by
+    simp only [Closed.ofWalkEndAdj_vertices, ne_eq, Walk.vertices_ne_nil, not_false_eq_true,
+      List.tail_append_of_ne_nil]
+    rw [List.IsRotated.nodup_iff]
+    exact P.vNodup
+    convert List.IsRotated.forall _ 1
+    rw [List.rotate_eq_drop_append_take (by simp only [Walk.vertices_length, le_add_iff_nonneg_left,
+      zero_le])]
+    simp only [List.drop_one, List.append_cancel_left_eq, List.take_one, Walk.vertices]
+    rfl
+  eNodup' := by
+    simp only [Closed.ofWalkEndAdj, Walk.append_edges, Walk.some_edges]
+    rw [List.nodup_append]
+    simp only [P.edges_nodup, List.nodup_cons, List.not_mem_nil, not_false_eq_true, List.nodup_nil,
+      and_self, List.disjoint_singleton, h]
 
 lemma not_simple_of_length_two {C : G.Cycle} (hC : C.length = 2) : ¬ G.Simple := by
   rintro hSimple
   obtain hInj := hSimple.inc_inj
   rw [← Walk.edges_length, List.length_eq_two] at hC
   obtain ⟨e1, e2, H⟩ := hC
+  have hlen : C.length = 2 := by
+    rw [← Walk.edges_length, H]
+    rfl
   specialize @hInj e1 e2 ?_
   · rw [inc_eq_get, inc_eq_get, undir.injEq]
-    sorry
+    have h1 := C.step_spec' 0 (by simp only [Nat.pos_of_neZero_simp])
+    simp only [H, List.getElem_cons_zero, zero_add, ← get_eq_iff_canGo] at h1
+    have h2 := C.step_spec' 1 (by omega)
+    simp only [H, List.getElem_cons_succ, List.getElem_cons_zero, Nat.reduceAdd, ←
+      get_eq_iff_canGo] at h2
+    simp only [h1, h2, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk, and_true]
+    right
+    convert C.startFinish
+    rw [Walk.finish, ← List.getElem_length_sub_one_eq_getLast _ (Nat.lt_add_one (C.vertices.length - 1))]
+    simp only [Walk.vertices_length, hlen, Nat.reduceAdd, Nat.add_one_sub_one]
   subst e2
   exact List.not_nodup_pair _ (H ▸ C.eNodup')
 

@@ -5,6 +5,12 @@ import Kura.Dep.Embedding
 namespace Option
 
 
+@[simp]
+lemma none_ne_some {α : Type u} (a : α) : none ≠ some a := nofun
+
+@[simp]
+lemma some_ne_none_simp {α : Type u} (a : α) : some a ≠ none := nofun
+
 def toMultiset {α : Type u} : Option α → Multiset α
   | none => ∅
   | some a => {a}
@@ -99,6 +105,19 @@ lemma pmap_eq_pmap_of_imp {P Q : α → Prop} {o : Option α} {f : ∀ a, Q a �
   match o with
   | none => rfl
   | some a => rfl
+
+
+lemma pmap_eq_pmap_iff_of_inj {P : α → Prop} {o1 o2 : Option α} {f : ∀ a, P a → β} (h1 : ∀ a ∈ o1, P a)
+    (h2 : ∀ a ∈ o2, P a) (hf : ∀ a ha b hb, f a ha = f b hb → a = b) :
+    o1.pmap f h1 = o2.pmap f h2 ↔ o1 = o2 := by
+  constructor
+  · rintro h
+    cases o1 <;> cases o2 <;> simp_all only [pmap_none, pmap_some, mem_def, pmap_none, some.injEq,
+      none_ne_some, some_ne_none]
+    rename_i a b
+    apply hf _ _ _ _ h
+  · rintro rfl
+    rfl
 
 -- def propOrFalse {α : Type u} (p : α → Prop) : Option α → Prop :=
 --   fun o => o.elim False p

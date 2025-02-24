@@ -103,7 +103,9 @@ lemma conn.PathEmb [Undirected G] {u v : V} (huv : G.conn u v) : ∃ (n : ℕ) (
     simp at hb
     obtain ⟨e, he⟩ := hadj
     let T : (PathGraph 1) ⊆ᴳ G := ⟨⟨(if · = 0 then a else b), (fun _ => e),
-      by simpa [PathGraph] using he⟩,
+      by simpa only [inc_eq_get, Nat.reduceAdd, Fin.isValue, Fin.ext_iff', Fin.val_zero, PathGraph,
+        Fin.val_eq_zero, Nat.cast_zero, zero_add, map_undir, Sym2.map_pair_eq, ↓reduceIte,
+        Fin.val_one, one_ne_zero, undir.injEq, get_eq_iff_canGo, forall_const] using he⟩,
       fun v w hvw ↦ by fin_cases v <;> fin_cases w <;> simp_all,
       fun e f hef ↦ by fin_cases e; fin_cases f; simp_all⟩
     use n + 1
@@ -153,10 +155,11 @@ lemma conn.Subgraph {G : Graph V E} [Undirected G] (S : Subgraph G) :
     ∀ u v, S.val.conn u v → G.conn u v := by
   rintro a b h
   obtain ⟨n, T, hTstart, hTfinish⟩ := h.PathEmb
-  refine OfPathEmb (T.trans S.val_Emb) ?_ ?_
-  · simp only [Emb.trans_fᵥ, Subgraph.val_Emb_fᵥ, Function.comp_apply, hTstart]
-  · simp only [Fin.natCast_eq_last, Emb.trans_fᵥ, Subgraph.val_Emb_fᵥ, Function.comp_apply,
-    hTfinish]
+  refine OfPathEmb (T.trans (S.toGraph_Emb _ _)) ?_ ?_
+  · simp only [Emb.trans_fᵥ, Subgraph.toGraph_Emb_fᵥ, Equiv.refl_symm, Equiv.coe_refl,
+    CompTriple.comp_eq, Function.comp_apply, hTstart]
+  · simp only [Fin.natCast_eq_last, Emb.trans_fᵥ, Subgraph.toGraph_Emb_fᵥ, Equiv.refl_symm,
+    Equiv.coe_refl, CompTriple.comp_eq, Function.comp_apply, hTfinish]
 
 
 def conn' (G : Graph V E) [Undirected G] : Sym2 V → Prop := Sym2.lift ⟨G.conn, fun a b ↦ by rw [conn_comm]⟩
@@ -275,6 +278,7 @@ lemma NumberOfComponents_eq_card_V [Fintype V] [IsEmpty E] [Fintype E] (G : Grap
   convert Equiv.Quotient_bot
   apply connSetoid_eq_bot_of_IsEmpty_E
 
+
 lemma NumberOfComponents_le_one [Fintype V] [Fintype E] (G : Graph V E) [Undirected G] [G.connected] :
     G.NumberOfComponents ≤ 1 := by
   unfold NumberOfComponents
@@ -289,11 +293,12 @@ lemma NumberOfComponents_eq_one [Fintype V] [Fintype E] [Nonempty V] (G : Graph 
   exact not_isEmpty_of_nonempty V
 
 lemma NumberOfComponents_le_NumberOfComponents_of_conn_ge_conn [Fintype V] [Fintype E] (S T : Set E)
-    [Undirected G] (h : G{T}ᴳ.conn ≤ G{S}ᴳ.conn) :
-    G{S}ᴳ.NumberOfComponents ≤ G{T}ᴳ.NumberOfComponents := by
+    [Undirected G] (h : G{T}ᴳ.val.conn ≤ G{S}ᴳ.val.conn) :
+    G{S}ᴳ.val.NumberOfComponents ≤ G{T}ᴳ.val.NumberOfComponents := by
   unfold NumberOfComponents
-  convert Quotient.card_quotient_le_card_quotient_of_ge
-    (?_ : (G.Es T).connSetoid ≤ (G.Es S).connSetoid)
+  convert Quotient.card_quotient_le_card_quotient_of_ge ?_
+  infer_instance
+  infer_instance
   exact h
 
 lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.card E = 0):
@@ -311,18 +316,24 @@ lemma VSubsingletonofConnectedEcardZero [Fintype E] [G.connected] (hE : Fintype.
     exact hE.false e
 
 lemma Es_subgraph_conn_eq_conn_iff {G : Graph V E} [Undirected G] {S : Set E}
-  (hS : ∀ e ∉ S, G{S}ᴳ.conn (G.v1 e) (G.v2 e)) (u v : V) :
-    G{S}ᴳ.conn u v ↔ G.conn u v := by
-  let G' := G{S}ᴳ
-  let hSubgraph : G' ⊆ᴳ G := (Es_spanningsubgraph G S).toEmb
+  (hS : ∀ e ∉ S, (G{S}ᴳ.valEs rfl).conn (G.v1 e) (G.v2 e)) (u v : V) :
+    (G{S}ᴳ.valEs rfl).conn u v ↔ G.conn u v := by
+  let G' := G{S}ᴳ.valEs rfl
+  let hSubgraph : G' ⊆ᴳ G := (G{S}ᴳ).toGraph_Emb _ _
   have := hSubgraph.Undirected'
-  have hadj : G'.adj ≤ G.adj := fun _ _ => hSubgraph.adj
+  have hadj : G'.adj ≤ G.adj := by
+    intro a b h
+    have := hSubgraph.adj h
+    simpa only [Subgraph.toGraph_Emb_fᵥ, Es_val_Sᵥ, Function.comp_apply, Equiv.Set.univ_symm_apply,
+      hSubgraph, G'] using this
+
   have hconn : G'.conn ≤ G.conn := Relation.ReflTransClosure.monotone hadj
 
   have hadj' : G.adj ≤ G'.conn := by
     rintro a b ⟨e', he'⟩
     by_cases h : e' ∈ S
-    · have : G'.adj a b := ⟨⟨e', by simp only [Set.mem_compl_iff, h, not_false_eq_true]⟩, he'⟩
+    · have : G'.adj a b := ⟨⟨e', by simp only [Set.mem_compl_iff, h, not_false_eq_true]⟩, by
+        rwa [← hSubgraph.canGo_iff]⟩
       exact Relation.ReflTransGen.single this
     · simp only [canGo, inc_eq_undir_v12, canGo_iff_eq_of_undir, Sym2.eq, Sym2.rel_iff',
         Prod.mk.injEq, Prod.swap_prod_mk] at he'
@@ -350,12 +361,12 @@ lemma not_connected_of_Sᵥ_not_adj (Sᵥ : Set V) (hSᵥadj : ∀ u v, u ∈ S�
 
 
 lemma PathGraph_Es_not_conn_le_lt (n : ℕ) (e : Fin n) (v w : Fin (n+1)) (hv : v.val ≤ e.val) (hw : e.val < w.val) :
-    ¬ (PathGraph n){{e}ᶜ}ᴳ.conn v w := by
+    ¬ ((PathGraph n){{e}ᶜ}ᴳ.valEs rfl).conn v w := by
   apply not_connected_of_Sᵥ_not_adj {i | i.val ≤ e.val} ?_ _ _ hv
   · simpa only [Set.mem_compl_iff, Set.mem_setOf_eq, not_le]
   · rintro x y hx hy h; clear hv hw v w
     simp only [Set.mem_setOf_eq, Set.mem_compl_iff, not_le] at hx hy
-    have h'' := (PathGraph n).Es_spanningsubgraph {e}ᶜ |>.toEmb.adj h
+    have h'' := ((PathGraph n){{e}ᶜ}ᴳ.toGraph_Emb _ _).adj h
     simp at h''
     rw [PathGraph.adj_iff (by omega)] at h''
     rw [← h''] at hy
@@ -364,20 +375,26 @@ lemma PathGraph_Es_not_conn_le_lt (n : ℕ) (e : Fin n) (v w : Fin (n+1)) (hv : 
     obtain ⟨f, hf⟩ := h
     apply f.2
     rw [Set.mem_singleton_iff, ← get_inj_iff (G := PathGraph n)]
-    have h' := (PathGraph n).Es_spanningsubgraph {e}ᶜ |>.toEmb.canGo hf
-    simp only [Es_spanningsubgraph_fᵥ, id_eq, Es_spanningsubgraph_fₑ, PathGraph.canGo_iff] at h'
+    have h' := ((PathGraph n){{e}ᶜ}ᴳ.toGraph_Emb _ _).canGo hf
+    simp only [Subgraph.toGraph_Emb_fᵥ, Es_val_Sᵥ, Function.comp_apply, Equiv.Set.univ_symm_apply,
+      Subgraph.toGraph_Emb_fₑ, Es_val_Sₑ, Equiv.refl_symm, Equiv.coe_refl, id_eq,
+      PathGraph.canGo_iff, -Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Fin.ext_iff', Fin.coe_castSucc,
+      Fin.val_succ, Prod.swap_prod_mk] at h'
     rw [PathGraph_get f.val, h', PathGraph_get]
-    simp
+    simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Fin.ext_iff', Fin.coe_castSucc, Fin.val_succ,
+      Prod.swap_prod_mk]
     left
     rw [← h'', this]
     tauto
 
-lemma PathGraph_Es_not_conn {n : ℕ} {e : Fin n} : ¬ (PathGraph n){{e}ᶜ}ᴳ.connected := by
+lemma PathGraph_Es_not_conn {n : ℕ} {e : Fin n} : ¬ ((PathGraph n){{e}ᶜ}ᴳ.valEs rfl).connected := by
   intro _
-  apply PathGraph_Es_not_conn_le_lt n e e.castSucc e.succ (by simp) (by simp)
-  exact (PathGraph n){{e}ᶜ}ᴳ.all_conn e.castSucc e.succ
+  apply PathGraph_Es_not_conn_le_lt n e e.castSucc e.succ (by simp only [Fin.coe_castSucc, le_refl])
+    (by simp only [Fin.val_succ, lt_add_iff_pos_right, Nat.lt_one_iff, pos_of_gt])
+  exact ((PathGraph n){{e}ᶜ}ᴳ.valEs rfl).all_conn e.castSucc e.succ
 
-lemma PathGraph_Es_not_conn_get {n : ℕ} {e : Fin n} : ¬ (PathGraph n){{e}ᶜ}ᴳ.conn' ((PathGraph n).get e) := by
+lemma PathGraph_Es_not_conn_get {n : ℕ} {e : Fin n} : ¬ ((PathGraph n){{e}ᶜ}ᴳ.valEs rfl).conn'
+    ((PathGraph n).get e) := by
   rw [PathGraph_get, conn'_pair]
   apply PathGraph_Es_not_conn_le_lt n e _ _ (by simp) (by simp)
 
@@ -410,10 +427,10 @@ instance instEdgelessGraphConnected (n : ℕ) [Fact (n < 2)] : (EdgelessGraph (F
   all_conn u v := by have : n < 2 := Fact.out; interval_cases n <;> rw [Subsingleton.allEq u v] <;>
     apply conn.refl
 
-lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph (Fin n)).connected := by
+lemma EdgelessGraph_not_conn (n : ℕ) (u v : Fin n) (huv : u ≠ v) :
+    ¬ (EdgelessGraph (Fin n)).conn u v := by
   intro h
-  obtain ⟨u, v, huv⟩ := Fin.nontrivial_iff_two_le.mpr hn
-  obtain ⟨P, rfl, rfl⟩ := (h.all_conn u v).path
+  obtain ⟨P, rfl, rfl⟩ := h.path
   by_cases hPlen : P.length = 0
   · rw [P.length_zero_iff_eq_nil] at hPlen
     rw [hPlen] at huv
@@ -421,133 +438,143 @@ lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph (
   · obtain e := P.edges.head ((Walk.length_ne_zero_iff_edges_ne_nil P.toWalk).mp hPlen)
     exact e.elim
 
+lemma EdgelessGraph_not_connected (n : ℕ) (hn : 2 ≤ n) : ¬ (EdgelessGraph (Fin n)).connected := by
+  intro h
+  obtain ⟨u, v, huv⟩ := Fin.nontrivial_iff_two_le.mpr hn
+  apply EdgelessGraph_not_conn n u v huv
+  exact h.all_conn u v
 
-instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected := by
-  sorry
+instance instCompleteGraphConnected (n : ℕ) : (CompleteGraph n).connected where
+  all_conn u v := by
+    by_cases h : u = v
+    · subst v
+      exact conn.refl (CompleteGraph n) u
+    · apply conn.ofAdj
+      exact CompleteGraph.adj.mpr h
 
 instance instCompleteBipGraphConnected (n₁ n₂ : ℕ+) : (CompleteBipGraph n₁ n₂).connected := by
   sorry
 
-/--
-cut is a vertex cut
-edgeCut is an edge cut
--/
-def isCutBetween (u v : V) (S : Set V) : Prop :=
-    ∃ (hu : u ∉ S) (hv : v ∉ S), G.conn u v ∧ ¬ (G[Sᶜ]ᴳ).conn ⟨u, hu⟩ ⟨v, hv⟩
+-- /--
+-- cut is a vertex cut
+-- edgeCut is an edge cut
+-- -/
+-- def isCutBetween (u v : V) (S : Set V) : Prop :=
+--     ∃ (hu : u ∉ S) (hv : v ∉ S), G.conn u v ∧ ¬ (G[Sᶜ]ᴳ).conn ⟨u, hu⟩ ⟨v, hv⟩
 
-def isCut (S : Set V) : Prop := ∃ (u v : V), G.isCutBetween u v S
+-- def isCut (S : Set V) : Prop := ∃ (u v : V), G.isCutBetween u v S
 
-def isMinimalCut (S : Set V) : Prop := Minimal (G.isCut ·) S
+-- def isMinimalCut (S : Set V) : Prop := Minimal (G.isCut ·) S
 
-lemma cut_of_minCut (S : Set V) (h : G.isMinimalCut S) : G.isCut S := by
-  unfold isMinimalCut Minimal at h
-  exact h.1
+-- lemma cut_of_minCut (S : Set V) (h : G.isMinimalCut S) : G.isCut S := by
+--   unfold isMinimalCut Minimal at h
+--   exact h.1
 
-lemma empty_not_cut : ¬ G.isCut ∅ := by
-  rintro ⟨ u', v', _hu', _hv', ⟨hConn, hnConn⟩⟩
-  apply hnConn
-  convert G.Vs_empty_compl.symm.conn hConn <;> simp only [all, Vs_empty_compl, Isom.symm_fᵥ,
-    Isom.trans_fᵥEquiv, Vs_congr_fᵥEquiv, Vs_univ_fᵥEquiv, Equiv.symm_trans_apply,
-    Equiv.setCongr_symm, Equiv.Set.univ_symm_apply, Equiv.setCongr_apply]
+-- lemma empty_not_cut : ¬ G.isCut ∅ := by
+--   rintro ⟨ u', v', _hu', _hv', ⟨hConn, hnConn⟩⟩
+--   apply hnConn
+--   convert G.Vs_empty_compl.symm.conn hConn <;> simp only [all, Vs_empty_compl, Isom.symm_fᵥ,
+--     Isom.trans_fᵥEquiv, Vs_congr_fᵥEquiv, Vs_univ_fᵥEquiv, Equiv.symm_trans_apply,
+--     Equiv.setCongr_symm, Equiv.Set.univ_symm_apply, Equiv.setCongr_apply]
 
-structure connectivityBetween (u v : V) (k : ℕ) where
-  P : Finset G.Path
-  hPcard : P.card = k
-  hPstart : ∀ p ∈ P, p.start = u
-  hPfinish : ∀ p ∈ P, p.finish = v
-  hPdisjoint : ⋂ p ∈ P, p.vertices.toFinset = {u, v}
+-- structure connectivityBetween (u v : V) (k : ℕ) where
+--   P : Finset G.Path
+--   hPcard : P.card = k
+--   hPstart : ∀ p ∈ P, p.start = u
+--   hPfinish : ∀ p ∈ P, p.finish = v
+--   hPdisjoint : ⋂ p ∈ P, p.vertices.toFinset = {u, v}
 
-def connectivity (G : Graph V E) (k : ℕ) : Prop := ∀ u v, Nonempty <| G.connectivityBetween u v k
+-- def connectivity (G : Graph V E) (k : ℕ) : Prop := ∀ u v, Nonempty <| G.connectivityBetween u v k
 
-lemma connectivityBetween_le_cutBetween (u v : V) {X : Finset V} (hX : G.isCutBetween u v X) :
-    IsEmpty <| G.connectivityBetween u v (X.card + 1) := by
-  by_contra! h
-  simp only [not_isEmpty_iff] at h
-  obtain ⟨P, hPcard, hPstart, hPfinish, hPdisjoint⟩ := h
-  obtain ⟨hu, hv, hconn, hnConn⟩ := hX
-  have hPexist : ∃ p ∈ P, Disjoint p.vertices.toFinset X := by
-    by_contra! h
-    simp_rw [Finset.not_disjoint_iff_nonempty_inter] at h
-    unfold Finset.Nonempty at h
-    sorry
-  obtain ⟨p, hp, hDisjoint⟩ := hPexist
-  sorry
-
--- lemma Menger (n : ℕ) : (∃ (S : Finset V), S.card = n ∧ G.minCut S) ↔
---     ∃ (SP : Finset G.Path), SP.card = n ∧
-
-def edgeCut' (S : Set E) : Prop :=
-  ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
-
-@[simp]
-def edgeCut (S : Set E) : Prop := ∃ u v, G.conn u v ∧ ¬ G{Sᶜ}ᴳ.conn u v
-
-lemma edgeCut_of_not_conn (S : Set E) (u v : V) (hG : G.conn u v)
-  (hGS : ¬ G{Sᶜ}ᴳ.conn u v) : G.edgeCut S := ⟨ u, v, hG, hGS ⟩
-
-lemma empty_not_edgeCut (G : Graph V E) : ¬ G.edgeCut ∅ := by
-  rintro ⟨ u', v', hG', hGS ⟩
-  apply hGS
-  have : (∅ : Set E)ᶜ = Set.univ := by
-    simp only [Set.compl_empty]
-  convert (G.Es_congr this |>.trans G.Es_univ).symm.conn hG' <;>
-  simp only [Isom.symm_fᵥ, Isom.trans_fᵥEquiv, Es_congr_fᵥEquiv, Es_univ_fᵥEquiv,
-    Equiv.trans_refl, Equiv.refl_symm, Equiv.refl_apply]
-
-lemma edgeCut_upward_closed {S T : Set E} (hST : S ⊆ T) (hCut : G.edgeCut S) : G.edgeCut T := by
-  unfold edgeCut at hCut ⊢
-  contrapose! hCut
-  intro u v hG
-  obtain ⟨P, hPstart, hPfinish⟩ := (hCut u v hG).path
-  obtain ⟨P', hP'start, hP'finish⟩ : ∃ P' : (G.Es Sᶜ).Path, P'.start = u ∧ P'.finish = v := by
-    have hSTset : (T : Set E)ᶜ ⊆ (↑S)ᶜ := Set.compl_subset_compl_of_subset hST
-    use (G.Es_spanningsubgraph_Es_of_subset hSTset).Path P
-    simp only [Es_spanningsubgraph_Es_of_subset, Emb.Path_start, hPstart, id_eq,
-      Emb.Path_finish, hPfinish, and_self]
-  rw [← hP'start, ← hP'finish]
-  exact conn.ofPath P'
-
-def bridge (e : E) : Prop := G.connected ∧ G.edgeCut {e}
-
-def minEdgeCut (S : Set E) : Prop :=
-  Minimal (G.edgeCut ·) S
-
-lemma edgeCut_of_minEdgeCut (S : Set E) (h : G.minEdgeCut S) : G.edgeCut S := by
-  unfold minEdgeCut Minimal at h
-  exact h.1
-
-lemma empty_not_minEdgeCut : ¬ G.minEdgeCut ∅ := by
-  rintro ⟨ hCut, _hMin ⟩
-  exact empty_not_edgeCut _ hCut
-
--- def isolatingEdgeCut [Searchable G] (v : V) := G.incEdges v
-
--- lemma incEdges_edgeCut (v : V) [Nontrivial V] [Searchable G] [DecidableEq E] :
---     G.edgeCut (G.incEdges v).toFinset := by
---   simp only [edgeCut]
---   obtain ⟨w, hw⟩ := exists_ne v
+-- lemma connectivityBetween_le_cutBetween (u v : V) {X : Finset V} (hX : G.isCutBetween u v X) :
+--     IsEmpty <| G.connectivityBetween u v (X.card + 1) := by
+--   by_contra! h
+--   simp only [not_isEmpty_iff] at h
+--   obtain ⟨P, hPcard, hPstart, hPfinish, hPdisjoint⟩ := h
+--   obtain ⟨hu, hv, hconn, hnConn⟩ := hX
+--   have hPexist : ∃ p ∈ P, Disjoint p.vertices.toFinset X := by
+--     by_contra! h
+--     simp_rw [Finset.not_disjoint_iff_nonempty_inter] at h
+--     unfold Finset.Nonempty at h
+--     sorry
+--   obtain ⟨p, hp, hDisjoint⟩ := hPexist
 --   sorry
 
-lemma bridge_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
-  unfold minEdgeCut Minimal
-  obtain ⟨ _, hCut⟩ := h
-  refine ⟨ hCut, ?_ ⟩
-  rintro S hS Sle
-  have : S.Nonempty := by
-    by_contra! h
-    subst h
-    exact empty_not_edgeCut _ hS
-  simp_all only [edgeCut, Set.le_eq_subset, Set.subset_singleton_iff, Set.singleton_subset_iff]
-  obtain ⟨a, ha⟩ := this
-  convert ha
-  exact (Sle a ha).symm
+-- -- lemma Menger (n : ℕ) : (∃ (S : Finset V), S.card = n ∧ G.minCut S) ↔
+-- --     ∃ (SP : Finset G.Path), SP.card = n ∧
 
-class NEdgeConnected (n : ℕ) extends connected G where
-  no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
+-- def edgeCut' (S : Set E) : Prop :=
+--   ∃ u v, G.conn u v ∧ ∀ w : Walk G, w.start = u ∧ w.finish = v → ∃ e ∈ S, e ∈ w.edges
 
-def ball (u : V) (n : ℕ) : Set V :=
-  {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
+-- @[simp]
+-- def edgeCut (S : Set E) : Prop := ∃ u v, G.conn u v ∧ ¬ G{Sᶜ}ᴳ.conn u v
 
-class NConnected [FullGraph G] (n : ℕ) : Prop where
-  all_conn : ∀ u v : V, conn G u v
-  h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected
+-- lemma edgeCut_of_not_conn (S : Set E) (u v : V) (hG : G.conn u v)
+--   (hGS : ¬ G{Sᶜ}ᴳ.conn u v) : G.edgeCut S := ⟨ u, v, hG, hGS ⟩
+
+-- lemma empty_not_edgeCut (G : Graph V E) : ¬ G.edgeCut ∅ := by
+--   rintro ⟨ u', v', hG', hGS ⟩
+--   apply hGS
+--   have : (∅ : Set E)ᶜ = Set.univ := by
+--     simp only [Set.compl_empty]
+--   convert (G.Es_congr this |>.trans G.Es_univ).symm.conn hG' <;>
+--   simp only [Isom.symm_fᵥ, Isom.trans_fᵥEquiv, Es_congr_fᵥEquiv, Es_univ_fᵥEquiv,
+--     Equiv.trans_refl, Equiv.refl_symm, Equiv.refl_apply]
+
+-- lemma edgeCut_upward_closed {S T : Set E} (hST : S ⊆ T) (hCut : G.edgeCut S) : G.edgeCut T := by
+--   unfold edgeCut at hCut ⊢
+--   contrapose! hCut
+--   intro u v hG
+--   obtain ⟨P, hPstart, hPfinish⟩ := (hCut u v hG).path
+--   obtain ⟨P', hP'start, hP'finish⟩ : ∃ P' : (G.Es Sᶜ).Path, P'.start = u ∧ P'.finish = v := by
+--     have hSTset : (T : Set E)ᶜ ⊆ (↑S)ᶜ := Set.compl_subset_compl_of_subset hST
+--     use (G.Es_spanningsubgraph_Es_of_subset hSTset).Path P
+--     simp only [Es_spanningsubgraph_Es_of_subset, Emb.Path_start, hPstart, id_eq,
+--       Emb.Path_finish, hPfinish, and_self]
+--   rw [← hP'start, ← hP'finish]
+--   exact conn.ofPath P'
+
+-- def bridge (e : E) : Prop := G.connected ∧ G.edgeCut {e}
+
+-- def minEdgeCut (S : Set E) : Prop :=
+--   Minimal (G.edgeCut ·) S
+
+-- lemma edgeCut_of_minEdgeCut (S : Set E) (h : G.minEdgeCut S) : G.edgeCut S := by
+--   unfold minEdgeCut Minimal at h
+--   exact h.1
+
+-- lemma empty_not_minEdgeCut : ¬ G.minEdgeCut ∅ := by
+--   rintro ⟨ hCut, _hMin ⟩
+--   exact empty_not_edgeCut _ hCut
+
+-- -- def isolatingEdgeCut [Searchable G] (v : V) := G.incEdges v
+
+-- -- lemma incEdges_edgeCut (v : V) [Nontrivial V] [Searchable G] [DecidableEq E] :
+-- --     G.edgeCut (G.incEdges v).toFinset := by
+-- --   simp only [edgeCut]
+-- --   obtain ⟨w, hw⟩ := exists_ne v
+-- --   sorry
+
+-- lemma bridge_minEdgeCut (e: E) (h: G.bridge e) : G.minEdgeCut {e} := by
+--   unfold minEdgeCut Minimal
+--   obtain ⟨ _, hCut⟩ := h
+--   refine ⟨ hCut, ?_ ⟩
+--   rintro S hS Sle
+--   have : S.Nonempty := by
+--     by_contra! h
+--     subst h
+--     exact empty_not_edgeCut _ hS
+--   simp_all only [edgeCut, Set.le_eq_subset, Set.subset_singleton_iff, Set.singleton_subset_iff]
+--   obtain ⟨a, ha⟩ := this
+--   convert ha
+--   exact (Sle a ha).symm
+
+-- class NEdgeConnected (n : ℕ) extends connected G where
+--   no_small_cut : ∀ S : Finset E, S.card < n → ¬ G.edgeCut S
+
+-- def ball (u : V) (n : ℕ) : Set V :=
+--   {v | ∃ w : Walk G, w.start = u ∧ w.length ≤ n ∧ w.finish = v}
+
+-- class NConnected [FullGraph G] (n : ℕ) : Prop where
+--   all_conn : ∀ u v : V, conn G u v
+--   h : ∀ S : Finset V, S.card ≤ n → G[Sᶜ]ᴳ.connected

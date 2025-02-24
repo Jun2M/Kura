@@ -295,6 +295,39 @@ lemma pmap_eq_pmap_of_imp {P Q : α → Prop} {s : Sym2 α} {f : ∀ a, Q a → 
   induction' s with x y
   simp only [pmap_pair]
 
+lemma pmap_eq_pmap_iff_of_inj {P : α → Prop} {s1 s2 : Sym2 α} {f : ∀ a, P a → β}
+    (hP1 : ∀ a ∈ s1, P a) (hP2 : ∀ a ∈ s2, P a) (hf : ∀ a ha b hb, f a ha = f b hb → a = b) :
+    s1.pmap f hP1 = s2.pmap f hP2 ↔ s1 = s2 := by
+  constructor
+  · intro h
+    induction' s1 with x y
+    induction' s2 with x' y'
+    simp only [Sym2.eq, rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+    simp only [pmap_pair, Sym2.eq, rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at h
+    rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · left
+      refine ⟨hf x ?_ x' ?_ h1, hf y ?_ y' ?_ h2⟩
+      · apply hP1
+        simp only [mem_iff, true_or]
+      · apply hP2
+        simp only [mem_iff, true_or]
+      · apply hP1
+        simp only [mem_iff, or_true]
+      · apply hP2
+        simp only [mem_iff, or_true]
+    · right
+      refine ⟨hf x ?_ y' ?_ h1, hf y ?_ x' ?_ h2⟩
+      · apply hP1
+        simp only [mem_iff, true_or]
+      · apply hP2
+        simp only [mem_iff, or_true]
+      · apply hP1
+        simp only [mem_iff, or_true]
+      · apply hP2
+        simp only [mem_iff, true_or]
+  · rintro rfl
+    rfl
+
 def IsDiag_equiv (α : Type*) : {e : Sym2 α // e.IsDiag} ≃ α where
   toFun e := Sym2.ofIsDiag e e.2
   invFun a := ⟨s(a, a), by simp⟩

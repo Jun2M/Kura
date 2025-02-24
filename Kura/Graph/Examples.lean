@@ -27,6 +27,9 @@ instance instEdgelessGraphSimple : Simple (EdgelessGraph V) where
   edge_symm e := e.elim
   inc_inj e := e.elim
 
+lemma EdgelessGraph.adj [DecidableEq W] {u v : W} : ¬ (EdgelessGraph W).adj u v := by
+  simp only [Graph.adj, IsEmpty.exists_iff, not_false_eq_true]
+
 def EdgelessGraph_Emb (fᵥ : W ↪ V) : EdgelessGraph W ⊆ᴳ G where
   fᵥ := fᵥ
   fₑ := Empty.elim
@@ -60,6 +63,16 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
     simp only [CompleteGraph, undir.injEq] at h
     exact Subtype.eq h
 
+@[simp]
+lemma CompleteGraph.adj {n : ℕ} {u v : Fin n} : (CompleteGraph n).adj u v ↔ u ≠ v := by
+  constructor
+  · rintro ⟨e, h⟩
+    simp [CompleteGraph, canGo] at h
+    have := h ▸ e.prop
+    rwa [Sym2.mk_isDiag_iff] at this
+  · intro h
+    use ⟨s(u, v), by simp only [Sym2.isDiag_iff_proj_eq, h, not_false_eq_true]⟩
+    simp only [canGo, CompleteGraph, undir_canGo]
 
 /-- `PathGraph` constructs a path graph with n+1 vertices and n edges.
     A path graph is a graph where vertices are arranged in a line, with each vertex connected to its
@@ -390,8 +403,8 @@ lemma CycleGraph_rotate_symm_fₑ (n : ℕ) [NeZero n] (k : Fin n) : (CycleGraph
   apply_fun (CycleGraph.rotate n k).fₑ using (CycleGraph.rotate n k).fₑinj
   simp only [Isom.fₑ_symm_fₑ, CycleGraph_rotate_fₑ, sub_add_cancel]
 
-def CycleGraph.toPathGraph (n : ℕ) [NeZero n] : (CycleGraph n |>.toSubgraph Set.univ {-1}ᶜ (by
-    simp)).val ≃ᴳ PathGraph (n-1) where
+def CycleGraph.toPathGraph (n : ℕ) [NeZero n] :
+    (CycleGraph n){{-1}ᶜ}ᴳ.valEs rfl ≃ᴳ PathGraph (n-1) where
   fᵥ v := ⟨v.val, by simp only [Fin.val_last', toSubgraph_val_Sᵥ, Nat.sub_one_add_one_eq_self,
     Fin.is_lt]⟩
   fₑ e := ⟨e.val, by
@@ -400,11 +413,11 @@ def CycleGraph.toPathGraph (n : ℕ) [NeZero n] : (CycleGraph n |>.toSubgraph Se
       Set.mem_singleton_iff, Fin.ext_iff'] at this
     omega⟩
   inc e := by
-    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Fin.val_last',
-      toSubgraph_val_Sₑ, Fin.castSucc_mk, Fin.succ_mk, toSubgraph_val_Sᵥ, Subgraph.val_inc,
-      inc_eq_get, CycleGraph_get, pmap_undir, Sym2.pmap_eq_pmap_of_imp, Sym2.pmap_pair, map_undir,
-      Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Fin.ext_iff', true_and,
-      Prod.swap_prod_mk, add_right_eq_self, one_ne_zero, and_false, or_false]
+    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Fin.castSucc_mk, Fin.succ_mk,
+      Subgraph.valEs, Subgraph.toGraph, CycleGraph, Es_val_Sᵥ, Equiv.Set.univ_apply, Es_val_Sₑ,
+      Equiv.refl_symm, Equiv.refl_apply, pmap_undir, Sym2.pmap_eq_pmap_of_imp, Sym2.pmap_pair,
+      map_undir, Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Fin.ext_iff',
+      true_and, Prod.swap_prod_mk, add_right_eq_self, one_ne_zero, and_false, or_false]
     have := e.prop
     simp only [Fin.neg_one_eq_last', toSubgraph_val_Sₑ, -Fin.val_last', Set.mem_compl_iff,
       Set.mem_singleton_iff, -Fin.ext_iff'] at this
@@ -445,14 +458,10 @@ lemma CycleGraph_toPathGraph_fₑ (n : ℕ) [NeZero n] : (CycleGraph.toPathGraph
 
 @[simp]
 lemma CycleGraph_toPathGraph_symm_fᵥ (n : ℕ) [NeZero n] : (CycleGraph.toPathGraph n).symm.fᵥ =
-    fun v ↦ ⟨v.val, by simp only [Fin.neg_one_eq_last', toSubgraph_val_Sᵥ, Set.mem_univ]⟩ := by
+    fun v ↦ ⟨v.val, by nth_rw 2 [← Nat.sub_one_add_one_eq_self n]; exact v.prop⟩ := by
   ext1 v
   apply_fun (CycleGraph.toPathGraph n).fᵥ using (CycleGraph.toPathGraph n).fᵥinj
   simp only [Isom.fᵥ_symm_fᵥ, CycleGraph_toPathGraph_fᵥ, Fin.ext_iff']
-  apply (Fin.val_cast_of_lt _).symm
-  have := v.prop
-  nth_rw 2 [Nat.sub_add_cancel NeZero.one_le] at this
-  exact this
 
 @[simp]
 lemma CycleGraph_toPathGraph_symm_fₑ (n : ℕ) [NeZero n] : (CycleGraph.toPathGraph n).symm.fₑ =
@@ -468,22 +477,95 @@ lemma CycleGraph_toPathGraph_symm_fₑ (n : ℕ) [NeZero n] : (CycleGraph.toPath
   exact e.prop.trans (Nat.sub_lt NeZero.one_le Nat.one_pos)
 
 def CycleGraph_Subgraph_singleton_comple_Isom_PathGraph (n : ℕ) [NeZero n] (i : Fin n) :
-    (CycleGraph n |>.toSubgraph Set.univ {i}ᶜ (by simp only [Set.mem_compl_iff,
-      Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get, mem_undir_iff, Sym2.mem_iff,
-      Set.mem_univ, implies_true])).val ≃ᴳ PathGraph (n-1) := by
-  let a := (CycleGraph n).toSubgraph Set.univ {i}ᶜ (by
-    simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get,
-      mem_undir_iff, Sym2.mem_iff, Set.mem_univ, implies_true])
-  let b := (CycleGraph n).toSubgraph Set.univ {-1}ᶜ (by
-    simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get,
-      mem_undir_iff, Sym2.mem_iff, Set.mem_univ, implies_true])
-  refine (a.Isom_of_equivOfIsom (CycleGraph.rotate n (-i - 1)) b ?_).trans
-    (CycleGraph.toPathGraph n)
-  ext x <;> simp only [Subgraph.equivOfIsom, CycleGraph_rotate_fᵥ, Set.image_add_right, neg_sub,
-    sub_neg_eq_add, CycleGraph_rotate_fₑ, CycleGraph_rotate_symm_fᵥ, CycleGraph_rotate_symm_fₑ,
-    Equiv.coe_fn_mk, toSubgraph_val_Sᵥ, Set.preimage_univ, toSubgraph_val_Sₑ, Set.preimage_compl,
-    Set.preimage_add_right_singleton, neg_add_rev, Fin.neg_one_eq_last', add_neg_cancel_left,
-    Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', Fin.val_last', a, b]
+    (CycleGraph n){{i}ᶜ}ᴳ.valEs rfl ≃ᴳ PathGraph (n-1) := by
+  let a := (CycleGraph n){{i}ᶜ}ᴳ
+  let b := (CycleGraph n){{-1}ᶜ}ᴳ
+  refine a.toGraph_Isom_toGraph.trans <|
+    (a.Isom_of_equivOfIsom (CycleGraph.rotate n (-i - 1)) b ?_).trans
+    (b.toGraph_Isom_toGraph.trans (CycleGraph.toPathGraph n))
+  ext x <;> simp only [Fin.neg_one_eq_last', Es_val_Sᵥ, Set.mem_univ, Subgraph.mapByHom,
+    CycleGraph_rotate_fᵥ, Set.image_add_right, neg_sub, sub_neg_eq_add, Set.preimage_univ,
+    CycleGraph_rotate_fₑ, Es_val_Sₑ, Set.preimage_compl, Set.preimage_add_right_singleton,
+    neg_add_rev, add_neg_cancel_left, b, a]
+
+@[simp]
+lemma CycleGraph_Subgraph_singleton_comple_Isom_PathGraph_fᵥ (n : ℕ) [NeZero n] (i : Fin n) :
+    (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).fᵥ =
+    fun v ↦ (v - i - 1).cast (Nat.sub_one_add_one_eq_self n).symm := by
+  ext1 v
+  simp only [Subgraph.valEs, CycleGraph_Subgraph_singleton_comple_Isom_PathGraph, Es_val_Sᵥ,
+    Es_val_Sₑ, Subgraph.Isom_of_equivOfIsom, Subgraph.Emb_of_mapByHom, CycleGraph.rotate,
+    Isom.trans_fᵥ, CycleGraph_toPathGraph_fᵥ, Subgraph.toGraph_Isom_toGraph_fᵥ, Equiv.refl_symm,
+    Equiv.refl_trans, Subgraph.Hom_of_mapByHom_fᵥ, Equiv.trans_refl, Function.comp_apply,
+    Equiv.Set.univ_symm_apply, Equiv.Set.univ_apply, Fin.ext_iff', Fin.coe_cast]
+  ring_nf
+
+@[simp]
+lemma CycleGraph_Subgraph_singleton_comple_Isom_PathGraph_fₑ (n : ℕ) [NeZero n] (i : Fin n) :
+    (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).fₑ =
+    fun e ↦ (e.val - i - 1).castPred (by
+    have := e.prop
+    simp only [Set.mem_compl_iff, Set.mem_singleton_iff, -Fin.ext_iff'] at this
+    contrapose! this
+    simp only [Fin.ext_iff', Fin.val_natCast, Nat.sub_one_add_one_eq_self, Fin.val_last] at this
+    rwa [← Fin.val_last', Nat.mod_eq_of_lt (by simp only [Fin.is_lt]), ← Fin.ext_iff,
+      ← Fin.neg_one_eq_last', sub_toss_eq, neg_add_cancel, sub_toss_eq, zero_add] at this) := by
+  ext1 v
+  simp only [Subgraph.valEs, CycleGraph_Subgraph_singleton_comple_Isom_PathGraph, Es_val_Sᵥ,
+    Es_val_Sₑ, Subgraph.Isom_of_equivOfIsom, Subgraph.Emb_of_mapByHom, CycleGraph.rotate,
+    Isom.trans_fₑ, CycleGraph_toPathGraph_fₑ, Fin.val_last', toSubgraph_val_Sₑ,
+    Subgraph.Hom_of_mapByHom_fₑ, Subgraph.toGraph_Isom_toGraph_fₑ, Equiv.refl_symm,
+    Equiv.trans_refl, Equiv.coe_refl, Function.comp_apply, id_eq, Fin.ext_iff', Fin.coe_castPred,
+    Fin.val_natCast, Nat.sub_one_add_one_eq_self]
+  rw [Nat.mod_eq_of_lt (by simp only [Fin.is_lt]), ← Fin.ext_iff]
+  ring
+
+@[simp]
+lemma CycleGraph_Subgraph_singleton_comple_Isom_PathGraph_symm_fᵥ (n : ℕ) [NeZero n] (i : Fin n) :
+    (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).symm.fᵥ =
+    fun v ↦ (v.cast (Nat.sub_one_add_one_eq_self n) + 1 + i ) := by
+  ext1 v
+  apply_fun (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).fᵥ
+  simp only [Subgraph.valEs, Isom.fᵥ_symm_fᵥ,
+    CycleGraph_Subgraph_singleton_comple_Isom_PathGraph_fᵥ, add_sub_cancel_right, Fin.cast_trans,
+    Fin.cast_eq_self]
+  · exact (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).fᵥinj
+
+@[simp]
+lemma CycleGraph_Subgraph_singleton_comple_Isom_PathGraph_symm_fₑ (n : ℕ) [NeZero n] (i : Fin n) :
+    (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).symm.fₑ =
+    fun e ↦ ⟨(e.castSucc + 1 + i), by
+    simp only [Fin.coe_castSucc, Set.mem_compl_iff, Set.mem_singleton_iff, add_left_eq_self,
+      -Fin.ext_iff', Fin.val_zero]
+    rw [Fin.add_one_eq_zero_iff]
+    simp only [Fin.ext_iff', Fin.val_natCast, Fin.val_last']
+    rw [Nat.mod_eq_of_lt (by omega)]
+    exact e.prop.ne⟩ := by
+  ext1 v
+  apply_fun (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).fₑ
+  simp only [Subgraph.valEs, Isom.fₑ_symm_fₑ, Fin.coe_castSucc,
+    CycleGraph_Subgraph_singleton_comple_Isom_PathGraph_fₑ, add_sub_cancel_right, Fin.val_natCast,
+    Fin.ext_iff', Fin.coe_castPred, Nat.sub_one_add_one_eq_self, dvd_refl, Nat.mod_mod_of_dvd]
+  rw [Nat.mod_eq_of_lt (by omega)]
+  · exact (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph n i).fₑinj
+
+
+-- def CycleGraph_Subgraph_singleton_comple_Isom_PathGraph (n : ℕ) [NeZero n] (i : Fin n) :
+--     (CycleGraph n |>.toSubgraph Set.univ {i}ᶜ (by simp only [Set.mem_compl_iff,
+--       Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get, mem_undir_iff, Sym2.mem_iff,
+--       Set.mem_univ, implies_true])).val ≃ᴳ PathGraph (n-1) := by
+--   let a := (CycleGraph n).toSubgraph Set.univ {i}ᶜ (by
+--     simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get,
+--       mem_undir_iff, Sym2.mem_iff, Set.mem_univ, implies_true])
+--   let b := (CycleGraph n).toSubgraph Set.univ {-1}ᶜ (by
+--     simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get,
+--       mem_undir_iff, Sym2.mem_iff, Set.mem_univ, implies_true])
+--   refine (a.Isom_of_equivOfIsom (CycleGraph.rotate n (-i - 1)) b ?_).trans
+--     (CycleGraph.toPathGraph n)
+--   ext x <;> simp only [Fin.neg_one_eq_last', toSubgraph_val_Sᵥ, Set.mem_univ, Subgraph.mapByHom,
+--     CycleGraph_rotate_fᵥ, Set.image_add_right, neg_sub, sub_neg_eq_add, Set.preimage_univ,
+--     CycleGraph_rotate_fₑ, toSubgraph_val_Sₑ, Set.preimage_compl, Set.preimage_add_right_singleton,
+--     neg_add_rev, add_neg_cancel_left, b, a]
 
 -- def CycleGraph_Isom_PathGraph_addUndirEdge (n : ℕ) {m : ℕ} [NeZero m] (hm : m = n + 1) :
 --     (CycleGraph m).Isom (PathGraph n |>.addUndirEdge s(0, Fin.last _)) where
@@ -511,7 +593,7 @@ def CycleGraph_Subgraph_singleton_comple_Isom_PathGraph (n : ℕ) [NeZero n] (i 
 --   fᵥsurj _ := by subst m; simp only [Nat.succPNat_coe, Nat.succ_eq_add_one, Fin.cast_eq_self,
 --     Fin.ext_iff', exists_apply_eq_apply]
 --   fₑsurj e := by
---     subst m
+--     subst mn
 --     simp
 --     match e with
 --     | Sum.inl e =>

@@ -259,6 +259,18 @@ lemma last'_add_one_eq_zero {n : ℕ} [NeZero n] : last' n + 1 = 0 := by
   subst n
   exact last_add_one _
 
+lemma add_one_eq_zero_iff {n : ℕ} [NeZero n] (k : Fin n) : k + 1 = 0 ↔ k = last' n := by
+  constructor
+  · obtain ⟨m, hm⟩ := Nat.exist_of_NeZero n
+    subst n
+    exact eq_last_of_add_one_val_eq_zero
+  · rintro rfl
+    exact last'_add_one_eq_zero
+
+lemma cast_last_to_last {n m : ℕ} [NeZero m] (h : n + 1 = m) : (last n).cast h = last' m := by
+  simp only [ext_iff', coe_cast, val_last, val_last']
+  omega
+
 def singleton_comple_equiv_pred' {m : ℕ} [NeZero m]:
     ({-1}ᶜ : Set (Fin m)).Elem ≃ Fin (m - 1) where
   toFun x := x.val.castPred (by

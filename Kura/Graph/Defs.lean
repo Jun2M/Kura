@@ -33,7 +33,7 @@ unsafe instance [Repr V] [Fintype E] : Repr (Graph V E) where
 @[simp] abbrev finishAt : Multiset V := (G.inc e).finishAt
 @[simp] abbrev gofrom? [DecidableEq V] (v : V) (e : E): Option V := (G.inc e).gofrom? v
 @[simp] abbrev goback? [DecidableEq V] (v : V) (e : E) : Option V := (G.inc e).goback? v
-@[simp] abbrev canGo [DecidableEq V] (v : V) (e : E) (w : V) : Bool := (G.inc e).canGo v w
+abbrev canGo [DecidableEq V] (v : V) (e : E) (w : V) : Bool := (G.inc e).canGo v w
 @[simp] abbrev flip : edge V := (G.inc e).flip
 @[simp] abbrev any := (G.inc e).any
 @[simp] abbrev all := (G.inc e).all
@@ -679,95 +679,150 @@ lemma ext {S T : Subgraph G} (hS : S.Sᵥ = T.Sᵥ) (hT : S.Sₑ = T.Sₑ) : S =
   simp only [mk.injEq]
   exact ⟨hS, hT⟩
 
-@[coe]
-def val (S : Subgraph G) : Graph S.Sᵥ S.Sₑ where
-  inc e := edge.pmap Subtype.mk (G.inc e) (S.spec e.val e.prop)
-
-instance instCoeSubgraph (S : Subgraph G): CoeDep (Subgraph G) S (Graph S.Sᵥ S.Sₑ) where
-  coe := S.val
-
-@[simp]
-lemma val_inc (S : Subgraph G) {e : S.Sₑ} :
-    S.val.inc e = edge.pmap Subtype.mk (G.inc e.val) (S.spec e.val e.prop) := rfl
-
-def val_Emb (S : Subgraph G) : S.val ⊆ᴳ G where
-  fᵥ := Subtype.val
-  fₑ := Subtype.val
-  inc e := by simp only [val_inc, pmap_subtype_map_val]
-  fᵥinj v w h := SetCoe.ext h
-  fₑinj e f h := SetCoe.ext h
-
-@[simp]
-lemma val_Emb_fᵥ (S : Subgraph G) : (S.val_Emb).fᵥ = Subtype.val := rfl
-
-@[simp]
-lemma val_Emb_fₑ (S : Subgraph G) : (S.val_Emb).fₑ = Subtype.val := rfl
-
-instance instValFullGraph [FullGraph G] (S : Subgraph G) : FullGraph S.val where
-  all_full v := by
-    simp only [isFull, val_inc, pmap_isFull_iff]
-    exact all_full G v
-
-instance instValUndirected [Undirected G] (S : Subgraph G) : Undirected S.val where
-  edge_symm e := by
-    simp [val_inc]
-    exact edge_symm G e
-
-instance instValLoopless [Loopless G] (S : Subgraph G) : Loopless S.val where
-  no_loops e := by
-    simp only [isLoop, edge.isLoop, val_inc, -Sym2.isDiag_iff_out_fst_eq_out_snd,
-      Bool.false_eq_true]
-    split
-    · rename_i x v w h
-      simp only [pmap_eq_dir, Option.pmap_eq_some_iff, exists_and_left, exists_eq_subtype_mk_iff,
-        exists_eq_right', exists_prop, exists_eq_right, exists_eq_left] at h
-      rw [← Subtype.val_inj]
-      have := no_loops G e.val
-      simpa only [ne_eq, isLoop, edge.isLoop, h] using this
-    · rename_i x s h
-      simp only [pmap_eq_undir_iff, Sym2.pmap_eq_pmap_of_imp] at h
-      obtain ⟨t, ht, rfl⟩ := h
-      induction' t with a b
-      simp only [Sym2.pmap_pair, Sym2.isDiag_iff_proj_eq, Subtype.mk.injEq]
-      have := no_loops G e.val
-      simpa only [ne_eq, isLoop, edge.isLoop, ht, Sym2.isDiag_iff_proj_eq] using this
-    tauto
-
-instance instValSimple [Simple G] (S : Subgraph G) : Simple S.val where
-  edge_symm e := by simp only [isUndir, val_inc, pmap_isUndir_iff, edge_symm G]
-  inc_inj e f h := by
-    ext
-    simpa only [val_inc, subtype_eq, pmap_subtype_map_val, (inc_inj G).eq_iff] using h
-
-instance instValDirected [Directed G] (S : Subgraph G) : Directed S.val where
-  no_undir e := by
-    simp only [isUndir, val_inc, pmap_isUndir_iff]
-    exact no_undir G e
-
 def toGraph (S : Subgraph G) {V' E' : Type _} (hSv : S.Sᵥ.Elem ≃ V') (hSe : S.Sₑ.Elem ≃ E') :
     Graph V' E' where
   inc e :=
     let e' : S.Sₑ.Elem := hSe.symm e
     edge.pmap (fun a b => hSv (Subtype.mk a b)) (G.inc e') (S.spec e'.val e'.prop)
 
-def val_Isom_toGraph (S : Subgraph G) {V' E' : Type*} (hSv : S.Sᵥ.Elem ≃ V') (hSe : S.Sₑ.Elem ≃ E') :
-    S.val ≃ᴳ S.toGraph hSv hSe where
-  fᵥ v := hSv v
-  fₑ e := hSe e
+@[coe]
+abbrev val (S : Subgraph G) : Graph S.Sᵥ S.Sₑ := S.toGraph (Equiv.refl _) (Equiv.refl _)
+
+instance instCoeSubgraph (S : Subgraph G): CoeDep (Subgraph G) S (Graph S.Sᵥ S.Sₑ) where
+  coe := S.val
+
+def toGraph_Isom_toGraph (S : Subgraph G) {V' V'' E' E'' : Type*} {hSv1 : S.Sᵥ.Elem ≃ V'}
+    {hSv2 : S.Sᵥ.Elem ≃ V''} {hSe1 : S.Sₑ.Elem ≃ E'} {hSe2 : S.Sₑ.Elem ≃ E''} :
+    S.toGraph hSv1 hSe1 ≃ᴳ S.toGraph hSv2 hSe2 where
+  fᵥ v := hSv2 (hSv1.symm v)
+  fₑ e := hSe2 (hSe1.symm e)
   inc e := by
-    simp [toGraph, val]
-    rw [edge.map_pmap]
+    simp only [toGraph, Equiv.symm_apply_apply, edge.map_pmap]
     apply edge.pmap_eq_pmap_of_imp
   fᵥinj v w h := by simpa only [EmbeddingLike.apply_eq_iff_eq] using h
   fₑinj e f h := by simpa only [EmbeddingLike.apply_eq_iff_eq] using h
   fᵥsurj v := by
     simp only [Subtype.exists]
-    use hSv.symm v, Subtype.coe_prop (hSv.symm v)
-    simp only [Subtype.coe_prop, Subtype.coe_eta, Equiv.apply_symm_apply]
+    use hSv1 (hSv2.symm v), (by rw [Equiv.symm_apply_apply, Equiv.apply_symm_apply])
   fₑsurj e := by
     simp only [Subtype.exists]
-    use hSe.symm e, Subtype.coe_prop (hSe.symm e)
-    simp only [Subtype.coe_prop, Subtype.coe_eta, Equiv.apply_symm_apply]
+    use hSe1 (hSe2.symm e), (by rw [Equiv.symm_apply_apply, Equiv.apply_symm_apply])
+
+@[simp]
+lemma toGraph_Isom_toGraph_fᵥ (S : Subgraph G) {V' V'' E' E'' : Type*} {hSv1 : S.Sᵥ.Elem ≃ V'}
+    {hSv2 : S.Sᵥ.Elem ≃ V''} {hSe1 : S.Sₑ.Elem ≃ E'} {hSe2 : S.Sₑ.Elem ≃ E''} :
+    (S.toGraph_Isom_toGraph (hSv1 := hSv1) (hSv2 := hSv2) (hSe1 := hSe1) (hSe2 := hSe2)).fᵥ =
+    hSv1.symm.trans hSv2 := rfl
+
+@[simp]
+lemma toGraph_Isom_toGraph_fₑ (S : Subgraph G) {V' V'' E' E'' : Type*} {hSv1 : S.Sᵥ.Elem ≃ V'}
+    {hSv2 : S.Sᵥ.Elem ≃ V''} {hSe1 : S.Sₑ.Elem ≃ E'} {hSe2 : S.Sₑ.Elem ≃ E''} :
+    (S.toGraph_Isom_toGraph (hSv1 := hSv1) (hSv2 := hSv2) (hSe1 := hSe1) (hSe2 := hSe2)).fₑ =
+    hSe1.symm.trans hSe2 := rfl
+
+@[simp]
+lemma toGraph_Isom_toGraph_symm_fᵥ (S : Subgraph G) {V' V'' E' E'' : Type*} {hSv1 : S.Sᵥ.Elem ≃ V'}
+    {hSv2 : S.Sᵥ.Elem ≃ V''} {hSe1 : S.Sₑ.Elem ≃ E'} {hSe2 : S.Sₑ.Elem ≃ E''} :
+    (S.toGraph_Isom_toGraph (hSv1 := hSv1) (hSv2 := hSv2) (hSe1 := hSe1) (hSe2 := hSe2)).symm.fᵥ =
+    hSv2.symm.trans hSv1 := by
+  ext1 v
+  apply_fun (S.toGraph_Isom_toGraph (hSv1 := hSv1) (hSv2 := hSv2) (hSe1 := hSe1) (hSe2 := hSe2)).fᵥ
+  simp only [Isom.fᵥ_symm_fᵥ, Equiv.trans_apply, toGraph_Isom_toGraph_fᵥ, Equiv.symm_apply_apply,
+    Equiv.apply_symm_apply]
+  exact S.toGraph_Isom_toGraph.fᵥinj
+
+@[simp]
+lemma toGraph_Isom_toGraph_symm_fₑ (S : Subgraph G) {V' V'' E' E'' : Type*} {hSv1 : S.Sᵥ.Elem ≃ V'}
+    {hSv2 : S.Sᵥ.Elem ≃ V''} {hSe1 : S.Sₑ.Elem ≃ E'} {hSe2 : S.Sₑ.Elem ≃ E''} :
+    (S.toGraph_Isom_toGraph (hSv1 := hSv1) (hSv2 := hSv2) (hSe1 := hSe1) (hSe2 := hSe2)).symm.fₑ =
+    hSe2.symm.trans hSe1 := by
+  ext1 e
+  apply_fun (S.toGraph_Isom_toGraph (hSv1 := hSv1) (hSv2 := hSv2) (hSe1 := hSe1) (hSe2 := hSe2)).fₑ
+  simp only [Isom.fₑ_symm_fₑ, Equiv.trans_apply, toGraph_Isom_toGraph_fₑ, Equiv.symm_apply_apply,
+    Equiv.apply_symm_apply]
+  exact S.toGraph_Isom_toGraph.fₑinj
+
+noncomputable def toGraph_Emb (S : Subgraph G) {V' E' : Type*} (hSv : S.Sᵥ.Elem ≃ V')
+    (hSe : S.Sₑ.Elem ≃ E') : S.toGraph hSv hSe ⊆ᴳ G where
+  fᵥ := Subtype.val ∘ hSv.symm
+  fₑ := Subtype.val ∘ hSe.symm
+  inc e := by simp only [Function.comp_apply, toGraph, map_pmap, Equiv.symm_apply_apply,
+    pmap_eq_map, map_id']
+  fᵥinj v w h := by simpa only [Function.comp_apply, Subtype.val_injective.eq_iff,
+    EmbeddingLike.apply_eq_iff_eq] using h
+  fₑinj e f h := by simpa only [Function.comp_apply, Subtype.val_injective.eq_iff,
+    EmbeddingLike.apply_eq_iff_eq] using h
+
+@[simp]
+lemma toGraph_Emb_fᵥ (S : Subgraph G) {V' E' : Type*} (hSv : S.Sᵥ.Elem ≃ V') (hSe : S.Sₑ.Elem ≃ E') :
+    (S.toGraph_Emb hSv hSe).fᵥ = Subtype.val ∘ hSv.symm := by
+  ext1 v
+  simp only [toGraph_Emb, Function.comp_apply]
+
+@[simp]
+lemma toGraph_Emb_fₑ (S : Subgraph G) {V' E' : Type*} (hSv : S.Sᵥ.Elem ≃ V') (hSe : S.Sₑ.Elem ≃ E') :
+    (S.toGraph_Emb hSv hSe).fₑ = Subtype.val ∘ hSe.symm := by
+  ext1 e
+  simp only [toGraph_Emb, Function.comp_apply]
+
+@[simp]
+lemma val_inc (S : Subgraph G) {e : S.Sₑ} :
+    S.val.inc e = edge.pmap Subtype.mk (G.inc e.val) (S.spec e.val e.prop) := rfl
+
+instance insttoGraphFullGraph [FullGraph G] (S : Subgraph G) {V' E' : Type*} {hSv : S.Sᵥ.Elem ≃ V'}
+    {hSe : S.Sₑ.Elem ≃ E'} : FullGraph (S.toGraph hSv hSe) where
+  all_full v := by
+    simp only [isFull, toGraph, pmap_isFull_iff]
+    exact all_full G _
+
+instance insttoGraphUndirected [Undirected G] (S : Subgraph G) {V' E' : Type*} {hSv : S.Sᵥ.Elem ≃ V'}
+    {hSe : S.Sₑ.Elem ≃ E'} : Undirected (S.toGraph hSv hSe) where
+  edge_symm e := by
+    simp only [isUndir, toGraph, pmap_isUndir_iff]
+    exact edge_symm G _
+
+instance insttoGraphLoopless [Loopless G] (S : Subgraph G) {V' E' : Type*} {hSv : S.Sᵥ.Elem ≃ V'}
+    {hSe : S.Sₑ.Elem ≃ E'} : Loopless (S.toGraph hSv hSe) where
+  no_loops e := by
+    simp only [isLoop, edge.isLoop, toGraph, Bool.false_eq_true]
+    split
+    · rename_i x v w h
+      simp only [pmap_eq_dir, Option.pmap_eq_some_iff, exists_and_left, exists_eq_subtype_mk_iff,
+        exists_eq_right', exists_prop, exists_eq_right, exists_eq_left] at h
+      obtain ⟨_, ⟨b, rfl, hbSᵥ, rfl⟩, ⟨_, hinc, c, rfl, hcsᵥ, rfl⟩⟩ := h
+      simp only [EmbeddingLike.apply_eq_iff_eq, Subtype.mk.injEq]
+      have := no_loops G (hSe.symm e)
+      simpa only [ne_eq, isLoop, edge.isLoop, hinc] using this
+    · rename_i x s h
+      simp only [pmap_eq_undir_iff, Sym2.pmap_eq_pmap_of_imp] at h
+      obtain ⟨t, ht, rfl⟩ := h
+      induction' t with a b
+      simp only [Sym2.pmap_pair, Sym2.isDiag_iff_proj_eq, EmbeddingLike.apply_eq_iff_eq,
+        Subtype.mk.injEq]
+      have := no_loops G (hSe.symm e)
+      simpa only [ne_eq, isLoop, edge.isLoop, ht, Sym2.isDiag_iff_proj_eq] using this
+    tauto
+
+instance insttoGraphSimple [Simple G] (S : Subgraph G) {V' E' : Type*} {hSv : S.Sᵥ.Elem ≃ V'}
+    {hSe : S.Sₑ.Elem ≃ E'} : Simple (S.toGraph hSv hSe) where
+  edge_symm e := by simp only [isUndir, toGraph, pmap_isUndir_iff, edge_symm G]
+  inc_inj e f h := by
+    apply_fun hSe.symm
+    ext
+    simp only [toGraph] at h
+    rwa [pmap_eq_pmap_iff_of_inj ?_ ?_ ?_, Simple.inc_inj.eq_iff] at h
+    · apply S.spec
+      exact Subtype.coe_prop (hSe.symm e)
+    · apply S.spec
+      exact Subtype.coe_prop (hSe.symm f)
+    · intro a ha b hb h
+      simpa only [EmbeddingLike.apply_eq_iff_eq, Subtype.mk.injEq] using h
+
+instance insttoGraphDirected [Directed G] (S : Subgraph G) {V' E' : Type*} {hSv : S.Sᵥ.Elem ≃ V'}
+    {hSe : S.Sₑ.Elem ≃ E'} : Directed (S.toGraph hSv hSe) where
+  no_undir e := by
+    simp only [isUndir, toGraph, pmap_isUndir_iff]
+    exact no_undir G (hSe.symm e)
 
 instance instLatticeSubgraph : Lattice (Subgraph G) where
   le S T := S.Sᵥ ⊆ T.Sᵥ ∧ S.Sₑ ⊆ T.Sₑ
@@ -810,6 +865,8 @@ instance instLatticeSubgraph : Lattice (Subgraph G) where
     obtain ⟨hTᵥ, hTₑ⟩ := hTU
     simp only [not_and, Set.subset_inter_iff, hSᵥ, hTᵥ, and_self, hSₑ, hTₑ]
 
+lemma le_iff {S T : Subgraph G} : S ≤ T ↔ S.Sᵥ ⊆ T.Sᵥ ∧ S.Sₑ ⊆ T.Sₑ := by rfl
+
 /-- Complement in terms of edge set-/
 instance instSubgraphCompl : HasCompl (Subgraph G) where
   compl S := ⟨G.incEsV S.Sₑᶜ , S.Sₑᶜ, (by
@@ -824,13 +881,78 @@ def Emb_of_le {S T : Subgraph G} (hST : S ≤ T) : S.val ⊆ᴳ T.val where
   fᵥinj v w h := by simpa [Subtype.mk.injEq] using h
   fₑinj e f h := by simpa [Subtype.mk.injEq] using h
 
-noncomputable def equivOfIsom (A : G ≃ᴳ H) : G.Subgraph ≃ H.Subgraph where
-  toFun G' := ⟨A.fᵥ '' G'.Sᵥ, A.fₑ '' G'.Sₑ, by
-    rintro e he v hv
+@[simp]
+def mapByHom (A : G.Hom H) (S : G.Subgraph) : H.Subgraph where
+  Sᵥ := A.fᵥ '' S.Sᵥ
+  Sₑ := A.fₑ '' S.Sₑ
+  spec e he v hv := by
     obtain ⟨e', he', rfl⟩ := he
     rw [A.inc e', mem_map_iff] at hv
     obtain ⟨v', hv', rfl⟩ := hv
-    use v', G'.spec e' he' v' hv'⟩
+    use v', S.spec e' he' v' hv'
+
+def Hom_of_mapByHom (A : G.Hom H) (S : G.Subgraph) (T : H.Subgraph) (hT : T = mapByHom A S) :
+    S.val.Hom T.val where
+  fᵥ v := ⟨A.fᵥ v, by
+    subst T
+    simp only [mapByHom, Set.mem_image]
+    use v
+    simp only [Subtype.coe_prop, and_self]⟩
+  fₑ e := ⟨A.fₑ e, by
+    subst T
+    simp only [mapByHom, Set.mem_image]
+    use e
+    simp only [Subtype.coe_prop, and_self]⟩
+  inc e := by
+    simp only [val, toGraph, Equiv.refl_apply, Equiv.refl_symm, A.inc e, map_pmap, subtype_eq,
+      pmap_eq_map, map_map]
+    rfl
+
+omit [DecidableEq W] in @[simp]
+lemma Hom_of_mapByHom_fᵥ (A : G.Hom H) (S : G.Subgraph) (T : H.Subgraph) (hT : T = mapByHom A S) :
+    (Hom_of_mapByHom A S T hT).fᵥ = fun v ↦ (⟨A.fᵥ v, by
+      subst T
+      simp only [mapByHom, Set.mem_image]
+      use v
+      simp only [Subtype.coe_prop, and_self]⟩) := rfl
+
+omit [DecidableEq W] in @[simp]
+lemma Hom_of_mapByHom_fₑ (A : G.Hom H) (S : G.Subgraph) (T : H.Subgraph) (hT : T = mapByHom A S) :
+    (Hom_of_mapByHom A S T hT).fₑ = fun e ↦ (⟨A.fₑ e, by
+      subst T
+      simp only [mapByHom, Set.mem_image]
+      use e
+      simp only [Subtype.coe_prop, and_self]⟩) := rfl
+
+def Hom_of_Hom_le (A : G.Hom H) (S : G.Subgraph) (T : H.Subgraph) (hT : mapByHom A S ≤ T) :
+    S.val.Hom T.val := by
+  refine (?_ : S.val.Hom _).trans (Emb_of_le hT).toHom
+  apply Hom_of_mapByHom
+  rfl
+
+def Emb_of_Emb_le (A : G ⊆ᴳ H) (S : G.Subgraph) (T : H.Subgraph) (hT : mapByHom A.toHom S ≤ T) :
+    S.val ⊆ᴳ T.val where
+  toHom := Hom_of_Hom_le A.toHom S T hT
+  fᵥinj v w h := by
+    ext
+    simpa only [Hom_of_Hom_le, mapByHom, Hom.trans_fᵥ, Hom_of_mapByHom_fᵥ, Equiv.refl_symm,
+      Equiv.refl_apply, Function.comp_apply, Emb.fᵥinjEq, Subtype.mk.injEq] using h
+  fₑinj e f h := by
+    ext
+    simpa only [Hom_of_Hom_le, mapByHom, Hom.trans_fₑ, Hom_of_mapByHom_fₑ, Equiv.refl_symm,
+      Equiv.refl_apply, Function.comp_apply, Emb.fₑinjEq, Subtype.mk.injEq] using h
+
+def Emb_of_mapByHom (A : G ⊆ᴳ H) (S : G.Subgraph) (T : H.Subgraph) (hT : T = mapByHom A.toHom S) :
+    S.val ⊆ᴳ T.val where
+  toHom := Hom_of_mapByHom A.toHom S T hT
+  fᵥinj v w h := by simpa only [Hom_of_mapByHom_fᵥ, EmbeddingLike.apply_eq_iff_eq,
+    Subtype.mk.injEq, Emb.fᵥinjEq, Subtype.val_injective.eq_iff] using h
+  fₑinj e f h := by simpa only [Hom_of_mapByHom_fₑ, EmbeddingLike.apply_eq_iff_eq,
+    Subtype.mk.injEq, Emb.fₑinjEq, Subtype.val_injective.eq_iff] using h
+
+@[simp]
+noncomputable def equivOfIsom (A : G ≃ᴳ H) : G.Subgraph ≃ H.Subgraph where
+  toFun G' := mapByHom A.toHom G'
   invFun H' := ⟨A.symm.fᵥ '' H'.Sᵥ, A.symm.fₑ '' H'.Sₑ, by
     rintro e he v hv
     obtain ⟨e', he', rfl⟩ := he
@@ -838,40 +960,33 @@ noncomputable def equivOfIsom (A : G ≃ᴳ H) : G.Subgraph ≃ H.Subgraph where
     obtain ⟨v', hv', rfl⟩ := hv
     use v', H'.spec e' he' v' hv'⟩
   left_inv G' := by
-    ext x <;> simp only [Set.mem_image, exists_exists_and_eq_and, Isom.symm_fᵥ_fᵥ, Isom.symm_fₑ_fₑ,
-      exists_eq_right]
+    ext x <;> simp only [mapByHom, Set.mem_image, exists_exists_and_eq_and, Isom.symm_fᵥ_fᵥ,
+      Isom.symm_fₑ_fₑ, exists_eq_right]
   right_inv H' := by
-    ext x <;> simp only [Set.mem_image, exists_exists_and_eq_and, Isom.fᵥ_symm_fᵥ, Isom.fₑ_symm_fₑ,
-      exists_eq_right]
+    ext x <;> simp only [mapByHom, Set.mem_image, exists_exists_and_eq_and, Isom.fᵥ_symm_fᵥ,
+      Isom.fₑ_symm_fₑ, exists_eq_right]
 
-def Isom_of_equivOfIsom (A : G ≃ᴳ H) (G' : G.Subgraph) (H' : H.Subgraph)
-    (h : equivOfIsom A G' = H') : G'.val ≃ᴳ H'.val where
-  fᵥ v := ⟨A.fᵥ v, by subst h; simp only [equivOfIsom, Equiv.coe_fn_mk, Set.mem_image,
-    Emb.fᵥinjEq, exists_eq_right, Subtype.coe_prop]⟩
-  fₑ e := ⟨A.fₑ e, by subst h; simp only [equivOfIsom, Equiv.coe_fn_mk, Set.mem_image,
-    Emb.fₑinjEq, exists_eq_right, Subtype.coe_prop]⟩
-  inc e := by
-    simp only [val_inc, subtype_eq, pmap_subtype_map_val]
-    rw [A.inc, map_map, map_pmap]
-    simp only [Function.comp_apply, pmap_eq_map]
-  fᵥinj v w h := by
-    ext
-    simpa only [Subtype.mk.injEq, Emb.fᵥinjEq] using h
-  fₑinj e f h := by
-    ext
-    simpa only [Subtype.mk.injEq, Emb.fₑinjEq] using h
+def Isom_of_equivOfIsom (A : G ≃ᴳ H) (S : G.Subgraph) (T : H.Subgraph) (hT : T = mapByHom A.toHom S) :
+    S.val ≃ᴳ T.val where
+  toEmb := Emb_of_mapByHom A.toEmb S T hT
   fᵥsurj w := by
-    subst h
-    obtain ⟨v', hv'⟩ := w
-    simp only [equivOfIsom, Equiv.coe_fn_mk, Set.mem_image, Subtype.mk.injEq, Subtype.exists,
-      exists_prop] at hv' ⊢
-    exact hv'
+    subst T
+    simp only [mapByHom, Emb_of_mapByHom, Hom_of_mapByHom_fᵥ, Subtype.exists]
+    use A.symm.fᵥ w, ?_
+    simp only [mapByHom, Isom.fᵥ_symm_fᵥ, Subtype.coe_eta]
+    · have := w.prop
+      simp [mapByHom, -Subtype.coe_prop] at this
+      obtain ⟨v, hv, h⟩ := this
+      simp only [mapByHom, ← h, Isom.symm_fᵥ_fᵥ, hv]
   fₑsurj f := by
-    subst h
-    obtain ⟨f', hf'⟩ := f
-    simp only [equivOfIsom, Equiv.coe_fn_mk, Set.mem_image, Subtype.mk.injEq, Subtype.exists,
-      exists_prop] at hf' ⊢
-    exact hf'
+    subst T
+    simp only [mapByHom, Emb_of_mapByHom, Hom_of_mapByHom_fₑ, Subtype.exists]
+    use A.symm.fₑ f, ?_
+    simp only [mapByHom, Isom.fₑ_symm_fₑ, Subtype.coe_eta]
+    · have := f.prop
+      simp only [mapByHom, Set.mem_image] at this ⊢
+      obtain ⟨e, he, h⟩ := this
+      rwa [← h, Isom.symm_fₑ_fₑ]
 
 end Subgraph
 
@@ -904,6 +1019,10 @@ lemma Es_val_Sₑ (G : Graph V E) (Sₑ : Set E) : (G.Es Sₑ).Sₑ = Sₑ := rf
 @[simp]
 lemma Es_val_inc (G : Graph V E) (Sₑ : Set E) (e : Sₑ) : (G.Es Sₑ).val.inc e =
     (G.inc e.val).pmap Subtype.mk (by simp only [Es_val_Sᵥ, Set.mem_univ, implies_true]) := rfl
+
+@[simp]
+abbrev Subgraph.valEs (S : G.Subgraph) {Sₑ : Set E} (h : S = G{Sₑ}ᴳ) : Graph V Sₑ :=
+  S.toGraph (h ▸ Equiv.Set.univ _) (h ▸ Equiv.refl Sₑ)
 
 def Vs (G : Graph V E) (Sᵥ : Set V) : Subgraph G := ⟨Sᵥ, G.incVsE Sᵥ, fun _ he v hv ↦ he v hv⟩
 
@@ -970,6 +1089,18 @@ def Hom.range_Isom_HomIsom_range (A : Hom G H) (B : G ≃ᴳ I) (C : H ≃ᴳ J)
     simp only [Isom_fₑ, Function.comp_apply, Subtype.mk.injEq, Subtype.exists, exists_prop, C.fₑinj.eq_iff]
     use A.fₑ (B.symm.fₑ e), (by simp only [range, Set.mem_range, exists_apply_eq_apply])
 
+lemma Subgraph.canGo_iff [DecidableEq V] (S : G.Subgraph) {V' E' : Type*} [DecidableEq V']
+    {hSv : S.Sᵥ.Elem ≃ V'} {hSe : S.Sₑ.Elem ≃ E'} (v : V') (e : E') (w : V') :
+    (S.toGraph hSv hSe).canGo v e w ↔ G.canGo (hSv.symm v) (hSe.symm e) (hSv.symm w) :=
+  ((S.toGraph_Emb hSv hSe).canGo_iff _ _ _).symm
+
+lemma Subgraph.adj [DecidableEq V] (S : G.Subgraph) {V' E' : Type*} [DecidableEq V']
+    {hSv : S.Sᵥ.Elem ≃ V'} {hSe : S.Sₑ.Elem ≃ E'} {v w : V'} (h : (S.toGraph hSv hSe).adj v w) :
+    G.adj (hSv.symm v) (hSv.symm w) := by
+  obtain ⟨e, he⟩ := h
+  use (S.toGraph_Emb hSv hSe).fₑ e
+  rwa [S.canGo_iff] at he
+
 def Hom.rangeFactorization (A : Hom G H) : Hom G A.range.val where
   fᵥ := Set.rangeFactorization A.fᵥ
   fₑ := Set.rangeFactorization A.fₑ
@@ -978,11 +1109,11 @@ def Hom.rangeFactorization (A : Hom G H) : Hom G A.range.val where
       pmap_subtype_map_val, ← map_comp, Set.coe_comp_rangeFactorization]
     exact A.inc e
 
-omit [DecidableEq V] [DecidableEq W] in @[simp]
+omit [DecidableEq W] in @[simp]
 lemma Hom.rangeFactorization_fᵥ (A : Hom G H) :
     (A.rangeFactorization).fᵥ = Set.rangeFactorization A.fᵥ := rfl
 
-omit [DecidableEq V] [DecidableEq W] in @[simp]
+omit [DecidableEq W] in @[simp]
 lemma Hom.rangeFactorization_fₑ (A : Hom G H) :
     (A.rangeFactorization).fₑ = Set.rangeFactorization A.fₑ := rfl
 
