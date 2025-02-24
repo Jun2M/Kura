@@ -182,6 +182,17 @@ lemma mem_vertices_of_mem_inc_edges (w : Walk G) {e : E} (he : e ∈ w.edges) {v
     refine List.getElem_mem ?_
     simpa only [List.length_map, step_length_eq_length]
 
+lemma step_spec' (w : Walk G) (i : ℕ) (hi : i < w.length) :
+    G.canGo (w.vertices[i]'(by rw [vertices_length]; omega)) (w.edges[i]'(by rwa [edges_length]))
+    (w.vertices[i + 1]'(by rw [vertices_length]; omega)) := by
+  convert w.step_spec w.steps[i] (by simp only [List.getElem_mem])
+  · simp only [vertices_eq_steps_fst_finish]
+    rw [List.getElem_append_left, List.getElem_map]
+    simpa only [List.length_map, step_length_eq_length]
+  · simp only [edges, List.getElem_map]
+  · unfold vertices
+    rw [List.getElem_cons_succ, List.getElem_map]
+
 
 -- same path iff same start and same edges
 
@@ -279,6 +290,9 @@ lemma some_start (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).st
 
 @[simp]
 lemma some_finish (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).finish = v := rfl
+
+@[simp]
+lemma some_length (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).length = 1 := rfl
 
 @[simp]
 lemma some_vertices (u : V) (e : E) (v : V) (h : G.canGo u e v) : (some u e v h).vertices = [u, v] := by
@@ -626,7 +640,7 @@ def reverse [Undirected G] (w : Walk G) : Walk G where
     rw [List.mem_map] at hin
     rcases hin with ⟨⟨u, e, v⟩, hin, rfl⟩
     rw [List.mem_reverse] at hin
-    refine (G.canGo_symm e _ _) ▸ (w.step_spec _ hin)
+    refine (G.canGo_comm e _ _) ▸ (w.step_spec _ hin)
   next_step := by
     rw [List.chain'_map, List.chain'_reverse]
     unfold _root_.flip
@@ -742,10 +756,45 @@ variable {G : Graph V E}
 lemma start_not_mem_vertices_tail (P : Path G): P.start ∉ P.vertices.tail :=
   List.Nodup.not_mem P.vNodup
 
--- lemma edges_nodup (P : Path G) : P.edges.Nodup := by
---   rw [List.nodup_iff_injective_get]
---   rintro e1 e2 h
-
+lemma edges_nodup (P : Path G) : P.edges.Nodup := by
+  rw [List.nodup_iff_injective_get]
+  rintro e1 e2 h
+  simp only [List.get_eq_getElem] at h
+  by_contra! hne
+  simp only [ne_eq, Fin.ext_iff'] at hne
+  apply_fun (G.inc ·) at h
+  match h1 : G.inc (P.edges[e1.val]) with
+  | dir (a, b) =>
+    match h2 : G.inc (P.edges[e2.val]) with
+    | dir (a', b') =>
+      rw [h1, h2, dir.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      have he1 := P.step_spec' e1 (by convert e1.prop; simp only [Walk.edges_length])
+      rw [canGo, h1, canGo_iff_eq_of_dir, Prod.mk.injEq] at he1
+      have he2 := P.step_spec' e2 (by convert e2.prop; simp only [Walk.edges_length])
+      rw [canGo, h2, canGo_iff_eq_of_dir, Prod.mk.injEq] at he2
+      obtain ⟨rfl, rfl⟩ := he1
+      obtain ⟨hve, hve1⟩ := he2
+      simp only [Option.some.injEq, P.vNodup.getElem_inj_iff, hne] at hve
+    | undir s =>
+      simp only [h1, h2, reduceCtorEq] at h
+  | undir s =>
+    match h2 : G.inc (P.edges[e2.val]) with
+    | dir (a', b') =>
+      simp only [h1, h2, reduceCtorEq] at h
+    | undir s' =>
+      simp only [h1, h2, undir.injEq] at h
+      subst s'
+      have he1 := P.step_spec' e1 (by convert e1.prop; simp only [Walk.edges_length])
+      rw [canGo, h1, canGo_iff_eq_of_undir] at he1
+      have he2 := P.step_spec' e2 (by convert e2.prop; simp only [Walk.edges_length])
+      rw [canGo, h2, canGo_iff_eq_of_undir] at he2
+      subst s
+      simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at he2
+      obtain ⟨H1, H2⟩ | ⟨H1, H2⟩ := he2
+      · simp only [P.vNodup.getElem_inj_iff, hne] at H1
+      · simp only [P.vNodup.getElem_inj_iff] at H1 H2
+        omega
 
 def stopAt (p : Path G) (v : V) : Path G where
   toWalk := p.toWalk.stopAt v

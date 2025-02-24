@@ -659,6 +659,10 @@ lemma map_finishAt [DecidableEq W] {f : V → W} {e : edge V} :
 lemma map_id : e.map id = e := by
   cases e <;> simp only [map, Option.map_id_fun, id_eq, Prod.mk.eta, map_id']
 
+@[simp]
+lemma map_id' : e.map (fun v => v) = e := by
+  cases e <;> simp only [map, Option.map_id_fun', id_eq, Prod.mk.eta, map_id']
+
 lemma map_map {f : V → W} (g : W → U) {e : edge V} : (e.map f).map g = e.map (g ∘ f) := by
   match e with
   | dir (a, b) =>
@@ -905,7 +909,7 @@ lemma pmap_finishAt {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : �
       Option.get_some, Multiset.empty_eq_zero, dite_eq_ite, ite_true] <;> rfl
   | undir s => simp only [finishAt, pmap, pmap_toMultiset]
 
-lemma pmap_congr {P Q : V → Prop} {e : edge V} {f : ∀ a, P a → W} {g : ∀ a, Q a → W}
+lemma pmap_congrFun {P Q : V → Prop} {e : edge V} {f : ∀ a, P a → W} {g : ∀ a, Q a → W}
     (hP : ∀ v ∈ e, P v) (hQ : ∀ v ∈ e, Q v) (hfg : ∀ v hv, f v (hP v hv) = g v (hQ v hv)) :
     e.pmap f hP = e.pmap g hQ := by
   match e with
@@ -915,6 +919,30 @@ lemma pmap_congr {P Q : V → Prop} {e : edge V} {f : ∀ a, P a → W} {g : ∀
     induction' s with x y
     simp only [pmap_undir, undir.injEq, pmap_pair]
     congr <;> apply hfg <;> simp only [mem_undir_iff, mem_iff, or_true, true_or]
+
+lemma pmap_eq_pmap_iff_of_inj {P : V → Prop} {e1 e2 : edge V} {f : ∀ a, P a → W} (hP1 : ∀ v ∈ e1, P v)
+    (hP2 : ∀ v ∈ e2, P v) (hf : ∀ a ha b hb, f a ha = f b hb → a = b) :
+    e1.pmap f hP1 = e2.pmap f hP2 ↔ e1 = e2 := by
+  constructor
+  · rintro h
+    match e1, e2 with
+    | dir (a1, b1), dir (a2, b2) =>
+      simp only [pmap_dir, dir.injEq, Prod.mk.injEq] at h ⊢
+      rwa [Option.pmap_eq_pmap_iff_of_inj ?_ ?_ hf, Option.pmap_eq_pmap_iff_of_inj ?_ ?_ hf] at h
+      · intro a hb
+        exact hP1 a (by simp only [mem_dir_iff, Option.mem_def, hb, or_true])
+      · intro b hb
+        exact hP2 b (by simp only [mem_dir_iff, Option.mem_def, hb, or_true])
+      · intro a ha
+        exact hP1 a (by simp only [mem_dir_iff, ha, Option.mem_def, true_or])
+      · intro b hb
+        exact hP2 b (by simp only [mem_dir_iff, hb, Option.mem_def, true_or])
+    | undir s1, undir s2 =>
+      simp only [pmap_undir, undir.injEq] at h ⊢
+      simp_rw [mem_undir_iff] at hP1 hP2
+      rwa [Sym2.pmap_eq_pmap_iff_of_inj hP1 hP2 hf] at h
+  · rintro rfl
+    rfl
 
 @[simp]
 lemma pmap_isDir_iff {P : V → Prop} {e : edge V} {f : ∀ a, P a → W} (h : ∀ v ∈ e, P v) :

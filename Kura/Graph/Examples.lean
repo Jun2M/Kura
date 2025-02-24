@@ -27,6 +27,9 @@ instance instEdgelessGraphSimple : Simple (EdgelessGraph V) where
   edge_symm e := e.elim
   inc_inj e := e.elim
 
+lemma EdgelessGraph.adj [DecidableEq W] {u v : W} : ¬ (EdgelessGraph W).adj u v := by
+  simp only [Graph.adj, IsEmpty.exists_iff, not_false_eq_true]
+
 def EdgelessGraph_Emb (fᵥ : W ↪ V) : EdgelessGraph W ⊆ᴳ G where
   fᵥ := fᵥ
   fₑ := Empty.elim
@@ -60,6 +63,16 @@ instance instCompleteGraphSimple (n : ℕ) : Simple (CompleteGraph n) where
     simp only [CompleteGraph, undir.injEq] at h
     exact Subtype.eq h
 
+@[simp]
+lemma CompleteGraph.adj {n : ℕ} {u v : Fin n} : (CompleteGraph n).adj u v ↔ u ≠ v := by
+  constructor
+  · rintro ⟨e, h⟩
+    simp [CompleteGraph, canGo] at h
+    have := h ▸ e.prop
+    rwa [Sym2.mk_isDiag_iff] at this
+  · intro h
+    use ⟨s(u, v), by simp only [Sym2.isDiag_iff_proj_eq, h, not_false_eq_true]⟩
+    simp only [canGo, CompleteGraph, undir_canGo]
 
 /-- `PathGraph` constructs a path graph with n+1 vertices and n edges.
     A path graph is a graph where vertices are arranged in a line, with each vertex connected to its
@@ -400,11 +413,11 @@ def CycleGraph.toPathGraph (n : ℕ) [NeZero n] : (CycleGraph n |>.toSubgraph Se
       Set.mem_singleton_iff, Fin.ext_iff'] at this
     omega⟩
   inc e := by
-    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Fin.val_last',
+    simp only [PathGraph, Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, CycleGraph, Fin.val_last',
       toSubgraph_val_Sₑ, Fin.castSucc_mk, Fin.succ_mk, toSubgraph_val_Sᵥ, Subgraph.val_inc,
-      inc_eq_get, CycleGraph_get, pmap_undir, Sym2.pmap_eq_pmap_of_imp, Sym2.pmap_pair, map_undir,
-      Sym2.map_pair_eq, undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Fin.ext_iff', true_and,
-      Prod.swap_prod_mk, add_right_eq_self, one_ne_zero, and_false, or_false]
+      pmap_undir, Sym2.pmap_eq_pmap_of_imp, Sym2.pmap_pair, map_undir, Sym2.map_pair_eq,
+      undir.injEq, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Fin.ext_iff', true_and, Prod.swap_prod_mk,
+      add_right_eq_self, one_ne_zero, and_false, or_false]
     have := e.prop
     simp only [Fin.neg_one_eq_last', toSubgraph_val_Sₑ, -Fin.val_last', Set.mem_compl_iff,
       Set.mem_singleton_iff, -Fin.ext_iff'] at this
@@ -477,13 +490,12 @@ def CycleGraph_Subgraph_singleton_comple_Isom_PathGraph (n : ℕ) [NeZero n] (i 
   let b := (CycleGraph n).toSubgraph Set.univ {-1}ᶜ (by
     simp only [Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', inc_eq_get, CycleGraph_get,
       mem_undir_iff, Sym2.mem_iff, Set.mem_univ, implies_true])
-  refine (a.Isom_of_equivOfIsom (CycleGraph.rotate n (-i - 1)) b ?_).trans
+  refine (a.Isom_of_equivOfIsom (CycleGraph.rotate n (-i - 1)) b _ _ _ _ ?_).trans
     (CycleGraph.toPathGraph n)
-  ext x <;> simp only [Subgraph.equivOfIsom, CycleGraph_rotate_fᵥ, Set.image_add_right, neg_sub,
-    sub_neg_eq_add, CycleGraph_rotate_fₑ, CycleGraph_rotate_symm_fᵥ, CycleGraph_rotate_symm_fₑ,
-    Equiv.coe_fn_mk, toSubgraph_val_Sᵥ, Set.preimage_univ, toSubgraph_val_Sₑ, Set.preimage_compl,
-    Set.preimage_add_right_singleton, neg_add_rev, Fin.neg_one_eq_last', add_neg_cancel_left,
-    Set.mem_compl_iff, Set.mem_singleton_iff, Fin.ext_iff', Fin.val_last', a, b]
+  ext x <;> simp only [Fin.neg_one_eq_last', toSubgraph_val_Sᵥ, Set.mem_univ, Subgraph.mapByHom,
+    CycleGraph_rotate_fᵥ, Set.image_add_right, neg_sub, sub_neg_eq_add, Set.preimage_univ,
+    CycleGraph_rotate_fₑ, toSubgraph_val_Sₑ, Set.preimage_compl, Set.preimage_add_right_singleton,
+    neg_add_rev, add_neg_cancel_left, b, a]
 
 -- def CycleGraph_Isom_PathGraph_addUndirEdge (n : ℕ) {m : ℕ} [NeZero m] (hm : m = n + 1) :
 --     (CycleGraph m).Isom (PathGraph n |>.addUndirEdge s(0, Fin.last _)) where
