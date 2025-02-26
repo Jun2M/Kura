@@ -621,6 +621,18 @@ lemma chain'_getElem {l : List α} {p : α → α → Prop} (h : List.Chain' p l
   rw [List.chain'_iff_get] at h
   exact h i hlen
 
+lemma mem_zip_iff {l : List α} {l' : List β} {a : α} {b : β} :
+    (a, b) ∈ l.zip l' ↔ ∃ (i : ℕ) (hi : i < min l.length l'.length), l[i] = a ∧ l'[i] = b := by
+  constructor
+  · rintro h
+    obtain ⟨i, hile, heq⟩ := getElem_of_mem h
+    use i, (length_zip _ _) ▸ hile
+    simpa only [getElem_zip, Prod.mk.injEq] using heq
+  · rintro ⟨i, hile, rfl, rfl⟩
+    apply List.mem_of_getElem (i := i)
+    rw [getElem_zip]
+    exact (length_zip _ _) ▸ hile
+
 /- ------------------------------------------------------------------------------------ -/
 
 

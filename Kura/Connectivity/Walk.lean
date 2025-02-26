@@ -16,8 +16,8 @@ structure Walk where
   start : V
   steps : List (V × E × V)
   start_spec : (hn : steps ≠ []) → start = (steps.head hn).fst
-  step_spec : ∀ uev ∈ steps, G.canGo uev.1 uev.2.1 uev.2.2
-  next_step : steps.Chain' (λ a b => a.2.2 = b.1)
+  step_spec : ∀ uev ∈ steps, G.canGo uev.fst uev.snd.fst uev.snd.snd
+  next_step : steps.Chain' (λ a b => a.snd.snd = b.fst)
 
 namespace Walk
 variable {G : Graph V E} (w : Walk G)
@@ -40,7 +40,7 @@ instance instDecidableEqWalk [DecidableEq E] : DecidableEq G.Walk :=
 lemma steps_head_fst_eq_start (hn : w.steps ≠ []) : w.start = (w.steps.head hn).fst :=
   w.start_spec hn
 
-def length : ℕ := w.steps.length
+abbrev length : ℕ := w.steps.length
 
 lemma length_eq_zero_iff : w.length = 0 ↔ w.steps = [] := by
   simp only [length, List.length_eq_zero]
@@ -204,6 +204,71 @@ lemma step_spec' (w : Walk G) (i : ℕ) (hi : i < w.length) :
 -- start_spec hn := by
 --   simp [List.rdrop, List.head_take]
 --   rw [← w.steps.getElem_map (f := fun x => x.fst)]
+
+def ofVerticesEdges (vs : List V) (es : List E) (hlen : vs.length = es.length +1)
+    (h : ∀ (i : ℕ) (hi : i < es.length), G.canGo vs[i] es[i] vs[i+1]) : G.Walk where
+  start := vs.head (List.ne_nil_of_length_eq_add_one hlen)
+  steps := vs.dropLast.zip (es.zip vs.tail)
+  start_spec hn := by
+    have hvslen11 : vs.dropLast.length = (es.zip vs.tail).length := by
+      simp only [List.length_dropLast, hlen, add_tsub_cancel_right, List.length_zip,
+        List.length_tail, min_self]
+    rw [← (vs.dropLast.zip (es.zip vs.tail)).head_map (f := Prod.fst)]
+    simp_rw [List.map_fst_zip _ _ hvslen11.le, List.head_dropLast]
+    simpa only [ne_eq, List.map_eq_nil_iff, List.zip_eq_nil_iff, not_or] using hn
+  step_spec uev hin := by
+    obtain ⟨u, e, v⟩ := uev
+    simp only
+    obtain ⟨hu, hev⟩ := List.of_mem_zip hin
+    obtain ⟨he, hv⟩ := List.of_mem_zip hev
+    clear hev
+    rw [List.mem_zip_iff] at hin
+    obtain ⟨i, hile, rfl, hev⟩ := hin
+    simp only [List.getElem_zip, List.getElem_tail, Prod.mk.injEq] at hev
+    obtain ⟨rfl, rfl⟩ := hev
+    simp only [List.getElem_dropLast, h]
+  next_step := by
+    simp only [List.Chain']
+    split
+    case h_1 l hnil =>
+      tauto
+    case h_2 a l hcons =>
+      rw [List.chain_iff_forall₂]
+      by_cases h : l = []
+      · simp only [h, true_or]
+      · right
+        rw [← List.dropLast_cons_of_ne_nil h]
+        nth_rw 2 [← l.tail_cons (a := a)]
+        change List.Forall₂ (fun a b ↦ ((Prod.snd ∘ Prod.snd) a) = Prod.fst b) (a :: l).dropLast (a :: l).tail
+        rw [← hcons, ← List.forall₂_map_left_iff (R := (· = Prod.fst ·)) (f := Prod.snd ∘ Prod.snd),
+          ← List.forall₂_map_right_iff]
+        simp only [List.map_dropLast, List.tail_zip, List.forall₂_eq_eq_eq]
+        rw [List.map_fst_zip, ← List.map_map, List.map_snd_zip, List.map_snd_zip, List.tail_dropLast]
+        · simp only [List.length_tail, hlen, add_tsub_cancel_right, le_refl]
+        · simp only [List.length_zip, List.length_tail, List.length_dropLast, inf_le_right]
+        · simp only [List.length_tail, List.length_dropLast, hlen, add_tsub_cancel_right,
+          List.length_zip, min_self, le_refl]
+
+@[simp]
+lemma ofVerticesEdges_vertices {vs : List V} {es : List E} (hlen : vs.length = es.length +1)
+    (h : ∀ (i : ℕ) (hi : i < es.length), G.canGo vs[i] es[i] vs[i+1]) :
+    (ofVerticesEdges vs es hlen h).vertices = vs := by
+  simp only [vertices, ofVerticesEdges]
+  change vs.head _ :: List.map (Prod.snd ∘ Prod.snd) (vs.dropLast.zip (es.zip vs.tail)) = vs
+  rw [← List.map_map, List.map_snd_zip, List.map_snd_zip, List.head_cons_tail]
+  · simp only [List.length_tail, hlen, add_tsub_cancel_right, le_refl]
+  · simp only [List.length_zip, List.length_tail, List.length_dropLast, inf_le_right]
+
+@[simp]
+lemma ofVerticesEdges_edges {vs : List V} {es : List E} (hlen : vs.length = es.length +1)
+    (h : ∀ (i : ℕ) (hi : i < es.length), G.canGo vs[i] es[i] vs[i+1]) :
+    (ofVerticesEdges vs es hlen h).edges = es := by
+  simp only [edges, ofVerticesEdges]
+  change List.map (Prod.fst ∘ Prod.snd) _ = es
+  rw [← List.map_map, List.map_snd_zip, List.map_fst_zip]
+  · simp only [List.length_tail, hlen, add_tsub_cancel_right, le_refl]
+  · simp only [List.length_zip, List.length_tail, List.length_dropLast, inf_le_right]
+
 
 def nil (G : Graph V E) (u : V) : Walk G where
   start := u
@@ -416,6 +481,24 @@ lemma take_eq_self (w : Walk G) (n : ℕ) (hn : w.length ≤ n): w.take n = w :=
   refine ⟨rfl, ?_⟩
   simp only [take, List.take_of_length_le hn]
 
+@[simp]
+lemma take_start (w : Walk G) (n : ℕ) : (w.take n).start = w.start := rfl
+
+@[simp]
+lemma take_vertices (w : Walk G) (n : ℕ) : (w.take n).vertices = w.vertices.take (n+1) := by
+  simp only [vertices, take, List.map_take, List.take_succ_cons]
+
+@[simp]
+lemma take_finish (w : Walk G) (n : ℕ) (hn : n < w.vertices.length) :
+    (w.take n).finish = w.vertices[n] := by
+  simp only [finish, take_vertices]
+  rw [List.getLast_take, add_tsub_cancel_right, List.getElem?_eq_getElem hn]
+  simp only [Option.getD_some]
+
+@[simp]
+lemma take_edges (w : Walk G) (n : ℕ) : (w.take n).edges = w.edges.take n := by
+  simp only [edges, take, List.map_take]
+
 def drop (w : Walk G) (n : ℕ) (hnle : n ≤ w.length) : Walk G where
   start :=
     let h : n < w.vertices.length := by
@@ -464,6 +547,13 @@ lemma drop_vertices (w : Walk G) (n : ℕ) (hnle : n ≤ w.length) : (w.drop n h
   simpa only [List.length_map]
   simp only [vertices_length]
   omega
+
+@[simp]
+lemma take_append_drop (w : Walk G) (n : Nat) (hnle : n ≤ w.length) :
+    (w.take n).append (w.drop n hnle) (by
+    rw [take_finish _ _ (by simp only [vertices_length]; omega),
+    drop_start _ _ _ (by simp only [vertices_length]; omega)]) = w := by
+  simp only [append, take, drop, List.take_append_drop]
 
 def stopAt (w : Walk G) (v : V) : Walk G where
   start := w.start

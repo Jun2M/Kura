@@ -881,6 +881,78 @@ def Emb_of_le {S T : Subgraph G} (hST : S ≤ T) : S.val ⊆ᴳ T.val where
   fᵥinj v w h := by simpa [Subtype.mk.injEq] using h
   fₑinj e f h := by simpa [Subtype.mk.injEq] using h
 
+def equiv_Subtype_le {S : Subgraph G} : S.val.Subgraph ≃ {T : G.Subgraph // T ≤ S} where
+  toFun T := ⟨ ⟨Subtype.val '' T.Sᵥ, Subtype.val '' T.Sₑ, by
+    rintro e he v hv
+    simp only [Set.mem_image] at he ⊢
+    obtain ⟨e', he', rfl⟩ := he
+    have := S.spec e' e'.prop v hv
+    use ⟨v, this⟩, T.spec e' he' ⟨v, this⟩ ?_
+    simp only [val_inc, mem_pmap_iff, Subtype.mk.injEq, exists_prop, exists_eq_right, hv]⟩, by
+    simp only [le_iff, Set.image_subset_iff, Subtype.coe_preimage_self, Set.subset_univ, and_self]⟩
+  invFun T := ⟨by
+    let this : Set.MapsTo id T.val.Sᵥ S.Sᵥ := T.prop.1
+    exact Set.range this.restrict, by
+    have : Set.MapsTo id T.val.Sₑ S.Sₑ := T.prop.2
+    exact Set.range this.restrict, by
+    rintro e he v hv
+    simp_all only [Set.MapsTo.range_restrict, id_eq, Set.image_id', Set.mem_preimage, val_inc,
+      mem_pmap_iff]
+    obtain ⟨v, hv, rfl⟩ := hv
+    exact T.val.spec e he _ hv⟩
+  left_inv T := by simp only [id_eq, eq_mp_eq_cast, cast_eq, eq_mpr_eq_cast,
+    Set.MapsTo.range_restrict, Set.image_id', Subtype.val_injective, Set.preimage_image_eq]
+  right_inv T := by
+    simp only [Set.MapsTo.range_restrict, id_eq, Set.image_id', Subtype.image_preimage_coe]
+    ext x <;> simp only [Set.mem_inter_iff, and_iff_right_iff_imp]
+    · apply T.prop.1
+    · apply T.prop.2
+
+def Isom_of_equiv_Subtype_le {S : Subgraph G} {s : S.val.Subgraph} {T : G.Subgraph}
+    (hTle : T ≤ S) (hT : equiv_Subtype_le s = T) : s.val ≃ᴳ T.val where
+  fᵥ v := by
+    subst T
+    obtain ⟨⟨v, hvS⟩, hvs⟩ := v
+    use v
+    simp only [equiv_Subtype_le, Equiv.coe_fn_mk, Set.mem_image, Subtype.exists, exists_and_right,
+      exists_eq_right, hvs, hvS, exists_const]
+  fₑ e := by
+    subst T
+    obtain ⟨⟨e, heS⟩, hvs⟩ := e
+    use e
+    simp only [equiv_Subtype_le, Equiv.coe_fn_mk, Set.mem_image, Subtype.exists, exists_and_right,
+      exists_eq_right, hvs, heS, exists_const]
+  inc e := by
+    subst T
+    simp only [val_inc, subtype_eq, pmap_subtype_map_val, map_pmap]
+    rw [pmap_eq_map, pmap_eq_map]
+    simp only [map_id', pmap_subtype_map_val]
+  fᵥinj v w h := by
+    subst T
+    ext
+    simpa only [Subtype.mk.injEq] using h
+  fₑinj e f h := by
+    subst T
+    ext
+    simpa only [Subtype.mk.injEq] using h
+  fᵥsurj w := by
+    subst T
+    simp only [equiv_Subtype_le, Equiv.coe_fn_mk, Subtype.exists]
+    obtain ⟨v, hv⟩ := w
+    simp only [equiv_Subtype_le, Equiv.coe_fn_mk, Set.mem_image, Subtype.exists, exists_and_right,
+      exists_eq_right] at hv
+    obtain ⟨hvS, hvs⟩ := hv
+    use v, hvS, hvs
+  fₑsurj f := by
+    subst T
+    simp only [equiv_Subtype_le, Equiv.coe_fn_mk, Subtype.exists]
+    obtain ⟨e, he⟩ := f
+    simp only [equiv_Subtype_le, Equiv.coe_fn_mk, Set.mem_image, Subtype.exists, exists_and_right,
+      exists_eq_right] at he
+    obtain ⟨heS, hvs⟩ := he
+    use e, heS, hvs
+
+
 @[simp]
 def mapByHom (A : G.Hom H) (S : G.Subgraph) : H.Subgraph where
   Sᵥ := A.fᵥ '' S.Sᵥ
@@ -989,6 +1061,27 @@ def Isom_of_equivOfIsom (A : G ≃ᴳ H) (S : G.Subgraph) (T : H.Subgraph) (hT :
       rwa [← h, Isom.symm_fₑ_fₑ]
 
 end Subgraph
+
+def Emb.restrict {S : G.Subgraph} {T : H.Subgraph} (A : G ⊆ᴳ H)
+    (hv : Set.MapsTo A.fᵥ S.Sᵥ T.Sᵥ) (he : Set.MapsTo A.fₑ S.Sₑ T.Sₑ) :
+    S.val ⊆ᴳ T.val where
+  fᵥ := hv.restrict
+  fₑ := he.restrict
+  inc e := by simp only [Subgraph.val_inc, Set.MapsTo.val_restrict_apply, A.inc, map_pmap,
+    subtype_eq, pmap_eq_map, map_id']
+  fᵥinj v w h := by simpa only [(hv.restrict_inj.mpr (Set.injOn_of_injective A.fᵥinj)).eq_iff] using h
+  fₑinj e f h := by simpa only [(he.restrict_inj.mpr (Set.injOn_of_injective A.fₑinj)).eq_iff] using h
+
+omit [DecidableEq W] in @[simp]
+lemma Emb.restrict_fᵥ {S : G.Subgraph} {T : H.Subgraph} (A : G ⊆ᴳ H)
+    (hv : Set.MapsTo A.fᵥ S.Sᵥ T.Sᵥ) (he : Set.MapsTo A.fₑ S.Sₑ T.Sₑ) :
+    (A.restrict hv he).fᵥ = hv.restrict := rfl
+
+omit [DecidableEq W] in @[simp]
+lemma Emb.restrict_fₑ {S : G.Subgraph} {T : H.Subgraph} (A : G ⊆ᴳ H)
+    (hv : Set.MapsTo A.fᵥ S.Sᵥ T.Sᵥ) (he : Set.MapsTo A.fₑ S.Sₑ T.Sₑ) :
+    (A.restrict hv he).fₑ = he.restrict := rfl
+
 
 def toSubgraph (G : Graph V E) (Sᵥ : Set V) (Sₑ : Set E) (hS : ∀ e ∈ Sₑ, ∀ v ∈ G.inc e, v ∈ Sᵥ) :
     Subgraph G := ⟨Sᵥ, Sₑ, hS⟩

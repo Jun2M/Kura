@@ -25,7 +25,10 @@ def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
     have ⟨H1, H2⟩ := hssub
     rw [Finset.ssubset_iff_exists_cons_subset] at hssub
     obtain ⟨e, he, hsu⟩ := hssub
-    let iₑ : Fin (Cyc2.edges.length) := sorry
+    have hemem2 : e ∈ Cyc2.edges := by
+      simp only [Finset.cons_eq_insert, Finset.insert_subset_iff, List.mem_toFinset] at hsu
+      exact hsu.1
+    obtain ⟨iₑ, hiₑle, hiₑ⟩ := List.getElem_of_mem hemem2
     let G₁ := (Cyc1.CycleGraph_Emb).toHom.range
     let G₂ := (Cyc2.CycleGraph_Emb).toHom.range
     let G₂' := G.toSubgraph G₂.Sᵥ (G₂.Sₑ \ {e}) ?_
@@ -58,6 +61,10 @@ def CircuitMatroid [Undirected G] : FinsetCircuitMatroid E where
     refine Emb.trans (?_) (CycleGraph_Subgraph_singleton_comple_Isom_PathGraph Cyc2.length iₑ).toEmb
     refine (Cycle.CycleGraph_Emb G Cyc1).range_Isom.toEmb.trans ?_
     refine (Subgraph.Emb_of_le hG₁').trans ?_
+    refine Emb.trans (?_ : Emb _ ((CycleGraph Cyc2.length).Es {↑iₑ}ᶜ).val)
+      (((CycleGraph Cyc2.length).Es {↑iₑ}ᶜ).toGraph_Isom_toGraph).toEmb
+    have := Subgraph.Emb_of_Emb_le ((Cycle.CycleGraph_Emb G Cyc2).range_Isom).symm.toEmb
+
     sorry
     sorry
   circuit_elimination C₁ C₂ e hC₁ hC₂ hne hmemInter := by

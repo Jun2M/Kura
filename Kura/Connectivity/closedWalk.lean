@@ -212,7 +212,6 @@ def rotate (C : G.Closed) (n : ℕ) : G.Closed where
           all_goals simp only [Walk.step_length_eq_length, Nat.add_mod_right]
           omega
         · rw [Nat.sub_add_cancel]
-          rfl
           omega
   stepsNeNil := by
     have := C.stepsNeNil
@@ -220,8 +219,48 @@ def rotate (C : G.Closed) (n : ℕ) : G.Closed where
     simpa only [Walk.edges, ne_eq, List.map_eq_nil_iff, List.rotate_eq_nil_iff]
 
 @[simp]
+lemma rotate_start (C : G.Closed) (n : ℕ) : (C.rotate n).start = C.vertices[n % C.length]'(by
+  simp only [Walk.vertices_length]
+  have := Nat.mod_lt n (C.one_le_length)
+  omega) := by
+  simp only [rotate]
+  rw [List.head_rotate, List.getElem_dropLast]
+  simp only [List.length_dropLast, Walk.vertices_length, add_tsub_cancel_right]
+  · apply Nat.mod_lt
+    simp only [List.length_dropLast, Walk.vertices_length, add_tsub_cancel_right, gt_iff_lt,
+      Nat.pos_of_neZero_simp]
+  · simp only [ne_eq, vertices_dropLast_ne_nil, not_false_eq_true]
+
+@[simp]
+lemma rotate_finish (C : G.Closed) (n : ℕ) : (C.rotate n).finish = C.vertices[n % C.length]'(by
+  simp only [Walk.vertices_length]
+  have := Nat.mod_lt n (C.one_le_length)
+  omega) := by
+  rw [← (C.rotate n).startFinish, rotate_start]
+
+@[simp]
+lemma rotate_vertices_dropLast (C : G.Closed) (n : ℕ) : (C.rotate n).vertices.dropLast =
+    (C.vertices.dropLast).rotate n := by
+  simp only [rotate, Walk.vertices_eq_steps_fst_finish, ne_eq, List.cons_ne_self, not_false_eq_true,
+    List.dropLast_append_of_ne_nil, List.dropLast_single, List.append_nil, List.map_rotate]
+
+@[simp]
+lemma rotate_vertices (C : G.Closed) (n : ℕ) : (C.rotate n).vertices =
+    (C.vertices.dropLast).rotate n ++ [C.vertices[n % C.length]'(by
+  simp only [Walk.vertices_length]
+  have := Nat.mod_lt n (C.one_le_length)
+  omega)] := by
+  rw [← ((C.rotate n).vertices).dropLast_concat_getLast, rotate_vertices_dropLast]
+  congr
+  exact C.rotate_finish n
+
+@[simp]
 lemma rotate_edges (C : G.Closed) (n : ℕ) : (C.rotate n).edges = C.edges.rotate n := by
   simp only [Walk.edges, rotate, List.map_rotate]
+
+@[simp]
+lemma rotate_length (C : G.Closed) (n : ℕ) : (C.rotate n).length = C.length := by
+  rw [← Walk.edges_length, rotate_edges, List.length_rotate, Walk.edges_length]
 
 /-- Pick a vertex, v, in a ClosedWalk. Get a walk from v to v along the ClosedWalk -/
 def cut (C : G.Closed) {v : V} (_ : v ∈ C.vertices) : G.Walk :=
@@ -231,6 +270,32 @@ def cut (C : G.Closed) {v : V} (_ : v ∈ C.vertices) : G.Walk :=
 /-- Pick 2 vertices, u & v, in a ClosedWalk. Get edge-disjoint paths u to v and v to u -/
 def split (C : G.Closed) {u v : V} (hu : u ∈ C.vertices) (hv : v ∈ C.vertices) : G.Path × G.Path :=
   sorry
+
+/-- Pick an edge e. Unravel the closed walk to a walk by removing e. -/
+def unravel (C : G.Closed) (i : ℕ) (hi : i < C.length) : G.Walk :=
+  C.rotate (i+1) |>.take (C.length - 1)
+
+lemma unravel_length (C : G.Closed) (i : ℕ) (hi : i < C.length) :
+    (C.unravel i hi).length = C.length - 1 := by
+  simp only [rotate_length, unravel, List.length_take, List.length_rotate, List.length_dropLast]
+  rw [Walk.take_length_eq_min, rotate_length]
+  simp only [tsub_le_iff_right, le_add_iff_nonneg_right, zero_le, inf_of_le_left]
+
+lemma unravel_start (C : G.Closed) (i : ℕ) (hi : i < C.length) :
+    (C.unravel i hi).start = C.vertices[i+1]'(by simpa only [Walk.vertices_length,
+      add_lt_add_iff_right]) := by
+  simp only [unravel, Walk.take, rotate_start]
+  by_cases h : i + 1 = C.length
+  · simp only [h, Nat.mod_self]
+    convert C.startFinish
+    unfold Walk.finish
+    rw [List.getLast_eq_getElem]
+    congr
+    simp only [Walk.vertices_length, add_tsub_cancel_right]
+  · have : i + 1 < C.length := by
+      apply lt_of_le_of_ne ?_ h
+      omega
+    simp_rw [Nat.mod_eq_of_lt this]
 
 end Closed
 
@@ -262,6 +327,7 @@ instance DecEq [DecidableEq E] : DecidableEq G.Cycle := by
 --   elems := sorry
 --   complete := sorry
 
+@[simp]
 lemma vertices_dropLast_nodup {C : G.Cycle} : C.vertices.dropLast.Nodup := by
   have := C.vNodup'
   rwa [Closed.vertices_tail_eq_vertices_dropLast_rotate, List.nodup_rotate] at this
@@ -393,6 +459,13 @@ lemma isLoop_of_edges_singleton (C : G.Cycle) (e : E) (he : C.edges = [e]) : G.i
   refine isLoop_of_canGo_self (G.inc e) ⟨ C.start, ?_ ⟩
   exact C.step_spec (C.start, e, C.start) (by rw [this]; exact List.mem_singleton_self _)
 
+def unravel (C : G.Cycle) (i : ℕ) (hi : i < C.length) : G.Path where
+  toWalk := C.toClosed.unravel i hi
+  vNodup := by
+    simp only [Closed.unravel, Walk.take_vertices, Nat.sub_one_add_one_eq_self,
+      Closed.rotate_vertices, List.length_rotate, List.length_dropLast, Walk.vertices_length,
+      add_tsub_cancel_right, List.take_left', List.nodup_rotate, vertices_dropLast_nodup]
+
 
 end Cycle
 
@@ -435,3 +508,84 @@ end Emb
 
 
 structure Tour extends Closed G, Trail G
+
+namespace Walk
+variable {G}
+
+def decompose3 (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length) (hj : j < w.vertices.length)
+    (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) : G.Walk × G.Closed × G.Walk := by
+  let w1 := w.take i
+  let w1' := w.drop i (by simp only [vertices_length] at hi; omega)
+  let w2 := w1'.take (j-i)
+  let w3 := w1'.drop (j-i) (by
+    simp only [vertices_length, drop_length, tsub_le_iff_right, w1'] at hj ⊢
+    omega)
+  refine (w1, ?_, w3)
+  simp only [vertices_length, w1'] at hi hj
+  use w2
+  · simp only [take_start, w2, w1']
+    rw [w.drop_start i (by omega) (by omega), take_finish]
+    simp_rw [drop_vertices, List.getElem_drop, add_comm i, Nat.sub_add_cancel hlt.le, heq]
+    simp only [drop_vertices, List.length_drop, vertices_length, w1', w2]
+    omega
+  · simp only [take, drop, ne_eq, List.take_eq_nil_iff, List.drop_eq_nil_iff,
+    step_length_eq_length, not_or, not_le, w2, w1']
+    constructor
+    · omega
+    · omega
+
+@[simp]
+lemma decompose3_w1_finish (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length)
+    (hj : j < w.vertices.length) (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) :
+    let wCw := w.decompose3 i j hi hj hlt heq
+    wCw.fst.finish = w.vertices[i] := by
+  simp only [decompose3, w.take_finish i (by omega)]
+
+@[simp]
+lemma decompose3_C_start (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length)
+    (hj : j < w.vertices.length) (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) :
+    let wCw := w.decompose3 i j hi hj hlt heq
+    wCw.snd.fst.start = w.vertices[i] := by
+  simp only [decompose3, take_start]
+  rw [drop_start]
+
+@[simp]
+lemma decompose3_C_finish (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length)
+    (hj : j < w.vertices.length) (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) :
+    let wCw := w.decompose3 i j hi hj hlt heq
+    wCw.snd.fst.finish = w.vertices[j] := by
+  simp only [decompose3]
+  rw [take_finish]
+  simp_rw [drop_vertices, List.getElem_drop, i.add_comm, Nat.sub_add_cancel hlt.le]
+  simp only [drop_vertices, List.length_drop, vertices_length] at hj ⊢
+  omega
+
+@[simp]
+lemma decompose3_w2_start (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length) (hj : j < w.vertices.length)
+    (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) :
+    let wCw := w.decompose3 i j hi hj hlt heq
+    wCw.snd.snd.start = w.vertices[j] := by
+  simp only [vertices_length] at hi hj
+  simp only [decompose3]
+  rw [Walk.drop_start _ (j-i) (by simp only [drop_length, tsub_le_iff_right]; omega)
+    (by simp only [drop_vertices, List.length_drop, vertices_length]; omega)]
+  simp only [drop_vertices, List.getElem_drop, i.add_comm, Nat.sub_add_cancel hlt.le]
+
+@[simp]
+lemma decompose3_append (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length) (hj : j < w.vertices.length)
+    (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) :
+    let wCw := w.decompose3 i j hi hj hlt heq
+    wCw.fst.append (wCw.snd.fst.append wCw.snd.snd (by simp only [decompose3_C_finish,
+      decompose3_w2_start, wCw])) (by simp only [decompose3_w1_finish, append_start,
+        decompose3_C_start, wCw]) = w := by
+  simp only [decompose3, take_append_drop]
+
+def decompose (w : Walk G) (i j : ℕ) (hi : i < w.vertices.length) (hj : j < w.vertices.length)
+    (hlt : i < j) (heq : w.vertices[i] = w.vertices[j]) : G.Walk × G.Closed := by
+  let wCw := w.decompose3 i j hi hj hlt heq
+  refine (wCw.fst.append wCw.snd.snd ?_, wCw.snd.fst)
+  simp only [decompose3_w1_finish, heq, decompose3_w2_start, wCw]
+
+
+
+end Walk

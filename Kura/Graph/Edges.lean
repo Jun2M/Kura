@@ -850,6 +850,38 @@ lemma pmap_eq_undir_iff {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h 
     · rintro ⟨s', rfl, rfl⟩
       rfl
 
+lemma mem_pmap_iff {P : V → Prop} {e : edge V} {f : ∀ a, P a → W} {h : ∀ v ∈ e, P v} {w : W} :
+    w ∈ e.pmap f h ↔ ∃ (v : V) (hmem : v ∈ e), f v (h v hmem) = w := by
+  constructor
+  · rintro hpmap
+    match e with
+    | dir (a, b) =>
+      cases a <;> cases b <;> simp_all [pmap_dir, Option.pmap_some, Option.pmap_none,
+        mem_dir_iff, Option.mem_def, Option.some.injEq, Option.none_ne_some, or_false]
+      · rename_i v
+        use v, rfl
+      · rename_i v
+        use v, rfl
+      · rename_i v1 v2
+        obtain h1 | h2 := hpmap
+        · use v1, Or.inl rfl
+        · use v2, Or.inr rfl
+    | undir s =>
+      simp only [pmap_undir, Sym2.pmap_eq_pmap_of_imp, mem_undir_iff, Sym2.mem_pmap_iff] at hpmap ⊢
+      convert hpmap using 3
+      ext a
+      rw [eq_comm]
+  · rintro ⟨v, hmem, rfl⟩
+    match e with
+    | dir (a, b) =>
+      cases a <;> cases b <;> rw [mem_dir_iff] at hmem <;> simp_all [Option.mem_def,
+        Option.some.injEq, Option.none_ne_some, or_false, pmap_dir, Option.pmap_some,
+        Option.pmap_none, mem_dir_iff]
+      · obtain h1 | h2 := hmem <;> subst v <;> simp only [true_or, or_true]
+    | undir s =>
+      simp only [mem_undir_iff, pmap_undir, Sym2.pmap_eq_pmap_of_imp, Sym2.mem_pmap_iff] at hmem ⊢
+      use v, hmem
+
 lemma map_pmap {P : V → Prop} {e : edge V} (f : ∀ a, P a → W) (h : ∀ v ∈ e, P v) (g : W → U) :
     (e.pmap f h).map g = e.pmap (fun a ha => g (f a (h a ha))) (fun _ hv => hv) := by
   match e with

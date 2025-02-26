@@ -31,10 +31,18 @@ theorem eq_add_toss {α : Type} [AddGroup α] {a b c : α} : a = b + c ↔ a - c
     ← sub_eq_iff_eq_add
   ]
 
+lemma Nat.eq_toss_add {a b c : ℕ} (h : c ≤ a) : a = b + c ↔ a - c = b := by omega
+
+lemma Nat.eq_toss_add' {a b c : ℕ} (h : 0 < b) : a = b + c ↔ a - c = b := by omega
+
 theorem add_eq_toss {α : Type} [AddGroup α] {a b : α} : a = b ↔ a - b = 0 := by
   rw [
     ← sub_eq_zero
   ]
+
+lemma Nat.add_eq_toss {a b c : ℕ} (h : c ≤ a) : a = b + c ↔ a - c = b := by omega
+
+lemma Nat.add_eq_toss' {a b c : ℕ} (h : 0 < b) : a = b + c ↔ a - c = b := by omega
 
 theorem toss_eq_add {α : Type} [AddGroup α] {a b : α} : a = b ↔ 0 = -a + b := by
   rw [← neg_add_eq_zero, eq_comm]
@@ -51,6 +59,10 @@ theorem add_toss_le {α : Type} [OrderedAddCommGroup α] {a b c : α} :
     ← le_sub_iff_add_le
   ]
 
+lemma Nat.add_toss_le {a b c : ℕ} (h : b ≤ c) : a + b ≤ c ↔ a ≤ c - b := by omega
+
+lemma Nat.add_toss_le' {a b c : ℕ} (h : 0 < a) : a + b ≤ c ↔ a ≤ c - b := by omega
+
 theorem le_toss_add {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a ≤ b + c ↔ -b + a ≤ c := by
   rw [
@@ -62,6 +74,8 @@ theorem le_add_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   rw [
     ← sub_le_iff_le_add
   ]
+
+lemma Nat.le_add_toss {a b c : ℕ} : a ≤ b + c ↔ a - c ≤ b := by omega
 
 theorem toss_add_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a + b < c ↔ b < -a + c := by
@@ -75,6 +89,9 @@ theorem add_toss_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
     ← lt_sub_iff_add_lt
   ]
 
+lemma Nat.toss_add_lt {a b c : ℕ} : a + b < c ↔ b < c - a := by omega
+
+
 theorem lt_toss_add {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a < b + c ↔ -b + a < c := by
   rw [
@@ -87,7 +104,9 @@ theorem lt_add_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
     ← sub_lt_iff_lt_add
   ]
 
+lemma Nat.lt_add_toss {a b c : ℕ} (h : c ≤ a) : a < b + c ↔ a - c < b := by omega
 
+lemma Nat.lt_add_toss' {a b c : ℕ} (h : 0 < b) : a < b + c ↔ a - c < b := by omega
 
 
 
@@ -100,7 +119,9 @@ theorem toss_sub_eq {α : Type} [AddGroup α] {a b c : α} : a - b = c ↔ -b = 
 theorem sub_toss_eq {α : Type} [AddGroup α] {a b c : α} : a - b = c ↔ a = c + b := by
   exact sub_eq_iff_eq_add
 
-theorem Nat.sub_toss_eq' {a b c : ℕ} (hc : c > 0) : a - b = c ↔ a = c + b := by omega
+lemma Nat.sub_toss_eq {a b c : ℕ} (h : b ≤ a) : a - b = c ↔ a = c + b := by omega
+
+lemma Nat.sub_toss_eq' {a b c : ℕ} (hc : c > 0) : a - b = c ↔ a = c + b := by omega
 
 theorem toss_mul_eq {α : Type} [Group α] {a b c : α} : a * b = c ↔ b = a⁻¹ * c := by
   rw [
@@ -182,6 +203,8 @@ theorem sub_toss_le {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a - b ≤ c ↔ a ≤ c + b := by
   exact sub_le_iff_le_add
 
+lemma Nat.sub_toss_le {a b c : ℕ} : a - b ≤ c ↔ a ≤ c + b := by omega
+
 theorem le_toss_sub {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a ≤ b - c ↔ -b + a ≤ - c := by
   rw [sub_eq_add_neg]
@@ -190,6 +213,10 @@ theorem le_toss_sub {α : Type} [OrderedAddCommGroup α] {a b c : α} :
 theorem le_sub_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a ≤ b - c ↔ a + c ≤ b := by
   exact le_sub_iff_add_le
+
+lemma Nat.le_sub_toss {a b c : ℕ} (h : c ≤ b) : a ≤ b - c ↔ a + c ≤ b := by omega
+
+lemma Nat.le_sub_toss' {a b c : ℕ} (h : 0 < a) : a ≤ b - c ↔ a + c ≤ b := by omega
 
 theorem toss_mul_le {α : Type} [OrderedCommGroup α] {a b c : α} :
   a * b ≤ c ↔ b ≤ a⁻¹ * c := by
@@ -280,6 +307,10 @@ theorem sub_toss_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a - b < c ↔ a < c + b := by
   exact sub_lt_iff_lt_add
 
+lemma Nat.sub_toss_lt {a b c : ℕ} (h : b < a) : a - b < c ↔ a < c + b := by omega
+
+lemma Nat.sub_toss_lt' {a b c : ℕ} (h : 0 < c) : a - b < c ↔ a < c + b := by omega
+
 theorem lt_toss_sub {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a < b - c ↔ -b + a < - c := by
   rw [sub_eq_add_neg]
@@ -288,6 +319,8 @@ theorem lt_toss_sub {α : Type} [OrderedAddCommGroup α] {a b c : α} :
 theorem lt_sub_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
   a < b - c ↔ a + c < b := by
   exact lt_sub_iff_add_lt
+
+lemma Nat.lt_sub_toss {a b c : ℕ} : a < b - c ↔ a + c < b := by omega
 
 theorem toss_mul_lt {α : Type} [OrderedCommGroup α] {a b c : α} :
   a * b < c ↔ b < a⁻¹ * c := by
