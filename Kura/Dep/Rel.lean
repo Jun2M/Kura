@@ -205,6 +205,14 @@ instance ReflTransGenDeciable {α : Type*} {r : α → α → Prop} [hFin: Finty
   apply decidable_of_iff' _ (ReflTransGen_iff_exists_finsetChainLength)
 
 
+lemma TransGen.symmetric {α : Type*} {r : α → α → Prop} (h : Symmetric r) : Symmetric (TransGen r) := by
+  rintro x y hTG
+  induction hTG with
+  | single hr => exact single (h hr)
+  | tail hTG hr ih => exact head (h hr) ih
+
+
+
 def ReflClosure {α : Type*} : ClosureOperator (α → α → Prop) where
   toFun := ReflGen
   monotone' _ _ h _ _ h' := ReflGen.mono h h'

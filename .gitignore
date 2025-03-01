@@ -1,5 +1,6 @@
 /.lake
 /.cursor
+/Kura/.Ignore
 cursor
 cursor_cli.tar.gz
 cursor.Updating CLI

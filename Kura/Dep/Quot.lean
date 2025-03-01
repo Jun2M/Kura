@@ -41,6 +41,10 @@ noncomputable def EquivQuotientRepresentatives (r : Setoid α) :
     obtain ⟨x', rfl⟩ := hx
     simp only [out_eq])
 
+@[simp]
+lemma mkout_idem {r : Setoid α} {a : α} :
+    (Quotient.mk r (Quotient.mk r a).out).out = (Quotient.mk r a).out := by
+  simp only [out_eq]
 
 lemma card_quotient_le_card_quotient_of_le [Fintype α] [DecidableEq α] (hrs : s.r ≤ r.r) :
     Fintype.card (Quotient r) ≤ Fintype.card (Quotient s) := by
@@ -51,12 +55,12 @@ lemma card_quotient_le_card_quotient_of_le [Fintype α] [DecidableEq α] (hrs : 
   rw [eq (r := s)] at h
   exact out_equiv_out.mp (hrs x.out y.out h)
 
-lemma card_submodular [Fintype α] [DecidableEq α] (r s : α → α → Prop) :
-    Fintype.card (Quotient <| EqvGen.setoid r) + Fintype.card (Quotient <| EqvGen.setoid s) ≤
-    Fintype.card (Quotient <| EqvGen.setoid <| r ⊓ s) +
-    Fintype.card (Quotient <| EqvGen.setoid <| r ⊔ s) := by
+-- lemma card_submodular [Fintype α] [DecidableEq α] (r s : α → α → Prop) :
+--     Fintype.card (Quotient <| EqvGen.setoid r) + Fintype.card (Quotient <| EqvGen.setoid s) ≤
+--     Fintype.card (Quotient <| EqvGen.setoid <| r ⊓ s) +
+--     Fintype.card (Quotient <| EqvGen.setoid <| r ⊔ s) := by
 
-  sorry
+--   sorry
 
 lemma IsEmpty_iff {α : Type*} (r : Setoid α) : IsEmpty (Quotient r) ↔ IsEmpty α := by
   constructor <;> intro h

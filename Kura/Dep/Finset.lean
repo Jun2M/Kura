@@ -4,6 +4,20 @@ import Kura.Dep.List
 import Mathlib.Data.Set.Card
 
 
+lemma Set.not_injOn_of_card_lt_card {s : Set α} {hs : s.Finite} {f : α → β}
+    {hrange : (Set.range f).Finite} (h : hrange.toFinset.card < hs.toFinset.card) :
+    ¬ Set.InjOn f s := by
+  intro hinj
+  have := hinj.encard_image
+  rw [Set.Finite.encard_eq_coe_toFinset_card ((finite_image_iff hinj).mpr hs),
+    Set.Finite.encard_eq_coe_toFinset_card hs] at this
+  simp only [Nat.cast_inj] at this
+  rw [← this] at h; clear this
+  apply not_le_of_lt h
+  apply Finset.card_le_card
+  simp only [Finite.subset_toFinset, Finite.coe_toFinset, image_subset_iff, preimage_range,
+    subset_univ]
+
 namespace Multiset
 variable {α : Type*}
 
