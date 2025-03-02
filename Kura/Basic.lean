@@ -82,13 +82,58 @@ def vxNhd (G : Graph α β) (v : α) : Set α := {x | G.Adj v x}
 
 
 
-def Connected (G : Graph α β) := Relation.TransGen (fun x y ↦ G.Adj x y ∨ x = y ∧ x ∈ G.V)
+
+@[simp]
+def reflAdj (G : Graph α β) :=
+  fun x y ↦ ite (x = y) (h := Classical.dec _) (x ∈ G.V) (∃ e, G.Inc x e ∧ G.Inc y e)
+
+lemma reflAdj.Adj_or_eq (h : reflAdj G x y) : G.Adj x y ∨ x = y ∧ x ∈ G.V := by
+  unfold reflAdj at h
+  split_ifs at h with hxy
+  · subst y
+    exact Or.inr ⟨rfl, h⟩
+  · left
+    simpa only [Adj, hxy, ↓reduceIte]
+
+lemma reflAdj_iff_adj_or_eq : G.reflAdj x y ↔ G.Adj x y ∨ x = y ∧ x ∈ G.V := by
+  refine ⟨reflAdj.Adj_or_eq, ?_⟩
+  by_cases h : x = y
+  · subst y
+    simp only [true_and, reflAdj, ↓reduceIte, or_imp, imp_self, and_true]
+    exact fun a ↦ mem_of_adj a
+  · simp only [Adj, h, ↓reduceIte, false_and, or_false, reflAdj, imp_self]
+
+lemma reflAdj.mem {G : Graph α β} {x y : α} (h : G.reflAdj x y) : x ∈ G.V := by
+  rw [reflAdj_iff_adj_or_eq] at h
+  rcases h with h | ⟨rfl, h⟩
+  · exact mem_of_adj h
+  · exact h
+
+lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
+  rw [reflAdj_iff_adj_or_eq]
+  exact Or.inl h
+
+lemma reflAdj_of_vxMem (h : x ∈ G.V) : G.reflAdj x x := by
+  simpa only [reflAdj, ↓reduceIte]
+
+lemma reflAdj.symm {G : Graph α β} {x y : α} (h : G.reflAdj x y) : G.reflAdj y x := by
+  unfold reflAdj at h ⊢
+  split_ifs with hxy
+  · subst y
+    simpa only [↓reduceIte] using h
+  · simp only [((ne_eq _ _).mpr hxy).symm, ↓reduceIte] at h
+    simpa only [and_comm]
+
+lemma reflAdj_comm {G : Graph α β} {x y : α} : G.reflAdj x y ↔ G.reflAdj y x := by
+  refine ⟨reflAdj.symm, reflAdj.symm⟩
+
+def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
 
 lemma Adj.connected (h : G.Adj x y) : G.Connected x y :=
-  Relation.TransGen.single <| .inl h
+  Relation.TransGen.single h.reflAdj
 
 lemma connected_self (hx : x ∈ G.V) : G.Connected x x :=
-  Relation.TransGen.single <| .inr ⟨rfl, hx⟩
+  Relation.TransGen.single <| reflAdj_of_vxMem hx
 
 lemma Inc.connected_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.Connected x y := by
   by_cases h : x = y
@@ -100,13 +145,10 @@ lemma Inc.connected_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.Connected x y :
 
 lemma connected_comm {G : Graph α β} {x y : α} : G.Connected x y ↔ G.Connected y x := by
   unfold Connected
-  have := Relation.TransGen.symmetric (r := (fun x y ↦ G.Adj x y ∨ x = y ∧ x ∈ G.V)) ?_
+  have := Relation.TransGen.symmetric (r := G.reflAdj) ?_
   constructor <;> exact fun h ↦ this h
-  rintro x y (hadj | ⟨rfl, hxin⟩)
-  · rw [adj_comm] at hadj
-    exact Or.inl hadj
-  · right
-    simp only [hxin, and_self]
+  rintro x y hradj
+  exact hradj.symm
 
 lemma Connected.refl {G : Graph α β} {x : α} (hx : x ∈ G.V) : G.Connected x x :=
   connected_self hx
@@ -119,9 +161,8 @@ lemma Connected.trans {G : Graph α β} {x y z : α} (hxy : G.Connected x y) (hy
 
 lemma Connected.mem {G : Graph α β} {x y : α} (hconn : G.Connected x y) : x ∈ G.V := by
   simp only [Connected, Relation.TransGen.head'_iff, not_exists, not_and, not_or] at hconn
-  obtain ⟨a, (hadj | ⟨rfl, hxin⟩), hTG⟩ := hconn
-  · exact mem_of_adj hadj
-  · exact hxin
+  obtain ⟨a, hradj, hTG⟩ := hconn
+  exact hradj.mem
 
 lemma Connected.mem' {G : Graph α β} {x y : α} (hconn : G.Connected x y) : y ∈ G.V := by
   rw [connected_comm] at hconn

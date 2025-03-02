@@ -68,17 +68,13 @@ lemma Inc.contractFun_validOn (hxinc : G.Inc x e) [DecidablePred (G.Inc · e)] :
     exact fun hyinc ↦ False.elim <| hynot hyinc.vx_mem
   map_connected y hy := by
     simp only [contractFun]
-    split_ifs with hyinc <;> refine Relation.TransGen.single ?_
-    · by_cases h : y = x
-      · subst y
-        right
-        use rfl, hy
-      · left
-        use e, ⟨hyinc, rfl⟩
-        simp only [h, ↓reduceIte]
-        exact ⟨hxinc, rfl⟩
-    · right
-      use rfl, hy
+    split_ifs with hyinc <;> refine Relation.TransGen.single ?_ <;> unfold reflAdj
+    · split_ifs with h
+      · subst h
+        exact hy
+      · use e
+        simp only [restrict_inc, hyinc, mem_singleton_iff, and_self, hxinc]
+    · simp only [↓reduceIte, restrict_V, hy]
   map_edge u v f hf huinc hvinc := by
     simp only [contractFun, mem_singleton_iff] at hf
     subst f
@@ -116,21 +112,45 @@ def contract (G : Graph α β) (m : ContractSys α β) (_hm : m.validOn G) : Gra
     obtain h | h | h := G.not_hypergraph hx.1 hy.1 hz.1 <;>
     simp only [h, true_or, or_true]
 
+notation G "/" m " ~" hvalid => Graph.contract G m hvalid
+
+variable {m : ContractSys α β} (hvalid : m.validOn G)
+
 @[simp]
-lemma vx_mem_of_mem_contract {m : ContractSys α β} (hvalid : m.validOn G)
-    (h : x ∈ (G.contract m hvalid).V) : x ∈ G.V := by
+lemma contract_V : (G.contract m hvalid).V = m '' G.V := rfl
+
+@[simp]
+lemma contract_E : (G.contract m hvalid).E = G.E \ m.contractSet := rfl
+
+@[simp]
+lemma contract_inc : (G.contract m hvalid).Inc v e ↔
+    ∃ x, m x = v ∧ G.Inc x e ∧ e ∉ m.contractSet := by
+  simp only [contract]
+
+lemma contract_eq_vxMap_restrict :
+    G.contract m hvalid = (G.vxMap m.toFun).edgeDel m.contractSet := by
+  ext1 <;> simp only [contract, edgeDel, restrict, vxMap, mem_diff, right_eq_inter]
+  · exact diff_subset
+  · constructor
+    · rintro ⟨v, rfl, hinc, hnin⟩
+      rename_i e
+      use ?_, hinc.edge_mem
+      use v
+    · rintro ⟨⟨v, rfl, hinc⟩, he, hnin⟩
+      use v
+
+@[simp]
+lemma vx_mem_of_mem_contract (h : x ∈ (G/m ~hvalid).V) : x ∈ G.V := by
   obtain ⟨y, hy, rfl⟩ := h
   exact hvalid.map_mem hy
 
 @[simp]
-lemma not_mem_contract_of_not_vx_mem {m : ContractSys α β} (hvalid : m.validOn G)
-    (h : x ∉ G.V) : x ∉ (G.contract m hvalid).V := by
+lemma not_mem_contract_of_not_vx_mem (h : x ∉ G.V) : x ∉ (G/m ~hvalid).V := by
   contrapose! h
   exact vx_mem_of_mem_contract hvalid h
 
 @[simp]
-lemma map_mem_contract_iff_vx_mem {m : ContractSys α β} (hvalid : m.validOn G) :
-    m x ∈ (G.contract m hvalid).V ↔ x ∈ G.V := by
+lemma map_mem_contract_iff_vx_mem : m x ∈ (G/m ~hvalid).V ↔ x ∈ G.V := by
   constructor <;> rintro h
   · obtain ⟨y, hy, heq⟩ := h
     by_contra! hnin
@@ -139,9 +159,9 @@ lemma map_mem_contract_iff_vx_mem {m : ContractSys α β} (hvalid : m.validOn G)
     exact hnin (hvalid.map_mem hy)
   · use x
 
-private lemma connected_restrict_of_preconnected_restrict_contract {m : ContractSys α β} (hvalid : m.validOn G)
-    (S : Set β) (h : G.contract m hvalid{S}.Adj x y ∨ x = y ∧ x ∈ G.contract m hvalid{S}.V) :
-    G{m.contractSet ∪ S}.Connected x y := by
+private lemma connected_restrict_of_preconnected_restrict_contract (S : Set β)
+    (h : (G/m ~hvalid){S}.reflAdj x y) : G{m.contractSet ∪ S}.Connected x y := by
+  rw [reflAdj_iff_adj_or_eq] at h
   obtain ⟨e, hinc, h⟩ | ⟨rfl, hin⟩ := h
   · by_cases hx : x = y
     · subst x
@@ -150,10 +170,9 @@ private lemma connected_restrict_of_preconnected_restrict_contract {m : Contract
       have := heq y hinc
       subst y
       refine Relation.TransGen.single ?_
-      right
-      simp only [restrict, mem_union, true_and]
-      have := hinc.vx_mem
-      exact vx_mem_of_mem_contract hvalid this
+      apply reflAdj_of_vxMem
+      simp only [restrict_V]
+      exact vx_mem_of_mem_contract hvalid hinc.vx_mem
     · simp only [hx, ↓reduceIte] at h
       obtain ⟨⟨y, rfl, hinc, hnin⟩, heS⟩ := hinc
       obtain ⟨⟨v, rfl, hvinc, _⟩, _⟩ := h
@@ -161,37 +180,33 @@ private lemma connected_restrict_of_preconnected_restrict_contract {m : Contract
       refine (hvalid.map_connected hinc.vx_mem).symm.le hle |>.trans ?_
       refine (?_ : G{m.contractSet ∪ S}.Connected y v).trans <| (hvalid.map_connected hvinc.vx_mem).le hle
       refine Connected.le ?_ (G.restrict_mono _ (m.contractSet ∪ S) subset_union_right)
-      refine Relation.TransGen.single ?_
-      left
+      refine Relation.TransGen.single (Adj.reflAdj ?_)
       use e, ⟨hinc, heS⟩
       have : y ≠ v := fun a ↦ hx (congrArg m.toFun a)
       simp only [this, ↓reduceIte]
       exact ⟨hvinc, heS⟩
-  · refine Relation.TransGen.single ?_
-    right
+  · refine Relation.TransGen.single (reflAdj_of_vxMem ?_)
     obtain ⟨v, hv, rfl⟩ := hin
     simp only [restrict, mem_union, true_and]
     exact hvalid.map_mem hv
 
-lemma Connected.restrict_of_connected_restrict_contract {m : ContractSys α β} (hvalid : m.validOn G)
-    (S : Set β) (h : (G.contract m hvalid){S}.Connected x y) : G{m.contractSet ∪ S}.Connected x y := by
+lemma Connected.restrict_of_connected_restrict_contract (S : Set β)
+    (h : (G/m ~hvalid){S}.Connected x y) : G{m.contractSet ∪ S}.Connected x y := by
   induction h with
   | single hadj => exact connected_restrict_of_preconnected_restrict_contract hvalid S hadj
   | tail hconn hadj ih => exact ih.trans
     <| connected_restrict_of_preconnected_restrict_contract hvalid S hadj
 
-lemma Connected.of_contract {m : ContractSys α β} (hvalid : m.validOn G)
-    (h : (G.contract m hvalid).Connected x y) : G.Connected x y := by
+lemma Connected.of_contract (h : (G/m ~hvalid).Connected x y) : G.Connected x y := by
   convert Connected.restrict_of_connected_restrict_contract hvalid Set.univ (x := x) (y := y) ?_ using 1
-  · rw [eq_comm]
-    apply restrict_eq_self
+  · rw [eq_comm, restrict_eq_self_iff]
     exact diff_subset_iff.mp fun ⦃a⦄ a ↦ trivial
   · convert h
-    apply restrict_eq_self
+    rw [restrict_eq_self_iff]
     exact fun ⦃a⦄ a ↦ trivial
 
-private lemma Connected.map_restrict_of_connected_restrict_contract_eq_eq {m : ContractSys α β}
-    (hvalid : m.validOn G) (S : Set β) (h : (G.contract m hvalid){S}.Connected x y) :
+private lemma Connected.map_restrict_of_connected_restrict_contract_eq_eq (S : Set β)
+    (h : (G/m ~hvalid){S}.Connected x y) :
     ∀ u v, m u = x → m v = y → G{m.contractSet ∪ S}.Connected u v := by
   have := Connected.restrict_of_connected_restrict_contract hvalid S (x := x) (y := y) h
   rintro u v rfl rfl
@@ -204,32 +219,32 @@ private lemma Connected.map_restrict_of_connected_restrict_contract_eq_eq {m : C
     have := h.mem'
     simpa only [restrict, map_mem_contract_iff_vx_mem] using this
 
-lemma Connected.map_restrict_of_connected_restrict_contract {m : ContractSys α β}
-    (hvalid : m.validOn G) (S : Set β) (h : (G.contract m hvalid){S}.Connected (m x) (m y)) :
-    G{m.contractSet ∪ S}.Connected x y :=
+lemma Connected.map_restrict_of_connected_restrict_contract (S : Set β)
+    (h : (G/m ~hvalid){S}.Connected (m x) (m y)) : G{m.contractSet ∪ S}.Connected x y :=
   Connected.map_restrict_of_connected_restrict_contract_eq_eq hvalid S h _ _ rfl rfl
 
-lemma Connected.map_of_connected_contract {m : ContractSys α β} (hvalid : m.validOn G)
-    (h : (G.contract m hvalid).Connected (m x) (m y)) : G.Connected x y := by
+lemma Connected.map_of_connected_contract (h : (G/m ~hvalid).Connected (m x) (m y)) :
+    G.Connected x y := by
   convert Connected.map_restrict_of_connected_restrict_contract hvalid Set.univ (x := x) (y := y) ?_
     using 1
   · simp only [restrict, union_univ, inter_univ, mem_univ, and_true]
   · convert h
-    apply restrict_eq_self
+    rw [restrict_eq_self_iff]
     exact fun ⦃a⦄ a ↦ trivial
 
-lemma connected_contract_restrict_of_restrict_adj {m : ContractSys α β} (hvalid : m.validOn G)
-    (S : Set β) (h : G{m.contractSet ∪ S}.Adj x u ∨ x = u ∧ x ∈ G{m.contractSet ∪ S}.V) :
-    G.contract m hvalid{S}.Connected (m.toFun x) (m.toFun u) := by
+lemma connected_contract_restrict_of_restrict_adj (S : Set β)
+    (h : G{m.contractSet ∪ S}.reflAdj x u) :
+    (G/m ~hvalid){S}.Connected (m.toFun x) (m.toFun u) := by
   by_cases hx : x = u
   · subst u
     refine Connected.refl ?_
     simp only [restrict, map_mem_contract_iff_vx_mem]
+    rw [reflAdj_iff_adj_or_eq] at h
     obtain ⟨e, hinc, hnin⟩ | ⟨_, hin⟩ := h
     · have := hinc.vx_mem
       simpa only [restrict, mem_union] using this
     · simpa only [restrict, mem_union] using hin
-  · simp only [Adj, hx, ↓reduceIte, false_and, or_false] at h
+  · simp only [reflAdj, Adj, hx, ↓reduceIte, false_and, or_false] at h
     obtain ⟨e, hxinc, huinc⟩ := h
     obtain ⟨he, hemS⟩ := hxinc.edge_mem
     rw [← union_diff_self] at hemS
@@ -240,6 +255,7 @@ lemma connected_contract_restrict_of_restrict_adj {m : ContractSys α β} (hvali
       simp only [restrict, map_mem_contract_iff_vx_mem]
       exact (huinc.le hle).vx_mem
     · refine Relation.TransGen.single ?_
+      rw [reflAdj_iff_adj_or_eq]
       by_cases heq : m x = m u
       · right
         use heq
@@ -267,10 +283,16 @@ theorem Connected.map_restrict_iff_connected_restrict_contract {m : ContractSys 
 
 def IsContraction (H G : Graph α β) := ∃ m hm, H = G.contract m hm
 
--- lemma IsContraction_refl : G.IsContraction G := by
---   refine ⟨ContractSys.id, ⟨?_, ?_, ?_⟩, ?_⟩
---   · simp only [ContractSys.id, id_eq, implies_true]
---   · simp only [ContractSys.id, id_eq]
+lemma IsContraction_refl : G.IsContraction G := by
+  refine ⟨ContractSys.id, ⟨?_, ?_, ?_⟩, ?_⟩
+  · simp only [ContractSys.id, id_eq, implies_true]
+  · simp only [ContractSys.id, id_eq]
+    intro x hx
+    apply Connected.refl
+    exact hx
+  · simp only [ContractSys.id, mem_empty_iff_false, id_eq, IsEmpty.forall_iff, implies_true]
+  · simp only [contract, ContractSys.id, id_eq, image_id', diff_empty, mem_empty_iff_false,
+    not_false_eq_true, and_true, exists_eq_left]
 
 lemma isContraction_trans {G₁ G₂ G₃ : Graph α β} (hm : G₁.IsContraction G₂)
     (hm' : G₂.IsContraction G₃) : G₁.IsContraction G₃ := by
