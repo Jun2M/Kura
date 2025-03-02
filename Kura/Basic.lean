@@ -15,6 +15,10 @@ structure Graph (α β : Type*) where
   exists_vertex_inc : ∀ ⦃e⦄, e ∈ E → ∃ v, Inc v e
   not_hypergraph : ∀ ⦃x y z e⦄, Inc x e → Inc y e → Inc z e → x = y ∨ y = z ∨ x = z
 
+-- @[repr]
+-- instance : Repr (Graph α β) where
+--   reprPrec G n := s!"Graph.mk {G.V} {G.E}"
+
 variable {G : Graph α β} {u v w x y : α} {e f g : β}
 
 namespace Graph
@@ -34,6 +38,10 @@ lemma ext {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V) (hE : G₁.E = G₂.E
   exact hInc x e
 
 abbrev IsLoop (G : Graph α β) (e : β) := ∃! x, G.Inc x e
+
+lemma IsLoop.mem {G : Graph α β} {e : β} (h : G.IsLoop e) : e ∈ G.E := by
+  obtain ⟨v, hv, h⟩ := h
+  exact G.edge_mem_of_inc hv
 
 lemma exist_two_of_not_loop {G : Graph α β} {e : β} (he : e ∈ G.E) (h : ¬G.IsLoop e) :
     ∃ x y, x ≠ y ∧ G.Inc x e ∧ G.Inc y e := by
@@ -100,19 +108,28 @@ lemma connected_comm {G : Graph α β} {x y : α} : G.Connected x y ↔ G.Connec
   · right
     simp only [hxin, and_self]
 
-lemma mem_of_connected {G : Graph α β} {x y : α} (hconn : G.Connected x y) : x ∈ G.V := by
+lemma Connected.refl {G : Graph α β} {x : α} (hx : x ∈ G.V) : G.Connected x x :=
+  connected_self hx
+
+lemma Connected.symm {G : Graph α β} {x y : α} (h : G.Connected x y) : G.Connected y x := by
+  rwa [connected_comm]
+
+lemma Connected.trans {G : Graph α β} {x y z : α} (hxy : G.Connected x y) (hyz : G.Connected y z) :
+    G.Connected x z := Relation.TransGen.trans hxy hyz
+
+lemma Connected.mem {G : Graph α β} {x y : α} (hconn : G.Connected x y) : x ∈ G.V := by
   simp only [Connected, Relation.TransGen.head'_iff, not_exists, not_and, not_or] at hconn
   obtain ⟨a, (hadj | ⟨rfl, hxin⟩), hTG⟩ := hconn
   · exact mem_of_adj hadj
   · exact hxin
 
-lemma mem_of_connected' {G : Graph α β} {x y : α} (hconn : G.Connected x y) : y ∈ G.V := by
+lemma Connected.mem' {G : Graph α β} {x y : α} (hconn : G.Connected x y) : y ∈ G.V := by
   rw [connected_comm] at hconn
-  exact mem_of_connected hconn
+  exact hconn.mem
 
 lemma not_connected_of_not_mem {G : Graph α β} {x y : α} (h : x ∉ G.V) : ¬G.Connected x y := by
   contrapose! h
-  exact mem_of_connected h
+  exact h.mem
 
 lemma not_connected_of_not_mem' {G : Graph α β} {x y : α} (h : y ∉ G.V) : ¬G.Connected x y := by
   rw [connected_comm]
