@@ -219,6 +219,33 @@ lemma ContractSys.validOn.of_le {m : ContractSys α β} (hmvalid : m.validOn G) 
     rw [Inc_iff_Inc_of_edge_mem_le hle (hE ⟨this, he⟩)] at hxinc hyinc
     apply hmvalid.map_edge he hxinc hyinc
 
+lemma ContractSys.exists_of_contractSet (S : Set β) : ∃ m : ContractSys α β, m.validOn G ∧
+  S = m.contractSet := by
+  have hdec : DecidablePred (· ∈ G.V) := Classical.decPred _
+  let m : ContractSys α β := {
+    toFun := fun x ↦ if h : x ∈ G.V then (Quotient.mk (G{S}.ConnSetoid) ⟨x, h⟩).out else x
+    contractSet := S
+    idem x := by
+      by_cases hx : x ∈ G.V
+      · simp only [ConnSetoid.eq_1, hx, ↓reduceDIte, Subtype.coe_prop, Subtype.coe_eta,
+        Quotient.out_eq]
+      · simp only [ConnSetoid.eq_1, hx, ↓reduceDIte]
+  }
+  use m, ?_
+  constructor
+  · intro v hv
+    simp only [ConnSetoid.eq_1, dite_eq_right_iff, m]
+    exact fun h ↦ False.elim (hv h)
+  · rintro x hx
+    simp only [ConnSetoid.eq_1, hx, ↓reduceDIte, m]
+    exact (Quotient.mk_out (s := G{S}.ConnSetoid) ⟨x, hx⟩).symm
+  · rintro x y e he hxinc hyinc
+    simp only [restrict_V, ConnSetoid.eq_1, hxinc.vx_mem, ↓reduceDIte, hyinc.vx_mem, m]
+    rw [Subtype.coe_inj, Quotient.out_inj, Quotient.eq]
+    apply Inc.connected_of_inc
+    · exact ⟨hxinc, he⟩
+    · exact ⟨hyinc, he⟩
+
 /-- Assuming m is valid on some G, m represents a set of the subgraphs to be contracted and
   for each subgraph, which vertex label to retain.
   This function restricts the set of subgraphs to only those that retains a vertex labels in R. -/
@@ -245,7 +272,29 @@ lemma ContractSys.validOn.confine {m : ContractSys α β} (hmvalid : m.validOn G
     and_imp]
     rintro v hv hinR
     simp only [hinR, ↓reduceIte]
-    sorry
+    have : G{{e | e ∈ m.contractSet ∧ ∃ v, G.Inc v e ∧ m.toFun v ∈ R}}[m.toFun ⁻¹' R] =
+      G{m.contractSet}[m.toFun ⁻¹' R] := by
+      ext x e
+      · simp only [induce_V, restrict_V, mem_inter_iff, mem_preimage]
+      · simp only [induce_E, restrict_E, restrict_inc, mem_setOf_eq, mem_preimage, and_imp,
+        forall_exists_index, mem_inter_iff]
+        constructor
+        · rintro ⟨⟨he, hin, v, hinc, hvR⟩, hR⟩
+          tauto
+        · rintro ⟨⟨he, hin⟩, h⟩
+          refine ⟨⟨he, hin, ?_⟩, ?_⟩
+          · obtain ⟨u, huin⟩ := G.exists_vertex_inc he
+            use u, huin, h u huin hin
+          · rintro a hainc _ b hbinc hbR
+            exact h a hainc hin
+      · simp only [induce_inc, restrict_inc, mem_setOf_eq, mem_preimage, and_imp,
+        forall_exists_index]
+        tauto
+    rw [this]; clear this
+    apply (hmvalid.map_connected hv).induce_of_mem
+    rintro x hxconn
+    simp only [mem_preimage]
+    rwa [← hmvalid.map_eq_of_connected hxconn]
   · simp only [ContractSys.confine, mem_setOf_eq, induce_inc, mem_preimage, and_imp, forall_exists_index]
     rintro x y e hem z hzinc hzR hxinc hinR hyinc hinR'
     clear hzR hzinc z hinR'
@@ -480,7 +529,7 @@ lemma contract_induce_eq_induce_contract : (G/m ~hvalid)[S] =
       · rintro x z rfl hinc hnin
         exact hS z hinc
 
-private lemma connected_restrict_of_preconnected_restrict_contract (S : Set β)
+private lemma connected_restrict_of_reflAdj_restrict_contract (S : Set β)
     (h : (G/m ~hvalid){S}.reflAdj x y) : G{m.contractSet ∪ S}.Connected x y := by
   rw [reflAdj_iff_adj_or_eq] at h
   obtain ⟨e, hinc, h⟩ | ⟨rfl, hin⟩ := h
@@ -514,9 +563,9 @@ private lemma connected_restrict_of_preconnected_restrict_contract (S : Set β)
 lemma Connected.restrict_of_connected_restrict_contract (S : Set β)
     (h : (G/m ~hvalid){S}.Connected x y) : G{m.contractSet ∪ S}.Connected x y := by
   induction h with
-  | single hadj => exact connected_restrict_of_preconnected_restrict_contract hvalid S hadj
+  | single hadj => exact connected_restrict_of_reflAdj_restrict_contract hvalid S hadj
   | tail hconn hadj ih => exact ih.trans
-    <| connected_restrict_of_preconnected_restrict_contract hvalid S hadj
+    <| connected_restrict_of_reflAdj_restrict_contract hvalid S hadj
 
 lemma Connected.of_contract (h : (G/m ~hvalid).Connected x y) : G.Connected x y := by
   convert Connected.restrict_of_connected_restrict_contract hvalid Set.univ (x := x) (y := y) ?_ using 1
@@ -600,6 +649,67 @@ theorem Connected.map_restrict_iff_connected_restrict_contract {m : ContractSys 
     | single hadj => exact connected_contract_restrict_of_restrict_adj hvalid S hadj
     | tail hconn hadj ih => exact ih.trans <| connected_contract_restrict_of_restrict_adj hvalid S hadj
 
+lemma contract_contract_compable {m : ContractSys α β} (hm : m.validOn G)
+  {n : ContractSys α β} (hn : n.validOn (G/m ~hm)) :
+  ∀ (v : α), m (n (m v)) = n (m v) := by
+  rintro v
+  by_cases h : v ∈ G.V
+  · obtain ⟨w, hw, heq⟩ := hn.map_mem (x := m v) (mem_image_of_mem m h)
+    rw [← heq, m.idem]
+  · rw [hn.map_not_mem, m.idem]
+    simp only [contract, mem_image, not_exists, not_and]
+    rw [hm.map_not_mem h]
+    rintro x hx rfl
+    exact h <| hm.map_mem hx
+
+lemma contract_contract_comp_validOn {m : ContractSys α β} (hm : m.validOn G)
+    {n : ContractSys α β} (hn : n.validOn (G/m ~hm)) :
+    (n.comp m (contract_contract_compable hm hn)).validOn G := by
+  refine ⟨?_, ?_, ?_⟩
+  · rintro x hx
+    simp only [ContractSys.comp]
+    rw [hm.map_not_mem hx, hn.map_not_mem]
+    exact not_mem_contract_of_not_vx_mem hm hx
+  · rintro x hxmem
+    simp only [ContractSys.comp]
+    have hle := (G.restrict_mono m.contractSet (n.contractSet ∪ m.contractSet) subset_union_right)
+    refine ((hm.map_connected hxmem).le hle).trans
+      (?_ : G{n.contractSet ∪ m.contractSet}.Connected (m.toFun x) (n.toFun (m.toFun x)))
+    rw [union_comm]
+    apply Connected.restrict_of_connected_restrict_contract hm
+    refine hn.map_connected (?_ : m x ∈ _)
+    rwa [map_mem_contract_iff_vx_mem]
+  · rintro x y e he hxinc hyinc
+    simp only [ContractSys.comp] at he ⊢
+    rw [union_comm, ← union_diff_self, mem_union] at he
+    obtain he | he := he
+    · congr 1
+      exact hm.map_edge (e := e) he hxinc hyinc
+    · apply hn.map_edge (e := e) (mem_of_mem_diff he) <;> simp only [contract]
+      · use x, rfl, hxinc
+        exact not_mem_of_mem_diff he
+      · use y, rfl, hyinc
+        exact not_mem_of_mem_diff he
+
+@[simp]
+lemma contract_contract_eq_contract_comp {m : ContractSys α β} (hm : m.validOn G)
+  {n : ContractSys α β} (hn : n.validOn (G/m ~hm)) :
+  ((G/m ~hm)/n ~hn) = G/(n.comp m (contract_contract_compable hm hn))
+    ~(contract_contract_comp_validOn hm hn) := by
+  ext x e <;> simp [contract_V, mem_image, exists_exists_and_eq_and, ContractSys.comp, contract_E,
+    mem_diff, mem_union, not_or]
+  · rw [and_assoc, @and_comm (x ∉ m.contractSet) (x ∉ n.contractSet)]
+  · constructor
+    · rintro ⟨v, rfl, ⟨w, rfl, hinc, henin32⟩, henin21⟩
+      use w
+    · rintro ⟨v, rfl, hinc, henin21, henin32⟩
+      use m v, rfl, ?_
+      use v
+
+
+
+def Contract.toSubgraph {m : ContractSys α β} (hm : m.validOn G) (v : α) :
+    Graph α β := G{m.contractSet}[m ⁻¹' {v}]
 
 
 
@@ -620,56 +730,15 @@ lemma isContraction_trans {G₁ G₂ G₃ : Graph α β} (hm : G₁.IsContractio
     (hm' : G₂.IsContraction G₃) : G₁.IsContraction G₃ := by
   obtain ⟨m21, hm21, rfl⟩ := hm
   obtain ⟨m32, hm32, rfl⟩ := hm'
-  have hcompable : ∀ (v : α), m32.toFun (m21.toFun (m32.toFun v)) = m21.toFun (m32.toFun v) := by
-    rintro v
-    by_cases h : v ∈ G₃.V
-    · obtain ⟨w, hw, heq⟩ := hm21.map_mem (x := m32 v) (mem_image_of_mem m32 h)
-      rw [← heq, m32.idem]
-    · rw [hm21.map_not_mem, m32.idem]
-      simp only [contract, mem_image, not_exists, not_and]
-      rw [hm32.map_not_mem h]
-      rintro x hx rfl
-      exact h <| hm32.map_mem hx
-  refine ⟨m21.comp m32 hcompable, ⟨?_, ?_, ?_⟩, ?_⟩
-  · rintro x hx
-    simp only [ContractSys.comp]
-    rw [hm32.map_not_mem hx, hm21.map_not_mem]
-    exact not_mem_contract_of_not_vx_mem hm32 hx
-  · rintro x hxmem
-    simp only [ContractSys.comp]
-    have hle := (G₃.restrict_mono m32.contractSet (m21.contractSet ∪ m32.contractSet) subset_union_right)
-    refine ((hm32.map_connected hxmem).le hle).trans
-      (?_ : G₃{m21.contractSet ∪ m32.contractSet}.Connected (m32.toFun x) (m21.toFun (m32.toFun x)))
-    rw [union_comm]
-    apply Connected.restrict_of_connected_restrict_contract hm32
-    refine hm21.map_connected (?_ : m32 x ∈ _)
-    rwa [map_mem_contract_iff_vx_mem]
-  · rintro x y e he hxinc hyinc
-    simp only [ContractSys.comp] at he ⊢
-    rw [union_comm, ← union_diff_self, mem_union] at he
-    obtain he | he := he
-    · congr 1
-      exact hm32.map_edge (e := e) he hxinc hyinc
-    · apply hm21.map_edge (e := e) (mem_of_mem_diff he) <;> simp only [contract]
-      · use x, rfl, hxinc
-        exact not_mem_of_mem_diff he
-      · use y, rfl, hyinc
-        exact not_mem_of_mem_diff he
-  · ext x e <;> simp [ContractSys.comp, contract]
-    · rw [and_assoc, @and_comm (x ∉ m32.contractSet) (x ∉ m21.contractSet)]
-    · constructor
-      · rintro ⟨v, rfl, ⟨w, rfl, hinc, henin32⟩, henin21⟩
-        use w
-      · rintro ⟨v, rfl, hinc, henin21, henin32⟩
-        use m32 v, rfl, ?_
-        use v
+  use m21.comp m32 (contract_contract_compable hm32 hm21), contract_contract_comp_validOn hm32 hm21
+  exact contract_contract_eq_contract_comp hm32 hm21
 
 
 def IsMinor (G H : Graph α β) := ∃ R U m hm, G = H{R}[U]/m ~hm
 
 notation G " ≤ₘ " H => IsMinor G H
 
-lemma IsMinor_refl : G ≤ₘ G := by
+lemma IsMinor.refl : G ≤ₘ G := by
   refine ⟨G.E, G.V, ContractSys.id, ⟨?_, ?_, ?_⟩, ?_⟩
   · simp only [restrict_E_eq_self, induce_V_eq_self, ContractSys.id, id_eq, implies_true]
   · simp only [restrict_E_eq_self, induce_V_eq_self, ContractSys.id, id_eq]
@@ -679,3 +748,13 @@ lemma IsMinor_refl : G ≤ₘ G := by
   · simp only [ContractSys.id, mem_empty_iff_false, restrict_E_eq_self, induce_V_eq_self, id_eq,
     IsEmpty.forall_iff, implies_true]
   · simp only [restrict_E_eq_self, induce_V_eq_self, contract_id_eq_self]
+
+lemma IsMinor.trans {G H K : Graph α β} (hGH : G ≤ₘ H) (hHK : H ≤ₘ K) : G ≤ₘ K := by
+  obtain ⟨R, U, m, hm, rfl⟩ := hGH
+  obtain ⟨S, T, n, hn, rfl⟩ := hHK
+  simp only [contract_restrict_eq_restrict_contract, induce_E, restrict_E, restrict_inc, and_imp,
+    induce_restrict_eq_subgraph, restrict_restrict_eq_restrict_inter,
+    contract_induce_eq_induce_contract, induce_induce_eq_induce_inter,
+    contract_contract_eq_contract_comp]
+  refine ⟨S ∩ (R ∪ K.E ∩ S ∩ {e | ∀ (x : α), K.Inc x e → e ∈ S → x ∈ T} ∩ n.contractSet),
+    T ∩ n.toFun ⁻¹' U, _, _, rfl⟩

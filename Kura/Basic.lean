@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Algebra.BigOperators.Sym
 import Kura.Dep.Quot
 import Kura.Dep.Rel
 
@@ -116,7 +116,7 @@ lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
 lemma reflAdj_of_vxMem (h : x ∈ G.V) : G.reflAdj x x := by
   simpa only [reflAdj, ↓reduceIte]
 
-lemma reflAdj.rfl (h : x ∈ G.V) : G.reflAdj x x := reflAdj_of_vxMem h
+lemma reflAdj.refl (h : x ∈ G.V) : G.reflAdj x x := reflAdj_of_vxMem h
 
 lemma reflAdj.symm (h : G.reflAdj x y) : G.reflAdj y x := by
   unfold reflAdj at h ⊢
@@ -166,6 +166,18 @@ lemma Connected.symm {G : Graph α β} {x y : α} (h : G.Connected x y) : G.Conn
 
 lemma Connected.trans {G : Graph α β} {x y z : α} (hxy : G.Connected x y) (hyz : G.Connected y z) :
     G.Connected x z := Relation.TransGen.trans hxy hyz
+
+@[simp]
+def ConnSetoid (G : Graph α β) : Setoid G.V where
+  r x y := G.Connected x y
+  iseqv := by
+    constructor
+    · rintro ⟨x, hx⟩
+      exact Connected.refl hx
+    · rintro ⟨x, hx⟩ ⟨y, hy⟩ hconn
+      exact hconn.symm
+    · rintro ⟨x, hx⟩ ⟨y, hy⟩ ⟨z, hz⟩ hxy hyz
+      exact hxy.trans hyz
 
 lemma Connected.mem {G : Graph α β} {x y : α} (hconn : G.Connected x y) : x ∈ G.V := by
   simp only [Connected, Relation.TransGen.head'_iff, not_exists, not_and, not_or] at hconn

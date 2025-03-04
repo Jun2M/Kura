@@ -234,6 +234,35 @@ lemma induce_idem (U : Set α) : G[U][U] = G[U] := by
   convert G.induce_induce_eq_induce_inter U U
   simp only [inter_self]
 
+lemma reflAdj.induce_of_mem (U : Set α) (hradj : G.reflAdj u v) (hU : ∀ x, G.reflAdj u x → x ∈ U) :
+    G[U].reflAdj u v := by
+  unfold reflAdj at hradj ⊢
+  split_ifs at hradj with heq
+  · subst heq
+    simp only [↓reduceIte, induce_V, mem_inter_iff, hradj, true_and]
+    exact hU _ (refl hradj)
+  · obtain ⟨e, huinc, hvinc⟩ := hradj
+    simp only [heq, ↓reduceIte, induce_inc]
+    use e
+    simp only [huinc, true_and, hvinc, and_self]
+    rintro x hxinc
+    apply hU
+    exact Inc.reflAdj_of_inc huinc hxinc
+
+lemma Connected.induce_of_mem (U : Set α) (h : G.Connected u v) (hU : ∀ x, G.Connected u x → x ∈ U) :
+    G[U].Connected u v := by
+  induction h with
+  | single hradj =>
+    apply reflAdj.connected
+    refine hradj.induce_of_mem U ?_
+    rintro x hradj
+    exact hU _ hradj.connected
+  | tail hconn hradj ih =>
+    apply Relation.TransGen.tail ih
+    refine hradj.induce_of_mem U ?_
+    rintro x hxconn
+    apply hU
+    exact trans hconn hxconn.connected
 
 
 /-- Restrict a graph to a set of edges -/
@@ -268,7 +297,7 @@ lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂) {S : Set β}
   unfold reflAdj at hSconn
   split_ifs at hSconn with heq
   · subst heq
-    exact reflAdj.rfl hu
+    exact reflAdj.refl hu
   · obtain ⟨e, ⟨huinc, heS⟩, ⟨hvinc, _⟩⟩ := hSconn
     refine Inc.reflAdj_of_inc (e := e) ⟨?_, heS⟩ ⟨?_, heS⟩ <;>
     rwa [Inc_iff_Inc_of_edge_mem_le hle (h ⟨huinc.edge_mem, heS⟩)]
