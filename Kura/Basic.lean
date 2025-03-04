@@ -103,7 +103,7 @@ lemma reflAdj_iff_adj_or_eq : G.reflAdj x y ↔ G.Adj x y ∨ x = y ∧ x ∈ G.
     exact fun a ↦ mem_of_adj a
   · simp only [Adj, h, ↓reduceIte, false_and, or_false, reflAdj, imp_self]
 
-lemma reflAdj.mem {G : Graph α β} {x y : α} (h : G.reflAdj x y) : x ∈ G.V := by
+lemma reflAdj.mem (h : G.reflAdj x y) : x ∈ G.V := by
   rw [reflAdj_iff_adj_or_eq] at h
   rcases h with h | ⟨rfl, h⟩
   · exact mem_of_adj h
@@ -116,7 +116,9 @@ lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
 lemma reflAdj_of_vxMem (h : x ∈ G.V) : G.reflAdj x x := by
   simpa only [reflAdj, ↓reduceIte]
 
-lemma reflAdj.symm {G : Graph α β} {x y : α} (h : G.reflAdj x y) : G.reflAdj y x := by
+lemma reflAdj.rfl (h : x ∈ G.V) : G.reflAdj x x := reflAdj_of_vxMem h
+
+lemma reflAdj.symm (h : G.reflAdj x y) : G.reflAdj y x := by
   unfold reflAdj at h ⊢
   split_ifs with hxy
   · subst y
@@ -124,24 +126,30 @@ lemma reflAdj.symm {G : Graph α β} {x y : α} (h : G.reflAdj x y) : G.reflAdj 
   · simp only [((ne_eq _ _).mpr hxy).symm, ↓reduceIte] at h
     simpa only [and_comm]
 
-lemma reflAdj_comm {G : Graph α β} {x y : α} : G.reflAdj x y ↔ G.reflAdj y x := by
+lemma reflAdj_comm : G.reflAdj x y ↔ G.reflAdj y x := by
   refine ⟨reflAdj.symm, reflAdj.symm⟩
+
+lemma Inc.reflAdj_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.reflAdj x y := by
+  unfold reflAdj
+  split_ifs with hxy
+  · subst y
+    exact hx.vx_mem
+  · use e
+
+
+
 
 def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
 
-lemma Adj.connected (h : G.Adj x y) : G.Connected x y :=
-  Relation.TransGen.single h.reflAdj
+lemma Adj.connected (h : G.Adj x y) : G.Connected x y := Relation.TransGen.single h.reflAdj
+
+lemma reflAdj.connected (h : G.reflAdj x y) : G.Connected x y := Relation.TransGen.single h
 
 lemma connected_self (hx : x ∈ G.V) : G.Connected x x :=
   Relation.TransGen.single <| reflAdj_of_vxMem hx
 
-lemma Inc.connected_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.Connected x y := by
-  by_cases h : x = y
-  · subst y
-    exact connected_self (G.vx_mem_of_inc hx)
-  · apply Adj.connected
-    simp only [Adj, h, ↓reduceIte]
-    use e
+lemma Inc.connected_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.Connected x y :=
+  reflAdj.connected (hx.reflAdj_of_inc hy)
 
 lemma connected_comm {G : Graph α β} {x y : α} : G.Connected x y ↔ G.Connected y x := by
   unfold Connected
@@ -175,6 +183,38 @@ lemma not_connected_of_not_mem {G : Graph α β} {x y : α} (h : x ∉ G.V) : ¬
 lemma not_connected_of_not_mem' {G : Graph α β} {x y : α} (h : y ∉ G.V) : ¬G.Connected x y := by
   rw [connected_comm]
   exact not_connected_of_not_mem h
+
+
+lemma not_inc_of_E_empty (hE : G.E = ∅) : ¬ G.Inc v e := by
+  intro hinc
+  exact (hE ▸ hinc.edge_mem : e ∈ ∅)
+
+lemma not_adj_of_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) : ¬ G.Adj u v := by
+  rintro ⟨e, hinc, hif⟩
+  exact hnoinc e hinc
+
+lemma reflAdj_iff_eq_and_mem_of_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) : G.reflAdj u v ↔ u = v ∧ u ∈ G.V := by
+  rw [reflAdj_iff_adj_or_eq]
+  simp only [not_adj_of_no_inc_edge hnoinc, false_or]
+
+lemma eq_no_inc_edge_of_reflAdj_of (hnoinc : ∀ e, ¬ G.Inc u e) (h : G.reflAdj u v) : u = v := by
+  rw [reflAdj_iff_eq_and_mem_of_no_inc_edge hnoinc] at h
+  exact h.1
+
+lemma eq_of_no_inc_edge_of_connected (hnoinc : ∀ e, ¬ G.Inc u e) (h : G.Connected u v) : u = v := by
+  induction h with
+  | single hradj => exact eq_no_inc_edge_of_reflAdj_of hnoinc hradj
+  | tail w hconn ih =>
+    subst ih
+    exact eq_no_inc_edge_of_reflAdj_of hnoinc hconn
+
+lemma connected_iff_eq_and_mem_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) :
+    G.Connected u v ↔ u = v ∧ u ∈ G.V := by
+  refine ⟨?_, ?_⟩
+  · intro h
+    refine ⟨eq_of_no_inc_edge_of_connected hnoinc h, h.mem⟩
+  · rintro ⟨rfl, h⟩
+    exact connected_self h
 
 
 noncomputable def toSym2 (G : Graph α β) {e : β} (he : e ∈ G.E) : Sym2 α := by

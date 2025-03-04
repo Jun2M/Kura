@@ -71,7 +71,7 @@ lemma reflAdj.le (h : G₁.reflAdj u w) (hle : G₁ ≤ G₂) : G₂.reflAdj u w
   · left
     exact hadj.le hle
   · right
-    refine ⟨rfl, vx_subset_of_le hle hu⟩
+    simp only [vx_subset_of_le hle hu, and_self]
 
 lemma Connected.le (h : G₁.Connected u v) (hle : G₁ ≤ G₂) : G₂.Connected u v := by
   induction h with
@@ -262,6 +262,30 @@ lemma restrict_E : (G{R}).E = G.E ∩ R := rfl
 @[simp]
 lemma restrict_inc : (G{R}).Inc v e ↔ G.Inc v e ∧ e ∈ R := by
   simp only [restrict]
+
+lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂) {S : Set β}
+    (hSconn : G₂{S}.reflAdj u v) (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) : G₁{S}.reflAdj u v := by
+  unfold reflAdj at hSconn
+  split_ifs at hSconn with heq
+  · subst heq
+    exact reflAdj.rfl hu
+  · obtain ⟨e, ⟨huinc, heS⟩, ⟨hvinc, _⟩⟩ := hSconn
+    refine Inc.reflAdj_of_inc (e := e) ⟨?_, heS⟩ ⟨?_, heS⟩ <;>
+    rwa [Inc_iff_Inc_of_edge_mem_le hle (h ⟨huinc.edge_mem, heS⟩)]
+
+lemma Connected.restrict_of_le_connected_restrict (hle : G₁ ≤ G₂) {S : Set β}
+    (hSconn : G₂{S}.Connected u v) (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) : G₁{S}.Connected u v := by
+  induction hSconn with
+  | single hradj =>
+    rename_i v
+    apply reflAdj.connected
+    apply hradj.restrict_of_le_reflAdj_restrict hle h hu
+  | tail _hconn hradj ih =>
+    apply ih.trans
+    rename_i x y
+    apply reflAdj.connected
+    apply hradj.restrict_of_le_reflAdj_restrict hle h
+    exact ih.symm.mem
 
 @[simp]
 theorem restrict_le_restrict_iff (G : Graph α β) (R S : Set β) :
