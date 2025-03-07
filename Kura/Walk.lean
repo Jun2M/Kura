@@ -55,9 +55,8 @@ def append (w₁ : Walk G u v) (w₂ : Walk G v w) : Walk G u w where
       · rw [getElem_zero_eq_head, w₂.hstart]
         convert w₁.hend
         rw [← getElem_length_sub_one_eq_getLast]
-        simp only [w₁.hlen, add_tsub_cancel_right]
-        rw [w₁.hlen]
-        omega
+        · simp only [w₁.hlen, add_tsub_cancel_right]
+        simp [w₁.hlen]
       · simpa only [length_append, lt_add_iff_pos_right] using hi
     · have : ¬ i < w₁.edge.length + 1 := by omega
       simp [getElem_append, w₁.hlen, hlti.not_lt, this, sub_add_eq]
@@ -93,4 +92,3 @@ def append (w₁ : Walk G u v) (w₂ : Walk G v w) : Walk G u w where
     convert w₂.hend using 1
     have : w₂.vx = [v] := by rw [← head_cons_tail w₂.vx, h, hstart]
     simp only [this, head_cons, getLast_singleton]
-

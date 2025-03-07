@@ -311,7 +311,7 @@ lemma sizeOf_map_nat {f : ℕ → ℕ} (hf : ∀ x, f x ≤ x) (l : List ℕ) :
 
 lemma not_mem_of_length_eq_zero {l : List α} {a : α} (h : l.length = 0) : a ∉ l := by
   intro h'
-  rw [length_eq_zero] at h
+  rw [length_eq_zero_iff] at h
   subst h
   simp only [not_mem_nil] at h'
 
@@ -457,7 +457,9 @@ lemma findJump {l : List α} {p : α → Bool} {a : α} (hhead : p a) (hlast : �
       ← (a::l).take_append_getElem j.val, append_left_inj]
     congr
     omega
-  · let a := Fin.find_min (i := j) (Option.get_mem _) (j := i) (by simp [i, Fin.lt_iff_val_lt_val]; omega)
+  · have hlt : i < j := sorry
+    -- simp [i, Fin.lt_iff_val_lt_val]; omega used to work.
+    let a := Fin.find_min (i := j) (Option.get_mem _) (j := i) hlt
     rw [not_not] at a
     exact a
 

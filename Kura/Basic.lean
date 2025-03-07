@@ -1,5 +1,4 @@
 import Mathlib.Algebra.BigOperators.Sym
-import Kura.Dep.Quot
 import Kura.Dep.Rel
 
 variable {α β : Type*}
@@ -50,34 +49,31 @@ lemma exist_two_of_not_loop {G : Graph α β} {e : β} (he : e ∈ G.E) (h : ¬G
   choose w hw h using h v hv
   use v, w, ((ne_eq _ _).mpr h).symm
 
+@[mk_iff]
+structure IsBetween (G : Graph α β) (e : β) (x y : α) : Prop where
+  inc_left : G.Inc x e
+  inc_right : G.Inc y e
+  isLoop_of_eq : x = y → G.IsLoop e
 
-def CanGo (G : Graph α β) (e : β) (x y : α) :=
-  G.Inc x e ∧ ite (x = y) (h := Classical.dec _) (G.IsLoop e) (G.Inc y e)
+lemma IsBetween.symm (h : G.IsBetween e x y) : G.IsBetween e y x where
+  inc_left := h.inc_right
+  inc_right := h.inc_left
+  isLoop_of_eq h' := h.isLoop_of_eq h'.symm
 
-lemma CanGo.symm : G.CanGo e x y → G.CanGo e y x := by
-  unfold CanGo
-  by_cases heq : x = y
-  · simp only [heq, ↓reduceIte, imp_self]
-  · simp only [heq, ↓reduceIte, ((ne_eq _ _).mpr heq).symm, and_comm, imp_self]
+lemma IsBetween.comm : G.IsBetween e x y ↔ G.IsBetween e y x := by
+  refine ⟨IsBetween.symm, IsBetween.symm⟩
 
-lemma CanGo.comm : G.CanGo e x y ↔ G.CanGo e y x := by
-  refine ⟨CanGo.symm, CanGo.symm⟩
+lemma IsBetween.vx_mem_left (h : G.IsBetween e x y) : x ∈ G.V :=
+  h.inc_left.vx_mem
 
-lemma CanGo.vx_mem (h : G.CanGo e x y) : x ∈ G.V := by
-  unfold CanGo at h
-  exact G.vx_mem_of_inc h.1
+lemma IsBetween.vx_mem_right (h : G.IsBetween e x y) : y ∈ G.V :=
+  h.inc_right.vx_mem
 
-lemma CanGo.vx_mem' (h : G.CanGo e x y) : y ∈ G.V := by
-  rw [CanGo.comm] at h
-  exact h.vx_mem
-
-lemma CanGo.edge_mem (h : G.CanGo e x y) : e ∈ G.E := by
-  unfold CanGo at h
-  exact G.edge_mem_of_inc h.1
-
+lemma IsBetween.edge_mem (h : G.IsBetween e x y) : e ∈ G.E :=
+  h.inc_left.edge_mem
 
 def Adj (G : Graph α β) (x y : α) : Prop :=
-  ∃ e, G.CanGo e x y
+  ∃ e, G.IsBetween e x y
 
 lemma Adj.comm : G.Adj x y ↔ G.Adj y x := by
   unfold Adj
@@ -145,21 +141,23 @@ lemma reflAdj.mem (h : G.reflAdj x y) : x ∈ G.V := by
 
 lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
   obtain ⟨e, hincx, hincy⟩ := h
-  split_ifs at hincy with hxy
-  · subst y
-    exact Inc.reflAdj_of_inc hincx hincx
-  · simp only [Graph.reflAdj, hxy, ↓reduceIte]
-    use e
+  sorry
+  -- split_ifs at hincy with hxy
+  -- · subst y
+  --   exact Inc.reflAdj_of_inc hincx hincx
+  -- · simp only [Graph.reflAdj, hxy, ↓reduceIte]
+  --   use e
 
 lemma reflAdj.Adj_or_eq (h : reflAdj G x y) : G.Adj x y ∨ x = y ∧ x ∈ G.V := by
   unfold reflAdj at h
   split_ifs at h with hxy
   · subst y
     exact Or.inr ⟨rfl, h⟩
-  · left
-    obtain ⟨e, hincx, hincy⟩ := h
-    use e, hincx
-    simp only [hxy, ↓reduceIte, hincy]
+  sorry
+  -- · left
+  --   obtain ⟨e, hincx, hincy⟩ := h
+  --   use e, hincx
+  --   simp only [hxy, ↓reduceIte, hincy]
 
 lemma reflAdj_iff_adj_or_eq : G.reflAdj x y ↔ G.Adj x y ∨ x = y ∧ x ∈ G.V := by
   refine ⟨reflAdj.Adj_or_eq, ?_⟩

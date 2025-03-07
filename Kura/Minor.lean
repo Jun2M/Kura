@@ -306,7 +306,7 @@ lemma ContractSys.validOn.confine {m : ContractSys α β} (hmvalid : m.validOn G
 
 
 
-def contract (G : Graph α β) (m : ContractSys α β) (_hm : m.validOn G) : Graph α β where
+def contract (G : Graph α β) (m : ContractSys α β) : Graph α β where
   V := m '' G.V
   E := G.E \ m.contractSet
   Inc v e := ∃ x, m x = v ∧ G.Inc x e ∧ e ∉ m.contractSet
@@ -324,23 +324,23 @@ def contract (G : Graph α β) (m : ContractSys α β) (_hm : m.validOn G) : Gra
     obtain h | h | h := G.not_hypergraph hx.1 hy.1 hz.1 <;>
     simp only [h, true_or, or_true]
 
-notation G "/" m " ~" hvalid => Graph.contract G m hvalid
+notation G "/" m => Graph.contract G m
 
 variable {m : ContractSys α β} (hvalid : m.validOn G)
 
 @[simp]
-lemma contract_V : (G.contract m hvalid).V = m '' G.V := rfl
+lemma contract_V : (G.contract m).V = m '' G.V := rfl
 
 @[simp]
-lemma contract_E : (G.contract m hvalid).E = G.E \ m.contractSet := rfl
+lemma contract_E : (G.contract m).E = G.E \ m.contractSet := rfl
 
 @[simp]
-lemma contract_inc : (G.contract m hvalid).Inc v e ↔
+lemma contract_inc : (G.contract m).Inc v e ↔
     ∃ x, m x = v ∧ G.Inc x e ∧ e ∉ m.contractSet := by
   simp only [contract]
 
 lemma contract_eq_vxMap_restrict :
-    G.contract m hvalid = (G.vxMap m.toFun).edgeDel m.contractSet := by
+    G.contract mabs_div_eq_leOnePart_sq = (G.vxMap m.toFun).edgeDel m.contractSet := by
   ext1 <;> simp only [contract, edgeDel, restrict, vxMap, mem_diff, right_eq_inter]
   · exact diff_subset
   · constructor
@@ -352,7 +352,7 @@ lemma contract_eq_vxMap_restrict :
       use v
 
 @[simp]
-lemma vx_mem_of_mem_contract (h : x ∈ (G/m ~hvalid).V) : x ∈ G.V := by
+lemma vx_mem_of_mem_contract (h : x ∈ (G/m).V) : x ∈ G.V := by
   obtain ⟨y, hy, rfl⟩ := h
   exact hvalid.map_mem hy
 

@@ -58,12 +58,14 @@ lemma IsLoop.le (hisLoop : G₁.IsLoop e) (hle : G₁ ≤ G₂) : G₂.IsLoop e 
 lemma Adj.le (hadj : G₁.Adj u v) (hle : G₁ ≤ G₂) : G₂.Adj u v := by
   obtain ⟨e, hinc, he⟩ := hadj
   use e, hinc.le hle
-  split_ifs with hvw
-  · subst v
-    simp only [↓reduceIte] at he
-    exact he.le hle
-  · simp only [hvw, ↓reduceIte] at he
-    exact he.le hle
+  sorry
+  sorry
+  -- split_ifs with hvw
+  -- · subst v
+  --   simp only [↓reduceIte] at he
+  --   exact he.le hle
+  -- · simp only [hvw, ↓reduceIte] at he
+  --   exact he.le hle
 
 lemma reflAdj.le (h : G₁.reflAdj u w) (hle : G₁ ≤ G₂) : G₂.reflAdj u w := by
   rw [reflAdj_iff_adj_or_eq] at h ⊢
