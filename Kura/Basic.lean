@@ -50,22 +50,48 @@ lemma exist_two_of_not_loop {G : Graph α β} {e : β} (he : e ∈ G.E) (h : ¬G
   choose w hw h using h v hv
   use v, w, ((ne_eq _ _).mpr h).symm
 
+
+def CanGo (G : Graph α β) (e : β) (x y : α) :=
+  G.Inc x e ∧ ite (x = y) (h := Classical.dec _) (G.IsLoop e) (G.Inc y e)
+
+lemma CanGo.symm : G.CanGo e x y → G.CanGo e y x := by
+  unfold CanGo
+  by_cases heq : x = y
+  · simp only [heq, ↓reduceIte, imp_self]
+  · simp only [heq, ↓reduceIte, ((ne_eq _ _).mpr heq).symm, and_comm, imp_self]
+
+lemma CanGo.comm : G.CanGo e x y ↔ G.CanGo e y x := by
+  refine ⟨CanGo.symm, CanGo.symm⟩
+
+lemma CanGo.vx_mem (h : G.CanGo e x y) : x ∈ G.V := by
+  unfold CanGo at h
+  exact G.vx_mem_of_inc h.1
+
+lemma CanGo.vx_mem' (h : G.CanGo e x y) : y ∈ G.V := by
+  rw [CanGo.comm] at h
+  exact h.vx_mem
+
+lemma CanGo.edge_mem (h : G.CanGo e x y) : e ∈ G.E := by
+  unfold CanGo at h
+  exact G.edge_mem_of_inc h.1
+
+
 def Adj (G : Graph α β) (x y : α) : Prop :=
-  ∃ e, G.Inc x e ∧ ite (x = y) (h := Classical.dec _) (G.IsLoop e) (G.Inc y e)
+  ∃ e, G.CanGo e x y
 
-lemma adj_comm : G.Adj x y ↔ G.Adj y x := by
+lemma Adj.comm : G.Adj x y ↔ G.Adj y x := by
   unfold Adj
-  by_cases h : x = y
-  · simp only [h, ↓reduceIte]
-  · simp only [h, ((ne_eq _ _).mpr h).symm, ↓reduceIte, and_comm]
+  constructor <;>
+  · rintro ⟨e, h⟩
+    exact ⟨e, h.symm⟩
 
-lemma mem_of_adj {G : Graph α β} {x y : α} (h : G.Adj x y) : x ∈ G.V := by
+lemma Adj.mem {G : Graph α β} {x y : α} (h : G.Adj x y) : x ∈ G.V := by
   obtain ⟨e, hinc, hif⟩ := h
   exact G.vx_mem_of_inc hinc
 
-lemma mem_of_adj' {G : Graph α β} {x y : α} (h : G.Adj x y) : y ∈ G.V := by
-  rw [adj_comm] at h
-  exact mem_of_adj h
+lemma Adj.mem' {G : Graph α β} {x y : α} (h : G.Adj x y) : y ∈ G.V := by
+  rw [Adj.comm] at h
+  exact Adj.mem h
 
 lemma not_adj_of_not_mem {G : Graph α β} {x y : α} (h : x ∉ G.V) : ¬G.Adj x y := by
   rintro ⟨e, hinc, hif⟩
@@ -73,7 +99,7 @@ lemma not_adj_of_not_mem {G : Graph α β} {x y : α} (h : x ∉ G.V) : ¬G.Adj 
   exact h hx'
 
 lemma not_adj_of_not_mem' {G : Graph α β} {x y : α} (h : y ∉ G.V) : ¬G.Adj x y := by
-  rw [adj_comm]
+  rw [Adj.comm]
   exact not_adj_of_not_mem h
 
 def edgeNhd (G : Graph α β) (v : α) : Set β := {e | G.Inc v e}
@@ -86,32 +112,6 @@ def vxNhd (G : Graph α β) (v : α) : Set α := {x | G.Adj v x}
 @[simp]
 def reflAdj (G : Graph α β) :=
   fun x y ↦ ite (x = y) (h := Classical.dec _) (x ∈ G.V) (∃ e, G.Inc x e ∧ G.Inc y e)
-
-lemma reflAdj.Adj_or_eq (h : reflAdj G x y) : G.Adj x y ∨ x = y ∧ x ∈ G.V := by
-  unfold reflAdj at h
-  split_ifs at h with hxy
-  · subst y
-    exact Or.inr ⟨rfl, h⟩
-  · left
-    simpa only [Adj, hxy, ↓reduceIte]
-
-lemma reflAdj_iff_adj_or_eq : G.reflAdj x y ↔ G.Adj x y ∨ x = y ∧ x ∈ G.V := by
-  refine ⟨reflAdj.Adj_or_eq, ?_⟩
-  by_cases h : x = y
-  · subst y
-    simp only [true_and, reflAdj, ↓reduceIte, or_imp, imp_self, and_true]
-    exact fun a ↦ mem_of_adj a
-  · simp only [Adj, h, ↓reduceIte, false_and, or_false, reflAdj, imp_self]
-
-lemma reflAdj.mem (h : G.reflAdj x y) : x ∈ G.V := by
-  rw [reflAdj_iff_adj_or_eq] at h
-  rcases h with h | ⟨rfl, h⟩
-  · exact mem_of_adj h
-  · exact h
-
-lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
-  rw [reflAdj_iff_adj_or_eq]
-  exact Or.inl h
 
 lemma reflAdj_of_vxMem (h : x ∈ G.V) : G.reflAdj x x := by
   simpa only [reflAdj, ↓reduceIte]
@@ -126,7 +126,7 @@ lemma reflAdj.symm (h : G.reflAdj x y) : G.reflAdj y x := by
   · simp only [((ne_eq _ _).mpr hxy).symm, ↓reduceIte] at h
     simpa only [and_comm]
 
-lemma reflAdj_comm : G.reflAdj x y ↔ G.reflAdj y x := by
+lemma reflAdj.comm : G.reflAdj x y ↔ G.reflAdj y x := by
   refine ⟨reflAdj.symm, reflAdj.symm⟩
 
 lemma Inc.reflAdj_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.reflAdj x y := by
@@ -135,6 +135,41 @@ lemma Inc.reflAdj_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.reflAdj x y := by
   · subst y
     exact hx.vx_mem
   · use e
+
+lemma reflAdj.mem (h : G.reflAdj x y) : x ∈ G.V := by
+  unfold reflAdj at h
+  split_ifs at h with hxy
+  · exact h
+  · rcases h with ⟨e, hincx, hincy⟩
+    exact G.vx_mem_of_inc hincx
+
+lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
+  obtain ⟨e, hincx, hincy⟩ := h
+  split_ifs at hincy with hxy
+  · subst y
+    exact Inc.reflAdj_of_inc hincx hincx
+  · simp only [Graph.reflAdj, hxy, ↓reduceIte]
+    use e
+
+lemma reflAdj.Adj_or_eq (h : reflAdj G x y) : G.Adj x y ∨ x = y ∧ x ∈ G.V := by
+  unfold reflAdj at h
+  split_ifs at h with hxy
+  · subst y
+    exact Or.inr ⟨rfl, h⟩
+  · left
+    obtain ⟨e, hincx, hincy⟩ := h
+    use e, hincx
+    simp only [hxy, ↓reduceIte, hincy]
+
+lemma reflAdj_iff_adj_or_eq : G.reflAdj x y ↔ G.Adj x y ∨ x = y ∧ x ∈ G.V := by
+  refine ⟨reflAdj.Adj_or_eq, ?_⟩
+  by_cases h : x = y
+  · subst y
+    simp only [true_and, reflAdj, ↓reduceIte, or_imp, imp_self, and_true]
+    exact fun a ↦ Adj.mem a
+  · rintro (h | ⟨rfl, h⟩)
+    · exact h.reflAdj
+    · simp only [not_true_eq_false] at h
 
 
 
