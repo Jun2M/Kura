@@ -6,89 +6,99 @@ variable {α β : Type*} {G H : Graph α β} {u v w x y : α} {e f g : β}
 namespace Graph
 
 
-structure Walk (G : Graph α β) (u v : α) where
-  vx : List α
-  edge : List β
-  hlen : vx.length = edge.length + 1
-  hInc1 : ∀ (i : ℕ) (h : i < edge.length),
-    G.Inc (vx[i]'(hlen ▸ Nat.lt_add_right 1 h)) edge[i]
-  hInc2 : ∀ (i : ℕ) (h : i < edge.length),
-    G.Inc (vx[i + 1]'(hlen ▸ (Nat.add_lt_add_right h 1))) edge[i]
-  hstart : vx.head (List.ne_nil_of_length_eq_add_one hlen) = u
-  hend : vx.getLast (List.ne_nil_of_length_eq_add_one hlen) = v
+inductive Walk (G : Graph α β) : α → α → Type (max u_1 u_2) where
+| nil ⦃u : α⦄ (h : u ∈ G.V) : G.Walk u u
+| cons ⦃u v w : α⦄ ⦃e : β⦄ (he : G.IsBetween e w u) (W : G.Walk u v) : G.Walk w v
 
+-- TODO: fix the implementation of IncList
+-- structure IncList (G : Graph α β) (u v : α) where
+--   vx : List α
+--   edge : List β
+--   hlen : vx.length = edge.length + 1
+--   hInc1 : ∀ (i : ℕ) (h : i < edge.length),
+--     G.Inc (vx[i]'(hlen ▸ Nat.lt_add_right 1 h)) edge[i]
+--   hInc2 : ∀ (i : ℕ) (h : i < edge.length),
+--     G.Inc (vx[i + 1]'(hlen ▸ (Nat.add_lt_add_right h 1))) edge[i]
+--   hstart : vx.head (List.ne_nil_of_length_eq_add_one hlen) = u
+--   hend : vx.getLast (List.ne_nil_of_length_eq_add_one hlen) = v
 namespace Walk
 
-def reverse (w : Walk G u v) : Walk G v u where
-  vx := w.vx.reverse
-  edge := w.edge.reverse
-  hlen := by simp only [length_reverse, w.hlen]
-  hInc1 i hi := by
-    simp_rw [getElem_reverse, hlen, Nat.add_sub_cancel, Nat.sub_right_comm]
-    convert w.hInc2 _ _ using 2
-    rw [Nat.sub_add_cancel]
-    rw [length_reverse] at hi
-    omega
-  hInc2 i hi := by
-    simp_rw [getElem_reverse, hlen, Nat.add_sub_cancel, sub_add_eq, Nat.sub_right_comm]
-    convert w.hInc1 _ _ using 2
-  hstart := by
-    rw [head_reverse]
-    exact w.hend
-  hend := by
-    rw [getLast_reverse]
-    exact w.hstart
+def vx {x y : α} : G.Walk x y → List α
+| nil _hx => [x]
+| cons _hbtw W => x :: W.vx
 
-def append (w₁ : Walk G u v) (w₂ : Walk G v w) : Walk G u w where
-  vx := w₁.vx ++ w₂.vx.tail
-  edge := w₁.edge ++ w₂.edge
-  hlen := by simp [w₁.hlen, w₂.hlen]; omega
-  hInc1 i hi := by
-    rw [w₁.edge.getElem_append]
-    obtain hilt | rfl | hlti := lt_trichotomy i w₁.edge.length
-    · simp_rw [getElem_append, w₁.hlen]
-      have : i < w₁.edge.length + 1 := by omega
-      simp only [this, ↓reduceDIte, hilt, w₁.hInc1]
-    · simp only [getElem_append, w₁.hlen, lt_add_iff_pos_right, lt_one_iff, pos_of_gt, ↓reduceDIte,
-      lt_self_iff_false, tsub_self]
-      convert w₂.hInc1 0 _ using 1
-      · rw [getElem_zero_eq_head, w₂.hstart]
-        convert w₁.hend
-        rw [← getElem_length_sub_one_eq_getLast]
-        · simp only [w₁.hlen, add_tsub_cancel_right]
-        simp [w₁.hlen]
-      · simpa only [length_append, lt_add_iff_pos_right] using hi
-    · have : ¬ i < w₁.edge.length + 1 := by omega
-      simp [getElem_append, w₁.hlen, hlti.not_lt, this, sub_add_eq]
-      convert w₂.hInc1 _ _ using 2
-      · omega
-      · simp at hi
-        omega
-  hInc2 i hi := by
-    rw [w₁.edge.getElem_append]
-    obtain hilt | rfl | hlti := lt_trichotomy i w₁.edge.length
-    · simp_rw [getElem_append, w₁.hlen]
-      have : i < w₁.edge.length + 1 := by omega
-      simp only [add_lt_add_iff_right, hilt, ↓reduceDIte, w₁.hInc2]
-    · simp only [getElem_append, w₁.hlen, lt_self_iff_false, ↓reduceDIte, tsub_self, getElem_tail,
-      zero_add]
-      convert w₂.hInc2 0 _
-    · have : ¬ i < w₁.edge.length + 1 := by omega
-      simp [getElem_append, w₁.hlen, hlti.not_lt, this, sub_add_eq]
-      convert w₂.hInc2 _ _ using 2
-      · omega
-      · simp at hi
-        omega
-  hstart := by
-    have : ¬ w₁.vx.isEmpty := by
-      rw [isEmpty_iff_length_eq_zero, w₁.hlen]
-      omega
-    simp only [head_append, this, Bool.false_eq_true, ↓reduceDIte]
-    exact w₁.hstart
-  hend := by
-    simp [getLast_append, w₁.hend, w₂.hend]
-    intro h
-    rw [← w₂.hstart]
-    convert w₂.hend using 1
-    have : w₂.vx = [v] := by rw [← head_cons_tail w₂.vx, h, hstart]
-    simp only [this, head_cons, getLast_singleton]
+def edge {x y : α} : G.Walk x y → List β
+| nil _ => []
+| cons _hbtw W => by
+  rename_i e
+  exact e :: W.edge
+
+def length {x y : α} : G.Walk x y → ℕ
+| nil _ => 0
+| cons _hbtw W => W.length + 1
+
+@[simp]
+lemma nil_length (hx : x ∈ G.V) : (nil hx).length = 0 := rfl
+
+def of_isBetween (h : G.IsBetween e x y) : G.Walk x y :=
+  cons h (nil h.vx_mem_right)
+
+@[simp]
+lemma of_isBetween_length (h : G.IsBetween e x y) :
+    (of_isBetween h).length = 1 := rfl
+
+lemma of_adj (h : G.Adj x y) : ∃ (W : G.Walk x y), W.length = 1 := by
+  obtain ⟨e, he⟩ := h
+  use of_isBetween he
+  exact rfl
+
+lemma of_reflAdj (h : G.reflAdj x y) : ∃ (W : G.Walk x y), W.length ≤ 1 := by
+  obtain hadj | ⟨rfl, hx⟩ := h
+  · obtain ⟨W, hW⟩ := of_adj hadj
+    use W
+    rw [hW]
+  · use nil hx
+    simp only [nil_length, _root_.zero_le]
+
+def append {x y z : α} (w₁ : G.Walk x y) (w₂ : G.Walk y z) : G.Walk x z :=
+  match w₁ with
+  | nil h => w₂
+  | cons hbtw W => cons hbtw (append W w₂)
+
+def concat {x y z : α} (w : G.Walk x y) {e : β} (h : G.IsBetween e y z) : G.Walk x z :=
+  append w (of_isBetween h)
+
+def reverse {x y : α} (w : G.Walk x y) : G.Walk y x :=
+  match w with
+  | nil h => nil h
+  | cons hbtw W => append (reverse W) (of_isBetween hbtw.symm)
+
+lemma connected (W : G.Walk x y) : G.Connected x y := by
+  induction W with
+  | nil h => exact Connected.refl h
+  | cons W hbtw ih =>
+    rename_i u v w e
+    refine Connected.trans ?_ ih
+    refine Adj.connected ?_
+    use e
+
+lemma connected_iff : G.Connected x y ↔ Nonempty (G.Walk x y) := by
+  refine ⟨fun h ↦ ?_, fun a ↦ a.some.connected⟩
+  induction h with
+  | single hradj =>
+    obtain ⟨W, hW⟩ := of_reflAdj hradj
+    use W
+  | tail hConn hrAdj ih =>
+    obtain ⟨W', hW'⟩ := of_reflAdj hrAdj
+    use ih.some.append W'
+
+end Walk
+
+-- structure Path (G : Graph α β) (u v : α) extends Walk G u v where
+--   vx_nodup : vx.Nodup
+
+-- namespace Path
+
+
+
+-- end Path

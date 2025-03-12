@@ -55,20 +55,23 @@ lemma IsLoop_iff_IsLoop_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E)
 lemma IsLoop.le (hisLoop : G₁.IsLoop e) (hle : G₁ ≤ G₂) : G₂.IsLoop e := by
   rwa [← IsLoop_iff_IsLoop_of_edge_mem_le hle hisLoop.mem]
 
+lemma IsBetween_iff_IsBetween_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
+    G₁.IsBetween e u v ↔ G₂.IsBetween e u v := by
+  constructor <;> rintro ⟨hincu, hincv, hLoop⟩
+  · use hincu.le hle, hincv.le hle
+    rwa [← IsLoop_iff_IsLoop_of_edge_mem_le hle he]
+  · refine ⟨?_, ?_, ?_⟩
+    on_goal 3 => rwa [IsLoop_iff_IsLoop_of_edge_mem_le hle he]
+    all_goals
+      simp_rw [Inc_iff_Inc_of_edge_mem_le hle he]
+      assumption
+
 lemma Adj.le (hadj : G₁.Adj u v) (hle : G₁ ≤ G₂) : G₂.Adj u v := by
-  obtain ⟨e, hinc, he⟩ := hadj
-  use e, hinc.le hle
-  sorry
-  sorry
-  -- split_ifs with hvw
-  -- · subst v
-  --   simp only [↓reduceIte] at he
-  --   exact he.le hle
-  -- · simp only [hvw, ↓reduceIte] at he
-  --   exact he.le hle
+  obtain ⟨e, hincu, hincv, hLoop⟩ := hadj
+  use e, hincu.le hle, hincv.le hle
+  exact fun a ↦ (hLoop a).le hle
 
 lemma reflAdj.le (h : G₁.reflAdj u w) (hle : G₁ ≤ G₂) : G₂.reflAdj u w := by
-  rw [reflAdj_iff_adj_or_eq] at h ⊢
   obtain hadj | ⟨rfl, hu⟩ := h
   · left
     exact hadj.le hle
@@ -236,32 +239,47 @@ lemma induce_idem (U : Set α) : G[U][U] = G[U] := by
   convert G.induce_induce_eq_induce_inter U U
   simp only [inter_self]
 
-lemma reflAdj.induce_of_mem (U : Set α) (hradj : G.reflAdj u v) (hU : ∀ x, G.reflAdj u x → x ∈ U) :
-    G[U].reflAdj u v := by
-  unfold reflAdj at hradj ⊢
-  split_ifs at hradj with heq
-  · subst heq
-    simp only [↓reduceIte, induce_V, mem_inter_iff, hradj, true_and]
-    exact hU _ (refl hradj)
-  · obtain ⟨e, huinc, hvinc⟩ := hradj
-    simp only [heq, ↓reduceIte, induce_inc]
-    use e
-    simp only [huinc, true_and, hvinc, and_self]
-    rintro x hxinc
-    apply hU
-    exact Inc.reflAdj_of_inc huinc hxinc
+lemma Inc.induce_of_mem {U : Set α} (hinc : G.Inc u e) (hU : ∀ x, G.Inc x e → x ∈ U) :
+    G[U].Inc u e := by
+  simp only [induce_inc, hinc, true_and]
+  exact hU
 
-lemma Connected.induce_of_mem (U : Set α) (h : G.Connected u v) (hU : ∀ x, G.Connected u x → x ∈ U) :
+lemma Adj.induce_of_mem {U : Set α} (hadj : G.Adj u v) (hU : ∀ x, G.reflAdj u x → x ∈ U) :
+    G[U].Adj u v := by
+  obtain ⟨e, hBtw⟩ := hadj
+  have he : ∀ (x : α), G.Inc x e → x ∈ U := by
+    rintro x hinc
+    apply hU
+    exact hBtw.inc_left.reflAdj_of_inc hinc
+  use e
+  refine ⟨?_, ?_, ?_⟩
+  · simpa only [induce_inc, hBtw.inc_left, true_and]
+  · simpa only [induce_inc, hBtw.inc_right, true_and]
+  · rintro rfl
+    rw [IsLoop_iff_IsLoop_of_edge_mem_le (induce_le G U)]
+    exact hBtw.isLoop_of_eq rfl
+    · simpa only [induce_E, mem_inter_iff, hBtw.inc_left.edge_mem, mem_setOf_eq, true_and]
+
+lemma reflAdj.induce_of_mem {U : Set α} (hradj : G.reflAdj u v) (hU : ∀ x, G.reflAdj u x → x ∈ U) :
+    G[U].reflAdj u v := by
+  refine hradj.imp ?_ ?_
+  · rintro hadj
+    exact Adj.induce_of_mem hadj hU
+  · rintro ⟨rfl, hu⟩
+    use rfl, hu
+    exact hU u hradj
+
+lemma Connected.induce_of_mem {U : Set α} (h : G.Connected u v) (hU : ∀ x, G.Connected u x → x ∈ U) :
     G[U].Connected u v := by
   induction h with
   | single hradj =>
     apply reflAdj.connected
-    refine hradj.induce_of_mem U ?_
+    refine hradj.induce_of_mem ?_
     rintro x hradj
     exact hU _ hradj.connected
   | tail hconn hradj ih =>
     apply Relation.TransGen.tail ih
-    refine hradj.induce_of_mem U ?_
+    refine hradj.induce_of_mem ?_
     rintro x hxconn
     apply hU
     exact trans hconn hxconn.connected
@@ -285,26 +303,41 @@ notation G "{" S "}" => Graph.restrict G S
 abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
 @[simp]
-lemma restrict_V : (G{R}).V = G.V := rfl
+lemma restrict_V {R} : (G{R}).V = G.V := rfl
 
 @[simp]
-lemma restrict_E : (G{R}).E = G.E ∩ R := rfl
+lemma restrict_E {R} : (G{R}).E = G.E ∩ R := rfl
 
 @[simp]
-lemma restrict_inc : (G{R}).Inc v e ↔ G.Inc v e ∧ e ∈ R := by
+lemma restrict_inc {R} : (G{R}).Inc v e ↔ G.Inc v e ∧ e ∈ R := by
   simp only [restrict]
 
-lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂) {S : Set β}
-    (hSconn : G₂{S}.reflAdj u v) (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) : G₁{S}.reflAdj u v := by
-  unfold reflAdj at hSconn
-  split_ifs at hSconn with heq
-  · subst heq
-    exact reflAdj.refl hu
-  · obtain ⟨e, ⟨huinc, heS⟩, ⟨hvinc, _⟩⟩ := hSconn
-    refine Inc.reflAdj_of_inc (e := e) ⟨?_, heS⟩ ⟨?_, heS⟩ <;>
-    rwa [Inc_iff_Inc_of_edge_mem_le hle (h ⟨huinc.edge_mem, heS⟩)]
+lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) {S R : Set β} (hSR : S ⊆ R) : G₁{S} ≤ G₂{R} := by
+  refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, vx_subset_of_le hle, subset_inter_iff, mem_inter_iff,
+  and_imp]
+  · refine ⟨?_, ?_⟩
+    · rintro x ⟨H1, H2⟩
+      exact edge_subset_of_le hle H1
+    · rintro x ⟨H1, H2⟩
+      exact hSR H2
+  · rintro v e he1 heS
+    rw [Inc_iff_Inc_of_edge_mem_le hle he1]
+    simp only [heS, and_true, hSR heS]
 
-lemma Connected.restrict_of_le_connected_restrict (hle : G₁ ≤ G₂) {S : Set β}
+lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂) {S : Set β}
+    (hSradj : G₂{S}.reflAdj u v) (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) : G₁{S}.reflAdj u v := by
+  have := restrict_le_restrict_of_le hle (Subset.rfl : S ⊆ S)
+  refine hSradj.imp ?_ ?_
+  · rintro ⟨e, hBtw⟩
+    use e
+    rwa [IsBetween_iff_IsBetween_of_edge_mem_le this ?_]
+    · have he2S := hBtw.edge_mem
+      exact ⟨h he2S, he2S.2⟩
+  · simp only [restrict_V, and_imp]
+    rintro rfl hu2
+    use rfl
+
+lemma Connected.restrict_of_le_inter_subset (hle : G₁ ≤ G₂) {S : Set β}
     (hSconn : G₂{S}.Connected u v) (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) : G₁{S}.Connected u v := by
   induction hSconn with
   | single hradj =>
@@ -316,7 +349,15 @@ lemma Connected.restrict_of_le_connected_restrict (hle : G₁ ≤ G₂) {S : Set
     rename_i x y
     apply reflAdj.connected
     apply hradj.restrict_of_le_reflAdj_restrict hle h
-    exact ih.symm.mem
+    exact ih.symm.mem_left
+
+lemma restrict_Connected_iff_restrict_Connected_of_le (hle : G₁ ≤ G₂) {S : Set β}
+    (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) :
+    G₁{S}.Connected u v ↔ G₂{S}.Connected u v := by
+  constructor <;> rintro hconn
+  · refine Connected.le hconn ?_
+    exact restrict_le_restrict_of_le hle fun ⦃a⦄ a ↦ a
+  · exact Connected.restrict_of_le_inter_subset hle hconn h hu
 
 @[simp]
 theorem restrict_le_restrict_iff (G : Graph α β) (R S : Set β) :

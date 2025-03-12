@@ -435,6 +435,10 @@ lemma ofRel_rel_eq (P : Partition s) : ofRel' P.Rel P.setOf_rel_self_eq.symm = P
   rintro ⟨_, ⟨x, -, rfl⟩, ha, hb⟩
   exact trans_of r (symm_of r ha) hb
 
+lemma rel_ofRel'_eq (r : α → α → Prop) [IsTrans α r] [IsSymm α r] (hs : s = {x | r x x}) :
+    (ofRel' r hs).Rel = r := by
+  simp only [ofRel', rel_congr, rel_ofRel_eq]
+
 @[ext] theorem eq_of_rel_iff_rel {P P' : Partition s} (h : ∀ x y, P.Rel x y ↔ P'.Rel x y) :
     P = P' := by
   rw [← ofRel_rel_eq P, ← ofRel_rel_eq P']; congr; ext; exact h _ _
