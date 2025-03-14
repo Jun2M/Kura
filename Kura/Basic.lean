@@ -132,6 +132,12 @@ lemma IsBetween.sym2_eq (h1 : G.IsBetween e x y) (h2 : G.IsBetween e u v) :
         rfl
       · exact Sym2.eq_swap
 
+lemma IsBetween_iff : G.IsBetween e x y ↔ G.Inc x e ∧ G.Inc y e ∧ (x = y → G.IsLoop e) := by
+  constructor
+  · rintro h
+    exact ⟨h.inc_left, h.inc_right, h.isLoop_of_eq⟩
+  · rintro ⟨hincx, hincy, hloop⟩
+    exact ⟨hincx, hincy, hloop⟩
 
 
 
@@ -252,7 +258,7 @@ lemma connected_self (hx : x ∈ G.V) : G.Connected x x :=
 lemma Inc.connected_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.Connected x y :=
   reflAdj.connected (hx.reflAdj_of_inc hy)
 
-lemma connected_comm : G.Connected x y ↔ G.Connected y x := by
+lemma Connected.comm : G.Connected x y ↔ G.Connected y x := by
   unfold Connected
   have := Relation.TransGen.symmetric (r := G.reflAdj) ?_
   constructor <;> exact fun h ↦ this h
@@ -264,7 +270,7 @@ lemma Connected.refl {G : Graph α β} {x : α} (hx : x ∈ G.V) : G.Connected x
   connected_self hx
 
 lemma Connected.symm (h : G.Connected x y) : G.Connected y x := by
-  rwa [connected_comm]
+  rwa [Connected.comm]
 
 instance : IsSymm α (G.Connected) := ⟨fun _ _ ↦ Connected.symm⟩
 
@@ -281,7 +287,7 @@ lemma Connected.mem_left (hconn : G.Connected x y) : x ∈ G.V := by
 
 @[simp]
 lemma Connected.mem_right (hconn : G.Connected x y) : y ∈ G.V := by
-  rw [connected_comm] at hconn
+  rw [Connected.comm] at hconn
   exact hconn.mem_left
 
 @[simp]
@@ -291,7 +297,7 @@ lemma not_connected_of_not_mem (h : x ∉ G.V) : ¬G.Connected x y := by
 
 @[simp]
 lemma not_connected_of_not_mem' (h : y ∉ G.V) : ¬G.Connected x y := by
-  rw [connected_comm]
+  rw [Connected.comm]
   exact not_connected_of_not_mem h
 
 @[simp]
@@ -316,6 +322,16 @@ lemma connected_iff_eq_and_mem_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) :
   refine ⟨?_, ?_⟩
   · intro h
     refine ⟨eq_of_no_inc_edge_of_connected hnoinc h, h.mem_left⟩
+  · rintro ⟨rfl, h⟩
+    exact connected_self h
+
+lemma connected_iff_eq_and_mem_no_inc_edge' (hnoinc : ∀ e ∈ G.E, ¬ G.Inc u e) :
+    G.Connected u v ↔ u = v ∧ u ∈ G.V := by
+  refine ⟨?_, ?_⟩
+  · intro h
+    refine ⟨eq_of_no_inc_edge_of_connected ?_ h, h.mem_left⟩
+    rintro e he
+    exact hnoinc e he.edge_mem he
   · rintro ⟨rfl, h⟩
     exact connected_self h
 
@@ -354,6 +370,9 @@ lemma connected_iff_reflAdj_of_E_singleton (h : G.E = {e}) :
             exact False.elim (hueqy huy.symm)
   · rintro hradj
     exact hradj.connected
+
+class Conn (G : Graph α β) : Prop where
+  all_conn : ∀ x y, G.Connected x y
 
 
 

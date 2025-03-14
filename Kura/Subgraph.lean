@@ -485,3 +485,24 @@ theorem exists_subgraph_of_le : G₁ ≤ G₂ ↔ G₁ = G₂{G₁.E}[G₁.V] :=
   · rintro heq
     rw [heq]
     exact G₂.subgraph_le G₁.V G₁.E
+
+
+def VxConnectivity (G : Graph α β) (n : ℕ) : Prop :=
+  ∀ S : Finset α, S.card < n → (G[Sᶜ]).Conn
+
+lemma VxConnectivity.one_of_conn [G.Conn] : G.VxConnectivity 1 := by
+  rintro S hS
+  simp only [Nat.lt_one_iff, Finset.card_eq_zero] at hS
+  subst S
+  simp only [Finset.coe_empty, compl_empty, induce_univ_eq_self]
+  assumption
+
+def EdgeConnectivity (G : Graph α β) (n : ℕ) : Prop :=
+  ∀ U : Finset β, U.card < n → (G{Uᶜ}).Conn
+
+lemma EdgeConnectivity.one_of_conn [G.Conn] : G.EdgeConnectivity 1 := by
+  rintro S hS
+  simp only [Nat.lt_one_iff, Finset.card_eq_zero] at hS
+  subst S
+  simp only [Finset.coe_empty, compl_empty, restrict_univ_eq_self]
+  assumption

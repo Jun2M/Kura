@@ -23,7 +23,7 @@ lemma rep_mem (hx : x ∈ G.V) : rep x hx ∈ G.V :=
 @[simp]
 lemma rep_connected (hx : x ∈ G.V) :
     G.Connected (rep x hx) x := by
-  rw [connected_comm]
+  rw [Connected.comm]
   convert G.ConnectedPartition.rep_rel (G.ConnectedPartition.partOf_mem hx) (G.ConnectedPartition.mem_partOf hx)
   rw [eq_comm]
   exact Partition.rel_ofRel'_eq (G.Connected) (by simp only [Connected.refl_iff, setOf_mem_eq])
@@ -68,6 +68,22 @@ def vxMap {α' : Type*} (G : Graph α β) (φ : α → α') : Graph α' β where
     rintro ⟨x, rfl, hx⟩ ⟨y, rfl, hy⟩ ⟨z, rfl, hz⟩
     obtain h | h | h := G.not_hypergraph hx hy hz <;>
     simp only [h, true_or, or_true]
+
+namespace vxMap
+
+variable {α' : Type*} {φ : α → α'}
+
+@[simp]
+lemma V : (G.vxMap φ).V = φ '' G.V := rfl
+
+@[simp]
+lemma E : (G.vxMap φ).E = G.E := rfl
+
+@[simp]
+lemma Inc {x : α'} : (G.vxMap φ).Inc x e ↔ ∃ v, φ v = x ∧ G.Inc v e := by
+  simp only [vxMap, exists_prop, exists_and_right, exists_eq_right]
+
+end vxMap
 
 def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where
   V := G.V
