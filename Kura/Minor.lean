@@ -1,11 +1,20 @@
 import Kura.Subgraph
 import Kura.Map
-
+import Kura.Hom
 
 open Set Function
 variable {α β α' α'' : Type*} {G H : Graph α β} {u v w x y : α} {e f g : β}
 namespace Graph
 
+
+structure IsLawfulContract (G : Graph α β) (φ : HomSys α β α' β) (C : Set β) : Prop where
+  vx_map_iff : ∀ ⦃x y⦄, x ∈ G.V → y ∈ G.V → (φ x = φ y ↔ G{C}.Connected x y)
+  edgeFun_eq_id : φ.edgeFun = id
+
+def HomSys.contract (φ : HomSys α β α' β) (C : Set β) : Graph α' β := (G.map φ){G.E \ C}
+
+-- G /φ C
+-- structure ContractSys (G : Graph α β)
 
 structure ContractSys (α β α' : Type*) where
   toFun : α → α'

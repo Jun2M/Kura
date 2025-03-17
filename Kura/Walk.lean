@@ -1,4 +1,4 @@
-import Kura.Basic
+import Kura.Subgraph
 
 
 open Set Function List Nat
@@ -92,7 +92,35 @@ lemma connected_iff : G.Connected x y ↔ Nonempty (G.Walk x y) := by
     obtain ⟨W', hW'⟩ := of_reflAdj hrAdj
     use ih.some.append W'
 
+
+def IsPath (W : G.Walk u v) : Prop := W.vx.Nodup
+
 end Walk
+
+
+abbrev Path (u v : α) := {P : G.Walk u v // P.IsPath}
+
+namespace Path
+
+section disjoint
+
+variable {ι : Type*}
+
+def InternallyDisjoint {G : Graph α β} {u v : α} (Ps : ι → G.Path u v) : Prop :=
+  ∀ i j x, x ∈ (Ps i).1.vx → x ∈ (Ps j).1.vx → i ≠ j → x = u ∨ x = v
+
+def Disjoint (u v : ι → α) (Ps : ∀ i, G.Path (u i) (v i)) : Prop :=
+  ∀ i j x, x ∈ (Ps i).1.vx → x ∈ (Ps j).1.vx → i = j
+
+theorem Menger {k : ℕ} (G : Graph α β) (u v : α) (hu : u ∈ G.V) (hv : v ∈ G.V) (huv : ¬ G.Adj u v)
+    (h : ∀ S : Finset α, G.IsVxSeparator u v S → k ≤ S.card) : ∃ Ps : Fin k → G.Path u v,
+    InternallyDisjoint Ps := by
+  sorry
+
+end disjoint
+
+end Path
+
 
 -- structure Path (G : Graph α β) (u v : α) extends Walk G u v where
 --   vx_nodup : vx.Nodup

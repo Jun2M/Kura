@@ -372,7 +372,7 @@ lemma connected_iff_reflAdj_of_E_singleton (h : G.E = {e}) :
     exact hradj.connected
 
 class Conn (G : Graph α β) : Prop where
-  all_conn : ∀ x y, G.Connected x y
+  all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
 
 
 

@@ -106,6 +106,7 @@ instance instInhabitedGraph : Inhabited (Graph α β) where
 
 /-- Induced subgraph -/
 def induce (G : Graph α β) (U : Set α) : Graph α β where
+  -- change this to just V = U
   V := G.V ∩ U
   E := G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U}
   Inc v e := G.Inc v e ∧ ∀ (x : α), G.Inc x e → x ∈ U
@@ -131,7 +132,7 @@ notation G "[" S "]" => Graph.induce G S
 abbrev vxDel (G : Graph α β) (V : Set α) : Graph α β := G[G.V \ V]
 
 @[simp]
-lemma induce_V : (G[U]).V = G.V ∩ U := rfl
+lemma induce_V {U} : (G[U]).V = G.V ∩ U := rfl
 
 @[simp]
 lemma induce_E : (G[U]).E = G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U} := rfl
@@ -486,21 +487,27 @@ theorem exists_subgraph_of_le : G₁ ≤ G₂ ↔ G₁ = G₂{G₁.E}[G₁.V] :=
     rw [heq]
     exact G₂.subgraph_le G₁.V G₁.E
 
+@[mk_iff]
+structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
+  not_mem_left : u ∉ S
+  not_mem_right : v ∉ S
+  not_connected : ¬ (G [G.V \ S]).Connected u v
 
-def VxConnectivity (G : Graph α β) (n : ℕ) : Prop :=
-  ∀ S : Finset α, S.card < n → (G[Sᶜ]).Conn
 
-lemma VxConnectivity.one_of_conn [G.Conn] : G.VxConnectivity 1 := by
-  rintro S hS
-  simp only [Nat.lt_one_iff, Finset.card_eq_zero] at hS
-  subst S
-  simp only [Finset.coe_empty, compl_empty, induce_univ_eq_self]
-  assumption
 
-def EdgeConnectivity (G : Graph α β) (n : ℕ) : Prop :=
+lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u u S :=
+  fun ⟨S, hS⟩ ↦ hS.not_connected <| Connected.refl <| by simp [hu, hS.not_mem_left]
+
+def IsVxConnected (G : Graph α β) (n : ℕ) : Prop :=
+  ∀ S : Finset α, S.card < n → (G[G.V \ S]).Conn
+
+lemma IsVxConnected.one_of_conn [G.Conn] : G.IsVxConnected 1 := by
+  simpa [IsVxConnected]
+
+def IsEdgeConnected (G : Graph α β) (n : ℕ) : Prop :=
   ∀ U : Finset β, U.card < n → (G{Uᶜ}).Conn
 
-lemma EdgeConnectivity.one_of_conn [G.Conn] : G.EdgeConnectivity 1 := by
+lemma IsEdgeConnected.one_of_conn [G.Conn] : G.IsEdgeConnected 1 := by
   rintro S hS
   simp only [Nat.lt_one_iff, Finset.card_eq_zero] at hS
   subst S
