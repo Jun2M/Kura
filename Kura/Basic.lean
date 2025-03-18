@@ -1,6 +1,6 @@
--- import LeanCopilot
+import LeanCopilot
 import Mathlib.Algebra.BigOperators.Sym
-import Kura.Dep.Rel
+import Matroid.Axioms.Circuit
 
 variable {α β : Type*}
 
