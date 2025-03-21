@@ -7,24 +7,25 @@ variable {α β α' α'' : Type*} {G H : Graph α β} {u v w x y : α} {e f g : 
 namespace Graph
 
 
-structure IsLawfulContract (G : Graph α β) (φ : HomSys α β α' β) (C : Set β) : Prop where
-  vx_map_iff : ∀ ⦃x y⦄, x ∈ G.V → y ∈ G.V → (φ x = φ y ↔ G{C}.Connected x y)
-  edgeFun_eq_id : φ.edgeFun = id
+-- structure IsLawfulContract (G : Graph α β) (φ : HomSys α β α' β) (C : Set β) : Prop where
+--   vx_map_iff : ∀ ⦃x y⦄, x ∈ G.V → y ∈ G.V → (φ x = φ y ↔ G{C}.Connected x y)
+--   edgeFun_eq_id : φ.edgeFun = id
 
-def HomSys.contract (φ : HomSys α β α' β) (C : Set β) : Graph α' β := (G.map φ){G.E \ C}
+-- def HomSys.contract (φ : HomSys α β α' β) (C : Set β) : Graph α' β := (G.map φ){G.E \ C}
 
 -- G /φ C
+
 -- structure ContractSys (G : Graph α β)
 
-structure ContractSys (α β α' : Type*) where
-  toFun : α → α'
-  contractSet : Set β
+-- structure ContractSys (α β α' : Type*) where
+--   toFun : α → α'
+--   contractSet : Set β
 
-instance : CoeFun (ContractSys α β α') fun (_ : ContractSys α β α') ↦ α → α' where
-  coe v := v.toFun
+-- instance : CoeFun (ContractSys α β α') fun (_ : ContractSys α β α') ↦ α → α' where
+--   coe v := v.toFun
 
-def Contract (G : Graph α β) (m : ContractSys α β α') : Graph α' β :=
-  (G.vxMap m){m.contractSetᶜ}
+-- def Contract (G : Graph α β) (m : ContractSys α β α') : Graph α' β :=
+--   (G.vxMap m){m.contractSetᶜ}
   -- V := m '' G.V
   -- E := G.E \ m.contractSet
   -- Inc v e := ∃ x, m x = v ∧ G.Inc x e ∧ e ∉ m.contractSet
@@ -42,121 +43,115 @@ def Contract (G : Graph α β) (m : ContractSys α β α') : Graph α' β :=
   --   obtain h | h | h := G.not_hypergraph hx.1 hy.1 hz.1 <;>
   --   simp only [h, true_or, or_true]
 
-notation:1023 G "/" m => Graph.Contract G m
+def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
+  (G.vxMap φ){G.E \ C}
 
-/- lemmas about ContractSys -/
-namespace ContractSys
+notation:1023 G "/["φ"]" C => Graph.Contract G φ C
 
-structure validOn (m : ContractSys α β α') (G : Graph α β) : Prop where
-  map_not_mem : ∀ ⦃x y : α⦄, m x = m y → x ∉ G.V → x = y
+/- lemmas about Contract -/
+namespace Contract
+
+structure validOn (G : Graph α β) (φ : α → α') (C : Set β) : Prop where
+  map_not_mem : ∀ ⦃x y : α⦄, φ x = φ y → x ∉ G.V → x = y
   -- map_not_mem? : ∀ ⦃x y⦄, m x = m y → x ∉ G.V → y ∉ G.V
-  map_connected : ∀ ⦃x y⦄, x ∈ G.V → (m x = m y ↔ G{m.contractSet}.Connected x y)
+  map_connected : ∀ ⦃x y⦄, x ∈ G.V → (φ x = φ y ↔ G{C}.Connected x y)
 
-variable {n m : ContractSys α β α'}
-
-@[ext]
-lemma ext {m n : ContractSys α β α'} (h : m.toFun = n.toFun)
-  (h' : m.contractSet = n.contractSet) : m = n := by
-  obtain ⟨a, b⟩ := m
-  obtain ⟨a', b'⟩ := n
-  subst h h'
-  rfl
+variable {φ τ : α → α'} {C D : Set β}
 
 @[simp]
-lemma map_not_mem_simp (hm : m.validOn G) (hmeq : m x = m y) (hnin : x ∉ G.V) : x = y :=
-  hm.map_not_mem hmeq hnin
+lemma map_not_mem_simp (hC : Contract.validOn G φ C) (hφeq : φ x = φ y) (hnin : x ∉ G.V) : x = y :=
+  hC.map_not_mem hφeq hnin
 
-lemma not_mem_of_map_eq_not_mem (hm : m.validOn G) (hmeq : m x = m y) (hnin : x ∉ G.V) : y ∉ G.V := by
-  rw [← hm.map_not_mem hmeq hnin]
+lemma not_mem_of_map_eq_not_mem (hC : Contract.validOn G φ C) (hφeq : φ x = φ y) (hnin : x ∉ G.V) :
+    y ∉ G.V := by
+  rw [← hC.map_not_mem hφeq hnin]
   exact hnin
 
 @[simp]
-lemma mem_of_map_eq_mem (hm : m.validOn G) (hmeq : m x = m y) (hx : x ∈ G.V) : y ∈ G.V := by
+lemma mem_of_map_eq_mem (hC : Contract.validOn G φ C) (hφeq : φ x = φ y) (hx : x ∈ G.V) : y ∈ G.V := by
   by_contra! hy
-  have := hm.map_not_mem hmeq.symm hy
+  have := hC.map_not_mem hφeq.symm hy
   subst y
   exact hy hx
 
-lemma map_eq_self_of_not_exist_inc (hm : m.validOn G) (hmeq : m x = m y)
-    (hninc : ∀ e ∈ m.contractSet, ¬ G.Inc x e) : x = y := by
+lemma map_eq_self_of_not_exist_inc (hC : Contract.validOn G φ C) (hφeq : φ x = φ y)
+    (hninc : ∀ e ∈ C, ¬ G.Inc x e) : x = y := by
   by_cases hx : x ∈ G.V
-  · refine eq_of_no_inc_edge_of_connected ?_ ((hm.map_connected hx).mp hmeq)
+  · refine eq_of_no_inc_edge_of_connected ?_ ((hC.map_connected hx).mp hφeq)
     rintro e ⟨hinc, hem⟩
     exact hninc e hem hinc
-  · exact hm.map_not_mem hmeq hx
+  · exact hC.map_not_mem hφeq hx
 
 @[simp]
-lemma map_mem (hx : x ∈ G.V) : m x ∈ (G/m).V := by
+lemma map_mem (φ : α → α') (C : Set β) (hx : x ∈ G.V) : φ x ∈ (G /[φ] C).V := by
   use x
 
-lemma map_eq_of_reflAdj (hm : m.validOn G) (hradj : G{m.contractSet}.reflAdj x y) : m x = m y := by
+lemma map_eq_of_reflAdj (hC : Contract.validOn G φ C) (hradj : G{C}.reflAdj x y) : φ x = φ y := by
   obtain h | ⟨rfl, h⟩ := hradj
-  · rw [hm.map_connected h.mem_left]
+  · rw [hC.map_connected h.mem_left]
     exact h.connected
   · rfl
 
-lemma validOn.of_inter_eq (hm : m.validOn G) (hf : m.toFun = n.toFun)
-    (h : G.E ∩ m.contractSet = G.E ∩ n.contractSet) : n.validOn G where
-  map_not_mem := by
-    rw [← hf]
-    exact hm.map_not_mem
+lemma validOn.of_inter_eq (hC : Contract.validOn G φ C) (h : G.E ∩ C = G.E ∩ D) :
+    Contract.validOn G φ D where
+  map_not_mem := hC.map_not_mem
   map_connected x y hx := by
-    rw [← hf, (G.restrict_eq_restrict_iff n.contractSet m.contractSet).mpr h.symm]
-    exact hm.map_connected hx
+    rw [← (G.restrict_eq_restrict_iff C D).mpr h, hC.map_connected hx]
 
-lemma toFun_eq_of_inter_eq_fixed_eq (hm : m.validOn G) (hn : n.validOn G)
-    (hinter : G.E ∩ m.contractSet = G.E ∩ n.contractSet)
-    (hfixed : ∀ v ∈ m '' G.V, ∃ x, n x = v ∧ m x = v) : ∀ x ∈ G.V, m x = n x := by
+lemma toFun_eq_of_inter_eq_fixed_eq (hC : Contract.validOn G φ C) (hD : Contract.validOn G τ D)
+    (hinter : G.E ∩ C = G.E ∩ D)
+    (hfixed : ∀ v ∈ φ '' G.V, ∃ x, τ x = v ∧ φ x = v) : ∀ x ∈ G.V, φ x = τ x := by
   rintro x hx
-  obtain ⟨y, hny, hmy⟩ := hfixed (m x) (map_mem hx)
-  have hy : y ∈ G.V := mem_of_map_eq_mem hm hmy.symm hx
-  rwa [← hny, hn.map_connected hy, ← (G.restrict_eq_restrict_iff _ _).mpr hinter, ← hm.map_connected hy]
+  obtain ⟨y, hny, hmy⟩ := hfixed (φ x) (map_mem φ C hx)
+  have hy : y ∈ G.V := mem_of_map_eq_mem hC hmy.symm hx
+  rwa [← hny, hD.map_connected hy, ← (G.restrict_eq_restrict_iff _ _).mpr hinter, ← hC.map_connected hy]
 
-lemma validOn.le (hm : m.validOn G) (hle : H ≤ G) (hE : G.E ∩ m.contractSet ⊆ H.E) :
-    m.validOn H := by
+lemma validOn.le (hC : Contract.validOn G φ C) (hle : H ≤ G) (hE : G.E ∩ C ⊆ H.E) :
+    Contract.validOn H φ C := by
   constructor
   · intro v w hmeq hv
-    apply m.map_eq_self_of_not_exist_inc hm hmeq
+    apply map_eq_self_of_not_exist_inc hC hmeq
     rintro e he hinc
     rw [← Inc_iff_Inc_of_edge_mem_le hle (hE ⟨hinc.edge_mem, he⟩)] at hinc
     exact hv hinc.vx_mem
   · intro v w hv
-    rw [hm.map_connected (vx_subset_of_le hle hv),
-      restrict_Connected_iff_restrict_Connected_of_le hle hE hv]
+    rw [hC.map_connected (vx_subset_of_le hle hv),
+      ← restrict_Connected_iff_restrict_Connected_of_le hle hE hv]
 
-lemma exists_of_contractSet (S : Set β) : ∃ m : ContractSys α β α, m.validOn G ∧
-  S = m.contractSet := by
+lemma exists_of_contractSet (S : Set β) : ∃ (φ : α → α) (C : Set β), Contract.validOn G φ C ∧
+    S = C := by
   have hdec : DecidablePred (· ∈ G.V) := Classical.decPred _
-  let m : ContractSys α β α := {
-    toFun := fun x ↦ if h : x ∈ G.V
-      then ConnectedPartition.rep (G := G{S}) x h
-      else x
-    contractSet := S}
-  use m, ?_
+  let φ := fun x ↦ if h : x ∈ G.V
+    then ConnectedPartition.rep (G := G{S}) x h
+    else x
+  let C := S
+  use φ, C
   constructor
-  · intro u v hmeq hu
-    simp only [hu, ↓reduceDIte, m] at hmeq
-    subst u
-    by_cases hv : v ∈ G.V
-    · simp only [hv, ↓reduceDIte, m] at hu
-      exfalso
-      exact hu (ConnectedPartition.rep_mem (G := G{S}) hv)
-    · simp only [hv, ↓reduceDIte, m]
-  · rintro x y hx
-    simp only [hx, ↓reduceDIte, m]
-    constructor
-    · rintro hmeq
-      refine (ConnectedPartition.rep_connected (G := G{S}) hx).symm.trans ?_
-      split_ifs at hmeq with h
-      · convert (ConnectedPartition.rep_connected (G := G{S}) h)
-      · subst y
-        refine Connected.refl ?_
-        apply ConnectedPartition.rep_mem
-    · rintro hConn
-      by_cases hy : y ∈ G.V
-      · simp only [hy, ↓reduceDIte, m, ConnectedPartition.req_eq_iff_connected, hConn]
-      · exfalso
-        exact hy hConn.mem_right
+  · sorry
+  · sorry
+  -- · intro u v hmeq hu
+  --   simp only [hu, ↓reduceDIte, m] at hmeq
+  --   subst u
+  --   by_cases hv : v ∈ G.V
+  --   · simp only [hv, ↓reduceDIte, m] at hu
+  --     exfalso
+  --     exact hu (ConnectedPartition.rep_mem (G := G{S}) hv)
+  --   · simp only [hv, ↓reduceDIte, m]
+  -- · rintro x y hx
+  --   simp only [hx, ↓reduceDIte, m]
+  --   constructor
+  --   · rintro hmeq
+  --     refine (ConnectedPartition.rep_connected (G := G{S}) hx).symm.trans ?_
+  --     split_ifs at hmeq with h
+  --     · convert (ConnectedPartition.rep_connected (G := G{S}) h)
+  --     · subst y
+  --       refine Connected.refl ?_
+  --       apply ConnectedPartition.rep_mem
+  --   · rintro hConn
+  --     by_cases hy : y ∈ G.V
+  --     · simp only [hy, ↓reduceDIte, m, ConnectedPartition.req_eq_iff_connected, hConn]
+  --     · exfalso
+  --       exact hy hConn.mem_right
 
 
 /- Assuming m is valid on some G, m represents a set of the subgraphs to be contracted and
@@ -208,33 +203,28 @@ lemma exists_of_contractSet (S : Set β) : ∃ m : ContractSys α β α, m.valid
 --     simp only [hinR _ hxinc, ↓reduceIte, hinR _ hyinc]
 --     exact hmvalid.map_edge hem hxinc hyinc
 
-end ContractSys
 
 
-namespace Contract
+-- @[simp]
+-- lemma V : (G/m).V = m '' G.V := rfl
 
-variable {m : ContractSys α β α'}
+-- @[simp]
+-- lemma E : (G/m).E = G.E \ m.contractSet := rfl
 
-@[simp]
-lemma V : (G/m).V = m '' G.V := rfl
+-- @[simp]
+-- lemma Inc {x : α'} : (G/m).Inc x e ↔ ∃ v, m v = x ∧ G.Inc v e ∧ e ∉ m.contractSet := by
+--   simp only [Contract, vxMap, restrict_inc, mem_compl_iff]
+--   tauto
 
-@[simp]
-lemma E : (G/m).E = G.E \ m.contractSet := rfl
-
-@[simp]
-lemma Inc {x : α'} : (G/m).Inc x e ↔ ∃ v, m v = x ∧ G.Inc v e ∧ e ∉ m.contractSet := by
-  simp only [Contract, vxMap, restrict_inc, mem_compl_iff]
-  tauto
-
-@[simp]
-lemma map_mem_contract_iff_vx_mem (hm : m.validOn G) : m x ∈ (G/m).V ↔ x ∈ G.V := by
-  constructor <;> rintro h
-  · obtain ⟨y, hy, heq⟩ := h
-    by_contra! hnin
-    have := hm.map_not_mem heq.symm hnin
-    subst x
-    exact hnin hy
-  · use x
+-- @[simp]
+-- lemma map_mem_contract_iff_vx_mem (hm : m.validOn G) : m x ∈ (G/m).V ↔ x ∈ G.V := by
+--   constructor <;> rintro h
+--   · obtain ⟨y, hy, heq⟩ := h
+--     by_contra! hnin
+--     have := hm.map_not_mem heq.symm hnin
+--     subst x
+--     exact hnin hy
+--   · use x
 
 -- @[simp]
 -- lemma contract_eq_self_iff {m : ContractSys α β α} (hm : m.validOn G) :

@@ -23,6 +23,10 @@ variable {G : Graph α β} {u v w x y : α} {e f g : β}
 
 namespace Graph
 
+class Finite (G : Graph α β) : Prop where
+  vx_fin : G.V.Finite
+  edge_fin : G.E.Finite
+
 @[simp]
 lemma Inc.vx_mem (h : G.Inc x e) : x ∈ G.V := G.vx_mem_of_inc h
 
@@ -139,7 +143,58 @@ lemma IsBetween_iff : G.IsBetween e x y ↔ G.Inc x e ∧ G.Inc y e ∧ (x = y �
   · rintro ⟨hincx, hincy, hloop⟩
     exact ⟨hincx, hincy, hloop⟩
 
+lemma exist_IsBetween_of_mem (he : e ∈ G.E) : ∃ x y, G.IsBetween e x y := by
+  by_cases h : G.IsLoop e
+  · have h' := h
+    obtain ⟨v, hv, hloop⟩ := h
+    use v, v
+    rw [IsBetween_iff]
+    refine ⟨hv, hv, fun _ ↦ h'⟩
+  · obtain ⟨x, y, hne, hxinc, hyinc⟩ := exist_two_of_not_loop he h
+    use x, y
+    rw [IsBetween_iff]
+    refine ⟨hxinc, hyinc, fun h ↦ False.elim (hne h)⟩
 
+structure GraphIsBetween (α β : Type*) where
+  V : Set α
+  E : Set β
+  isBtw : β → α → α → Prop
+  hsymm : ∀ e x y, isBtw e x y → isBtw e y x
+  vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V
+  edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E
+  exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y
+  eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)
+
+@[simp]
+def ofGraphIsBetween (h : GraphIsBetween α β) : Graph α β where
+  V := h.V
+  E := h.E
+  Inc v e := ∃ u, h.isBtw e v u
+  vx_mem_of_inc := by
+    rintro v e ⟨u, hbtw⟩
+    exact h.vx_mem_of_isBtw_left e v u hbtw
+  edge_mem_of_inc := by
+    rintro v e ⟨u, hbtw⟩
+    exact h.edge_mem_of_isBtw e v u hbtw
+  exists_vertex_inc := by
+    rintro e he
+    exact h.exists_vertex_isBtw e he
+  not_hypergraph := by
+    rintro x y z e ⟨x', hx'⟩ ⟨y', hy'⟩ ⟨z', hz'⟩
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_of_isBtw hx' hy' <;>
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_of_isBtw hz' hy' <;>
+    tauto
+
+@[simp]
+def toGraphIsBetween (G : Graph α β) : GraphIsBetween α β where
+  V := G.V
+  E := G.E
+  isBtw := G.IsBetween
+  hsymm _ _ _ := IsBetween.symm
+  vx_mem_of_isBtw_left _ _ _ := IsBetween.vx_mem_left
+  edge_mem_of_isBtw _ _ _ := IsBetween.edge_mem
+  exists_vertex_isBtw _ he := exist_IsBetween_of_mem he
+  eq_of_isBtw _ _ _ _ _ hxy huv := Sym2.eq_iff.mp (hxy.sym2_eq huv)
 
 
 def Adj (G : Graph α β) (x y : α) : Prop :=
@@ -260,10 +315,10 @@ lemma Inc.connected_of_inc (hx : G.Inc x e) (hy : G.Inc y e) : G.Connected x y :
 
 lemma Connected.comm : G.Connected x y ↔ G.Connected y x := by
   unfold Connected
-  have := Relation.TransGen.symmetric (r := G.reflAdj) ?_
-  constructor <;> exact fun h ↦ this h
-  rintro x y hradj
-  exact hradj.symm
+  rw [Relation.transGen_swap]
+  congr! 1
+  ext
+  exact reflAdj.comm
 
 @[simp]
 lemma Connected.refl {G : Graph α β} {x : α} (hx : x ∈ G.V) : G.Connected x x :=

@@ -1,7 +1,11 @@
 /.lake
 /.cursor
+/.vscode
+pyproject.toml
+poetry.lock
 /Kura/.Ignore
 cursor
 cursor_cli.tar.gz
 cursor.Updating CLI
 settings.json
+.cursorignore

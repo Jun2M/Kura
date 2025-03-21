@@ -66,6 +66,9 @@ lemma IsBetween_iff_IsBetween_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G
       simp_rw [Inc_iff_Inc_of_edge_mem_le hle he]
       assumption
 
+lemma IsBetween.le (h : G₁.IsBetween e u v) (hle : G₁ ≤ G₂) : G₂.IsBetween e u v := by
+  rwa [← IsBetween_iff_IsBetween_of_edge_mem_le hle (edge_mem h)]
+
 lemma Adj.le (hadj : G₁.Adj u v) (hle : G₁ ≤ G₂) : G₂.Adj u v := by
   obtain ⟨e, hincu, hincv, hLoop⟩ := hadj
   use e, hincu.le hle, hincv.le hle
@@ -103,6 +106,15 @@ instance instOrderBotGraph : OrderBot (Graph α β) where
 instance instInhabitedGraph : Inhabited (Graph α β) where
   default := ⊥
 
+/-- If G₁ ≤ G₂ and G₂ is finite, then G₁ is finite too. -/
+theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h : Finite G₂] : Finite G₁ := by
+  constructor
+  · -- Prove the vertex set is finite
+    apply Set.Finite.subset h.vx_fin
+    exact vx_subset_of_le hle
+  · -- Prove the edge set is finite
+    apply Set.Finite.subset h.edge_fin
+    exact edge_subset_of_le hle
 
 /-- Induced subgraph -/
 def induce (G : Graph α β) (U : Set α) : Graph α β where
@@ -127,6 +139,8 @@ def induce (G : Graph α β) (U : Set α) : Graph α β where
     simp only [h, true_or, or_true]
 
 notation G "[" S "]" => Graph.induce G S
+
+variable {U : Set α}
 
 @[simp]
 abbrev vxDel (G : Graph α β) (V : Set α) : Graph α β := G[G.V \ V]
@@ -240,6 +254,20 @@ lemma induce_idem (U : Set α) : G[U][U] = G[U] := by
   convert G.induce_induce_eq_induce_inter U U
   simp only [inter_self]
 
+/-- If a vertex is in the induced subgraph, it's in the original graph and the inducing set. -/
+@[simp]
+lemma mem_induce_V_iff {G : Graph α β} {v : α} {U : Set α} : v ∈ (G[U]).V ↔ v ∈ G.V ∧ v ∈ U := by
+  simp only [induce_V, mem_inter_iff]
+
+/-- Adjacency in induced subgraphs implies adjacency in the original graph. -/
+lemma Adj.of_Adj_induce {G : Graph α β} {u v : α} {U : Set α} :
+    (G[U]).Adj u v → G.Adj u v := (Adj.le · (induce_le G U))
+
+/-- Connectedness in a subgraph implies connectedness in the original graph. -/
+theorem Connected.of_Connected_induce {G : Graph α β} {u v : α} {U : Set α} :
+    (G[U]).Connected u v → G.Connected u v :=
+  (Connected.le · (induce_le G U))
+
 lemma Inc.induce_of_mem {U : Set α} (hinc : G.Inc u e) (hU : ∀ x, G.Inc x e → x ∈ U) :
     G[U].Inc u e := by
   simp only [induce_inc, hinc, true_and]
@@ -285,6 +313,15 @@ lemma Connected.induce_of_mem {U : Set α} (h : G.Connected u v) (hU : ∀ x, G.
     apply hU
     exact trans hconn hxconn.connected
 
+/-- A subgraph of a finite graph is also finite. -/
+instance finite_of_finite_induce [h : Finite G] : Finite (G[U]) := by
+  constructor
+  · -- Prove the vertex set is finite
+    apply Set.Finite.subset h.vx_fin
+    simp only [induce_V, inter_subset_left]
+  · -- Prove the edge set is finite
+    apply Set.Finite.subset h.edge_fin
+    simp only [induce_E, inter_subset_left]
 
 /-- Restrict a graph to a set of edges -/
 def restrict (G : Graph α β) (R : Set β) : Graph α β where
@@ -312,6 +349,27 @@ lemma restrict_E {R} : (G{R}).E = G.E ∩ R := rfl
 @[simp]
 lemma restrict_inc {R} : (G{R}).Inc v e ↔ G.Inc v e ∧ e ∈ R := by
   simp only [restrict]
+
+@[simp]
+lemma restrict_le (G : Graph α β) (R : Set β) : G{R} ≤ G := by
+  refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, subset_refl, inter_subset_left, mem_inter_iff,
+    and_iff_left_iff_imp, and_imp]
+  rintro v e he hmemR hinc
+  exact hmemR
+
+/-- If an edge is in the restricted subgraph, it's in the original graph and the restricting set. -/
+@[simp]
+lemma mem_restrict_E_iff {G : Graph α β} {e : β} {R : Set β} : e ∈ (G{R}).E ↔ e ∈ G.E ∧ e ∈ R := by
+  simp only [restrict_E, mem_inter_iff]
+
+/-- Adjacency in restricted subgraphs implies adjacency in the original graph. -/
+lemma Adj.of_Adj_restrict {G : Graph α β} {u v : α} {R : Set β} :
+    (G{R}).Adj u v → G.Adj u v := (Adj.le · (restrict_le G R))
+
+/-- Connectedness in a restricted subgraph implies connectedness in the original graph. -/
+theorem Connected.of_Connected_restrict {G : Graph α β} {u v : α} {R : Set β} :
+    (G{R}).Connected u v → G.Connected u v :=
+  (Connected.le · (restrict_le G R))
 
 lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) {S R : Set β} (hSR : S ⊆ R) : G₁{S} ≤ G₂{R} := by
   refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, vx_subset_of_le hle, subset_inter_iff, mem_inter_iff,
@@ -397,13 +455,6 @@ lemma restrict_E_eq_self : G{G.E} = G := by
   rw [restrict_eq_self_iff]
 
 @[simp]
-lemma restrict_le (G : Graph α β) (R : Set β) : G{R} ≤ G := by
-  refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, subset_refl, inter_subset_left, mem_inter_iff,
-    and_iff_left_iff_imp, and_imp]
-  rintro v e he hmemR hinc
-  exact hmemR
-
-@[simp]
 lemma restrict_mono (G : Graph α β) (R S : Set β) (h : R ⊆ S) : G{R} ≤ G{S} := by
   refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, subset_refl, inter_subset_left, mem_inter_iff,
     and_iff_left_iff_imp, and_imp]
@@ -425,6 +476,16 @@ theorem restrict_restrict_eq_restrict_inter (R S : Set β) : G{R}{S} = G{R ∩ S
 lemma restrict_idem (R : Set β) : G{R}{R} = G{R} := by
   convert G.restrict_restrict_eq_restrict_inter R R
   simp only [inter_self]
+
+/-- A restricted subgraph of a finite graph is also finite. -/
+instance finite_of_finite_restrict {R : Set β} [h : Finite G] : Finite (G{R}) := by
+  constructor
+  · -- Prove the vertex set is finite
+    simp only [restrict_V]
+    exact h.vx_fin
+  · -- Prove the edge set is finite
+    apply Set.Finite.subset h.edge_fin
+    simp only [restrict_E, inter_subset_left]
 
 /-- G{R}[U] is the prefered notation for explicit subgraph over G[U]{R} -/
 lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) :
