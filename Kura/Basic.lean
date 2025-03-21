@@ -1,4 +1,4 @@
-import LeanCopilot
+-- import LeanCopilot
 import Mathlib.Algebra.BigOperators.Sym
 import Matroid.Axioms.Circuit
 
@@ -120,10 +120,8 @@ lemma IsBetween.sym2_eq (h1 : G.IsBetween e x y) (h2 : G.IsBetween e u v) :
       obtain rfl | rfl := this
       · rfl
       · obtain ⟨v, hinc, heq⟩ := h2.isLoop_of_eq rfl
-        have := heq x h1.inc_left
-        subst this
-        have := heq y h1.inc_right
-        subst this
+        obtain rfl := heq x h1.inc_left
+        obtain rfl := heq y h1.inc_right
         rfl
     · have := G.not_hypergraph h1.inc_left h2.inc_left h2.inc_right
       simp only [h, false_or] at this
