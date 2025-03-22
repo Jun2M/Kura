@@ -117,26 +117,45 @@ theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h :
     exact edge_subset_of_le hle
 
 /-- Induced subgraph -/
-def induce (G : Graph α β) (U : Set α) : Graph α β where
-  -- change this to just V = U
-  V := G.V ∩ U
-  E := G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U}
-  Inc v e := G.Inc v e ∧ ∀ (x : α), G.Inc x e → x ∈ U
-  vx_mem_of_inc x y h := by
-    obtain ⟨hinc, hU⟩ := h
-    exact ⟨G.vx_mem_of_inc hinc, hU _ hinc⟩
-  edge_mem_of_inc v e h := by
-    simp only [mem_inter_iff, mem_setOf_eq]
-    obtain ⟨hinc, hU⟩ := h
-    exact ⟨hinc.edge_mem, hU⟩
-  exists_vertex_inc e he := by
-    obtain ⟨v, hv⟩ := G.exists_vertex_inc he.1
-    obtain ⟨he, hU⟩ := he
-    use v, hv, hU
-  not_hypergraph x y z e := by
-    rintro ⟨hx, _⟩ ⟨hy, _⟩ ⟨hz, hU⟩
-    obtain h | h | h := G.not_hypergraph hx hy hz <;>
-    simp only [h, true_or, or_true]
+def induce (G : Graph α β) (U : Set α) : Graph α β := by
+  apply ofGraphIsBetween ⟨U, G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U},
+    fun e x y ↦ G.IsBetween e x y ∧ x ∈ U ∧ y ∈ U, ?_, ?_, ?_, ?_, ?_⟩
+  · rintro e x y ⟨hbtw, hx, hy⟩
+    exact ⟨hbtw.symm, hy, hx⟩
+  · rintro e x y ⟨hbtw, hx, hy⟩
+    exact hx
+  · rintro e x y ⟨hbtw, hx, hy⟩
+    simp only [mem_inter_iff, hbtw.edge_mem, mem_setOf_eq, true_and]
+    rw [forall_inc_iff hbtw]
+    exact ⟨hx, hy⟩
+  · rintro e he
+    obtain ⟨x, y, hbtw⟩ := G.exist_IsBetween_of_mem he.1
+    use x, y, hbtw
+    rw [← forall_inc_iff hbtw]
+    exact he.2
+  · rintro e x y u v ⟨hxy, hx, hy⟩ ⟨huv, hu, hv⟩
+    exact hxy.eq_or_eq_of_IsBetween huv
+
+-- def induce (G : Graph α β) (U : Set α) : Graph α β where
+--   -- change this to just V = U
+--   V := G.V ∩ U
+--   E := G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U}
+--   Inc v e := G.Inc v e ∧ ∀ (x : α), G.Inc x e → x ∈ U
+--   vx_mem_of_inc x y h := by
+--     obtain ⟨hinc, hU⟩ := h
+--     exact ⟨G.vx_mem_of_inc hinc, hU _ hinc⟩
+--   edge_mem_of_inc v e h := by
+--     simp only [mem_inter_iff, mem_setOf_eq]
+--     obtain ⟨hinc, hU⟩ := h
+--     exact ⟨hinc.edge_mem, hU⟩
+--   exists_vertex_inc e he := by
+--     obtain ⟨v, hv⟩ := G.exists_vertex_inc he.1
+--     obtain ⟨he, hU⟩ := he
+--     use v, hv, hU
+--   not_hypergraph x y z e := by
+--     rintro ⟨hx, _⟩ ⟨hy, _⟩ ⟨hz, hU⟩
+--     obtain h | h | h := G.not_hypergraph hx hy hz <;>
+--     simp only [h, true_or, or_true]
 
 notation G "[" S "]" => Graph.induce G S
 
@@ -146,127 +165,179 @@ variable {U : Set α}
 abbrev vxDel (G : Graph α β) (V : Set α) : Graph α β := G[G.V \ V]
 
 @[simp]
-lemma induce_V {U} : (G[U]).V = G.V ∩ U := rfl
+lemma induce_V {U} : (G[U]).V = U := rfl
 
 @[simp]
 lemma induce_E : (G[U]).E = G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U} := rfl
 
 @[simp]
-lemma induce_inc : (G[U]).Inc v e ↔ G.Inc v e ∧ ∀ (x : α), G.Inc x e → x ∈ U := by
-  simp only [induce]
+lemma induce_isBetween_iff : (G[U]).IsBetween e x y ↔ G.IsBetween e x y ∧ x ∈ U ∧ y ∈ U :=
+  IsBetween.ofGraphIsBetween _
+
+lemma IsBetween.of_IsBetween_induce (h : (G[U]).IsBetween e x y) : G.IsBetween e x y := by
+  rw [induce_isBetween_iff] at h
+  exact h.1
 
 @[simp]
-theorem induce_le_induce_iff {U V : Set α} : G[U] ≤ G[V] ↔ G.V ∩ U ⊆ G.V ∩ V := by
+lemma induce_inc_iff : (G[U]).Inc v e ↔ G.Inc v e ∧ ∀ (x : α), G.Inc x e → x ∈ U := by
+  simp only [induce, ofGraphIsBetween]
+  constructor
+  · rintro ⟨u, hbtw, hv, hu⟩
+    refine ⟨hbtw.inc_left, ?_⟩
+    rw [forall_inc_iff hbtw]
+    exact ⟨hv, hu⟩
+  · rintro ⟨hinc, hU⟩
+    obtain ⟨x, y, hx⟩ := G.exist_IsBetween_of_mem hinc.edge_mem
+    obtain rfl | rfl := hx.eq_of_inc hinc
+    · use y, hx, hU v hx.inc_left, hU y hx.inc_right
+    · use x, hx.symm, hU v hx.inc_right, hU x hx.inc_left
+
+lemma Inc.of_Inc_induce (h : (G[U]).Inc v e) : G.Inc v e := by
+  rw [induce_inc_iff] at h
+  exact h.1
+
+@[simp]
+lemma induce_isLoop_iff : (G[U]).IsLoop e ↔ G.IsLoop e ∧ ∀ (x : α), G.Inc x e → x ∈ U := by
+  constructor
+  · rintro hloop
+    simp only [IsLoop_iff_IsBetween, induce_isBetween_iff, and_self] at hloop ⊢
+    obtain ⟨v, hbtw, hmem⟩ := hloop
+    rw [forall_inc_iff hbtw]
+    use (by use v)
+  · rintro ⟨hloop, hmem⟩
+    rw [IsLoop_iff_IsBetween] at hloop ⊢
+    obtain ⟨v, hbtw⟩ := hloop
+    rw [forall_inc_iff hbtw] at hmem
+    use v
+    simp [hbtw, hmem.1]
+
+lemma IsLoop.of_Inc_induce (h : (G[U]).IsLoop e) : G.IsLoop e := by
+  rw [induce_isLoop_iff] at h
+  exact h.1
+
+@[simp]
+theorem induce_le_induce_iff {U V : Set α} : G[U] ≤ G[V] ↔ U ⊆ V := by
   refine ⟨vx_subset_of_le, ?_⟩
   rintro h
   refine ⟨h, ?_, ?_⟩
   · intro e
-    simp only [induce_E, mem_inter_iff, mem_setOf_eq, and_imp]
-    intro he hU
-    use he
-    intro x hinc
-    exact (h ⟨hinc.vx_mem, hU x hinc⟩).2
-  · simp only [induce_E, mem_inter_iff, mem_setOf_eq, induce_inc, and_congr_right_iff, and_imp]
+    simp +contextual only [induce_E, mem_inter_iff, mem_setOf_eq, true_and, and_imp]
+    intro _he hU x hinc
+    exact h (hU x hinc)
+  · simp +contextual only [induce_E, mem_inter_iff, mem_setOf_eq, induce_inc_iff, implies_true,
+    and_true, iff_self_and, and_imp]
     rintro v e he hU hinc
-    rw [iff_true_left hU]
-    intro x hinc
-    exact (h ⟨hinc.vx_mem, hU x hinc⟩).2
+    exact fun x a ↦ h (hU x a)
 
 @[simp]
-theorem induce_eq_induce_iff {U V : Set α} : G[U] = G[V] ↔ G.V ∩ U = G.V ∩ V := by
-  rw [le_antisymm_iff, subset_antisymm_iff, induce_le_induce_iff, induce_le_induce_iff]
+theorem induce_eq_induce_iff {U V : Set α} : G[U] = G[V] ↔ U = V := by
+  rw [le_antisymm_iff, induce_le_induce_iff, induce_le_induce_iff, antisymm_iff]
 
 @[simp]
-theorem induce_eq_self_iff {U : Set α} : G[U] = G ↔ G.V ⊆ U := by
+theorem induce_eq_self_iff {U : Set α} : G[U] = G ↔ U = G.V := by
   constructor <;> intro h
   · rw [← h]
-    simp only [induce_V, inter_subset_right]
-  · ext1
-    · simp only [induce, inter_eq_left, h]
-    · simp only [induce, inter_eq_left]
-      rintro e he v hinc
-      exact h hinc.vx_mem
-    · simp only [induce, and_iff_left_iff_imp]
-      rintro hinc x hx
-      exact h hx.vx_mem
+    rfl
+  · subst U
+    ext1
+    · simp only [induce_V]
+    · ext e
+      simp +contextual only [induce_E, mem_inter_iff, mem_setOf_eq, and_iff_left_iff_imp]
+      exact fun a x a ↦ G.vx_mem_of_inc a
+    · simp +contextual only [induce_inc_iff, and_iff_left_iff_imp]
+      rintro hinc y hy
+      exact hy.vx_mem
 
 @[simp]
-lemma induce_univ_eq_self : G[Set.univ] = G := induce_eq_self_iff.mpr (fun ⦃_a⦄ _a ↦ trivial)
-
-@[simp]
-lemma induce_V_eq_self  : G[G.V] = G := induce_eq_self_iff.mpr subset_rfl
+lemma induce_V_eq_self  : G[G.V] = G := induce_eq_self_iff.mpr rfl
 
 @[simp]
 lemma induce_empty_eq_bot : G[∅] = ⊥ := by
   ext1
-  · simp only [induce, inter_empty, mem_empty_iff_false, imp_false, instOrderBotGraph]
+  · rfl
   · ext e
-    simp only [induce, inter_empty, mem_empty_iff_false, imp_false, mem_inter_iff, mem_setOf_eq,
+    simp only [induce_E, mem_empty_iff_false, imp_false, mem_inter_iff, mem_setOf_eq,
       instOrderBotGraph, iff_false, not_and, not_forall, not_not]
     exact (G.exists_vertex_inc ·)
-  · simp only [induce, inter_empty, mem_empty_iff_false, imp_false, instOrderBotGraph, iff_false,
-    not_and, not_forall, not_not]
-    rintro hinc
-    exact G.exists_vertex_inc hinc.edge_mem
+  · simp only [induce_V, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_vx_mem,
+    instOrderBotGraph]
 
 @[simp]
-lemma induce_le (G : Graph α β) (U : Set α) : G[U] ≤ G := by
-  refine ⟨?_, ?_, ?_⟩ <;> simp only [induce, inter_subset_left, mem_inter_iff, mem_setOf_eq,
-    and_iff_left_iff_imp, and_imp]
-  rintro v e he hU hinc
-  exact hU
+lemma induce_le (G : Graph α β) {U : Set α} (hU : U ⊆ G.V) : G[U] ≤ G := by
+  refine ⟨?_, ?_, ?_⟩ <;> simp +contextual [hU]
 
 @[simp]
 lemma induce_mono (G : Graph α β) (U V : Set α) (hsu : U ⊆ V) : G[U] ≤ G[V] := by
-  rw [induce_le_induce_iff]
-  rintro x ⟨hx, hU⟩
-  exact ⟨hx, hsu hU⟩
+  rwa [induce_le_induce_iff]
+
+-- @[simp]
+-- lemma induce_induce_eq_induce_inter (U V : Set α) : G[U][V] = G[U ∩ V] := by
+--   ext1
+--   · simp only [induce, and_imp, mem_inter_iff]
+--     exact inter_assoc G.V U V
+--   · ext e
+--     simp only [induce, and_imp, mem_inter_iff, mem_setOf_eq]
+--     constructor
+--     · rintro ⟨⟨he, hmemU⟩, hmemV⟩
+--       refine ⟨he, fun x hinc ↦ ⟨hmemU x hinc, hmemV x hinc hmemU⟩⟩
+--     · rintro ⟨he, hUV⟩
+--       simp only [he, true_and]
+--       refine ⟨fun x a ↦ mem_of_mem_inter_left (hUV x a), ?_⟩
+--       rintro x hx' h
+--       exact mem_of_mem_inter_right (hUV x hx')
+--   · rename_i v e
+--     simp only [induce, and_imp, mem_inter_iff]
+--     constructor
+--     · rintro ⟨⟨hinc, hU⟩, hV⟩
+--       simp only [hinc, true_and]
+--       rintro x hinc
+--       exact ⟨hU x hinc, hV x hinc hU⟩
+--     · rintro ⟨hinc, hUV⟩
+--       refine ⟨⟨hinc, fun x a ↦ (hUV x a).1⟩, ?_⟩
+--       rintro x hinc hU
+--       exact mem_of_mem_inter_right (hUV x hinc)
 
 @[simp]
-lemma induce_induce_eq_induce_inter (U V : Set α) : G[U][V] = G[U ∩ V] := by
-  ext1
-  · simp only [induce, and_imp, mem_inter_iff]
-    exact inter_assoc G.V U V
-  · ext e
-    simp only [induce, and_imp, mem_inter_iff, mem_setOf_eq]
-    constructor
-    · rintro ⟨⟨he, hmemU⟩, hmemV⟩
-      refine ⟨he, fun x hinc ↦ ⟨hmemU x hinc, hmemV x hinc hmemU⟩⟩
-    · rintro ⟨he, hUV⟩
-      simp only [he, true_and]
-      refine ⟨fun x a ↦ mem_of_mem_inter_left (hUV x a), ?_⟩
-      rintro x hx' h
-      exact mem_of_mem_inter_right (hUV x hx')
-  · rename_i v e
-    simp only [induce, and_imp, mem_inter_iff]
-    constructor
-    · rintro ⟨⟨hinc, hU⟩, hV⟩
-      simp only [hinc, true_and]
-      rintro x hinc
-      exact ⟨hU x hinc, hV x hinc hU⟩
-    · rintro ⟨hinc, hUV⟩
-      refine ⟨⟨hinc, fun x a ↦ (hUV x a).1⟩, ?_⟩
-      rintro x hinc hU
-      exact mem_of_mem_inter_right (hUV x hinc)
-
-@[simp]
-lemma induce_idem (U : Set α) : G[U][U] = G[U] := by
-  convert G.induce_induce_eq_induce_inter U U
-  simp only [inter_self]
+lemma induce_idem (U : Set α) : G[U][U] = G[U] := by simp
 
 /-- If a vertex is in the induced subgraph, it's in the original graph and the inducing set. -/
 @[simp]
-lemma mem_induce_V_iff {G : Graph α β} {v : α} {U : Set α} : v ∈ (G[U]).V ↔ v ∈ G.V ∧ v ∈ U := by
-  simp only [induce_V, mem_inter_iff]
+lemma mem_induce_V_iff {G : Graph α β} {v : α} {U : Set α} : v ∈ (G[U]).V ↔ v ∈ U := by simp
 
 /-- Adjacency in induced subgraphs implies adjacency in the original graph. -/
-lemma Adj.of_Adj_induce {G : Graph α β} {u v : α} {U : Set α} :
-    (G[U]).Adj u v → G.Adj u v := (Adj.le · (induce_le G U))
+lemma Adj.of_Adj_induce : (G[U]).Adj u v → G.Adj u v :=
+  fun ⟨e, hBtw⟩ ↦ ⟨e, hBtw.of_IsBetween_induce⟩
+
+lemma reflAdj.of_reflAdj_induce_ne : (G[U]).reflAdj u v → u ≠ v → G.reflAdj u v := by
+  rintro (hAdj | ⟨rfl, hmem⟩) hne
+  · exact hAdj.of_Adj_induce.reflAdj
+  · exact False.elim (hne rfl)
+
+lemma reflAdj.of_reflAdj_induce_mem : (G[U]).reflAdj u v → u ∈ G.V → G.reflAdj u v := by
+  rintro (hAdj | ⟨rfl, hmem⟩) hmem
+  · exact hAdj.of_Adj_induce.reflAdj
+  · exact reflAdj.refl hmem
+
+lemma reflAdj.of_reflAdj_induce_subset : (G[U]).reflAdj u v → U ⊆ G.V → G.reflAdj u v := by
+  rintro (hAdj | ⟨rfl, hmem⟩) hsubset
+  · exact hAdj.of_Adj_induce.reflAdj
+  · exact reflAdj.refl (hsubset hmem)
 
 /-- Connectedness in a subgraph implies connectedness in the original graph. -/
-theorem Connected.of_Connected_induce {G : Graph α β} {u v : α} {U : Set α} :
-    (G[U]).Connected u v → G.Connected u v :=
-  (Connected.le · (induce_le G U))
+theorem Connected.of_Connected_induce_ne : (G[U]).Connected u v → u ≠ v → G.Connected u v := by
+  rintro h hne
+  induction h with
+  | single hradj =>
+    apply reflAdj.connected
+    apply hradj.of_reflAdj_induce_ne hne
+  | tail hconn hradj ih =>
+    apply Relation.TransGen.tail ih
+    apply hradj.of_reflAdj_induce_subset
+    exact hconn.connected
+
+theorem Connected.of_Connected_induce_mem : (G[U]).Connected u v → u ∈ G.V → G.Connected u v := by
+  rintro h hmem
+  apply reflAdj.of_reflAdj_induce_mem h hmem
 
 lemma Inc.induce_of_mem {U : Set α} (hinc : G.Inc u e) (hU : ∀ x, G.Inc x e → x ∈ U) :
     G[U].Inc u e := by

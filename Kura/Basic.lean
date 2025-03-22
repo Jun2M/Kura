@@ -27,6 +27,9 @@ class Finite (G : Graph α β) : Prop where
   vx_fin : G.V.Finite
   edge_fin : G.E.Finite
 
+instance instFinite [G.Finite] : G.V.Finite := by
+  exact Finite.vx_fin
+
 @[simp]
 lemma Inc.vx_mem (h : G.Inc x e) : x ∈ G.V := G.vx_mem_of_inc h
 
@@ -52,6 +55,8 @@ lemma ext {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V) (hE : G₁.E = G₂.E
   simp only [hV, hE, mk.injEq, true_and]
   ext x e
   exact hInc x e
+
+def Isolated (G : Graph α β) (v : α) := ∀ e, ¬ G.Inc v e
 
 abbrev IsLoop (G : Graph α β) (e : β) := ∃! x, G.Inc x e
 
@@ -102,6 +107,15 @@ lemma IsBetween.eq_of_inc (hBtw : G.IsBetween e x y) (hinc : G.Inc u e) : u = x 
     convert this using 1
     exact eq_comm
 
+@[simp]
+lemma forall_inc_iff {G : Graph α β} {P : α → Prop} {e : β} (hbtw : G.IsBetween e x y):
+    (∀ x, G.Inc x e → P x) ↔ P x ∧ P y := by
+  constructor
+  · rintro h
+    use h x hbtw.inc_left, h y hbtw.inc_right
+  · rintro ⟨hx, hy⟩ u hu
+    obtain rfl | rfl := hbtw.eq_of_inc hu <;> assumption
+
 lemma IsBetween.sym2_eq (h1 : G.IsBetween e x y) (h2 : G.IsBetween e u v) :
     s(x, y) = s(u, v) := by
   by_cases h : x = y
@@ -134,12 +148,30 @@ lemma IsBetween.sym2_eq (h1 : G.IsBetween e x y) (h2 : G.IsBetween e u v) :
         rfl
       · exact Sym2.eq_swap
 
+lemma IsBetween.eq_or_eq_of_IsBetween (h : G.IsBetween e x y) (h' : G.IsBetween e u v) :
+    x = u ∧ y = v ∨ x = v ∧ y = u := by
+  have := h.sym2_eq h'
+  simpa using this
+
 lemma IsBetween_iff : G.IsBetween e x y ↔ G.Inc x e ∧ G.Inc y e ∧ (x = y → G.IsLoop e) := by
   constructor
   · rintro h
     exact ⟨h.inc_left, h.inc_right, h.isLoop_of_eq⟩
   · rintro ⟨hincx, hincy, hloop⟩
     exact ⟨hincx, hincy, hloop⟩
+
+lemma IsLoop_iff_IsBetween : G.IsLoop e ↔ ∃ x, G.IsBetween e x x := by
+  constructor
+  · rintro hloop
+    have := hloop
+    obtain ⟨v, hinc, hloop⟩ := hloop
+    use v
+    rw [IsBetween_iff]
+    simp [this, hinc]
+  · rintro ⟨x, h⟩
+    use x, h.inc_left
+    rw [forall_inc_iff h]
+    tauto
 
 lemma exist_IsBetween_of_mem (he : e ∈ G.E) : ∃ x y, G.IsBetween e x y := by
   by_cases h : G.IsLoop e
@@ -163,7 +195,6 @@ structure GraphIsBetween (α β : Type*) where
   exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y
   eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)
 
-@[simp]
 def ofGraphIsBetween (h : GraphIsBetween α β) : Graph α β where
   V := h.V
   E := h.E
@@ -182,6 +213,26 @@ def ofGraphIsBetween (h : GraphIsBetween α β) : Graph α β where
     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_of_isBtw hx' hy' <;>
     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_of_isBtw hz' hy' <;>
     tauto
+
+@[simp]
+lemma IsBetween.ofGraphIsBetween (G' : GraphIsBetween α β) :
+    (ofGraphIsBetween G').IsBetween e x y ↔ G'.isBtw e x y := by
+  constructor
+  · rintro ⟨⟨x', hxbtw⟩, ⟨y', hybtw⟩, hloop⟩
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := G'.eq_of_isBtw hxbtw hybtw
+    · obtain ⟨z, hzinc, hzeq⟩ := hloop rfl
+      obtain rfl := hzeq x' (by use x; exact G'.hsymm e x x' hxbtw)
+      obtain rfl := hzeq x (by use x')
+      assumption
+    · exact hxbtw
+  · rintro hbtw
+    refine ⟨(by use y), ?_, ?_⟩
+    · use x
+      exact G'.hsymm _ _ _ hbtw
+    · rintro rfl
+      use x, (by use x)
+      rintro y ⟨y', hybtw⟩
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := G'.eq_of_isBtw hbtw hybtw <;> rfl
 
 @[simp]
 def toGraphIsBetween (G : Graph α β) : GraphIsBetween α β where
@@ -288,6 +339,11 @@ lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
     exact Inc.reflAdj_of_inc hincx hincx
   · left
     use e, hincx, hincy
+
+lemma reflAdj.Adj_of_ne (h : G.reflAdj x y) (hne : x ≠ y) : G.Adj x y := by
+  obtain ⟨e, h⟩ | ⟨rfl, hx⟩ := h
+  · use e
+  · contradiction
 
 lemma reflAdj_iff_eq_and_mem_of_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) : G.reflAdj u v ↔ u = v ∧ u ∈ G.V := by
   simp only [reflAdj, not_adj_of_no_inc_edge hnoinc, false_or]

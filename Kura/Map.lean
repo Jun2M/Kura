@@ -11,45 +11,45 @@ def ConnectedPartition (G : Graph α β) : Partition G.V :=
     ext v
     simp only [Connected.refl_iff, setOf_mem_eq])
 
-namespace ConnectedPartition
+-- namespace ConnectedPartition
 
-noncomputable def rep (x : α) (hx : x ∈ G.V) : α :=
-  G.ConnectedPartition.rep (G.ConnectedPartition.partOf_mem hx)
+-- noncomputable def rep (x : α) (hx : x ∈ G.V) : α :=
+--   G.ConnectedPartition.rep (G.ConnectedPartition.partOf_mem hx)
 
-@[simp]
-lemma rep_mem (hx : x ∈ G.V) : rep x hx ∈ G.V :=
-  Partition.rep_mem' (G.ConnectedPartition.partOf_mem hx)
+-- @[simp]
+-- lemma rep_mem (hx : x ∈ G.V) : rep x hx ∈ G.V :=
+--   Partition.rep_mem' (G.ConnectedPartition.partOf_mem hx)
 
-@[simp]
-lemma rep_connected (hx : x ∈ G.V) :
-    G.Connected (rep x hx) x := by
-  rw [Connected.comm]
-  convert G.ConnectedPartition.rep_rel (G.ConnectedPartition.partOf_mem hx) (G.ConnectedPartition.mem_partOf hx)
-  rw [eq_comm]
-  exact Partition.rel_ofRel'_eq (G.Connected) (by simp only [Connected.refl_iff, setOf_mem_eq])
+-- @[simp]
+-- lemma rep_connected (hx : x ∈ G.V) :
+--     G.Connected (rep x hx) x := by
+--   rw [Connected.comm]
+--   convert G.ConnectedPartition.rep_rel (G.ConnectedPartition.partOf_mem hx) (G.ConnectedPartition.mem_partOf hx)
+--   rw [eq_comm]
+--   exact Partition.rel_ofRel'_eq (G.Connected) (by simp only [Connected.refl_iff, setOf_mem_eq])
 
-@[simp]
-lemma req_eq_iff_connected (hx : x ∈ G.V) (hy : y ∈ G.V) :
-    rep x hx = rep y hy ↔ G.Connected x y := by
-  constructor <;> rintro h
-  · exact (rep_connected hx).symm.trans (h ▸ rep_connected hy)
-  · rw [Partition.rel_iff_eqv_class_eq_left (Connected.refl hx)] at h
-    simp [rep]
-    congr
-    refine Partition.eq_partOf_of_mem (G.ConnectedPartition.partOf_mem hx) ?_
-    simp only [Partition.partOf, mem_sUnion, mem_setOf_eq]
-    use {z | G.Connected y z}, ⟨?_, ?_⟩, Connected.refl hy
-    · rw [ConnectedPartition, Partition.mem_ofRel'_iff]
-      use x, hx
-      rw [h]
-    · rw [← h]
-      exact Connected.refl hx
+-- @[simp]
+-- lemma req_eq_iff_connected (hx : x ∈ G.V) (hy : y ∈ G.V) :
+--     rep x hx = rep y hy ↔ G.Connected x y := by
+--   constructor <;> rintro h
+--   · exact (rep_connected hx).symm.trans (h ▸ rep_connected hy)
+--   · rw [Partition.rel_iff_eqv_class_eq_left (Connected.refl hx)] at h
+--     simp [rep]
+--     congr
+--     refine Partition.eq_partOf_of_mem (G.ConnectedPartition.partOf_mem hx) ?_
+--     simp only [Partition.partOf, mem_sUnion, mem_setOf_eq]
+--     use {z | G.Connected y z}, ⟨?_, ?_⟩, Connected.refl hy
+--     · rw [ConnectedPartition, Partition.mem_ofRel'_iff]
+--       use x, hx
+--       rw [h]
+--     · rw [← h]
+--       exact Connected.refl hx
 
-lemma rep_idem (hx : x ∈ G.V) :
-    rep (rep x hx) (rep_mem hx) = rep x hx := by
-  simp only [rep, Partition.partOf_rep]
+-- lemma rep_idem (hx : x ∈ G.V) :
+--     rep (rep x hx) (rep_mem hx) = rep x hx := by
+--   simp only [rep, Partition.partOf_rep]
 
-end ConnectedPartition
+-- end ConnectedPartition
 
 def vxMap {α' : Type*} (G : Graph α β) (φ : α → α') : Graph α' β where
   V := φ '' G.V
