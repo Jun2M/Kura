@@ -16,6 +16,14 @@ lemma takeWhile_length_le (p : α → Bool) (l : List α) :
     not_false_eq_true, takeWhile_cons_of_neg, length_nil, length_cons, Nat.le_add_left,
     decide_true, takeWhile_cons_of_pos, Nat.add_le_add_iff_right]
 
+lemma takeWhile_length_lt_of_mem_neg (p : α → Bool) (a : α) (l : List α) (ha : ¬ p a) (hain : a ∈ l) :
+    (l.takeWhile p).length < l.length := by
+  apply lt_of_le_of_ne (takeWhile_length_le p l)
+  intro h
+  obtain heq : takeWhile p l = l := (List.takeWhile_prefix p).eq_of_length h
+  rw [List.takeWhile_eq_self_iff] at heq
+  exact ha (heq a hain)
+
 lemma rtakeWhile_length_le_length (p : α → Bool) (l : List α) :
   (l.rtakeWhile p).length ≤ l.length := by
   unfold List.rtakeWhile
@@ -23,7 +31,7 @@ lemma rtakeWhile_length_le_length (p : α → Bool) (l : List α) :
   refine (l.reverse.takeWhile_length_le p).trans ?_
   simp only [length_reverse, le_refl]
 
-lemma rtakeWhlie_cons (p : α → Bool) (a : α) (l : List α) (ha : ¬ p a):
+lemma rtakeWhlie_cons_neg (p : α → Bool) (a : α) (l : List α) (ha : ¬ p a):
   (a :: l).rtakeWhile p = l.rtakeWhile p := by
   simp only [List.rtakeWhile, reverse_cons, reverse_inj]
   rw [takeWhile_append]
@@ -31,6 +39,17 @@ lemma rtakeWhlie_cons (p : α → Bool) (a : α) (l : List α) (ha : ¬ p a):
   · simp only [ha, Bool.false_eq_true, not_false_eq_true, takeWhile_cons_of_neg, append_nil,
     (l.reverse.takeWhile_prefix p).eq_of_length h]
   · rfl
+
+lemma rtakeWhlie_cons_of_mem_neg (p : α → Bool) (a b : α) (l : List α) (ha : ¬ p a) (hain : a ∈ l) :
+    (b :: l).rtakeWhile p = l.rtakeWhile p := by
+  unfold List.rtakeWhile
+  simp only [reverse_cons, reverse_inj]
+  rw [takeWhile_append]
+  suffices (takeWhile p l.reverse).length ≠ l.reverse.length by
+    simp only [this, ite_false]
+  apply ne_of_lt
+  apply takeWhile_length_lt_of_mem_neg _ _ _ ha
+  exact mem_reverse.mpr hain
 
 lemma rdropWhile_append_rtakeWhile (p : α → Bool) (l : List α) :
   (l.rdropWhile p) ++ l.rtakeWhile p = l := by
@@ -623,7 +642,7 @@ lemma chain'_getElem {l : List α} {p : α → α → Prop} (h : List.Chain' p l
   rw [List.chain'_iff_get] at h
   exact h i hlen
 
-lemma mem_zip_iff {l : List α} {l' : List β} {a : α} {b : β} :
+lemma mem_zip_iff {β : Type*} {l : List α} {l' : List β} {a : α} {b : β} :
     (a, b) ∈ l.zip l' ↔ ∃ (i : ℕ) (hi : i < min l.length l'.length), l[i] = a ∧ l'[i] = b := by
   constructor
   · rintro h

@@ -1,6 +1,7 @@
 import Kura.Subgraph
 import Kura.Minor
 import Mathlib.Data.Finset.Lattice.Basic
+import Kura.Dep.List
 
 
 open Set Function List Nat
@@ -154,6 +155,76 @@ lemma reverse_length : (reverse w).length = w.length := by
   | nil h => simp [reverse]
   | cons hbtw W ih => simp [reverse, ih]
 
+/-- Given a walk, and a vertex that is in the walk, we can construct a walk from that vertex
+to the end of the walk.
+In the presence of multiple occurrences of the vertex in the walk, this function will return the
+shortest possible walk. (i.e. start from the last occurrence of the vertex)
+-/
+def startAt [DecidableEq α] {x y z : α} (w : G.Walk x y) (hz : z ∈ w.vx) : G.Walk z y := by
+  match w with
+  | nil hx =>
+    simp only [nil_vx, mem_cons, not_mem_nil, or_false] at hz
+    subst hz
+    exact nil hx
+  | cons hbtw W =>
+    if hin : z ∈ W.vx then
+      exact startAt W hin
+    else
+      simp only [cons_vx, mem_cons, hin, or_false] at hz
+      subst z
+      exact cons hbtw W
+
+-- lemma startAt_vx_rtakeWhlie [DecidableEq α] {x y z : α} (w : G.Walk x y) (hz : z ∈ w.vx) :
+--   (w.startAt hz).vx = z :: w.vx.rtakeWhile (· ≠ z) := by
+--   induction w with
+--   | nil =>
+--     simp only [nil_vx, mem_cons, not_mem_nil, or_false] at hz
+--     subst hz
+--     simp [startAt]
+--   | cons hbtw W ih =>
+--     unfold startAt
+--     split_ifs with hin
+--     · rw [ih hin, cons_vx, eq_comm]
+--       congr 1
+--       apply List.rtakeWhlie_cons_of_mem_neg (hain := hin)
+--       simp
+--     · simp only [ne_eq, decide_not, cons_vx]
+--       expose_names
+--       suffices (cons hbtw W).vx = z :: rtakeWhile (fun x ↦ !decide (x = z)) (w :: W.vx) by
+--         convert this using 1
+
+--         sorry
+--       sorry
+
+
+
+
+/-- Given a walk, and a vertex that is in the walk, we can construct a walk from the start of the
+walk to that vertex.
+In the presence of multiple occurrences of the vertex in the walk, this function will return the
+shortest possible walk. (i.e. stop at the first occurrence of the vertex)
+-/
+def endAt [DecidableEq α] {x y z : α} (w : G.Walk x y) (hz : z ∈ w.vx) : G.Walk x z :=
+  (w.reverse.startAt (by simpa)).reverse
+
+-- def dedup [DecidableEq α] {x y : α} (w : G.Walk x y) : G.Walk x y :=
+--   match w with
+--   | nil hx => nil hx
+--   | cons hbtw W =>
+--     if hin : x ∈ W.vx
+--     then (W.startAt hin).dedup
+--     else cons hbtw (dedup W)
+
+-- lemma dedup_vx_nodup [DecidableEq α] (w : G.Walk x y) : w.dedup.vx.Nodup := by
+--   match w with
+--   | nil hx => simp [dedup]
+--   | cons hbtw W =>
+--     simp only [dedup]
+--     split_ifs with hin
+--     · simp [startAt]
+--     · simp
+
+
 
 lemma connected (W : G.Walk x y) : G.Connected x y := by
   induction W with
@@ -204,10 +275,22 @@ lemma le_length {x y : α} {w : G.Walk x y} (hle : G ≤ H) : (le w hle).length 
     have := W.le_length hle
     exact congrFun (congrArg _ this) 1
 
+-- def contract {α' : Type*} {x' y' : α'} {f : α → α'} {C : Set β} (w : (G /[f] C).Walk x' y')
+--     (hx : f x = x') (hy : f y = y') : G.Walk x y := by
+--   match w with
+--   | nil hx' =>
+--     subst x'
+
+--     subst hx'
+--     exact nil hx
+--   | cons hbtw W =>
+--     simp only [cons_vx, cons_edge, cons_length]
+
+
 end Walk
 
 
-abbrev Path (x y : α) := {P : G.Walk x y // P.vx.Nodup}
+abbrev Path (G : Graph α β) (x y : α) := {P : G.Walk x y // P.vx.Nodup}
 
 namespace Path
 variable {p p₁ : G.Path x y} {p₂ : G.Path y z}
@@ -294,43 +377,27 @@ lemma of_reflAdj (h : G.reflAdj x y) : ∃ (P : G.Path x y), P.length ≤ 1 ∧ 
     · -- This case is impossible since x ≠ y but rfl : x = y
       contradiction
 
-def le {x y : α} {H : Graph α β} (p : G.Path x y) (hle : G ≤ H) : H.Path x y :=
-  ⟨p.1.le hle, by simp only [Walk.le_vx]; exact p.2⟩
+def cons (h : G.IsBetween e x y) (p : G.Path y z) (hx : x ∉ p.vx) : G.Path x z :=
+  ⟨Walk.cons h (p.1), by simpa [p.2]⟩
 
 @[simp]
-lemma le_val {x y : α} {p : G.Path x y} (hle : G ≤ H) : (le p hle).1 = p.1.le hle := rfl
+lemma cons_val (h : G.IsBetween e x y) (p : G.Path y z) (hx : x ∉ p.vx) :
+  (cons h p hx).1 = Walk.cons h p.1 := rfl
 
 @[simp]
-lemma le_vx {x y : α} {p : G.Path x y} (hle : G ≤ H) : (le p hle).vx = p.vx := by
-  simp [le, vx, Walk.le_vx]
+lemma cons_vx (h : G.IsBetween e x y) (p : G.Path y z) (hx : x ∉ p.vx) :
+  (cons h p hx).vx = x :: p.vx := by
+  simp [cons]
 
 @[simp]
-lemma le_edge {x y : α} {p : G.Path x y} (hle : G ≤ H) : (le p hle).edge = p.edge := by
-  simp [le, edge, Walk.le_edge]
+lemma cons_edge (h : G.IsBetween e x y) (p : G.Path y z) (hx : x ∉ p.vx) :
+  (cons h p hx).edge = e :: p.edge := by
+  simp [cons]
 
 @[simp]
-lemma le_length {x y : α} {p : G.Path x y} (hle : G ≤ H) : (le p hle).length = p.length := by
-  simp [le, length, Walk.le_length]
-
-/-- Check if a path can be appended to another while maintaining the path property. -/
-def appendable (p₁ : G.Path x y) (p₂ : G.Path y z) : Prop :=
-  ∀ w, w ∈ p₁.vx.tail → w ∈ p₂.vx → w = y
-
-/-- Append two paths if they can be appended while maintaining the path property. -/
-def append (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) : G.Path x z := sorry
-
--- @[simp]
--- lemma append_val (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
---   (append p₁ p₂ h).1 = append p₁.1 p₂.1 (by simpa using h) := rfl
-
-lemma append_vx (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
-  (append p₁ p₂ h).vx = p₁.vx ++ p₂.vx.tail := sorry
-
-lemma append_edge (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
-  (append p₁ p₂ h).edge = p₁.edge ++ p₂.edge := sorry
-
-lemma append_length (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
-  (append p₁ p₂ h).length = p₁.length + p₂.length := sorry
+lemma cons_length (h : G.IsBetween e x y) (p : G.Path y z) (hx : x ∉ p.vx) :
+  (cons h p hx).length = p.length + 1 := by
+  simp [cons]
 
 /-- Extend a path by an edge while maintaining the path property. -/
 def concat (p : G.Path x y) (h : G.IsBetween e y z) (hz : z ∉ p.vx) : G.Path x z :=
@@ -358,34 +425,6 @@ lemma concat_length (p : G.Path x y) (h : G.IsBetween e y z) (hz : z ∉ p.vx) :
   (concat p h hz).length = p.length + 1 := by
   simp [concat]
 
-/-- Paths establish connectivity between their endpoints. -/
-lemma connected (p : G.Path x y) : G.Connected x y :=
-  p.1.connected
-
-/-- There is a path between two vertices if and only if they are connected. -/
-lemma connected_iff : G.Connected x y ↔ Nonempty (G.Path x y) := by
-  constructor
-  · intro hConn
-    induction hConn with
-    | single hradj =>
-      expose_names
-      by_cases hxb : x = b
-      · subst b
-        use nil hradj.mem_left
-        simp
-      · have : G.Adj x b := by exact?
-
-
-      use of_isBetween hradj hW.2
-    | tail hconn hradj ih =>
-      obtain ⟨W, hW⟩ := of_reflAdj hradj
-      use ih.some.append (of_isBetween hradj hW.2)
-      simpa using hW.1
-
-  · intro hPath
-    -- From path to connectivity: This direction is easy
-    exact hPath.some.connected
-
 /-- Create a reversed path from one that goes from x to y to one from y to x -/
 def reverse (p : G.Path x y) : G.Path y x :=
   ⟨p.1.reverse, by simp [Walk.reverse_vx]; exact p.2⟩
@@ -411,6 +450,88 @@ lemma reverse_length (p : G.Path x y) : (reverse p).length = p.length := by
   simp only [length, reverse]
   exact Walk.reverse_length
 
+def le {H : Graph α β} (p : G.Path x y) (hle : G ≤ H) : H.Path x y :=
+  ⟨p.1.le hle, by simp only [Walk.le_vx]; exact p.2⟩
+
+@[simp]
+lemma le_val (hle : G ≤ H) : (le p hle).1 = p.1.le hle := rfl
+
+@[simp]
+lemma le_vx (hle : G ≤ H) : (le p hle).vx = p.vx := by
+  simp [le, vx, Walk.le_vx]
+
+@[simp]
+lemma le_edge (hle : G ≤ H) : (le p hle).edge = p.edge := by
+  simp [le, edge, Walk.le_edge]
+
+@[simp]
+lemma le_length (hle : G ≤ H) : (le p hle).length = p.length := by
+  simp [le, length, Walk.le_length]
+
+def contract {α' : Type*} {f : α → α'} {C : Set β} (p : (G /[f] C).Path (f x) (f y)) : G.Path x y :=
+  sorry
+
+end Path
+
+-- def Walk.toPath [DecidableEq α] {x y : α} : G.Walk x y → G.Path x y := by
+--   intro w
+--   use w.dedup
+--   sorry
+
+namespace Path
+
+/-- Check if a path can be appended to another while maintaining the path property. -/
+def appendable (p₁ : G.Path x y) (p₂ : G.Path y z) : Prop :=
+  ∀ w, w ∈ p₁.vx.tail → w ∈ p₂.vx → w = y
+
+/-- Append two paths if they can be appended while maintaining the path property. -/
+def append (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) : G.Path x z := sorry
+
+-- @[simp]
+-- lemma append_val (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
+--   (append p₁ p₂ h).1 = append p₁.1 p₂.1 (by simpa using h) := rfl
+
+lemma append_vx (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
+  (append p₁ p₂ h).vx = p₁.vx ++ p₂.vx.tail := sorry
+
+lemma append_edge (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
+  (append p₁ p₂ h).edge = p₁.edge ++ p₂.edge := sorry
+
+lemma append_length (p₁ : G.Path x y) (p₂ : G.Path y z) (h : appendable p₁ p₂) :
+  (append p₁ p₂ h).length = p₁.length + p₂.length := sorry
+
+
+
+
+/-- Paths establish connectivity between their endpoints. -/
+lemma connected (p : G.Path x y) : G.Connected x y :=
+  p.1.connected
+
+-- /-- There is a path between two vertices if and only if they are connected. -/
+-- lemma connected_iff : G.Connected x y ↔ Nonempty (G.Path x y) := by
+--   constructor
+--   · intro hConn
+--     induction hConn with
+--     | single hradj =>
+--       expose_names
+--       by_cases hxb : x = b
+--       · subst b
+--         use nil hradj.mem_left
+--         simp
+--       · have : G.Adj x b := by exact reflAdj.Adj_of_ne hradj hxb
+
+
+
+--       use of_isBetween hradj hW.2
+--     | tail hconn hradj ih =>
+--       obtain ⟨W, hW⟩ := of_reflAdj hradj
+--       use ih.some.append (of_isBetween hradj hW.2)
+--       simpa using hW.1
+
+--   · intro hPath
+--     -- From path to connectivity: This direction is easy
+--     exact hPath.some.connected
+
 section disjoint
 
 variable {ι : Type*}
@@ -425,88 +546,73 @@ theorem Menger {k : ℕ} (G : Graph α β) [G.Finite] (u v : α) (hu : u ∈ G.V
     (huv : ¬ G.Adj u v) (h : ∀ S : Set α, S.Finite → G.IsVxSeparator u v S → k ≤ S.ncard) :
     ∃ Ps : Fin k → G.Path u v, InternallyDisjoint Ps := by
   classical
-  induction k generalizing G with
-  | zero =>
-    use fun a ↦ Fin.elim0 a
-    simp [InternallyDisjoint]
-  | succ k ih =>
-    by_cases heuv : ∃ e : β, e ∈ G.E ∧¬ G.Inc u e ∧ ¬ G.Inc v e
-    · obtain ⟨e, he, hnuinc, hnvinc⟩ := heuv
-      let G' := G{{e}ᶜ}
-      have hG'le : G' ≤ G := restrict_le G {e}ᶜ
-      by_cases h :  ∀ (S : Set α), S.Finite → G'.IsVxSeparator u v S → k+1 ≤ S.ncard
-      · obtain ⟨Ps, hPs⟩ := Menger G' u v (by sorry) (by sorry) (by sorry) h
-        use fun i ↦ (Ps i).le hG'le
-        intro i j x hx hx' hne
-        refine hPs i j x ?_ ?_ hne
-        · simpa using hx
-        · simpa using hx'
-      · simp only [not_forall, Classical.not_imp, not_le] at h
-        obtain ⟨S, hSFin, hSsep, hcard⟩ := h
-        obtain ⟨x, y, hxy⟩ := G.exist_IsBetween_of_mem he
-        let G'' := G /[hxy.inc_left.contractFun] {e}
-        have := Menger G'' u v (by sorry) (by sorry) (by sorry) ?_
+  by_cases heuv : ∃ e : β, e ∈ G.E ∧ ¬ G.Inc u e ∧ ¬ G.Inc v e
+  · obtain ⟨e, he, hnuinc, hnvinc⟩ := heuv
+    have hG'le : G{G.E \ {e}} ≤ G := restrict_le G _
+    by_cases h :  ∀ (S : Set α), S.Finite → G{G.E \ {e}}.IsVxSeparator u v S → k ≤ S.ncard
+    · have hG'term : G{G.E \ {e}}.E.ncard < G.E.ncard := by
+        simp only [restrict_E]
+        apply Set.ncard_lt_ncard ?_ Finite.edge_fin
+        refine inter_ssubset_left_iff.mpr ?_
+        rintro hsu
+        have := hsu he
+        simp at this
+      have := Menger (G{G.E \ {e}}) u v hu hv (by contrapose! huv; exact huv.of_Adj_restrict ) h
+      obtain ⟨Ps, hPs⟩ := this
+      use fun i ↦ (Ps i).le hG'le
+      intro i j x hx hx' hne
+      refine hPs i j x ?_ ?_ hne
+      · simpa using hx
+      · simpa using hx'
+    · simp only [not_forall, Classical.not_imp, not_le] at h
+      obtain ⟨S, hSFin, hSsep, hcard⟩ := h
+      obtain ⟨x, y, hxy⟩ := G.exist_IsBetween_of_mem he
+      let G'' := G /[hxy.inc_left.contractFun] {e}
+      have hG''term : (G.E \ {e}).ncard < G.E.ncard := by
+        apply Set.ncard_lt_ncard ?_ Finite.edge_fin
+        simp [he]
+      have := Menger G'' u v (by sorry) (by sorry) (by sorry) sorry (k := k)
+      obtain ⟨Ps, hPs⟩ := this
+      obtain ⟨i, hi, hieq⟩ : ∃! i, x ∈ (Ps i).vx := by
         sorry
-      -- specialize ih G' hu hv (by rintro hadj; exact huv (hadj.le hG'le)) ?_
-      -- · rintro S hSFin hS
-      --   obtain ⟨x, y, hxy⟩ := G.exist_IsBetween_of_mem he
-      --   have := (h (insert x S) (hSFin.insert x) ?_).trans (Set.ncard_insert_le _ _)
-      --   omega
-      --   · refine ⟨?_, ?_, ?_⟩
-      --     · simp only [Set.mem_insert_iff, hS.not_mem_left, or_false]
-      --       rintro rfl
-      --       exact hnuinc (hxy.inc_left)
-      --     · simp only [Set.mem_insert_iff, hS.not_mem_right, or_false]
-      --       rintro rfl
-      --       exact hnvinc (hxy.inc_left)
-      --     · rintro hconn
-      --       refine hS.not_connected (hconn.le ⟨?_, ?_, ?_⟩)
-      --       · rintro a
-      --         simp only [induce_V, Set.mem_inter_iff, mem_diff, Set.mem_insert_iff, restrict_V, G']
-      --         tauto
-      --       · rintro e'
-      --         simp only [induce_E, mem_diff, Set.mem_insert_iff, not_or, Set.mem_inter_iff,
-      --           mem_setOf_eq, restrict_V, restrict_E, restrict_inc, mem_compl_iff,
-      --           mem_singleton_iff, and_imp, G']
-      --         rintro he' h1
-      --         use ⟨he', ?_⟩
-      --         rintro a hainc hne
-      --         specialize h1 a hainc
-      --         exact ⟨h1.1, h1.2.2⟩
-      --         · rintro rfl
-      --           obtain ⟨H1, H2, H3⟩ := h1 x hxy.inc_left
-      --           simp at H2
-      --       · rintro a
+      sorry
+  · simp only [not_exists, not_and, not_not] at heuv
+    by_cases hadj : ∃ x : α, G.Adj u x ∧ G.Adj x v
+    · obtain ⟨x, hux, hxv⟩ := hadj
+      let G' := G[G.V \ {x}]
+      have hG'le : G' ≤ G := induce_le G Set.diff_subset
+      have hu' : u ∈ G'.V := by
+        simp only [induce_V, mem_diff, hu, mem_singleton_iff, true_and, G']
+        rintro rfl
+        exact huv hxv
+      have hv' : v ∈ G'.V := by
+        simp only [induce_V, mem_diff, hv, mem_singleton_iff, true_and, G']
+        rintro rfl
+        exact huv hux
+      have huv' : ¬ G'.Adj u v := by
+        contrapose! huv
+        exact huv.of_Adj_induce
+      have hG'Fin : G'.Finite := finite_of_le_finite hG'le
+      obtain ⟨eux, heux⟩ := hux
+      obtain ⟨exv, hexv⟩ := hxv
+      obtain p : G.Path u v := (of_isBetween hexv ?_).cons heux ?_
+      have hG'term : (G.E ∩ {e | ∀ (x_1 : α), G.Inc x_1 e → x_1 ∈ G.V ∧ ¬x_1 = x}).ncard + (k - 1) <
+        G.E.ncard + k := by sorry
+      have := Menger G' (k := k-1) u v hu' hv' huv' ?_
+      obtain ⟨Ps, hPs⟩ := this
 
-      --         sorry
-    · simp only [not_exists, not_and, not_not] at heuv
-      by_cases hadj : ∃ x : α, G.Adj u x ∧ G.Adj x v
-      · obtain ⟨x, huv, hxv⟩ := hadj
-        let G' := G[{x}ᶜ]
-        have hG'le : G' ≤ G := induce_le G {x}ᶜ
-        have hu' : u ∈ G'.V := by sorry
-        have hv' : v ∈ G'.V := by sorry
-        have huv' : ¬ G'.Adj u v := by sorry
-        have := Menger G' (k := k) u v hu' hv' huv' ?_
-        obtain ⟨Ps, hPs⟩ := this
-        use Fin.cons sorry (fun i ↦ (Ps i).le hG'le)
-        sorry
-        sorry
-      --   obtain ⟨Ps, hPs⟩ := Menger G' u v (k := k) hu' hv' huv' ?_
-      --   sorry
-      · sorry
-
+      -- let Ps' : Fin k → G.Path u v := fun i ↦ Fin.cons sorry (fun i ↦ (Ps i).le hG'le) (i.cast (by sorry))
+      -- use Fin.cons sorry (fun i ↦ (Ps i).le hG'le)
+      sorry
+      sorry
+    · sorry
+termination_by G.E.ncard + k
 
 
 end disjoint
 
 end Path
 
-
--- structure Path (G : Graph α β) (u v : α) extends Walk G u v where
---   vx_nodup : vx.Nodup
-
--- namespace Path
 
 
 

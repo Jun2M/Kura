@@ -69,21 +69,45 @@ def vxMap {α' : Type*} (G : Graph α β) (φ : α → α') : Graph α' β where
     obtain h | h | h := G.not_hypergraph hx hy hz <;>
     simp only [h, true_or, or_true]
 
-namespace vxMap
 
 variable {α' : Type*} {φ : α → α'}
 
 @[simp]
-lemma V : (G.vxMap φ).V = φ '' G.V := rfl
+lemma vxMap.V : (G.vxMap φ).V = φ '' G.V := rfl
 
 @[simp]
-lemma E : (G.vxMap φ).E = G.E := rfl
+lemma vxMap.E : (G.vxMap φ).E = G.E := rfl
 
 @[simp]
-lemma Inc {x : α'} : (G.vxMap φ).Inc x e ↔ ∃ v, φ v = x ∧ G.Inc v e := by
+lemma vxMap.Inc {x : α'} : (G.vxMap φ).Inc x e ↔ ∃ v, φ v = x ∧ G.Inc v e := by
   simp only [vxMap, exists_prop, exists_and_right, exists_eq_right]
 
-end vxMap
+lemma IsBetween.vxMap_of_isBetween {x y : α} (hBtw : G.IsBetween e x y) (φ : α → α') :
+    (G.vxMap φ).IsBetween e (φ x) (φ y) := by
+  refine ⟨?_, ?_, fun heq ↦ ⟨φ x, ?_, ?_⟩⟩ <;> simp only [vxMap.Inc, forall_exists_index,
+    and_imp]
+  · use x, rfl, hBtw.inc_left
+  · use y, rfl, hBtw.inc_right
+  · use x, rfl, hBtw.inc_left
+  · rintro y' v rfl hv
+    obtain rfl | rfl := hBtw.eq_of_inc hv
+    · rfl
+    · exact heq.symm
+
+@[simp]
+lemma vxMap.IsBetween {x y : α'} : (G.vxMap φ).IsBetween e x y ↔
+    ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.IsBetween e x' y' := by
+  constructor
+  · rintro hBtw
+    obtain he : e ∈ G.E := hBtw.edge_mem
+    obtain ⟨x', y', hbtw⟩ := exist_IsBetween_of_mem he
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (hbtw.vxMap_of_isBetween φ).eq_or_eq_of_IsBetween hBtw
+    · use x', rfl, y'
+    · use y', rfl, x', rfl
+      exact hbtw.symm
+  · rintro ⟨x', rfl, y', rfl, hbtw⟩
+    exact hbtw.vxMap_of_isBetween φ
+
 
 def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where
   V := G.V

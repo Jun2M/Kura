@@ -72,7 +72,7 @@ lemma ValidOn.le (hC : ValidOn G φ C) (hle : H ≤ G) (hE : G.E ∩ C ⊆ H.E) 
     contraction function and corresponding contracted edge set that precisely equals `S`.
 
     This is useful for showing that any set of edges can be validly contracted. -/
-lemma exists_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidOn G φ S := by
+lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidOn G φ S := by
   classical
   -- Get a representative function for the connected components
   obtain ⟨φ, hid, hrel, heq⟩ := Partition.nonempty_repFun (ConnectedPartition (G{S}))
@@ -92,6 +92,22 @@ lemma exists_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidOn G φ S 
     apply heq _ _
     simp only [ConnectedPartition, rel_ofRel'_eq]
     exact h_connected
+
+def SubgraphContractFun (G : Graph α β) (S : Set β) :=
+  fun x ↦ G{S}[{y | G{S}.Connected x y}]
+
+lemma SubgraphContractFun.ValidOn (S : Set β) : ValidOn G (SubgraphContractFun G S) S := by
+  rintro x y hx hy
+  simp +contextual only [induce_eq_induce_iff, ext_iff_simp, iff_def, SubgraphContractFun]
+  constructor
+  · rintro h
+    obtain ⟨H1, H2⟩ := h y
+    exact H2 (Connected.refl hy)
+  · rintro hconn z
+    exact ⟨hconn.symm.trans, hconn.trans⟩
+
+
+
 
 /- Assuming m is valid on some G, m represents a set of the subgraphs to be contracted and
   for each subgraph, which vertex label to retain.
@@ -166,8 +182,18 @@ lemma Inc {x : α'} : (G /[φ] C).Inc x e ↔ ∃ v, φ v = x ∧ G.Inc v e ∧ 
   · rintro ⟨v, rfl, hinc, hnin⟩
     use ⟨v, rfl, hinc⟩, hinc.edge_mem, hnin
 
-lemma IsBetween (hbtw : G.IsBetween e x y) (hnin : e ∉ C) : (G /[φ] C).IsBetween e (φ x) (φ y) := by
-  simp? [Contract]
+lemma IsBetween_of_IsBetween (hbtw : G.IsBetween e x y) (hnin : e ∉ C) : (G /[φ] C).IsBetween e (φ x) (φ y) := by
+  simp only [Contract, restrict_isBetween, vxMap.IsBetween, mem_diff, hbtw.edge_mem, hnin,
+    not_false_eq_true, and_self, and_true]
+  use x, rfl, y
+
+@[simp]
+lemma IsBetween {x' y' : α'} : (G /[φ] C).IsBetween e x' y' ↔ ∃ x, φ x = x' ∧ ∃ y, φ y = y' ∧
+    G.IsBetween e x y ∧ e ∉ C:= by
+  simp +contextual only [Contract, restrict_isBetween, vxMap.IsBetween, mem_diff, iff_def,
+    not_false_eq_true, and_true, implies_true, forall_exists_index, and_imp, true_and]
+  rintro x rfl y rfl hbtw hnin
+  exact ⟨⟨x, rfl, y, rfl, hbtw⟩, hbtw.edge_mem⟩
 
 @[simp]
 lemma contract_eq_contract_iff :
@@ -315,7 +341,7 @@ instance instFinite [h : G.Finite] : (G /[φ] C).Finite where
   vx_fin := Set.Finite.image φ h.vx_fin
   edge_fin := by
     apply Set.Finite.subset (h.edge_fin)
-    exact?
+    exact E_subset
 
 -- lemma comp_symm_of_inter_eq {n m : ContractSys α β α} (hm : m.validOn G) (hn : n.validOn G)
 --     (hinter : G.E ∩ m.contractSet = G.E ∩ n.contractSet) (v : α) :

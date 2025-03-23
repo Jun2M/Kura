@@ -83,16 +83,10 @@ lemma castPred_succ {n : ℕ} (i : Fin (n+1)) (hi : i ≠ last n) : (i.castPred 
 lemma castSucc_ne_last {n : ℕ} (i : Fin n) : i.castSucc ≠ last n :=
   ne_last_of_lt <| Fin.castSucc_lt_last i
 
-@[simp]
-lemma natAdd_inj {n : ℕ} (i j : Fin n) (m : ℕ) : i.natAdd m = j.natAdd m ↔ i = j := by
-  constructor <;> intro h
-  · rwa [← Fin.natAddEmb_apply, ← Fin.natAddEmb_apply, (Fin.natAddEmb m).apply_eq_iff_eq] at h
-  · rw [h]
-
 lemma natAdd_injective {n : ℕ} (m : ℕ) :
     Function.Injective (Fin.natAdd m : Fin n → Fin (m + n)) := by
   intro i j h
-  rwa [natAdd_inj i j m] at h
+  rwa [natAdd_inj m] at h
 
 @[simp]
 lemma ext_iff' {n : ℕ} (i j : Fin n) : i = j ↔ i.val = j.val := Fin.ext_iff

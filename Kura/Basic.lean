@@ -2,6 +2,10 @@
 import Mathlib.Algebra.BigOperators.Sym
 import Matroid.Axioms.Circuit
 
+@[simp]
+lemma Set.ext_iff_simp {α : Type*} {P Q : α → Prop} : {x | P x} = {x | Q x} ↔ ∀ x, P x ↔ Q x :=
+  Set.ext_iff
+
 variable {α β : Type*}
 
 open Set Function
