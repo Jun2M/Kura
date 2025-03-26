@@ -3,7 +3,6 @@ import Kura.Minor
 import Mathlib.Data.Finset.Lattice.Basic
 import Kura.Dep.List
 
-
 open Set Function List Nat
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e f g : β}
 namespace Graph
@@ -121,6 +120,8 @@ lemma ValidOn.eq_left (h : (cons x e w).ValidOn G u v) : u = x := by
 end Walk
 
 open Walk
+
+variable {G H : Graph α β} {u v : α} {e : β} {w : Walk α β}
 
 def IsBetween.Walk (_h : G.IsBetween e u v) : Walk α β := cons u e (nil v)
 
@@ -244,8 +245,54 @@ lemma reverse_length {w : Walk α β} : (reverse w).length = w.length := by
 -- lemma connected_iff_exists_validOn : G.Connected u v ↔ ∃ w : Walk α β, w.ValidOn G u v :=
 --   ⟨validOn_of_connected, fun ⟨w', h⟩ => connected_of_validOn h⟩
 
--- /-- A subgraph inherits all valid walks -/
--- lemma validOn_le {G H : Graph α β} (h : w.ValidOn G u v) (hle : G ≤ H) : w.ValidOn H u v := sorry
+/-- A subgraph inherits all valid walks -/
+lemma ValidOn.le {w : Walk α β} {u v : α} (h : w.ValidOn G u v) (hle : G ≤ H) : w.ValidOn H u v := by
+  match w with
+  | nil x =>
+    obtain ⟨rfl, rfl, hx⟩ := h
+    use rfl, rfl, mem_of_le hle hx
+  | cons x e (nil y) =>
+    obtain ⟨rfl, rfl, hx⟩ := h
+    exact ⟨rfl, rfl, hx.le hle⟩
+  | cons x e (cons y f w) =>
+    obtain ⟨rfl, hbtw, hvalid⟩ := h
+    exact ⟨rfl, hbtw.le hle, hvalid.le hle⟩
+
+lemma ValidOn.mem_of_mem_vx {w : Walk α β} {u v : α} (h : w.ValidOn G u v) (hmem : x ∈ w.vx) :
+    x ∈ G.V := by
+  match w with
+  | nil x =>
+    convert h.2.2
+    simpa using hmem
+  | cons x e (nil y) =>
+    obtain ⟨rfl, rfl, hx⟩ := h
+    simp only [cons_vx, nil_vx, mem_cons, not_mem_nil, or_false] at hmem
+    obtain rfl | rfl := hmem
+    · exact hx.vx_mem_left
+    · exact hx.vx_mem_right
+  | cons x e (cons y f w) =>
+    obtain ⟨rfl, hbtw, hvalid⟩ := h
+    rw [cons_vx, List.mem_cons] at hmem
+    obtain rfl | hmem := hmem
+    · exact hbtw.vx_mem_left
+    · exact hvalid.mem_of_mem_vx hmem
+
+lemma ValidOn.mem_of_mem_edge {w : Walk α β} {u v : α} (h : w.ValidOn G u v) (hmem : e ∈ w.edge) :
+    e ∈ G.E := by
+  match w with
+  | nil x => simp at hmem
+  | cons x e' (nil y) =>
+    obtain ⟨rfl, rfl, hx⟩ := h
+    simp only [cons_edge, nil_edge, mem_cons, not_mem_nil, or_false] at hmem
+    subst hmem
+    exact hx.edge_mem
+  | cons x e' (cons y f w) =>
+    obtain ⟨rfl, hbtw, hvalid⟩ := h
+    rw [cons_edge, List.mem_cons] at hmem
+    obtain rfl | hmem := hmem
+    · exact hbtw.edge_mem
+    · exact hvalid.mem_of_mem_edge hmem
+
 
 end Walk
 
@@ -277,6 +324,9 @@ def IsBetween.path (hbtw : G.IsBetween e u v) (hne : u ≠ v) : Path α β := �
 /-- Create the reverse of a path -/
 def reverse (p : Path α β) : Path α β := ⟨p.val.reverse, by simp [p.prop]⟩
 
+lemma ValidOn.le {u v : α} {p : Path α β} (h : p.ValidOn G u v) (hle : G ≤ H) : p.ValidOn H u v :=
+  Walk.ValidOn.le h hle
+
 -- /-- If the endpoints of a path are connected in G via a valid path, they are connected in G -/
 -- lemma connected_of_validOn (h : p.ValidOn G u v) : G.Connected u v :=
 --   Walk.connected_of_validOn h
@@ -288,75 +338,253 @@ variable {ι : Type*}
 /-- A collection of paths is internally disjoint if no vertex appears in more than one path
   except for the special two vertices u and v. (i.e. the endpoints of the paths. But this is not
   enforced in the definition) -/
-def InternallyDisjoint {u v : α} (Ps : ι → Path α β) : Prop :=
-  ∀ i j x, x ∈ (Ps i).vx → x ∈ (Ps j).vx → i ≠ j → x = u ∨ x = v
+def InternallyDisjoint (u v : α) (Ps : List (Path α β)) : Prop :=
+  ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi ≠ pj → x = u ∨ x = v
 
 /-- A collection of paths is disjoint if no vertex appears in more than one path -/
-def Disjoint (Ps : ι → Path α β) : Prop :=
-  ∀ i j x, x ∈ (Ps i).vx → x ∈ (Ps j).vx → i = j
+def Disjoint (u v : α) (Ps : List (Path α β)) : Prop :=
+  ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi ≠ pj → x = u ∨ x = v
 
-theorem Menger {k : ℕ} (G : Graph α β) [G.Finite] (u v : α) (hu : u ∈ G.V) (hv : v ∈ G.V)
-    (huv : ¬ G.Adj u v) (h : ∀ S : Set α, S.Finite → G.IsVxSeparator u v S → k ≤ S.ncard) :
-    ∃ Ps : Fin k → G.Path u v, InternallyDisjoint Ps := by
+theorem Menger (G : Graph α β) [G.Finite] (u v : α) (hu : u ∈ G.V) (hv : v ∈ G.V)
+    (hne : u ≠ v) (huv : ¬ G.Adj u v) (k : ℕ)
+    (h : ∀ S : Set α, S.Finite → G.IsVxSeparator u v S → k ≤ S.ncard) :
+    ∃ Ps : List (Path α β), (Ps.length = k) ∧ (∀ p ∈ Ps, p.ValidOn G u v) ∧ InternallyDisjoint u v Ps := by
   classical
-  by_cases heuv : ∃ e : β, e ∈ G.E ∧ ¬ G.Inc u e ∧ ¬ G.Inc v e
-  · obtain ⟨e, he, hnuinc, hnvinc⟩ := heuv
+  by_cases hk : k = 0
+  · use [], by simp [hk], by simp, by simp [InternallyDisjoint]
+
+  by_cases hadj : ∃ x : α, G.Adj u x ∧ G.Adj x v
+  · obtain ⟨x, hux, hxv⟩ := hadj
+    let G' := G[G.V \ {x}]
+    have hG'le : G' ≤ G := induce_le G (by simp)
+    have hu' : u ∈ G'.V := by
+      simp only [induce_V, mem_diff, hu, mem_singleton_iff, true_and, G']
+      rintro rfl
+      exact huv hxv
+    have hv' : v ∈ G'.V := by
+      simp only [induce_V, mem_diff, hv, mem_singleton_iff, true_and, G']
+      rintro rfl
+      exact huv hux
+    have huv' : ¬ G'.Adj u v := by
+      contrapose! huv
+      exact huv.of_Adj_induce
+    obtain ⟨eux, heux⟩ := hux
+    obtain ⟨exv, hexv⟩ := hxv
+    let p : Path α β := ⟨((Walk.nil v).cons x exv).cons u eux, by simp [hne]; sorry⟩
+    have hp : p.ValidOn G u v := ⟨rfl, heux, rfl, rfl, hexv⟩
+    have hpvx : p.vx = [u, x, v] := rfl
+    have hG'Fin : G'.Finite := finite_of_le_finite hG'le
+    have hG'term : (G.E ∩ {e | ∀ (x_1 : α), G.Inc x_1 e → x_1 ∈ G.V ∧ ¬x_1 = x}).ncard + (k - 1) < G.E.ncard + k := by
+      sorry
+    have := Menger G' u v hu' hv' hne huv' (k-1) ?_
+    obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
+    use p :: Ps, ?_, ?_
+    · rintro y pi pj hpi hpj hyi hyj hpij
+      by_cases hnepi : pi ≠ p ∧ pj ≠ p
+      · have hpiPs : pi ∈ Ps := by simpa [hnepi.1] using hpi
+        have hpjPs : pj ∈ Ps := by simpa [hnepi.2] using hpj
+        exact hPs y pi pj hpiPs hpjPs hyi hyj hpij
+      · wlog heqp : pi = p
+        · apply this G u v hu hv hne huv k h hk x hG'le hu' hv' huv' eux heux exv hexv hp hpvx
+            hG'Fin hG'term Ps hlen hPVd hPs y pj pi hpj hpi hyj hyi hpij.symm
+            (by rw [and_comm] at hnepi; exact hnepi)
+          push_neg at hnepi
+          exact hnepi heqp
+        subst pi
+        simp only [hpvx, mem_cons, not_mem_nil, or_false] at hyi
+        obtain rfl | rfl | rfl := hyi
+        · left; rfl
+        · rw [and_comm] at hnepi
+          simp only [mem_cons, hpij.symm, false_or] at hpj
+          specialize hPVd pj hpj
+          have : y ∈ G'.V := hPVd.mem_of_mem_vx hyj
+          simp [G'] at this
+        · right; rfl
+    · simp only [length_cons, hlen, G']
+      omega
+    · rintro p' hp'
+      rw [List.mem_cons] at hp'
+      obtain (rfl | hvalid) := hp'
+      · exact hp
+      · exact (hPVd p' hvalid).le hG'le
+    · rintro s hsFin hSsepG'
+      by_cases hxs : x ∈ s
+      · refine (by omega : k - 1 ≤ k).trans (h s hsFin ?_)
+        refine ⟨hSsepG'.not_mem_left, hSsepG'.not_mem_right, ?_⟩
+        have := hSsepG'.not_connected
+        simp only [induce_V, induce_induce_eq_induce_restrict, mem_diff, mem_singleton_iff,
+          G'] at this
+        convert this using 2
+        rw [diff_diff, singleton_union, insert_eq_self.mpr hxs, eq_comm]
+        apply subgraph_eq_induce
+        simp +contextual only [mem_diff, setOf_subset_setOf, true_and, G']
+        rintro e' h' x' hinc' rfl
+        exact (h' x' hinc').2 hxs
+      · specialize h (s ∪ {x}) (hsFin.union (by simp)) ?_
+        · constructor
+          · simp only [union_singleton, Set.mem_insert_iff, hSsepG'.not_mem_left, or_false, G']
+            rintro rfl
+            exact huv ⟨_, hexv⟩
+          · simp only [union_singleton, Set.mem_insert_iff, hSsepG'.not_mem_right, or_false, G']
+            rintro rfl
+            exact huv ⟨_, heux⟩
+          · convert hSsepG'.not_connected using 2
+            simp only [union_singleton, induce_V, induce_induce_eq_induce_restrict, mem_diff,
+              mem_singleton_iff, G']
+            rw [diff_diff, singleton_union, eq_comm]
+            apply subgraph_eq_induce
+            simp +contextual only [mem_diff, Set.mem_insert_iff, not_or, setOf_subset_setOf,
+              not_false_eq_true, and_self, implies_true, G']
+        · rwa [ncard_union_eq (by simp [hxs]) hsFin, ncard_singleton, Nat.le_add_toss] at h
+  · have : G.E.Nonempty := by
+      rw [Set.nonempty_iff_ne_empty]
+      rintro hE
+      have := h ∅ (by simp) (by constructor <;> simp [hE, hne])
+      simp only [ncard_empty, nonpos_iff_eq_zero] at this
+      omega
+    obtain ⟨e, he⟩ := this
+    let G' := G{G.E \ {e}}
     have hG'le : G{G.E \ {e}} ≤ G := restrict_le G _
-    by_cases h :  ∀ (S : Set α), S.Finite → G{G.E \ {e}}.IsVxSeparator u v S → k ≤ S.ncard
-    · have hG'term : G{G.E \ {e}}.E.ncard < G.E.ncard := by
-        simp only [restrict_E]
+    by_cases h : ∀ (S : Set α), S.Finite → G{G.E \ {e}}.IsVxSeparator u v S → k ≤ S.ncard
+    · -- Deleting the edge did not decrease k, so get the paths from the smaller graph
+      have hG'term : (G.E ∩ (G.E \ {e})).ncard + k < G.E.ncard + k := by
+        simp only [restrict_E, add_lt_add_iff_right]
         apply Set.ncard_lt_ncard ?_ Finite.edge_fin
         refine inter_ssubset_left_iff.mpr ?_
         rintro hsu
         have := hsu he
         simp at this
-      have := Menger (G{G.E \ {e}}) u v hu hv (by contrapose! huv; exact huv.of_Adj_restrict ) h
-      obtain ⟨Ps, hPs⟩ := this
-      use fun i ↦ (Ps i).le hG'le
-      intro i j x hx hx' hne
-      refine hPs i j x ?_ ?_ hne
-      · simpa using hx
-      · simpa using hx'
-    · simp only [not_forall, Classical.not_imp, not_le] at h
+      have := Menger (G{G.E \ {e}}) u v hu hv hne (by contrapose! huv; exact huv.of_Adj_restrict) k h
+      obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
+      use Ps, hlen
+      constructor
+      · rintro p hp
+        exact (hPVd p hp).le hG'le
+      · rintro pj hpj pi hpi x hx hx' hne
+        refine hPs pj hpj pi hpi x ?_ ?_ hne
+        · simpa using hx
+        · simpa using hx'
+    · -- Deleting the edge did decrease k, so contract instead
+      simp only [not_forall, Classical.not_imp, not_le] at h
       obtain ⟨S, hSFin, hSsep, hcard⟩ := h
       obtain ⟨x, y, hxy⟩ := G.exist_IsBetween_of_mem he
-      let G'' := G /[hxy.inc_left.contractFun] {e}
-      have hG''term : (G.E \ {e}).ncard < G.E.ncard := by
-        apply Set.ncard_lt_ncard ?_ Finite.edge_fin
-        simp [he]
-      have := Menger G'' u v (by sorry) (by sorry) (by sorry) sorry (k := k)
-      obtain ⟨Ps, hPs⟩ := this
-      obtain ⟨i, hi, hieq⟩ : ∃! i, x ∈ (Ps i).vx := by
+      let G'' := G /[hxy.contractFun] {e}
+      have hG''term : (G.E \ {e}).ncard < G.E.ncard :=
+        Set.ncard_diff_singleton_lt_of_mem he Finite.edge_fin
+      have hu'' : u ∈ G''.V := by
+        use u, hu, IsBetween.contractFun_eq_self_of_not_inc hxy hnuinc
+      have hv'' : v ∈ G''.V := by
+        use v, hv, IsBetween.contractFun_eq_self_of_not_inc hxy hnvinc
+      have := Menger G'' u v hu'' hv'' hne (by sorry) k ?_
+      obtain ⟨Ps, hPVd, hPs⟩ := this
+      obtain ⟨i, hi, hieq⟩ : ∃! p ∈ Ps, x ∈ p.vx := by
         sorry
       sorry
-  · simp only [not_exists, not_and, not_not] at heuv
-    by_cases hadj : ∃ x : α, G.Adj u x ∧ G.Adj x v
-    · obtain ⟨x, hux, hxv⟩ := hadj
-      let G' := G[G.V \ {x}]
-      have hG'le : G' ≤ G := induce_le G Set.diff_subset
-      have hu' : u ∈ G'.V := by
-        simp only [induce_V, mem_diff, hu, mem_singleton_iff, true_and, G']
-        rintro rfl
-        exact huv hxv
-      have hv' : v ∈ G'.V := by
-        simp only [induce_V, mem_diff, hv, mem_singleton_iff, true_and, G']
-        rintro rfl
-        exact huv hux
-      have huv' : ¬ G'.Adj u v := by
-        contrapose! huv
-        exact huv.of_Adj_induce
-      have hG'Fin : G'.Finite := finite_of_le_finite hG'le
-      obtain ⟨eux, heux⟩ := hux
-      obtain ⟨exv, hexv⟩ := hxv
-      obtain p : G.Path u v := (of_isBetween hexv ?_).cons heux ?_
-      have := Menger G' (k := k-1) u v hu' hv' huv' ?_
-      obtain ⟨Ps, hPs⟩ := this
-
-      -- let Ps' : Fin k → G.Path u v := fun i ↦ Fin.cons sorry (fun i ↦ (Ps i).le hG'le) (i.cast (by sorry))
-      -- use Fin.cons sorry (fun i ↦ (Ps i).le hG'le)
       sorry
-    · sorry
+
 termination_by G.E.ncard + k
+
+
+-- theorem Menger_zero {k : ℕ} {G : Graph α β} [G.Finite] (u v : α) (hk0 : k = 0) :
+--     ∃ Ps : List (Path α β), (∀ p ∈ Ps, p.ValidOn G u v) ∧ InternallyDisjoint u v Ps := by
+--   use []
+--   simp [InternallyDisjoint]
+
+-- theorem Menger_succ {k : ℕ} (G : Graph α β) [G.Finite] (u v : α) (hu : u ∈ G.V) (hv : v ∈ G.V)
+--     (hne : u ≠ v) (huv : ¬ G.Adj u v) (hkpos : 0 < k)
+--     (h : ∀ S : Set α, S.Finite → G.IsVxSeparator u v S → k ≤ S.ncard) :
+--     ∃ Ps : List (Path α β), (∀ p ∈ Ps, p.ValidOn G u v) ∧ InternallyDisjoint u v Ps := by
+--   classical
+--   by_cases heuv : ∃ e : β, e ∈ G.E ∧ ¬ G.Inc u e ∧ ¬ G.Inc v e
+--   · -- There exists an edge that is not incident to u or v
+--     -- Therefore, we can use del/contract to reduce the problem to a smaller graph
+--     obtain ⟨e, he, hnuinc, hnvinc⟩ := heuv
+--     have hG'le : G{G.E \ {e}} ≤ G := restrict_le G _
+--     by_cases h : ∀ (S : Set α), S.Finite → G{G.E \ {e}}.IsVxSeparator u v S → k ≤ S.ncard
+--     · -- Deleting the edge did not decrease k, so get the paths from the smaller graph
+--       have hG'term : (G.E ∩ (G.E \ {e})).ncard + k < G.E.ncard + k := by
+--         simp only [restrict_E, add_lt_add_iff_right]
+--         apply Set.ncard_lt_ncard ?_ Finite.edge_fin
+--         refine inter_ssubset_left_iff.mpr ?_
+--         rintro hsu
+--         have := hsu he
+--         simp at this
+--       have := Menger_succ (G{G.E \ {e}}) u v hu hv hne (by contrapose! huv; exact huv.of_Adj_restrict) hkpos h
+--       obtain ⟨Ps, hPVd, hPs⟩ := this
+--       use Ps
+--       constructor
+--       · rintro p hp
+--         exact (hPVd p hp).le hG'le
+--       · intro pj hpj pi hpi x hx hx' hne
+--         refine hPs pj hpj pi hpi x ?_ ?_ hne
+--         · simpa using hx
+--         · simpa using hx'
+--     · -- Deleting the edge did decrease k, so contract instead
+--       simp only [not_forall, Classical.not_imp, not_le] at h
+--       obtain ⟨S, hSFin, hSsep, hcard⟩ := h
+--       obtain ⟨x, y, hxy⟩ := G.exist_IsBetween_of_mem he
+--       let G'' := G /[hxy.contractFun] {e}
+--       have hG''term : (G.E \ {e}).ncard < G.E.ncard :=
+--         Set.ncard_diff_singleton_lt_of_mem he Finite.edge_fin
+--       have hu'' : u ∈ G''.V := by
+--         use u, hu, IsBetween.contractFun_eq_self_of_not_inc hxy hnuinc
+--       have hv'' : v ∈ G''.V := by
+--         use v, hv, IsBetween.contractFun_eq_self_of_not_inc hxy hnvinc
+--       have := Menger_succ G'' u v hu'' hv'' hne (by sorry) hkpos ?_
+--       obtain ⟨Ps, hPVd, hPs⟩ := this
+--       obtain ⟨i, hi, hieq⟩ : ∃! p ∈ Ps, x ∈ p.vx := by
+--         sorry
+--       sorry
+--       sorry
+--   · -- No edge is not incident to u or v
+--     -- So if there is no vertex adjacent to both u and v, then u and v are not connected
+--     push_neg at heuv
+--     by_cases hadj : ∃ x : α, G.Adj u x ∧ G.Adj x v
+--     · -- There exists a vertex adjacent to both u and v
+--       -- so get a path through that vertex
+--       obtain ⟨x, hux, hxv⟩ := hadj
+--       let G' := G[G.V \ {x}]
+--       have hG'le : G' ≤ G := induce_le G Set.diff_subset
+--       have hu' : u ∈ G'.V := by
+--         simp only [induce_V, mem_diff, hu, mem_singleton_iff, true_and, G']
+--         rintro rfl
+--         exact huv hxv
+--       have hv' : v ∈ G'.V := by
+--         simp only [induce_V, mem_diff, hv, mem_singleton_iff, true_and, G']
+--         rintro rfl
+--         exact huv hux
+--       have huv' : ¬ G'.Adj u v := by
+--         contrapose! huv
+--         exact huv.of_Adj_induce
+--       have hG'Fin : G'.Finite := finite_of_le_finite hG'le
+--       obtain ⟨eux, heux⟩ := hux
+--       obtain ⟨exv, hexv⟩ := hxv
+--       let p : Path α β := ⟨((Walk.nil v).cons x exv).cons u eux, by simp [hne]; sorry⟩
+--       have hp : p.ValidOn G u v := ⟨rfl, heux, rfl, rfl, hexv⟩
+--       have hpvx : p.vx = [u, x, v] := rfl
+--       have hG'term : (G.E ∩ {e | ∀ (x_1 : α), G.Inc x_1 e → x_1 ∈ G.V ∧ ¬x_1 = x}).ncard + (k - 1) < G.E.ncard + k := by
+--         suffices (G.E ∩ {e | ∀ (x_1 : α), G.Inc x_1 e → x_1 ∈ G.V ∧ ¬x_1 = x}).ncard ≤ G.E.ncard by omega
+--         exact Set.ncard_le_ncard (fun e => by simp +contextual) Finite.edge_fin
+--       have := Menger_succ G' (k := k-1) u v hu' hv' hne huv' sorry ?_
+--       obtain ⟨Ps, hPVd, hPs⟩ := this
+--       use p :: Ps, ?_
+--       · rintro y pi pj hpi hpj hyi hyj hpij
+--         by_cases h : pi ≠ p ∧ pj ≠ p
+--         · sorry
+--         · wlog h : pi = p
+--           · sorry
+--           subst pi
+--           simp only [hpvx, mem_cons, not_mem_nil, or_false] at hyi
+--           obtain rfl | rfl | rfl := hyi
+--           · left; rfl
+--           · sorry
+--           · right; rfl
+--       sorry
+--       -- let Ps' : Fin k → G.Path u v := fun i ↦ Fin.cons sorry (fun i ↦ (Ps i).le hG'le) (i.cast (by sorry))
+--       -- use Fin.cons sorry (fun i ↦ (Ps i).le hG'le)
+--       sorry
+--     · sorry
+-- termination_by G.E.ncard + k
 
 
 end disjoint

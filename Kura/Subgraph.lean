@@ -28,13 +28,22 @@ instance instPartialOrderGraph : PartialOrder (Graph α β) where
         · exact h <| G₁.edge_mem_of_inc hInc
         · exact h <| (h₁₂.2.1.antisymm h₂₁.2.1) ▸ (G₂.edge_mem_of_inc hInc)
 
+@[simp]
 lemma vx_subset_of_le (hle : G₁ ≤ G₂) : G₁.V ⊆ G₂.V := hle.1
 
+@[simp]
+lemma mem_of_le (hle : G₁ ≤ G₂) : x ∈ G₁.V → x ∈ G₂.V := (hle.1 ·)
+
+@[simp]
 lemma edge_subset_of_le (hle : G₁ ≤ G₂) : G₁.E ⊆ G₂.E := hle.2.1
+
+@[simp]
+lemma edge_mem_of_le (hle : G₁ ≤ G₂) : e ∈ G₁.E → e ∈ G₂.E := (hle.2.1 ·)
 
 lemma Inc_iff_Inc_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) : G₁.Inc v e ↔ G₂.Inc v e :=
   hle.2.2 _ _ he
 
+@[simp]
 lemma Inc.le (hinc : G₁.Inc x e) (hle : G₁ ≤ G₂) : G₂.Inc x e := by
   rwa [← hle.2.2 _ _ hinc.edge_mem]
 
@@ -116,6 +125,12 @@ theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h :
     apply Set.Finite.subset h.edge_fin
     exact edge_subset_of_le hle
 
+lemma vx_ncard_le_of_le [hfin : Finite G₂] (hle : G₁ ≤ G₂) : G₁.V.ncard ≤ G₂.V.ncard :=
+  Set.ncard_le_ncard (vx_subset_of_le hle) hfin.vx_fin
+
+lemma edge_ncard_le_of_le [hfin : Finite G₂] (hle : G₁ ≤ G₂) : G₁.E.ncard ≤ G₂.E.ncard :=
+  Set.ncard_le_ncard (edge_subset_of_le hle) hfin.edge_fin
+
 /-- Induced subgraph -/
 def induce (G : Graph α β) (U : Set α) : Graph α β := by
   apply ofGraphIsBetween ⟨U, G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U},
@@ -169,6 +184,9 @@ lemma induce_V {U} : (G[U]).V = U := rfl
 
 @[simp]
 lemma induce_E : (G[U]).E = G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ U} := rfl
+
+lemma induce_E_le (U : Set α) : (G[U]).E ⊆ G.E := by
+  simp [induce_E]
 
 @[simp]
 lemma induce_isBetween_iff : (G[U]).IsBetween e x y ↔ G.IsBetween e x y ∧ x ∈ U ∧ y ∈ U :=
@@ -364,12 +382,17 @@ lemma Connected.induce_of_mem {U : Set α} (h : G.Connected u v) (hU : ∀ x, G.
 
 /-- A subgraph of a finite graph is also finite. -/
 instance finite_of_finite_induce [h : Finite G] (hU : Set.Finite U) : Finite (G[U]) := by
-  constructor
-  · -- Prove the vertex set is finite
-    exact hU
-  · -- Prove the edge set is finite
-    apply Set.Finite.subset h.edge_fin
-    simp only [induce_E, inter_subset_left]
+  refine ⟨hU, ?_⟩
+  apply Set.Finite.subset h.edge_fin
+  simp only [induce_E, inter_subset_left]
+
+@[simp]
+lemma vx_ncard_le_of_induce [hfin : Finite G] (hU : U ⊆ G.V) : (G[U]).V.ncard ≤ G.V.ncard :=
+  Set.ncard_le_ncard hU hfin.vx_fin
+
+@[simp]
+lemma edge_ncard_le_of_induce [hfin : Finite G] : (G[U]).E.ncard ≤ G.E.ncard :=
+  Set.ncard_le_ncard (G.induce_E_le U) hfin.edge_fin
 
 /-- Restrict a graph to a set of edges -/
 def restrict (G : Graph α β) (R : Set β) : Graph α β where
@@ -514,6 +537,8 @@ lemma restrict_univ_eq_self : G{Set.univ} = G := by
 lemma restrict_E_eq_self : G{G.E} = G := by
   rw [restrict_eq_self_iff]
 
+lemma restrict_E_subset_singleton (e : β) : G{{e}}.E ⊆ {e} := by simp
+
 @[simp]
 lemma restrict_mono (G : Graph α β) (R S : Set β) (h : R ⊆ S) : G{R} ≤ G{S} := by
   refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, subset_refl, inter_subset_left, mem_inter_iff,
@@ -547,9 +572,15 @@ instance finite_of_finite_restrict {R : Set β} [h : Finite G] : Finite (G{R}) :
     apply Set.Finite.subset h.edge_fin
     simp only [restrict_E, inter_subset_left]
 
+@[simp]
+lemma vx_ncard_le_of_restrict [hfin : Finite G] : (G{R}).V.ncard ≤ G.V.ncard :=
+  Set.ncard_le_ncard (vx_subset_of_le (restrict_le G R)) hfin.vx_fin
 
 @[simp]
-lemma induce_induce_eq_induce_restrict (U V : Set α) : G[U][V] = G{G[U].E}[V] := by
+lemma edge_ncard_le_of_restrict [hfin : Finite G] : (G{R}).E.ncard ≤ G.E.ncard :=
+  Set.ncard_le_ncard (edge_subset_of_le (restrict_le G R)) hfin.edge_fin
+
+lemma induce_induce_eq_induce_restrict' (U V : Set α) : G[U][V] = G{G[U].E}[V] := by
   ext1
   · simp only [induce_V, induce_E, restrict_V]
   · ext e
@@ -559,6 +590,13 @@ lemma induce_induce_eq_induce_restrict (U V : Set α) : G[U][V] = G{G[U].E}[V] :
     simp +contextual only [induce_inc_iff, and_imp, induce_E, restrict_inc, mem_inter_iff,
       mem_setOf_eq, iff_def, implies_true, and_self, and_true, true_and, forall_const, imp_self]
     exact fun a a_1 a_2 ↦ a.edge_mem
+
+@[simp]
+lemma induce_induce_eq_induce_restrict (U V : Set α) : G[U][V] = G{{e | ∀ (x : α), G.Inc x e → x ∈ U}}[V] := by
+  rw [induce_induce_eq_induce_restrict' U V, induce_E]
+  congr 1
+  rw [restrict_eq_restrict_iff]
+  simp
 
 /-- G{R}[U] is the prefered notation for explicit subgraph over G[U]{R} -/
 lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) :
@@ -576,6 +614,20 @@ lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) :
 @[simp]
 theorem induce_restrict_eq_subgraph (U : Set α) (R : Set β) :
     G[U]{R} = G{R}[U] := G.induce_restrict_eq_restrict_induce U R
+
+lemma subgraph_eq_induce (h : {e | ∀ (x : α), G.Inc x e → x ∈ U} ⊆ R) : G{R}[U] = G[U] := by
+  ext1
+  · rfl
+  . simp only [induce_E, restrict_E, restrict_inc, and_imp]
+    rw [inter_assoc]
+    congr 1
+    ext e
+    simp +contextual only [mem_inter_iff, mem_setOf_eq, iff_def, implies_true, and_true, true_and]
+    apply h
+  · simp +contextual only [induce_inc_iff, restrict_inc, and_imp, iff_def, implies_true, and_self,
+    true_and, and_true]
+    rintro hinc
+    apply h
 
 lemma subgraph_le (G : Graph α β) (R : Set β) {U : Set α} (hU : U ⊆ G.V) : G{R}[U] ≤ G :=
   (Graph.induce_le _ (by exact hU : U ⊆ G{R}.V)).trans (G.restrict_le R)

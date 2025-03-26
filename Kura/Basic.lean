@@ -31,8 +31,9 @@ class Finite (G : Graph α β) : Prop where
   vx_fin : G.V.Finite
   edge_fin : G.E.Finite
 
-instance instFinite [G.Finite] : G.V.Finite := by
-  exact Finite.vx_fin
+instance instvxFinite [G.Finite] : G.V.Finite := Finite.vx_fin
+
+instance instedgeFinite [G.Finite] : G.E.Finite := Finite.edge_fin
 
 @[simp]
 lemma Inc.vx_mem (h : G.Inc x e) : x ∈ G.V := G.vx_mem_of_inc h
@@ -59,8 +60,6 @@ lemma ext {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V) (hE : G₁.E = G₂.E
   simp only [hV, hE, mk.injEq, true_and]
   ext x e
   exact hInc x e
-
-def Isolated (G : Graph α β) (v : α) := ∀ e, ¬ G.Inc v e
 
 abbrev IsLoop (G : Graph α β) (e : β) := ∃! x, G.Inc x e
 
@@ -156,6 +155,17 @@ lemma IsBetween.eq_or_eq_of_IsBetween (h : G.IsBetween e x y) (h' : G.IsBetween 
     x = u ∧ y = v ∨ x = v ∧ y = u := by
   have := h.sym2_eq h'
   simpa using this
+
+lemma IsBetween.eq_of_IsBetween (h : G.IsBetween e x y) (h' : G.IsBetween e x u) : y = u := by
+  obtain ⟨_h, rfl⟩ | ⟨rfl , rfl⟩ := h.eq_or_eq_of_IsBetween h' <;> rfl
+
+@[simp]
+lemma IsBetween.IsBetween_iff_eq_left (h : G.IsBetween e x y) : G.IsBetween e u y ↔ u = x :=
+  ⟨fun h' => (h.symm.eq_of_IsBetween h'.symm).symm, fun h' => h' ▸ h⟩
+
+@[simp]
+lemma IsBetween.IsBetween_iff_eq_right (h : G.IsBetween e x y) : G.IsBetween e x u ↔ y = u :=
+  ⟨fun h' => h.eq_of_IsBetween h', fun h' => h' ▸ h⟩
 
 lemma IsBetween_iff : G.IsBetween e x y ↔ G.Inc x e ∧ G.Inc y e ∧ (x = y → G.IsLoop e) := by
   constructor
@@ -284,10 +294,6 @@ lemma not_adj_of_not_mem_right (h : y ∉ G.V) : ¬G.Adj x y := by
   rw [Adj.comm]
   exact not_adj_of_not_mem_left h
 
-lemma not_adj_of_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) : ¬ G.Adj u v := by
-  rintro ⟨e, hinc, hif⟩
-  exact hnoinc e hinc
-
 def edgeNhd (G : Graph α β) (v : α) : Set β := {e | G.Inc v e}
 
 def vxNhd (G : Graph α β) (v : α) : Set α := {x | G.Adj v x}
@@ -349,12 +355,9 @@ lemma reflAdj.Adj_of_ne (h : G.reflAdj x y) (hne : x ≠ y) : G.Adj x y := by
   · use e
   · contradiction
 
-lemma reflAdj_iff_eq_and_mem_of_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) : G.reflAdj u v ↔ u = v ∧ u ∈ G.V := by
-  simp only [reflAdj, not_adj_of_no_inc_edge hnoinc, false_or]
-
-lemma eq_no_inc_edge_of_reflAdj_of (hnoinc : ∀ e, ¬ G.Inc u e) (h : G.reflAdj u v) : u = v := by
-  rw [reflAdj_iff_eq_and_mem_of_no_inc_edge hnoinc] at h
-  exact h.1
+@[simp]
+lemma reflAdj.Adj_iff_ne (hne : x ≠ y) : G.reflAdj x y ↔ G.Adj x y :=
+  ⟨fun h => h.Adj_of_ne hne, fun h => h.reflAdj⟩
 
 
 def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
@@ -419,71 +422,6 @@ lemma Connected.refl_iff {G : Graph α β} {x : α} : G.Connected x x ↔ x ∈ 
   rintro h
   exact h.mem_left
 
-lemma not_inc_of_E_empty (hE : G.E = ∅) : ∀ e, ¬ G.Inc v e := by
-  intro e hinc
-  exact (hE ▸ hinc.edge_mem : e ∈ ∅)
-
-lemma eq_of_no_inc_edge_of_connected (hnoinc : ∀ e, ¬ G.Inc u e) (h : G.Connected u v) : u = v := by
-  induction h with
-  | single hradj => exact eq_no_inc_edge_of_reflAdj_of hnoinc hradj
-  | tail w hconn ih =>
-    subst ih
-    exact eq_no_inc_edge_of_reflAdj_of hnoinc hconn
-
-lemma connected_iff_eq_and_mem_no_inc_edge (hnoinc : ∀ e, ¬ G.Inc u e) :
-    G.Connected u v ↔ u = v ∧ u ∈ G.V := by
-  refine ⟨?_, ?_⟩
-  · intro h
-    refine ⟨eq_of_no_inc_edge_of_connected hnoinc h, h.mem_left⟩
-  · rintro ⟨rfl, h⟩
-    exact connected_self h
-
-lemma connected_iff_eq_and_mem_no_inc_edge' (hnoinc : ∀ e ∈ G.E, ¬ G.Inc u e) :
-    G.Connected u v ↔ u = v ∧ u ∈ G.V := by
-  refine ⟨?_, ?_⟩
-  · intro h
-    refine ⟨eq_of_no_inc_edge_of_connected ?_ h, h.mem_left⟩
-    rintro e he
-    exact hnoinc e he.edge_mem he
-  · rintro ⟨rfl, h⟩
-    exact connected_self h
-
-lemma connected_iff_reflAdj_of_E_singleton (h : G.E = {e}) :
-    G.Connected u v ↔ G.reflAdj u v := by
-  constructor
-  · rintro hconn
-    induction hconn with
-    | single hradj => exact hradj
-    | tail hconn hradj ih =>
-      rename_i x y
-      by_cases hxy : x = y
-      · subst y
-        exact ih
-      · simp only [reflAdj, hxy, false_and, or_false] at hradj
-        obtain ⟨e, hxinc, hyinc, _hloop⟩ := hradj
-        by_cases hueqy : u = y
-        · subst u
-          exact Inc.reflAdj_of_inc hyinc hyinc
-        · simp only [reflAdj, hueqy, false_and, or_false]
-          rw [Adj.comm]
-          use e, hyinc
-          · by_cases hux : u = x
-            · subst u
-              exact hxinc
-            · simp only [reflAdj, hux, false_and, or_false] at ih
-              obtain ⟨e', huince', hxince', _hloop'⟩ := ih
-              have := h ▸ huince'.edge_mem
-              simp only [mem_singleton_iff] at this
-              subst this
-              have := h ▸ hxinc.edge_mem
-              simp only [mem_singleton_iff] at this
-              subst this
-              exact huince'
-          · rintro huy
-            exact False.elim (hueqy huy.symm)
-  · rintro hradj
-    exact hradj.connected
-
 class Conn (G : Graph α β) : Prop where
   all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
 
@@ -537,3 +475,122 @@ lemma mem_of_mem_toSym2 {G : Graph α β} {e : β} {y : α} (he : e ∈ G.E) (h 
   apply G.vx_mem_of_inc
   rw [← exists_mem_toSym2_iff_inc]
   use he
+
+
+section edge_empty
+
+lemma not_isBetween_of_E_empty (h : G.E = ∅) : ¬ G.IsBetween e x y := by
+  contrapose! h
+  use e, h.edge_mem
+
+lemma not_adj_of_E_empty (h : G.E = ∅) : ¬ G.Adj x y := by
+  rintro ⟨e, hbtw⟩
+  exact (h ▸ hbtw.edge_mem : _)
+
+@[simp]
+lemma reflAdj_iff_eq_mem_of_E_empty (h : G.E = ∅) : G.reflAdj x y ↔ x = y ∧ x ∈ G.V:= by
+  simp only [reflAdj, not_adj_of_E_empty h, false_or]
+
+lemma connected_iff_reflAdj_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ G.reflAdj x y := by
+  constructor <;> rintro h
+  · induction h with
+    | single hradj => exact hradj
+    | tail hconn hradj ih =>
+      simp only [reflAdj, not_adj_of_E_empty h, false_or] at hradj ih ⊢
+      obtain ⟨rfl, hc⟩ := hradj
+      exact ih
+  · exact reflAdj.connected h
+
+@[simp]
+lemma connected_iff_eq_mem_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ x = y ∧ x ∈ G.V := by
+  rw [← reflAdj_iff_eq_mem_of_E_empty h, connected_iff_reflAdj_of_E_empty h]
+
+end edge_empty
+section edge_subsingleton
+
+@[simp]
+lemma Adj.iff_IsBetween_of_E_singleton (h : G.E = {e}) : G.Adj x y ↔ G.IsBetween e x y := by
+  constructor
+  · rintro ⟨e, hbtw⟩
+    exact (h ▸ hbtw.edge_mem) ▸ hbtw
+  · exact fun h => ⟨e, h⟩
+
+@[simp]
+lemma Adj.iff_IsBetween_of_E_subsingleton (h : G.E ⊆ {e}) : G.Adj x y ↔ G.IsBetween e x y := by
+  constructor
+  · rintro ⟨e, hbtw⟩
+    exact (h hbtw.edge_mem) ▸ hbtw
+  · exact fun h => ⟨e, h⟩
+
+@[simp]
+lemma connected_iff_reflAdj_of_E_singleton (h : G.E = {e}) :
+    G.Connected u v ↔ G.reflAdj u v := by
+  refine ⟨fun hconn => ?_, (·.connected)⟩
+  induction hconn with
+  | single hradj => exact hradj
+  | tail hconn hradj ih =>
+    rename_i x y
+    by_cases hxy : x = y
+    · exact hxy ▸ ih
+    · rw [reflAdj.Adj_iff_ne hxy, Adj.iff_IsBetween_of_E_singleton h] at hradj
+      by_cases huy : u = y
+      · exact huy ▸ reflAdj.refl ih.mem_left
+      · by_cases hux : u = x
+        · simp [huy, h, hradj, hux]
+        · absurd huy
+          rwa [reflAdj.Adj_iff_ne hux, Adj.iff_IsBetween_of_E_singleton h, IsBetween.comm,
+            hradj.IsBetween_iff_eq_right, eq_comm] at ih
+
+@[simp]
+lemma connected_iff_reflAdj_of_E_subsingleton (h : G.E ⊆ {e}) :
+    G.Connected u v ↔ G.reflAdj u v := by
+  rw [subset_singleton_iff_eq] at h
+  obtain hE | hE := h
+  · exact connected_iff_reflAdj_of_E_empty hE
+  · exact connected_iff_reflAdj_of_E_singleton hE
+
+end edge_subsingleton
+
+
+section Isolated
+
+def Isolated (G : Graph α β) (v : α) := ∀ e, ¬ G.Inc v e
+
+namespace Isolated
+
+lemma not_adj_left (hisol : G.Isolated u) : ¬ G.Adj u v := by
+  rintro ⟨e, hinc, hif⟩
+  exact hisol e hinc
+
+lemma not_adj_right (hisol : G.Isolated u) : ¬ G.Adj v u := by
+  rw [Adj.comm]
+  exact hisol.not_adj_left
+
+lemma not_isBetween_left (hisol : G.Isolated u) : ¬ G.IsBetween e u v :=
+  (hisol e ·.inc_left)
+
+lemma not_isBetween_right (hisol : G.Isolated u) : ¬ G.IsBetween e v u :=
+  (hisol e ·.inc_right)
+
+lemma not_inc_of_E_empty (hE : G.E = ∅) : G.Isolated u := by
+  intro e hinc
+  exact (hE ▸ hinc.edge_mem : e ∈ ∅)
+
+@[simp]
+lemma reflAdj_iff (hisol : G.Isolated u) : G.reflAdj u v ↔ u = v ∧ u ∈ G.V := by
+  simp only [reflAdj, not_adj_left hisol, false_or]
+
+@[simp]
+lemma connected_iff (hisol : G.Isolated u) : G.Connected u v ↔ u = v ∧ u ∈ G.V := by
+  refine ⟨?_, ?_⟩
+  · intro h
+    induction h with
+    | single hradj => rwa [reflAdj_iff hisol] at hradj
+    | tail w hconn ih =>
+      obtain ⟨rfl, hu⟩ := ih
+      rwa [reflAdj_iff hisol] at hconn
+  · rintro ⟨rfl, h⟩
+    exact connected_self h
+
+
+end Isolated

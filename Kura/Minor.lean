@@ -288,51 +288,99 @@ end Contract
 
 --     Given a vertex `x` incident to edge `e`, this creates a contraction system
 --     that contracts edge `e` and maps all vertices incident to `e` to `x`. -/
--- def Inc.contractSys (hxe : G.Inc x e) [DecidablePred (G.Inc · e)] : ContractSys α β α where
---   toFun y := if G.Inc y e then x else y
---   contractSet := {e}
+-- def Inc.contractFun (_hxe : G.Inc x e) [DecidablePred (G.Inc · e)] : α → α :=
+--   fun y ↦ if G.Inc y e then x else y
 
-def Inc.contractFun (_hxe : G.Inc x e) [DecidablePred (G.Inc · e)] : α → α :=
-  fun y ↦ if G.Inc y e then x else y
+-- lemma Inc.contractFun_validOn (hxe : G.Inc x e) [DecidablePred (G.Inc · e)] :
+--     Contract.ValidOn G (Inc.contractFun hxe) {e} := by
+--   rintro a b ha hb
+--   simp only [contractFun]
+--   split_ifs with hainc hbinc hbinc
+--   · simp only [true_iff]
+--     refine reflAdj.connected ?_
+--     refine Inc.reflAdj_of_inc ⟨hainc, rfl⟩ ⟨hbinc, rfl⟩
+--   · apply iff_of_false
+--     · rintro rfl
+--       exact hbinc hxe
+--     · have hab : a ≠ b := by
+--         rintro rfl
+--         exact hbinc hainc
+--       rw [Connected.comm, connected_iff_eq_and_mem_no_inc_edge' ?_]
+--       tauto
+--       · rintro e' he'
+--         simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
+--         obtain ⟨he, rfl⟩ := he'
+--         simp [hbinc]
+--   · apply iff_of_false
+--     · rintro rfl
+--       exact hainc hxe
+--     · have hab : a ≠ b := by
+--         rintro rfl
+--         exact hainc hbinc
+--       rw [connected_iff_eq_and_mem_no_inc_edge' ?_]
+--       tauto
+--       · rintro e' he'
+--         simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
+--         obtain ⟨he, rfl⟩ := he'
+--         simp only [restrict_inc, hainc, mem_singleton_iff, and_true, not_false_eq_true]
+--   · rw [connected_iff_eq_and_mem_no_inc_edge' ?_]
+--     simp [ha]
+--     · rintro e' he'
+--       simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
+--       obtain ⟨he, rfl⟩ := he'
+--       simpa [restrict_inc]
 
-lemma Inc.contractFun_validOn (hxe : G.Inc x e) [DecidablePred (G.Inc · e)] :
-    Contract.ValidOn G (Inc.contractFun hxe) {e} := by
+def IsBetween.contractFun (_hexy : G.IsBetween e x y) [DecidableEq α] : α → α :=
+  fun u ↦ if u = y then x else u
+
+lemma IsBetween.contractFun_validOn (hexy : G.IsBetween e x y) [DecidableEq α] :
+    Contract.ValidOn G hexy.contractFun {e} := by
   rintro a b ha hb
+  have hsub := G.restrict_E_subset_singleton e
   simp only [contractFun]
   split_ifs with hainc hbinc hbinc
-  · simp only [true_iff]
+  · subst hainc hbinc
+    simp only [true_iff]
     refine reflAdj.connected ?_
-    refine Inc.reflAdj_of_inc ⟨hainc, rfl⟩ ⟨hbinc, rfl⟩
-  · apply iff_of_false
-    · rintro rfl
-      exact hbinc hxe
-    · have hab : a ≠ b := by
-        rintro rfl
-        exact hbinc hainc
-      rw [Connected.comm, connected_iff_eq_and_mem_no_inc_edge' ?_]
-      tauto
-      · rintro e' he'
-        simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
-        obtain ⟨he, rfl⟩ := he'
-        simp [hbinc]
-  · apply iff_of_false
-    · rintro rfl
-      exact hainc hxe
-    · have hab : a ≠ b := by
-        rintro rfl
-        exact hainc hbinc
-      rw [connected_iff_eq_and_mem_no_inc_edge' ?_]
-      tauto
-      · rintro e' he'
-        simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
-        obtain ⟨he, rfl⟩ := he'
-        simp only [restrict_inc, hainc, mem_singleton_iff, and_true, not_false_eq_true]
-  · rw [connected_iff_eq_and_mem_no_inc_edge' ?_]
-    simp [ha]
-    · rintro e' he'
-      simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
-      obtain ⟨he, rfl⟩ := he'
-      simpa [restrict_inc]
+    exact reflAdj.of_vxMem hb
+  · subst hainc
+    rw [connected_iff_reflAdj_of_E_subsingleton hsub, reflAdj.Adj_iff_ne,
+      Adj.iff_IsBetween_of_E_subsingleton hsub,
+      IsBetween_iff_IsBetween_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
+      hexy.symm.IsBetween_iff_eq_right]
+    exact fun a_1 ↦ hbinc a_1.symm
+  · subst hbinc
+    rw [connected_iff_reflAdj_of_E_subsingleton hsub, reflAdj.Adj_iff_ne,
+      Adj.iff_IsBetween_of_E_subsingleton hsub,
+      IsBetween_iff_IsBetween_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
+      hexy.IsBetween_iff_eq_left]
+    exact fun a_1 ↦ hainc a_1
+  · rw [connected_iff_reflAdj_of_E_subsingleton hsub]
+    have hnadj : ¬ G{{e}}.Adj a b := by
+      rintro ⟨e', hbtw⟩
+      simp only [restrict_isBetween, mem_singleton_iff] at hbtw
+      obtain ⟨hbtw, rfl⟩ := hbtw
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_or_eq_of_IsBetween hbtw
+      · exact hbinc rfl
+      · exact hainc rfl
+    simp [hnadj, ha]
+
+lemma IsBetween.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.IsBetween e x y)
+    (h : ¬ G.Inc u e) : hexy.contractFun u = u := by
+  simp only [contractFun, ite_eq_right_iff]
+  rintro rfl
+  exact (h hexy.inc_right).elim
+
+lemma IsBetween.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsBetween e x y) :
+    u ∈ (G /[hexy.contractFun] {e}).V ↔ u ∈ G.V \ {y} ∪ {x} := by
+  simp +contextual only [Contract.V, IsBetween.contractFun, mem_image, union_singleton,
+    mem_insert_iff, mem_diff, mem_singleton_iff, iff_def, forall_exists_index, and_imp]
+  constructor
+  · rintro v hv rfl
+    split_ifs with h <;> simp [h, hv]
+  · rintro (rfl | ⟨h, hnin⟩)
+    · use y, hexy.vx_mem_right, (by simp)
+    . use u, h, (by simp [hnin])
 
 namespace Contract
 variable {φ : α → α'} {τ : α' → α''} {C D : Set β}
