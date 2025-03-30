@@ -371,6 +371,12 @@ lemma IsBetween.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.IsBetw
   rintro rfl
   exact (h hexy.inc_right).elim
 
+@[simp]
+lemma IsBetween.contractFun_eq_self_iff [DecidableEq α] (hexy : G.IsBetween e x y) (hxy : x ≠ y) :
+    hexy.contractFun u = u ↔ u ≠ y := by
+  simp +contextual [IsBetween.contractFun, hxy]
+
+@[simp]
 lemma IsBetween.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsBetween e x y) :
     u ∈ (G /[hexy.contractFun] {e}).V ↔ u ∈ G.V \ {y} ∪ {x} := by
   simp +contextual only [Contract.V, IsBetween.contractFun, mem_image, union_singleton,

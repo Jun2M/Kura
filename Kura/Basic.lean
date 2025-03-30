@@ -187,6 +187,18 @@ lemma IsLoop_iff_IsBetween : G.IsLoop e ↔ ∃ x, G.IsBetween e x x := by
     rw [forall_inc_iff h]
     tauto
 
+@[simp]
+lemma IsBetween.IsLoop_iff_eq (hbtw : G.IsBetween e x y) :
+    G.IsLoop e ↔ x = y := by
+  constructor
+  · rintro hloop
+    rw [IsLoop_iff_IsBetween] at hloop
+    obtain ⟨v, hvv⟩ := hloop
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hvv.eq_or_eq_of_IsBetween hbtw <;> rfl
+  · rintro rfl
+    exact hbtw.isLoop_of_eq rfl
+
+
 lemma exist_IsBetween_of_mem (he : e ∈ G.E) : ∃ x y, G.IsBetween e x y := by
   by_cases h : G.IsLoop e
   · have h' := h
@@ -294,6 +306,10 @@ lemma not_adj_of_not_mem_right (h : y ∉ G.V) : ¬G.Adj x y := by
   rw [Adj.comm]
   exact not_adj_of_not_mem_left h
 
+@[simp]
+lemma IsBetween.Adj (h : G.IsBetween e x y) : G.Adj x y := by
+  use e
+
 def edgeNhd (G : Graph α β) (v : α) : Set β := {e | G.Inc v e}
 
 def vxNhd (G : Graph α β) (v : α) : Set α := {x | G.Adj v x}
@@ -342,13 +358,14 @@ lemma reflAdj.mem_right (h : G.reflAdj x y) : y ∈ G.V := by
   exact h.mem_left
 
 @[simp]
+lemma IsBetween.reflAdj (h : G.IsBetween e x y) : G.reflAdj x y := by
+  left
+  use e
+
+@[simp]
 lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
-  obtain ⟨e, hincx, hincy, hloop⟩ := h
-  by_cases hxy : x = y
-  · subst y
-    exact Inc.reflAdj_of_inc hincx hincx
-  · left
-    use e, hincx, hincy
+  left
+  exact h
 
 lemma reflAdj.Adj_of_ne (h : G.reflAdj x y) (hne : x ≠ y) : G.Adj x y := by
   obtain ⟨e, h⟩ | ⟨rfl, hx⟩ := h
@@ -359,8 +376,11 @@ lemma reflAdj.Adj_of_ne (h : G.reflAdj x y) (hne : x ≠ y) : G.Adj x y := by
 lemma reflAdj.Adj_iff_ne (hne : x ≠ y) : G.reflAdj x y ↔ G.Adj x y :=
   ⟨fun h => h.Adj_of_ne hne, fun h => h.reflAdj⟩
 
-
 def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
+
+@[simp]
+lemma IsBetween.connected (h : G.IsBetween e x y) : G.Connected x y :=
+  Relation.TransGen.single h.reflAdj
 
 @[simp]
 lemma Adj.connected (h : G.Adj x y) : G.Connected x y := Relation.TransGen.single h.reflAdj

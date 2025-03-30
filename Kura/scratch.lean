@@ -16,6 +16,7 @@ lemma finsum_mem_const {α M : Type*} (s : Set α) [AddCommMonoid M] (c : M) :
   rw [finsum_mem_eq_zero_of_infinite, h.ncard, zero_smul]
   simpa [Function.support_const hne]
 
+
 /-- A graph where incidence is described by a map from `β` to `α →₀ ℕ`.
 `incFun e` is the column of the incidence matrix at `e`, where loops give value `2`. -/
 @[ext] structure Graph (α β : Type*) where
@@ -25,6 +26,9 @@ lemma finsum_mem_const {α M : Type*} (s : Set α) [AddCommMonoid M] (c : M) :
   sum_eq : ∀ ⦃e⦄, e ∈ E → (incFun e).sum (fun _ x ↦ x) = 2
   vertex_support : ∀ ⦃e v⦄, incFun e v ≠ 0 → v ∈ V
   edge_support : ∀ ⦃e v⦄, incFun e v ≠ 0 → e ∈ E
+
+namespace Graph
+variable {α β : Type*}
 
 /-- The degree of a vertex as a term in `ℕ∞`. -/
 noncomputable def eDegree (G : Graph α β) (v : α) : ℕ∞ := ∑' e, (G.incFun e v : ℕ∞)

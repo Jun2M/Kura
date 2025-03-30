@@ -408,6 +408,8 @@ def restrict (G : Graph α β) (R : Set β) : Graph α β where
 
 notation G "{" S "}" => Graph.restrict G S
 
+notation:10 G "-ᴳ" e => Graph.restrict G (Graph.E G \ {e})
+
 @[simp]
 abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
@@ -580,6 +582,39 @@ lemma vx_ncard_le_of_restrict [hfin : Finite G] : (G{R}).V.ncard ≤ G.V.ncard :
 lemma edge_ncard_le_of_restrict [hfin : Finite G] : (G{R}).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le (restrict_le G R)) hfin.edge_fin
 
+@[simp]
+lemma EdgeDel_singleton_isBetween_iff_isBetween_of_ne {e' : β} (hne : e ≠ e') :
+    (G -ᴳ e).IsBetween e' u v ↔ G.IsBetween e' u v := by
+  refine ⟨fun h ↦ h.le (restrict_le G _), fun h ↦ by
+    simp [restrict_isBetween, h, hne.symm, h.edge_mem]⟩
+
+lemma IsLoop.reflAdj_iff_edgeDel_singleton (he : G.IsLoop e) :
+    (G -ᴳ e).reflAdj u v ↔ G.reflAdj u v := by
+  constructor <;> rintro h
+  · exact h.le (restrict_le G _)
+  · obtain ⟨e', hbtw⟩ | ⟨rfl, hu⟩ := h
+    · by_cases h' : e = e'
+      · subst e'
+        rw [hbtw.IsLoop_iff_eq] at he
+        subst v
+        exact reflAdj.refl hbtw.vx_mem_left
+      · apply Adj.reflAdj
+        use e'
+        rwa [EdgeDel_singleton_isBetween_iff_isBetween_of_ne h']
+    · exact reflAdj.of_vxMem hu
+
+lemma IsLoop.connected_iff_edgeDel_singleton (he : G.IsLoop e) :
+    (G -ᴳ e).Connected u v ↔ G.Connected u v:= by
+  constructor <;> rintro h
+  · exact h.le (restrict_le G _)
+  · induction h with
+    | single hradj =>
+      apply reflAdj.connected
+      rwa [reflAdj_iff_edgeDel_singleton he]
+    | tail hconn hradj ih =>
+      apply ih.tail
+      rwa [reflAdj_iff_edgeDel_singleton he]
+
 lemma induce_induce_eq_induce_restrict' (U V : Set α) : G[U][V] = G{G[U].E}[V] := by
   ext1
   · simp only [induce_V, induce_E, restrict_V]
@@ -662,10 +697,27 @@ structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
   not_mem_right : v ∉ S
   not_connected : ¬ (G [G.V \ S]).Connected u v
 
-
-
 lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u u S :=
   fun ⟨S, hS⟩ ↦ hS.not_connected <| Connected.refl <| by simp [hu, hS.not_mem_left]
+
+lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) :
+    G.IsVxSeparator u v S ↔ (G -ᴳ e).IsVxSeparator u v S := by
+  refine ⟨fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩, fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩⟩
+  · by_cases he' : e ∈ G[G.V \ S].E
+    · rw [restrict_V, ← induce_restrict_eq_subgraph]
+      rw [← IsLoop.connected_iff_edgeDel_singleton (e := e)] at hconn
+      convert hconn using 2
+      rw [restrict_eq_restrict_iff]
+      ext e
+      simp +contextual only [induce_E, mem_diff, mem_inter_iff, mem_setOf_eq, mem_singleton_iff,
+        and_self_left, and_congr_right_iff, true_and, implies_true]
+      rwa [IsLoop_iff_IsLoop_of_edge_mem_le (induce_le G diff_subset) he']
+    · rwa [restrict_V, subgraph_eq_induce]
+      rintro e'
+      simp +contextual only [mem_diff, mem_setOf_eq, mem_singleton_iff]
+      rintro hx
+      sorry
+  · sorry
 
 def IsVxConnected (G : Graph α β) (n : ℕ) : Prop :=
   ∀ S : Finset α, S.card < n → (G[G.V \ S]).Conn
