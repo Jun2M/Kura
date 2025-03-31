@@ -372,9 +372,94 @@ lemma ValidOn.mem_of_mem_edge {w : Walk α β} (h : w.ValidOn G) (hmem : e ∈ w
     · exact hbtw.edge_mem
     · exact hVd.mem_of_mem_edge h
 
-
-
 end Walk
+
+lemma ValidOn.restrict (S : Set β) (w : Walk α β) (hVd : w.ValidOn G) (hS : ∀ e ∈ w.edge, e ∈ S) :
+    w.ValidOn (G{S}) := by
+  induction w with
+  | nil x => exact hVd
+  | cons x e w ih =>
+    obtain ⟨hbtw, hVd⟩ := hVd
+    specialize ih hVd ?_
+    · rintro e' he'
+      refine hS e' ?_
+      simp [he']
+    have he : e ∈ S := by
+      apply hS
+      simp
+    simp [ih, hbtw, he]
+
+lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β} (hVd : ValidOn G p C)
+    (h : w.ValidOn (G /[p] C)) : ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.start → p y = w.finish →
+    ∃ w' : Walk α β, w'.ValidOn G ∧ w'.start = x ∧ w'.finish = y ∧
+    {e | e ∈ w'.edge} ⊆ {e | e ∈ w.edge ∨ e ∈ C} := by
+  induction w with
+  | nil u =>
+    rintro x hx y hy hpx hpy
+    simp only [nil_start, nil_finish] at hpx hpy
+    subst u
+    rw [hVd hy hx] at hpy
+    obtain ⟨w, hwVd, rfl, rfl⟩ := hpy.symm.exist_walk
+    use w, ?_, rfl, rfl
+    · simp only [nil_edge, not_mem_nil, false_or, setOf_mem_eq]
+      rintro e he
+      have := hwVd.mem_of_mem_edge he
+      exact Set.mem_of_mem_inter_right this
+    · exact hwVd.le (restrict_le _ _)
+  | cons u e W ih =>
+    rintro x hx y hy hpx hpy
+    have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) := by
+      apply ValidOn.restrict _ _ h ?_
+      simp
+    simp only [cons_start, cons_finish] at hpx hpy
+    simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_isBetween, IsBetween, mem_setOf_eq,
+      true_or, and_true] at hw
+    simp only [cons_validOn_iff, IsBetween] at h
+    obtain ⟨⟨z, rfl, a, ha, hbtw, he⟩, hVdW⟩ := hw
+    obtain ⟨_B, hVdWp⟩ := h
+    rw [hVd hx hbtw.vx_mem_left] at hpx
+    obtain ⟨w, hVdw, rfl, rfl, hsu⟩ := ih hVdWp a hbtw.vx_mem_right y hy ha hpy
+    obtain ⟨w', hw'Vd, rfl, rfl⟩ := hpx.exist_walk
+    use w'.append (Walk.cons w'.finish e w), ?_, by simp, by simp
+    · simp +contextual only [append_edge, cons_edge, mem_append, mem_cons, setOf_subset_setOf]
+      rintro f (hfw' | rfl | hfw)
+      · right
+        have := hw'Vd.mem_of_mem_edge hfw'
+        exact Set.mem_of_mem_inter_right this
+      · tauto
+      · obtain (h1 | h2) := hsu hfw <;> tauto
+    · refine ValidOn.append (by simp) (hw'Vd.le (restrict_le _ _)) ?_
+      simp [hVdw, hbtw]
+
+lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} {C : Set β}
+    (hVd : ValidOn G p C) (h : w.ValidOn G) : ∃ w' : Walk α' β, w'.ValidOn (G /[p] C) ∧
+    w'.start = p w.start ∧ w'.finish = p w.finish ∧ {e | e ∈ w'.edge} ⊆ {e | e ∈ w.edge} := by
+  induction w with
+  | nil u =>
+    use nil (p u), ?_, rfl, rfl, by simp
+    use u, h
+  | cons u e W ih =>
+    obtain ⟨hbtw, hVdW⟩ := h
+    obtain ⟨w', hw'Vd, hst, hfin, hsub⟩ := ih hVdW
+    by_cases he : e ∈ C
+    · have : p u = w'.start := by
+        rw [hst, hVd hbtw.vx_mem_left hbtw.vx_mem_right]
+        apply IsBetween.connected
+        rw [restrict_isBetween]
+        exact ⟨hbtw, he⟩
+      use w', hw'Vd, this.symm, hfin
+      simp only [cons_edge, mem_cons, setOf_subset_setOf]
+      exact fun a a_1 ↦ Or.symm (Or.intro_left (a = e) (hsub a_1))
+    · use (Walk.cons (p u) e w'), ?_, by simp, by simp [hfin]
+      · simp only [cons_edge, mem_cons, setOf_subset_setOf, forall_eq_or_imp, true_or, true_and]
+        rintro f hfw'
+        right
+        exact hsub hfw'
+      · simp only [hw'Vd, cons_validOn_iff, IsBetween, and_true]
+        use u, rfl, W.start, hst.symm, hbtw
+
+
+
 
 /-- A path is a walk with no duplicate vertices -/
 def Path (α β : Type*) [DecidableEq α] := {w : Walk α β // w.vx.Nodup}
@@ -561,53 +646,79 @@ theorem Menger {α β : Type*} [DecidableEq α] (G : Graph α β) [G.Finite] (u 
         · simpa using hx
         · simpa using hx'
     · -- Deleting the edge did decrease k, so contract instead
-      clear! G'
-      have hneuv : (x ≠ u ∧ x ≠ v) ∨ (y ≠ u ∧ y ≠ v) := by
-        by_contra h
-        simp only [ne_eq, not_or, not_and, Decidable.not_not] at h
-        by_cases hx : x = u <;> by_cases hy : y = u
-        · subst x y
-          sorry
-        · have := h.2 hy
-          subst x y
-          sorry
-        · have := h.1 hx
-          subst x y
-          sorry
-        · have := h.1 hx
-          have := h.2 hy
-          subst x y
-
-          sorry
-
-      have hneuvy : y ≠ u ∧ y ≠ v := sorry
-      -- · apply this G u v hu hv hne huv k h hk hadj e he y x hxy.symm hG'le h'
-      --   · rwa [or_comm]
-      --   · tauto
-      obtain ⟨hyu, hyv⟩ := hneuvy
-      clear hneuv
       simp only [not_forall, Classical.not_imp, not_le] at h'
       obtain ⟨S, hSFin, hSsep, hcard⟩ := h'
-      have hxyne : x ≠ y := by sorry
       let G'' := G /[hxy.contractFun] {e}
       have hG''term : (G.E \ {e}).ncard < G.E.ncard :=
         Set.ncard_diff_singleton_lt_of_mem he Finite.edge_fin
-      have hu'' : u ∈ G''.V := by
-        use u, hu
-        rw [hxy.contractFun_eq_self_iff hxyne]
-        exact hyu.symm
-      have hv'' : v ∈ G''.V := by
-        use v, hv
-        rw [hxy.contractFun_eq_self_iff hxyne]
-        exact hyv.symm
-      have := Menger G'' u v hu'' hv'' hne (by sorry) k ?_
+      have := Menger G'' (hxy.contractFun u) (hxy.contractFun v) ?_ ?_ ?_ ?_ k ?_
       obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
-      obtain ⟨pi, hpi, hpix⟩ : ∃ p ∈ Ps, x ∈ p.vx := by
-        by_contra! h
-        sorry
+      sorry
+      · exact Contract.map_mem hxy.contractFun {e} hu
+      · exact Contract.map_mem hxy.contractFun {e} hv
+      · simp only [IsBetween.contractFun, ne_eq]
+        split_ifs with hueq hveq hveq
+        · subst hueq hveq
+          simp only [ne_eq, not_true_eq_false] at hne
+        · subst hueq
+          rintro rfl
+          exact huv ⟨_, hxy.symm⟩
+        · subst hveq
+          rintro rfl
+          exact huv ⟨_, hxy⟩
+        · rintro rfl
+          simp only [ne_eq, not_true_eq_false] at hne
+      · sorry
+      · sorry
 
-      sorry
-      sorry
+
+      -- clear! G'
+      -- have hneuv : (x ≠ u ∧ x ≠ v) ∨ (y ≠ u ∧ y ≠ v) := by
+      --   by_contra h
+      --   simp only [ne_eq, not_or, not_and, Decidable.not_not] at h
+      --   by_cases hx : x = u <;> by_cases hy : y = u
+      --   · subst x y
+      --     sorry
+      --   · have := h.2 hy
+      --     subst x y
+      --     sorry
+      --   · have := h.1 hx
+      --     subst x y
+      --     sorry
+      --   · have := h.1 hx
+      --     have := h.2 hy
+      --     subst x y
+
+      --     sorry
+
+      -- have hneuvy : y ≠ u ∧ y ≠ v := sorry
+      -- -- · apply this G u v hu hv hne huv k h hk hadj e he y x hxy.symm hG'le h'
+      -- --   · rwa [or_comm]
+      -- --   · tauto
+      -- obtain ⟨hyu, hyv⟩ := hneuvy
+      -- clear hneuv
+      -- simp only [not_forall, Classical.not_imp, not_le] at h'
+      -- obtain ⟨S, hSFin, hSsep, hcard⟩ := h'
+      -- have hxyne : x ≠ y := by sorry
+      -- let G'' := G /[hxy.contractFun] {e}
+      -- have hG''term : (G.E \ {e}).ncard < G.E.ncard :=
+      --   Set.ncard_diff_singleton_lt_of_mem he Finite.edge_fin
+      -- have hu'' : u ∈ G''.V := by
+      --   use u, hu
+      --   rw [hxy.contractFun_eq_self_iff hxyne]
+      --   exact hyu.symm
+      -- have hv'' : v ∈ G''.V := by
+      --   use v, hv
+      --   rw [hxy.contractFun_eq_self_iff hxyne]
+      --   exact hyv.symm
+      -- have := Menger G'' u v hu'' hv'' hne (by sorry) k ?_
+      -- obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
+      -- obtain ⟨pi, hpi, hpix⟩ : ∃ p ∈ Ps, x ∈ p.vx := by
+      --   by_contra! h
+      --   sorry
+
+      -- sorry
+      -- sorry
 
 termination_by G.E.ncard + k
 

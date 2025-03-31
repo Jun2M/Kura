@@ -389,13 +389,77 @@ lemma IsBetween.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsBetween e x y) 
     . use u, h, (by simp [hnin])
 
 namespace Contract
-variable {φ : α → α'} {τ : α' → α''} {C D : Set β}
+variable {φ : α → α'} {τ : α' → α''} {C D : Set β} {x y : α'}
 
 instance instFinite [h : G.Finite] : (G /[φ] C).Finite where
   vx_fin := Set.Finite.image φ h.vx_fin
   edge_fin := by
     apply Set.Finite.subset (h.edge_fin)
     exact E_subset
+
+lemma isBetween (φ : α → α') (he : e ∉ C) (hbtw : G.IsBetween e u v) : (G /[φ] C).IsBetween e (φ u) (φ v) := by
+  rw [Contract, restrict_isBetween]
+  exact ⟨hbtw.vxMap_of_isBetween φ, hbtw.edge_mem, he⟩
+
+lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidOn G φ C) : (G /[φ] C).reflAdj (φ u) (φ v) := by
+  obtain ⟨e', hbtw'⟩ | ⟨rfl, huv⟩ := hbtw
+  · by_cases he : e' ∈ C
+    · have : G{C}.Connected u v := by
+        apply IsBetween.connected
+        rw [restrict_isBetween]
+        exact ⟨hbtw', he⟩
+      rw [← hVd hbtw'.vx_mem_left hbtw'.vx_mem_right] at this
+      rw [this]; clear this
+      refine reflAdj.of_vxMem ?_
+      use v, hbtw'.vx_mem_right
+    · exact (isBetween _ he hbtw').reflAdj
+  · exact reflAdj.of_vxMem (by use u)
+
+lemma connected_of_map_reflAdj (hVd : ValidOn G φ C) (hradj : (G /[φ] C).reflAdj (φ u) (φ v))
+    (hu : u ∈ G.V) (hv : v ∈ G.V) : G.Connected u v := by
+  have hle := G.restrict_le C
+  obtain ⟨e, hbtw⟩ | ⟨heq, hmem⟩ := hradj
+  · obtain ⟨he', he, heC⟩ := hbtw.edge_mem; clear he'
+    obtain ⟨a, b, hbtwG⟩ := G.exist_IsBetween_of_mem he
+    have heqeq := (isBetween φ heC hbtwG).eq_or_eq_of_IsBetween hbtw
+    wlog heq : φ a = φ u ∧ φ b = φ v
+    · simp only [heq, false_or] at heqeq
+      rw [and_comm] at heqeq
+      apply this hVd hu hv hle e hbtw he heC b a hbtwG.symm ?_ heqeq
+      left
+      exact heqeq
+    rw [hVd hbtwG.vx_mem_left hu, hVd hbtwG.vx_mem_right hv] at heq
+    exact ((heq.1.symm.le hle).trans (hbtwG.connected)).trans (heq.2.le hle)
+  · rw [hVd hu hv] at heq
+    exact heq.le hle
+
+lemma connnected_of_map_connected (hVd : ValidOn G φ C) (hconn : (G /[φ] C).Connected x y) :
+    ∀ u ∈ G.V, ∀ v ∈ G.V, φ u = x → φ v = y → G.Connected u v := by
+  induction hconn with
+  | single hradj =>
+    rename_i z
+    rintro u hu v hv rfl rfl
+    exact connected_of_map_reflAdj hVd hradj hu hv
+  | tail hconn hradj ih =>
+    obtain ⟨w, hw, rfl⟩ := hradj.mem_left
+    rintro u hu v hv rfl rfl
+    refine (ih u hu w hw rfl rfl).trans ?_
+    exact connected_of_map_reflAdj hVd hradj hw hv
+
+lemma connected (hVd : ValidOn G φ C) (hconn : G.Connected u v) :
+    (G /[φ] C).Connected (φ u) (φ v) := by
+  induction hconn with
+  | single hradj =>
+    exact (reflAdj hradj hVd).connected
+  | tail hconn hradj ih =>
+    exact ih.trans (reflAdj hradj hVd).connected
+
+@[simp]
+lemma connected_iff (hVd : ValidOn G φ C) (hu : u ∈ G.V) (hv : v ∈ G.V) :
+    (G /[φ] C).Connected (φ u) (φ v) ↔ G.Connected u v :=
+  ⟨(connnected_of_map_connected hVd · u hu v hv rfl rfl), connected hVd⟩
+
+
 
 -- lemma comp_symm_of_inter_eq {n m : ContractSys α β α} (hm : m.validOn G) (hn : n.validOn G)
 --     (hinter : G.E ∩ m.contractSet = G.E ∩ n.contractSet) (v : α) :
