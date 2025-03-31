@@ -397,9 +397,23 @@ instance instFinite [h : G.Finite] : (G /[φ] C).Finite where
     apply Set.Finite.subset (h.edge_fin)
     exact E_subset
 
-lemma isBetween (φ : α → α') (he : e ∉ C) (hbtw : G.IsBetween e u v) : (G /[φ] C).IsBetween e (φ u) (φ v) := by
+lemma isBetween (φ : α → α') (he : e ∉ C) (hbtw : G.IsBetween e u v) :
+    (G /[φ] C).IsBetween e (φ u) (φ v) := by
   rw [Contract, restrict_isBetween]
   exact ⟨hbtw.vxMap_of_isBetween φ, hbtw.edge_mem, he⟩
+
+@[simp]
+lemma isBetween_iff (φ : α → α') :
+    (G /[φ] C).IsBetween e x y ↔ ∃ u v, G.IsBetween e u v ∧ φ u = x ∧ φ v = y ∧ e ∉ C := by
+  constructor
+  · rintro hbtwxy
+    obtain ⟨_H1, He, HeC⟩ := hbtwxy.edge_mem
+    obtain ⟨a, b, hbtwab⟩ := G.exist_IsBetween_of_mem He
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (isBetween φ HeC hbtwab).eq_or_eq_of_IsBetween hbtwxy
+    · use a, b, hbtwab, rfl, rfl, HeC
+    · use b, a, hbtwab.symm, rfl, rfl, HeC
+  · rintro ⟨u, v, hbtw, rfl, rfl, he⟩
+    exact isBetween φ he hbtw
 
 lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidOn G φ C) : (G /[φ] C).reflAdj (φ u) (φ v) := by
   obtain ⟨e', hbtw'⟩ | ⟨rfl, huv⟩ := hbtw
@@ -412,7 +426,7 @@ lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidOn G φ C) : (G /[φ] C).reflAd
       rw [this]; clear this
       refine reflAdj.of_vxMem ?_
       use v, hbtw'.vx_mem_right
-    · exact (isBetween _ he hbtw').reflAdj
+    · exact (isBetween φ he hbtw').reflAdj
   · exact reflAdj.of_vxMem (by use u)
 
 lemma connected_of_map_reflAdj (hVd : ValidOn G φ C) (hradj : (G /[φ] C).reflAdj (φ u) (φ v))
