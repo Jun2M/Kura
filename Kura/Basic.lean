@@ -211,6 +211,15 @@ lemma exist_IsBetween_of_mem (he : e ∈ G.E) : ∃ x y, G.IsBetween e x y := by
     rw [IsBetween_iff]
     refine ⟨hxinc, hyinc, fun h ↦ False.elim (hne h)⟩
 
+lemma exist_IsBetween_of_mem_of_distinct {P : α → Prop} (hP1 : ∃ x, G.Inc x e ∧ P x)
+    (hP2 : ∃ x, G.Inc x e ∧ ¬ P x) : ∃ x y, G.IsBetween e x y ∧ P x ∧ ¬ P y := by
+  obtain ⟨x, hxinc, hx⟩ := hP1
+  obtain ⟨y, hyinc, hy⟩ := hP2
+  use x, y, ?_, hx, hy
+  use hxinc
+  rintro rfl
+  exact False.elim (hy hx)
+
 structure GraphIsBetween (α β : Type*) where
   V : Set α
   E : Set β

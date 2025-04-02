@@ -380,6 +380,11 @@ lemma Connected.induce_of_mem {U : Set α} (h : G.Connected u v) (hU : ∀ x, G.
     apply hU
     exact trans hconn hxconn.connected
 
+lemma Isolated.induce_of_not_mem {U : Set α} (hu : u ∉ G.V) : G[U].Isolated u := by
+  intro e hinc
+  simp only [induce_inc_iff] at hinc
+  exact hu hinc.1.vx_mem
+
 /-- A subgraph of a finite graph is also finite. -/
 instance finite_of_finite_induce [h : Finite G] (hU : Set.Finite U) : Finite (G[U]) := by
   refine ⟨hU, ?_⟩
@@ -650,19 +655,18 @@ lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) :
 theorem induce_restrict_eq_subgraph (U : Set α) (R : Set β) :
     G[U]{R} = G{R}[U] := G.induce_restrict_eq_restrict_induce U R
 
-lemma subgraph_eq_induce (h : {e | ∀ (x : α), G.Inc x e → x ∈ U} ⊆ R) : G{R}[U] = G[U] := by
+lemma subgraph_eq_induce (h : {e | e ∈ G.E ∧ ∀ (x : α), G.Inc x e → x ∈ U} ⊆ R) : G{R}[U] = G[U] := by
   ext1
   · rfl
   . simp only [induce_E, restrict_E, restrict_inc, and_imp]
     rw [inter_assoc]
-    congr 1
     ext e
     simp +contextual only [mem_inter_iff, mem_setOf_eq, iff_def, implies_true, and_true, true_and]
     apply h
   · simp +contextual only [induce_inc_iff, restrict_inc, and_imp, iff_def, implies_true, and_self,
     true_and, and_true]
-    rintro hinc
-    apply h
+    rintro hinc hU
+    exact h ⟨hinc.edge_mem, hU⟩
 
 lemma subgraph_le (G : Graph α β) (R : Set β) {U : Set α} (hU : U ⊆ G.V) : G{R}[U] ≤ G :=
   (Graph.induce_le _ (by exact hU : U ⊆ G{R}.V)).trans (G.restrict_le R)
@@ -699,6 +703,10 @@ structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
 
 lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u u S :=
   fun ⟨S, hS⟩ ↦ hS.not_connected <| Connected.refl <| by simp [hu, hS.not_mem_left]
+
+def IsVxSetSeparator (G : Graph α β) (V S T: Set α) : Prop :=
+  ∀ s ∈ S, ∀ t ∈ T, ¬ (G[G.V \ V]).Connected s t
+
 
 lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) :
     G.IsVxSeparator u v S ↔ (G -ᴳ e).IsVxSeparator u v S := by
