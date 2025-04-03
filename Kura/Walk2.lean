@@ -300,7 +300,7 @@ lemma append_finish :
   | nil x => simp only [append]
   | cons x e w ih => simp only [append, cons_finish, ih]
 
-lemma ValidOn.append' (h : w₁.finish = w₂.start) (h₁ : w₁.ValidOn G) (h₂ : w₂.ValidOn G) :
+lemma append_validOn (h : w₁.finish = w₂.start) (h₁ : w₁.ValidOn G) (h₂ : w₂.ValidOn G) :
   (append w₁ w₂).ValidOn G := by
   induction w₁ with
   | nil x => simpa
@@ -418,7 +418,7 @@ lemma Connected.exist_walk (h : G.Connected u v) : ∃ (W : Walk α β), W.Valid
     obtain ⟨W, hW, hstart, hfinish⟩ := ih
     obtain ⟨W', hW', hlength, hstart', hfinish'⟩ := hradj.exist_walk
     subst b c u
-    use W.append W', ValidOn.append' hstart'.symm hW hW'
+    use W.append W', append_validOn hstart'.symm hW hW'
     simp only [hstart', append_start_of_eq, append_finish, and_self]
 
 lemma Walk.connected_of_validOn (h : w.ValidOn G) : G.Connected w.start w.finish := by
@@ -559,8 +559,6 @@ lemma ValidOn.eq_nil_of_mem_isolated {w : Walk α β} {x : α} (hisol : G.Isolat
       rw [nil_start] at hbtw
       exact hisol e hbtw.inc_right
 
-end Walk
-
 lemma ValidOn.induce {U : Set α} (hVd : w.ValidOn G) (hU : ∀ x ∈ w.vx, x ∈ U) :
     w.ValidOn (G[U]) := by
   induction w with
@@ -591,6 +589,7 @@ lemma ValidOn.restrict {S : Set β} (hVd : w.ValidOn G) (hS : ∀ e ∈ w.edge, 
 lemma ValidOn.subgraph {U : Set α} {S : Set β} (hVd : w.ValidOn G) (hU : ∀ x ∈ w.vx, x ∈ U)
     (hS : ∀ e ∈ w.edge, e ∈ S) : w.ValidOn (G{S}[U]) := ValidOn.induce (ValidOn.restrict hVd hS) hU
 
+end Walk
 -- noncomputable def Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
 --     (hVd : ValidOn G p C) (h : w.ValidOn (G /[p] C)) {x y : α} (hx : x ∈ G.V) (hy : y ∈ G.V)
 --     (hpx : p x = w.start) (hpy : p y = w.finish) : Walk α β :=
@@ -700,7 +699,7 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
         exact Set.mem_of_mem_inter_right this
       · tauto
       · obtain (h1 | h2) := hsu hfw <;> tauto
-    · refine ValidOn.append' (by simp) (hw'Vd.le (restrict_le _ _)) ?_
+    · refine append_validOn (by simp) (hw'Vd.le (restrict_le _ _)) ?_
       simp [hVdw, hbtw]
 
 lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} {C : Set β}
@@ -1001,7 +1000,17 @@ lemma dedup_edge_nodup {w : Walk α β} (hVd : w.ValidOn G) : w.dedup.edge.Nodup
 
 variable {P : α → Prop} [DecidablePred P]
 
+@[simp]
 lemma endIf_nil {x : α} (h : ∃ u ∈ nil x, P u) : (nil x : Walk α β).endIf h = nil x := rfl
+
+@[simp]
+lemma endIf_cons {x : α} {e : β} {w : Walk α β} (h : ∃ u ∈ cons x e w, P u) :
+    (cons x e w).endIf h = if hP : P x
+    then nil x
+    else cons x e (endIf w (by simp [hP] at h; exact h)) := by
+  match w with
+  | .nil u => rfl
+  | .cons u e' w' => rfl
 
 lemma endIf_start {w : Walk α β} (h : ∃ u ∈ w.vx, P u) :
     (w.endIf h).start = w.start := by
@@ -1010,6 +1019,18 @@ lemma endIf_start {w : Walk α β} (h : ∃ u ∈ w.vx, P u) :
   | .cons x e w =>
     simp only [endIf, cons_start]
     split_ifs <;> rfl
+
+lemma endIf_finish {w : Walk α β} (h : ∃ u ∈ w.vx, P u) :
+    P (w.endIf h).finish := by
+  match w with
+  | .nil x => simpa only [endIf_nil, nil_finish, nil_vx, mem_cons, not_mem_nil, or_false,
+    exists_eq_left] using h
+  | .cons x e w =>
+    rw [endIf]
+    split_ifs with hPx
+    · simpa only [nil_finish]
+    · simp only [cons_vx, mem_cons, exists_eq_or_imp, hPx, false_or, cons_finish] at h ⊢
+      exact endIf_finish h
 
 lemma endIf_length {w : Walk α β} (h : ∃ u ∈ w.vx, P u) :
     (w.endIf h).length ≤  w.length := by
@@ -1062,6 +1083,63 @@ lemma endIf_vx_sublist {w : Walk α β} (h : ∃ u ∈ w.vx, P u) :
     · simp only [cons_vx, cons_subset, mem_cons, true_or, true_and]
       refine List.Subset.trans ?_ (List.subset_cons_self _ _)
       apply endIf_vx_sublist
+
+lemma endIf_mem_vx {w : Walk α β} (h : ∃ u ∈ w.vx, P u) (hv : v ∈ (w.endIf h).vx):
+    ¬ P v ∨ v = (w.endIf h).finish := by
+  match w with
+  | .nil x =>
+    simp_all only [endIf_nil, mem_iff, nil_vx, mem_cons, not_mem_nil, or_false, nil_finish, or_true]
+  | .cons x e w =>
+    simp only [endIf_cons]
+    split_ifs with hPx
+    · simp only [endIf_cons, hPx, ↓reduceDIte, mem_iff, nil_vx, mem_cons, not_mem_nil,
+      or_false] at hv
+      subst v
+      right
+      rfl
+    · simp_all only [endIf_cons, dite_false, mem_iff, cons_vx, mem_cons, cons_finish]
+      obtain rfl | hvmem := hv
+      · exact Or.inl hPx
+      · simp only [cons_vx, mem_cons, exists_eq_or_imp, hPx, false_or] at h
+        exact endIf_mem_vx h hvmem
+
+lemma endIf_exists_isBetween_last {w : Walk α β} (h : ∃ u ∈ w.vx, P u) (hVd : w.ValidOn G)
+    (hNonempty : (w.endIf h).Nonempty) : ∃ v ∈ (w.endIf h).vx, ¬ P v ∧ ∃ e, G.IsBetween e v (w.endIf h).finish := by
+  match w with
+  | .nil x => simp_all only [endIf_nil, Nonempty.not_nil]
+  | .cons x e (nil y) =>
+    simp_all only [cons_validOn_iff, nil_start, nil_validOn_iff, endIf_cons, endIf_nil, dite_eq_ite]
+    split_ifs with hPx
+    · simp_all only [cons_vx, nil_vx, mem_cons, not_mem_nil, or_false, exists_eq_or_imp,
+      exists_eq_left, true_or, ite_true, Nonempty.not_nil]
+    · simp_all only [cons_vx, nil_vx, mem_cons, not_mem_nil, or_false, exists_eq_or_imp,
+      exists_eq_left, false_or, ite_false, Nonempty.cons_true, cons_finish, nil_finish,
+      not_false_eq_true, true_and, not_true_eq_false, false_and]
+      use e
+      exact hVd.1
+  | .cons x e (cons y e' w) =>
+    unfold endIf
+    split_ifs with hPx
+    · simp_all only [cons_validOn_iff, cons_start, endIf_cons, dite_true, Nonempty.not_nil]
+    · by_cases hPy : P y
+      · simp_all only [cons_validOn_iff, cons_start, endIf_cons, dite_true, dite_eq_ite, ite_false,
+        Nonempty.cons_true, cons_vx, nil_vx, mem_cons, not_mem_nil, or_false, cons_finish,
+        nil_finish, exists_eq_or_imp, not_false_eq_true, true_and, exists_eq_left,
+        not_true_eq_false, false_and]
+        use e
+        exact hVd.1
+      · let w' := cons y e' w
+        rw [cons_finish, cons_vx]
+        have h' : ∃ u ∈ w'.vx, P u := by
+          change ∃ u ∈ (cons x e w').vx, P u at h
+          simpa only [cons_vx, mem_cons, exists_eq_or_imp, hPx, false_or] using h
+        have hNonempty' : (w'.endIf h').Nonempty := by
+          simp only [endIf_cons, hPy, ↓reduceDIte, Nonempty.cons_true, w']
+        obtain ⟨a, ha, hh⟩ := endIf_exists_isBetween_last (w := w') h' hVd.2 hNonempty'
+        refine ⟨a, ?_, hh⟩
+        rw [mem_cons]
+        right
+        exact ha
 
 end Walk
 
@@ -1129,6 +1207,35 @@ lemma of_suffix {p : Path α β} {w1 w2 : Walk α β} (h : p.val = w1.append w2)
     exact sublist_append_right w1.vx.dropLast w2.vx
   exact this.nodup p.prop
 
+def append (p q : Path α β) (hDisj : p.vx.dropLast.Disjoint q.vx) : Path α β :=
+  ⟨p.val.append q.val, by
+    rw [append_vx]
+    refine List.Nodup.append ?_ q.prop hDisj
+    exact p.prop.sublist (List.dropLast_sublist p.vx)⟩
+
+lemma edge_not_isLoop {p : Path α β} (he : e ∈ p.edge) (hVd : p.ValidOn G) : ¬ G.IsLoop e := by
+  intro hloop
+  rw [IsLoop_iff_IsBetween] at hloop
+  obtain ⟨x, hbtw⟩ := hloop
+  obtain ⟨w₁, w₂, hw12, hnin⟩ := eq_append_cons_of_edge_mem he
+  have hbtw' : G.IsBetween e w₁.finish w₂.start := by
+    simp only [ValidOn, hw12] at hVd
+    obtain ⟨hbtw, H2⟩ := hVd.append_right_validOn
+    exact hbtw
+  have hNodup := hw12 ▸ p.prop
+  simp only [append_vx, cons_vx] at hNodup
+  have := List.Nodup.of_append_right hNodup
+  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hbtw.eq_or_eq_of_IsBetween hbtw'
+  · rw [← w₂.vx.head_cons_tail vx_ne_nil, heq, start_eq_vx_head] at this
+    simp only [head_cons_tail, nodup_cons, head_mem, not_true_eq_false, false_and] at this
+  · rw [← w₂.vx.head_cons_tail vx_ne_nil, ← heq, start_eq_vx_head] at this
+    simp only [head_cons_tail, nodup_cons, head_mem, not_true_eq_false, false_and] at this
+
+@[simp]
+lemma IsBetween.path_vx (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
+    (IsBetween.path hbtw hne).vx = [u, v] := by
+  simp only [vx, path, IsBetween.Walk.vx]
+
 end Path
 
 variable [DecidableEq α]
@@ -1169,8 +1276,6 @@ lemma Connected.iff_path : G.Connected u v ↔ ∃ p : Path α β, p.ValidOn G �
 namespace Path
 section disjoint
 
-variable {ι : Type*}
-
 /-- A collection of paths is internally disjoint if no vertex appears in more than one path
   except for the special two vertices u and v. (i.e. the endpoints of the paths. But this is not
   enforced in the definition) -/
@@ -1186,374 +1291,237 @@ structure PathEnsemble (α β : Type*) [DecidableEq α] where
   Paths : Set (Path α β)
   Disj : Disjoint Paths
 
-def PathEnsemble.ValidOn (Ps : PathEnsemble α β) (G : Graph α β) := ∀ p ∈ Ps.Paths, p.ValidOn G
+namespace PathEnsemble
 
-lemma PathEnsemble.unique_path_start {Ps : PathEnsemble α β} (S : Set α) (hS : S.Finite)
-    (hcard : Ps.Paths.ncard = S.ncard) (h : ∀ p ∈ Ps.Paths, p.start ∈ S) :
-    ∀ x ∈ S, ∃! p ∈ Ps.Paths, p.start = x := by
+def ValidOn (Ps : PathEnsemble α β) (G : Graph α β) := ∀ p ∈ Ps.Paths, p.ValidOn G
+
+def StartSet (Ps : PathEnsemble α β) : Set α := Path.start '' Ps.Paths
+
+def FinishSet (Ps : PathEnsemble α β) : Set α := Path.finish '' Ps.Paths
+
+def VxSet (Ps : PathEnsemble α β) : Set α := {x | ∃ p ∈ Ps.Paths, x ∈ p.vx}
+
+def EdgeSet (Ps : PathEnsemble α β) : Set β := {e | ∃ p ∈ Ps.Paths, e ∈ p.edge}
+
+def InternalVsSet (Ps : PathEnsemble α β) : Set α := {x | ∃ p ∈ Ps.Paths, x ∈ p.vx.tail.dropLast}
+
+lemma start_mem_StartSet {Ps : PathEnsemble α β} {p : Path α β} (hp : p ∈ Ps.Paths) :
+    p.start ∈ Ps.StartSet := by
+  use p, hp
+
+lemma finish_mem_FinishSet {Ps : PathEnsemble α β} {p : Path α β} (hp : p ∈ Ps.Paths) :
+    p.finish ∈ Ps.FinishSet := by
+  use p, hp
+
+lemma start_injOn (Ps : PathEnsemble α β) :
+    InjOn Path.start Ps.Paths := by
+  rintro p₁ hp₁ p₂ hp₂ hstart
+  exact Ps.Disj _ _ _ hp₁ hp₂ start_vx_mem (by
+    unfold Path.start at hstart
+    exact hstart ▸ start_vx_mem)
+
+lemma finish_injOn (Ps : PathEnsemble α β) :
+    InjOn Path.finish Ps.Paths := by
+  rintro p₁ hp₁ p₂ hp₂ hfinish
+  exact Ps.Disj _ _ _ hp₁ hp₂ finish_vx_mem (by
+    unfold Path.finish at hfinish
+    exact hfinish ▸ finish_vx_mem)
+
+lemma StartSet_union_InternalVsSet (Ps : PathEnsemble α β) :
+    Ps.StartSet ∪ Ps.InternalVsSet = {x | ∃ p ∈ Ps.Paths, x ∈ p.vx.dropLast} := by
+  sorry
+
+lemma InternalVsSet_union_FinishSet (Ps : PathEnsemble α β) :
+    Ps.InternalVsSet ∪ Ps.FinishSet = {x | ∃ p ∈ Ps.Paths, x ∈ p.vx.tail} := by
+  sorry
+
+lemma StartSet_union_InternalVsSet_union_FinishSet (Ps : PathEnsemble α β) :
+    Ps.StartSet ∪ Ps.InternalVsSet ∪ Ps.FinishSet = Ps.VxSet := by
+  sorry
+
+lemma StartSet_InternalVsSet_disjoint (Ps : PathEnsemble α β) :
+    _root_.Disjoint Ps.StartSet Ps.InternalVsSet := by
+  sorry
+
+lemma StartSet_FinishSet_disjoint (Ps : PathEnsemble α β) :
+    _root_.Disjoint Ps.StartSet Ps.FinishSet := by
+  sorry
+
+lemma InternalVsSet_FinishSet_disjoint (Ps : PathEnsemble α β) :
+    _root_.Disjoint Ps.InternalVsSet Ps.FinishSet := by
+  sorry
+
+lemma VxSet_diff_StartSet (Ps : PathEnsemble α β) :
+    Ps.VxSet \ Ps.StartSet = Ps.InternalVsSet ∪ Ps.FinishSet := by
+  sorry
+
+lemma VxSet_diff_FinishSet (Ps : PathEnsemble α β) :
+    Ps.VxSet \ Ps.FinishSet = Ps.StartSet ∪ Ps.InternalVsSet := by
+  sorry
+
+lemma VxSet_diff_InternalVsSet (Ps : PathEnsemble α β) :
+    Ps.VxSet \ Ps.InternalVsSet = Ps.StartSet ∪ Ps.FinishSet := by
+  sorry
+
+lemma unique_path_start (Ps : PathEnsemble α β)  :
+    ∀ x ∈ Ps.StartSet, ∃! p ∈ Ps.Paths, p.start = x := by
   rintro x hx
-  have hinj : ∀ (a₁ a₂ : Path α β) (ha₁ : a₁ ∈ Ps.Paths) (ha₂ : a₂ ∈ Ps.Paths),
-    (fun p hp ↦ p.start) a₁ ha₁ = (fun p hp ↦ p.start) a₂ ha₂ → a₁ = a₂ := by
-    rintro a₁ a₂ ha₁ ha₂ hstart
-    simp only [start] at hstart
-    exact (Ps.Disj a₁.val.start a₁ a₂ ha₁ ha₂ (by simp only [vx, start, start_vx_mem]) (by simp only [hstart, vx, start, start_vx_mem]))
-  obtain ⟨p, hp, rfl⟩ := Set.surj_on_of_inj_on_of_ncard_le (fun p hp ↦ p.start) h hinj hcard.symm.le hS x hx
+  obtain ⟨p, hp, rfl⟩ := hx
   use p, ⟨hp, rfl⟩
   rintro q ⟨hq, hstart⟩
-  exact hinj q p hq hp hstart
+  exact PathEnsemble.start_injOn Ps hq hp hstart
 
-lemma PathEnsemble.unique_path_finish {Ps : PathEnsemble α β} (T : Set α) (hT : T.Finite)
-    (hcard : Ps.Paths.ncard = T.ncard) (h : ∀ p ∈ Ps.Paths, p.finish ∈ T) :
-    ∀ x ∈ T, ∃! p ∈ Ps.Paths, p.finish = x := by
+lemma unique_path_finish (Ps : PathEnsemble α β) :
+    ∀ x ∈ Ps.FinishSet, ∃! p ∈ Ps.Paths, p.finish = x := by
   rintro x hx
-  have hinj : ∀ (a₁ a₂ : Path α β) (ha₁ : a₁ ∈ Ps.Paths) (ha₂ : a₂ ∈ Ps.Paths),
-    (fun p hp ↦ p.finish) a₁ ha₁ = (fun p hp ↦ p.finish) a₂ ha₂ → a₁ = a₂ := by
-    rintro a₁ a₂ ha₁ ha₂ hfinish
-    simp only [finish] at hfinish
-    exact (Ps.Disj a₁.val.finish a₁ a₂ ha₁ ha₂ (by simp only [vx, finish, finish_vx_mem]) (by simp only [hfinish, vx, finish, finish_vx_mem]))
-  obtain ⟨p, hp, rfl⟩ := Set.surj_on_of_inj_on_of_ncard_le (fun p hp ↦ p.finish) h hinj hcard.symm.le hT x hx
+  obtain ⟨p, hp, rfl⟩ := hx
   use p, ⟨hp, rfl⟩
   rintro q ⟨hq, hfinish⟩
-  exact hinj q p hq hp hfinish
+  exact PathEnsemble.finish_injOn Ps hq hp hfinish
 
-theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : G.Finite] (S T : Set α) (k : ℕ)
-    (hS : S.Finite) (hT : T.Finite)
-    (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard) :
-    ∃ Ps : PathEnsemble α β, (Ps.Paths.ncard = k) ∧ Ps.ValidOn G ∧ (∀ p ∈ Ps.Paths, p.start ∈ S ∧ p.finish ∈ T) := by
-  classical
-  by_cases hE : G.E.Nonempty
-  · obtain ⟨e, he⟩ := hE
-    let G' := G{G.E \ {e}}
-    have hG'le : G{G.E \ {e}} ≤ G := restrict_le G _
-    by_cases h : ∀ U : Set α, U.Finite → G{G.E \ {e}}.IsVxSetSeparator U S T → k ≤ U.ncard
-    · -- Deleting the edge did not decrease k, so get the paths from the smaller graph
-      have hG'term : (G.E ∩ (G.E \ {e})).ncard + k < G.E.ncard + k := by
-        simp only [restrict_E, add_lt_add_iff_right]
-        apply Set.ncard_lt_ncard ?_ Finite.edge_fin
-        refine inter_ssubset_left_iff.mpr ?_
-        rintro hsu
-        have := hsu he
-        simp at this
-      have := Menger_VxSet (G{G.E \ {e}}) S T k hS hT h
-      obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
-      use Ps, hlen, fun p hp ↦ (hPVd p hp).le hG'le, hPs
-    · simp only [not_forall, Classical.not_imp, not_le] at h
-      obtain ⟨U, hUFin, hUsep, hUcard⟩ := h
-      have hUcard' : U.ncard = k -1 := by sorry -- TODO: deal with k = 0 case
+lemma StartSet_ncard {Ps : PathEnsemble α β} (hFin : Ps.Paths.Finite) :
+    Ps.StartSet.ncard = Ps.Paths.ncard := by
+  sorry
 
-      -- There is a path that uses e and none of the vertices in U
-      have hterm : (G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ G.V ∧ x ∉ U}).ncard + 1 < G.E.ncard + k := by
-        have : (G.E ∩ {e | ∀ (x : α), G.Inc x e → x ∈ G.V ∧ x ∉ U}).ncard ≤ G.E.ncard :=
-          Set.ncard_inter_le_ncard_left G.E _ hfin.edge_fin
-        suffices 1 < k by
-          omega
-        sorry -- TODO: deal with k = 1 case too
-      obtain ⟨Ps, hlen, hPVd, hPs⟩ := Menger_VxSet (hfin := finite_of_finite_induce hfin.vx_fin.diff)
-        (G[G.V \ U]) S T 1 hS hT (by
-        rintro V hVFin hVsep
-        by_contra! hVcard
-        simp only [lt_one_iff, hVFin, ncard_eq_zero] at hVcard
-        subst V
-        simp only [IsVxSetSeparator, induce_V, diff_empty, induce_idem] at hVsep
-        have := hsep U hUFin hVsep
-        omega)
-      simp only [ncard_eq_one] at hlen
-      obtain ⟨p, hp⟩ := hlen
-      simp only [PathEnsemble.ValidOn, hp, mem_singleton_iff, forall_eq] at hPVd hPs
-      have hpe : e ∈ p.edge := by
-        by_contra! hpe
-        refine hUsep p.start hPs.1 p.finish hPs.2 (connected_of_validOn ?_)
-        have := ValidOn.restrict hPVd (?_ : ∀ f ∈ p.edge, f ∈ G.E \ {e})
-        simpa only [restrict_V, induce_restrict_eq_subgraph] using this
-        · rintro f hf
-          refine ⟨Set.mem_of_mem_inter_left (Walk.ValidOn.mem_of_mem_edge hPVd hf), ?_⟩
-          rw [mem_singleton_iff]
-          rintro rfl
-          exact hpe hf
+lemma FinishSet_ncard {Ps : PathEnsemble α β} (hFin : Ps.Paths.Finite) :
+    Ps.FinishSet.ncard = Ps.Paths.ncard := by
+  sorry
 
-      obtain ⟨w₁, w₂, hw12, hnin⟩ := eq_append_cons_of_edge_mem hpe
-      let x := w₁.finish
-      let y := w₂.start
-      have hxy : G[G.V \ U].IsBetween e x y := by
-        simp only [ValidOn, hw12] at hPVd
-        obtain ⟨hbtw, H2⟩ := hPVd.append_right_validOn
-        exact hbtw
-      /- TODO: U is a separator on G - e. If U contains either x or y, then removing U from G also removes
-      the edge e. This implies that U is also a separator of G. As U is smaller than k, this is a
-      contradiction. -/
-      have hxU : x ∉ U := by sorry
-      have hyU : y ∉ U := by sorry
+lemma ValidOn.le {Ps : PathEnsemble α β} {G G' : Graph α β} (h : G ≤ G') (hVd : Ps.ValidOn G) :
+    Ps.ValidOn G' := by
+  rintro p hp
+  exact (hVd p hp).le h
 
-      have hterm : (G.E ∩ (G.E \ {e})).ncard < G.E.ncard := by
-        refine lt_of_le_of_lt (Set.ncard_inter_le_ncard_right G.E _ hfin.edge_fin.diff) ?_
-        rw [Set.ncard_diff (by simp only [singleton_subset_iff, he])]
-        simp only [ncard_singleton, tsub_lt_self_iff, lt_one_iff, pos_of_gt, and_true]
-        rw [Set.ncard_pos hfin.edge_fin]
-        exact nonempty_of_mem he
-
-      let Ux := U ∪ {x}
-      have hUxFin : Ux.Finite := hUFin.union (finite_singleton x)
-      -- TODO: U is a separator on G - e. Then, G \ Ux ≤ (G - e) \ U. Connected.le
-      have hUxSep : G.IsVxSetSeparator Ux S T := by
-        sorry
-      -- ...
-      have hSUxSepCard : ∀ (U : Set α), U.Finite → G{G.E \ {e}}.IsVxSetSeparator U S Ux → k ≤ U.ncard := by
-        rintro V hVFin hVsep
-        refine hsep V hVFin ?_
-        rintro a ha b hb hconn
-        obtain ⟨p, hpVd, rfl, rfl⟩ := Connected.iff_path.mp hconn
-        by_cases h : e ∈ p.edge
-        · obtain ⟨w₁, w₂, hw12, hnin⟩ := eq_append_cons_of_edge_mem h
-          have hw₁finish : w₁.finish = x := by sorry
-          obtain ⟨u, hup, huU⟩ := hUxSep.path_inter ⟨w₁, sorry⟩ sorry sorry sorry
-          sorry
-        obtain ⟨u, hup, huU⟩ := hUxSep.path_inter p (by refine hpVd.le (induce_le G Set.diff_subset)) ha hb
-        have := Walk.connected_of_validOn_of_mem hpVd start_vx_mem hup
-        specialize hVsep p.start ha u huU
-        rw [restrict_V, subgraph_eq_induce] at hVsep
-        exact hVsep this
-        rintro f
-        simp +contextual only [restrict_V, mem_diff, mem_setOf_eq, mem_singleton_iff, true_and,
-          and_imp]
-        rintro hinc hU rfl
-        sorry
-      obtain ⟨Psx, hlenx, hPVdx, hPsx⟩ := Menger_VxSet (G{G.E \ {e}}) S Ux k hS hUxFin hSUxSepCard
-      have hPsxUx : ∀ a ∈ Ux, ∃! p ∈ Psx.Paths, p.finish = a :=
-        Psx.unique_path_finish Ux hUxFin (by
-          simp only [hlenx, union_singleton, hxU, not_false_eq_true, Ux]
-          rw [Set.ncard_insert_of_not_mem hxU hUFin, hUcard']
-          omega) (fun p hp ↦ (hPsx p hp).2)
-
-      let Uy := U ∪ {y}
-      have hUyFin : Uy.Finite := hUFin.union (finite_singleton y)
-      -- same as above
-      obtain ⟨Psy, hleny, hPVdy, hPsy⟩ := Menger_VxSet (G{G.E \ {e}}) T Uy k hT hUyFin (by sorry)
-      have hPsyUy : ∀ a ∈ Uy, ∃! p ∈ Psy.Paths, p.finish = a :=
-        Psy.unique_path_finish Uy hUyFin (by
-          simp only [hleny, union_singleton, hyU, not_false_eq_true, Uy]
-          rw [Set.ncard_insert_of_not_mem hyU hUFin, hUcard']
-          omega) (fun p hp ↦ (hPsy p hp).2)
-
-      /- TODO: Now that I have two set of path ensembles, each corresponding to a unique element in
-      Ux/Uy, I can append them to get a path ensemble for G. -/
-      sorry
-
-  · rw [Set.nonempty_iff_ne_empty] at hE
-    have := hsep (G.V ∩ S ∩ T) (by exact Finite.inter_of_right hT (G.V ∩ S)) ?_
-    simp only [ncard_empty, nonpos_iff_eq_zero] at this
-    obtain ⟨U, hU, hUcard⟩ := Set.exists_subset_card_eq this
-    use ⟨Path.nil '' U, ?_⟩, ?_, ?_
-    · rintro p ⟨x, hx, rfl⟩
-      obtain ⟨⟨hxV, hxS⟩, hxT⟩ := hU hx
-      exact ⟨hxS, hxT⟩
-    · sorry -- easy
-    · simp only
-      rwa [Set.ncard_image_of_injective]
-      sorry -- have a lemma that nil is injective
-    · rintro p ⟨x, hx, rfl⟩
-      refine Walk.nil_validOn_iff.mpr ?_
-      exact (hU hx).1.1
-    · sorry -- easy
-termination_by G.E.ncard + k
+def append (Ps₁ Ps₂ : PathEnsemble α β) (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) : PathEnsemble α β where
+  Paths := by
+    let f : ↑(Ps₁.VxSet ∩ Ps₂.VxSet) → Path α β := fun ⟨a, ha⟩ ↦
+      (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose.append
+      (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose ?_
+    exact Set.range f
+    · rintro b hbf hbg
+      have h : b ∈ {x | ∃ p ∈ Ps₁.Paths, x ∈ p.vx.dropLast} := by
+        use (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose, (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose_spec.1.1
+      rw [← StartSet_union_InternalVsSet, ← VxSet_diff_FinishSet, ← h₁Finish, Set.diff_self_inter] at h
+      obtain ⟨H1, H2⟩ := h
+      have hb2 : b ∈ Ps₂.VxSet := by
+        use (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose, (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose_spec.1.1
+      exact H2 hb2
+  Disj := by
+    rintro x p q hp hq hxp hxq
+    rw [Set.mem_range, Subtype.exists] at hp hq
+    obtain ⟨a, ha, rfl⟩ := hp
+    obtain ⟨b, hb, rfl⟩ := hq
+    have hw1a := (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose_spec
+    have hw2a := (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose_spec
+    have hw1b := (Ps₁.unique_path_finish b (h₁Finish ▸ hb)).choose_spec
+    have hw2b := (Ps₂.unique_path_start b (h₂Start ▸ hb)).choose_spec
+    simp only [vx, Path.append, append_vx, mem_append] at hxp hxq
+    suffices h : a = b by
+      subst b
+      rfl
+    obtain (hxp1 | hxp2) := hxp <;> obtain (hxq1 | hxq2) := hxq
+    · have := Ps₁.Disj x _ _ hw1a.1.1 hw1b.1.1 (List.dropLast_subset _ hxp1) (List.dropLast_subset _ hxq1)
+      rw [← hw1a.1.2, ← hw1b.1.2, this]
+    · have h1 : x ∈ {x | ∃ p ∈ Ps₁.Paths, x ∈ p.vx.dropLast} := by
+        use (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose, hw1a.1.1, hxp1
+      rw [← StartSet_union_InternalVsSet, ← VxSet_diff_FinishSet, ← h₁Finish, Set.diff_self_inter] at h1
+      obtain ⟨H1, H2⟩ := h1
+      have h2 : x ∈ Ps₂.VxSet := by
+        use (Ps₂.unique_path_start b (h₂Start ▸ hb)).choose, hw2b.1.1, hxq2
+      exact False.elim (H2 h2)
+    · have h1 : x ∈ {x | ∃ p ∈ Ps₁.Paths, x ∈ p.vx.dropLast} := by
+        use (Ps₁.unique_path_finish b (h₁Finish ▸ hb)).choose, hw1b.1.1, hxq1
+      rw [← StartSet_union_InternalVsSet, ← VxSet_diff_FinishSet, ← h₁Finish, Set.diff_self_inter] at h1
+      obtain ⟨H1, H2⟩ := h1
+      have h2 : x ∈ Ps₂.VxSet := by
+        use (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose, hw2a.1.1, hxp2
+      exact False.elim (H2 h2)
+    · have := Ps₂.Disj x _ _ hw2a.1.1 hw2b.1.1 hxp2 hxq2
+      rw [← hw2a.1.2, ← hw2b.1.2, this]
 
 
+  -- Paths := by
+  --   let f : Ps₁.Paths → Path α β := fun ⟨p, hp⟩ ↦ p.append (h p hp).choose ?_
+  --   exact Set.range f
+  --   rintro a hap haq
+  --   obtain ⟨hmem2, hstart⟩ := (h p hp).choose_spec
+  --   have haG := (hPs₁Vd p hp).mem_of_mem_vx (List.dropLast_subset p.vx hap)
+  --   have haH := (hPs₂Vd (h p hp).choose hmem2).mem_of_mem_vx haq
+  --   have hVxDisj := vx_disjoint_of_disjoint hGH (by simp [haG] : {a} ≤ _) (by simp [haH] : {a} ≤ _)
+  --   simp only [bot_eq_empty, le_eq_subset, subset_empty_iff, singleton_ne_empty] at hVxDisj
+  -- Disj := by
+  --   rintro x p q hp hq hxp hxq
+  --   simp only [Set.mem_range, Subtype.exists] at hp hq
+  --   obtain ⟨w1, hw1, rfl⟩ := hp
+  --   obtain ⟨w2, hw2, rfl⟩ := hq
+  --   simp only [vx, Graph.Path.append, append_vx, mem_append] at hxp hxq
+  --   suffices hw12 : w1 = w2 by
+  --     subst w2
+  --     rfl
+  --   obtain (hxp1 | hxp2) := hxp <;> obtain (hxq1 | hxq2) := hxq
+  --   · exact Ps₁.Disj _ _ _ hw1 hw2 (List.dropLast_subset w1.vx hxp1) (List.dropLast_subset w2.vx hxq1)
+  --   · obtain ⟨hmem2, hstart⟩ := (h w2 hw2).choose_spec
+  --     have haG := (hPs₁Vd w1 hw1).mem_of_mem_vx (List.dropLast_subset w1.vx hxp1)
+  --     have haH := (hPs₂Vd (h w2 hw2).choose hmem2).mem_of_mem_vx hxq2
+  --     have hVxDisj := vx_disjoint_of_disjoint hGH (by simp [haG] : {x} ≤ _) (by simp [haH] : {x} ≤ _)
+  --     simp only [bot_eq_empty, le_eq_subset, subset_empty_iff, singleton_ne_empty] at hVxDisj
+  --   · obtain ⟨hmem1, hstart⟩ := (h w1 hw1).choose_spec
+  --     have haG := (hPs₁Vd w2 hw2).mem_of_mem_vx (List.dropLast_subset w2.vx hxq1)
+  --     have haH := (hPs₂Vd (h w1 hw1).choose hmem1).mem_of_mem_vx hxp2
+  --     have hVxDisj := vx_disjoint_of_disjoint hGH (by simp [haG] : {x} ≤ _) (by simp [haH] : {x} ≤ _)
+  --     simp only [bot_eq_empty, le_eq_subset, subset_empty_iff, singleton_ne_empty] at hVxDisj
+  --   · obtain ⟨hmem1, hstart1⟩ := (h w1 hw1).choose_spec
+  --     obtain ⟨hmem2, hstart2⟩ := (h w2 hw2).choose_spec
+  --     have := Ps₂.Disj _ _ _ hmem1 hmem2 hxp2 hxq2
+  --     change (h w1 hw1).choose = (h w2 hw2).choose at this
+  --     apply Ps₁.Disj _ _ _ hw1 hw2 finish_vx_mem
+  --     unfold Path.finish at hstart1 hstart2
+  --     rw [hstart1, this, ← hstart2]
+  --     exact finish_vx_mem
 
+lemma append_validOn {G : Graph α β} {Ps₁ Ps₂ : PathEnsemble α β}
+    (hPs₁Vd : Ps₁.ValidOn G) (hPs₂Vd : Ps₂.ValidOn G) (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) : (Ps₁.append Ps₂ h₁Finish h₂Start).ValidOn G := by
+  rintro p hp
+  obtain ⟨⟨a, ha⟩, _, rfl⟩ := hp
+  unfold Path.append Path.ValidOn
+  let w1 := (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose
+  let w2 := (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose
+  have hw1a := (Ps₁.unique_path_finish a (h₁Finish ▸ ha)).choose_spec
+  have hw2a := (Ps₂.unique_path_start a (h₂Start ▸ ha)).choose_spec
+  change (w1.val.append w2.val).ValidOn G
+  apply Walk.append_validOn
+  · exact hw1a.1.2.trans hw2a.1.2.symm
+  · exact hPs₁Vd _ hw1a.1.1
+  · exact hPs₂Vd _ hw2a.1.1
 
+lemma append_ncard_eq_left {Ps₁ Ps₂ : PathEnsemble α β} (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) (hFin : Ps₁.Paths.Finite) :
+    (Ps₁.append Ps₂ h₁Finish h₂Start).Paths.ncard = Ps₁.Paths.ncard := by
+  sorry
 
--- rethink about the approach
--- theorem Menger {α β : Type*} [DecidableEq α] (G : Graph α β) [G.Finite] (u v : α) (hu : u ∈ G.V)
---     (hv : v ∈ G.V) (hne : u ≠ v) (huv : ¬ G.Adj u v) (k : ℕ)
---     (h : ∀ S : Set α, S.Finite → G.IsVxSeparator u v S → k ≤ S.ncard) :
---     ∃ Ps : List (Path α β), (Ps.length = k) ∧ (∀ p ∈ Ps, p.ValidOn G ∧ p.start = u ∧ p.finish = v) ∧ InternallyDisjoint u v Ps := by
---   stop
---   classical
---   by_cases hk : k = 0
---   · use [], by simp [hk], by simp, by simp [InternallyDisjoint]
+lemma append_ncard_eq_right {Ps₁ Ps₂ : PathEnsemble α β} (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) (hFin : Ps₂.Paths.Finite) :
+    (Ps₁.append Ps₂ h₁Finish h₂Start).Paths.ncard = Ps₂.Paths.ncard := by
+  sorry
 
---   by_cases hadj : ∃ x : α, G.Adj u x ∧ G.Adj x v
---   · obtain ⟨x, hux, hxv⟩ := hadj
---     let G' := G[G.V \ {x}]
---     have hG'le : G' ≤ G := induce_le G (by simp)
---     have hu' : u ∈ G'.V := by
---       simp only [induce_V, mem_diff, hu, mem_singleton_iff, true_and, G']
---       rintro rfl
---       exact huv hxv
---     have hv' : v ∈ G'.V := by
---       simp only [induce_V, mem_diff, hv, mem_singleton_iff, true_and, G']
---       rintro rfl
---       exact huv hux
---     have huv' : ¬ G'.Adj u v := by
---       contrapose! huv
---       exact huv.of_Adj_induce
---     obtain ⟨eux, heux⟩ := hux
---     obtain ⟨exv, hexv⟩ := hxv
---     let p : Path α β := ⟨((Walk.nil v).cons x exv).cons u eux, by
---       simp [hne]
---       by_contra h
---       rw [← or_iff_not_and_not] at h
---       obtain (rfl | rfl) := h
---       · exact huv ⟨_, hexv⟩
---       · exact huv ⟨_, heux⟩⟩
---     have hp : p.ValidOn G := by
---       simp only [ValidOn, cons_validOn_iff, nil_start, hexv, hv, nil_validOn, and_self, cons_start,
---         heux, cons_validOn, G', p]
---     have hpvx : p.vx = [u, x, v] := rfl
---     have hG'Fin : G'.Finite := finite_of_le_finite hG'le
---     have hG'term : (G.E ∩ {e | ∀ (x_1 : α), G.Inc x_1 e → x_1 ∈ G.V ∧ ¬x_1 = x}).ncard + (k - 1) < G.E.ncard + k := by
---       rw [← Nat.add_sub_assoc (by omega)]
---       apply sub_one_lt_of_le (by omega)
---       rw [add_le_add_iff_right]
---       exact Set.ncard_le_ncard Set.inter_subset_left Finite.edge_fin
---     have := Menger G' u v hu' hv' hne huv' (k-1) ?_
---     obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
---     use p :: Ps, ?_, ?_
---     · rintro y pi pj hpi hpj hyi hyj hpij
---       by_cases hnepi : pi ≠ p ∧ pj ≠ p
---       · have hpiPs : pi ∈ Ps := by simpa [hnepi.1] using hpi
---         have hpjPs : pj ∈ Ps := by simpa [hnepi.2] using hpj
---         exact hPs y pi pj hpiPs hpjPs hyi hyj hpij
---       · wlog heqp : pi = p
---         · apply this G u v hu hv hne huv k h hk x hG'le hu' hv' huv' eux heux exv hexv hp hpvx
---             hG'Fin hG'term Ps hlen hPVd hPs y pj pi hpj hpi hyj hyi hpij.symm
---             (by rw [and_comm] at hnepi; exact hnepi)
---           push_neg at hnepi
---           exact hnepi heqp
---         subst pi
---         simp only [hpvx, mem_cons, not_mem_nil, or_false] at hyi
---         obtain rfl | rfl | rfl := hyi
---         · left; rfl
---         · rw [and_comm] at hnepi
---           simp only [mem_cons, hpij.symm, false_or] at hpj
---           obtain ⟨hPVd, hPstart, hPfinish⟩ := hPVd pj hpj
---           have : y ∈ G'.V := hPVd.mem_of_mem_vx hyj
---           simp [G'] at this
---         · right; rfl
---     · simp only [length_cons, hlen, G']
---       omega
---     · rintro p' hp'
---       rw [List.mem_cons] at hp'
---       obtain (rfl | hvalid) := hp'
---       · use hp, rfl
---         rfl
---       · use (hPVd p' hvalid).1.le hG'le
---         exact (hPVd p' hvalid).2
---     · rintro s hsFin hSsepG'
---       by_cases hxs : x ∈ s
---       · refine (by omega : k - 1 ≤ k).trans (h s hsFin ?_)
---         refine ⟨hSsepG'.not_mem_left, hSsepG'.not_mem_right, ?_⟩
---         have := hSsepG'.not_connected
---         simp only [induce_V, induce_induce_eq_induce_restrict, mem_diff, mem_singleton_iff,
---           G'] at this
---         convert this using 2
---         rw [diff_diff, singleton_union, insert_eq_self.mpr hxs, eq_comm]
---         apply subgraph_eq_induce
---         simp +contextual only [mem_diff, setOf_subset_setOf, true_and, G']
---         rintro e' h' x' hinc' rfl
---         exact (h' x' hinc').2 hxs
---       · specialize h (s ∪ {x}) (hsFin.union (by simp)) ?_
---         · constructor
---           · simp only [union_singleton, Set.mem_insert_iff, hSsepG'.not_mem_left, or_false, G']
---             rintro rfl
---             exact huv ⟨_, hexv⟩
---           · simp only [union_singleton, Set.mem_insert_iff, hSsepG'.not_mem_right, or_false, G']
---             rintro rfl
---             exact huv ⟨_, heux⟩
---           · convert hSsepG'.not_connected using 2
---             simp only [union_singleton, induce_V, induce_induce_eq_induce_restrict, mem_diff,
---               mem_singleton_iff, G']
---             rw [diff_diff, singleton_union, eq_comm]
---             apply subgraph_eq_induce
---             simp +contextual only [mem_diff, Set.mem_insert_iff, not_or, setOf_subset_setOf,
---               not_false_eq_true, and_self, implies_true, G']
---         · rwa [ncard_union_eq (by simp [hxs]) hsFin, ncard_singleton, Nat.le_add_toss] at h
---   · have : G.E.Nonempty := by
---       rw [Set.nonempty_iff_ne_empty]
---       rintro hE
---       have := h ∅ (by simp) (by constructor <;> simp [hE, hne])
---       simp only [ncard_empty, nonpos_iff_eq_zero] at this
---       omega
---     obtain ⟨e, he⟩ := this
---     obtain ⟨x, y, hxy⟩ := G.exist_IsBetween_of_mem he
---     let G' := G{G.E \ {e}}
---     have hG'le : G{G.E \ {e}} ≤ G := restrict_le G _
---     by_cases h' : ∀ (S : Set α), S.Finite → G{G.E \ {e}}.IsVxSeparator u v S → k ≤ S.ncard
---     · -- Deleting the edge did not decrease k, so get the paths from the smaller graph
---       have hG'term : (G.E ∩ (G.E \ {e})).ncard + k < G.E.ncard + k := by
---         simp only [restrict_E, add_lt_add_iff_right]
---         apply Set.ncard_lt_ncard ?_ Finite.edge_fin
---         refine inter_ssubset_left_iff.mpr ?_
---         rintro hsu
---         have := hsu he
---         simp at this
---       have := Menger (G{G.E \ {e}}) u v hu hv hne (by contrapose! huv; exact huv.of_Adj_restrict) k h'
---       obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
---       use Ps, hlen
---       constructor
---       · rintro p hp
---         use (hPVd p hp).1.le hG'le
---         exact (hPVd p hp).2
---       · rintro pj hpj pi hpi x hx hx' hne
---         refine hPs pj hpj pi hpi x ?_ ?_ hne
---         · simpa using hx
---         · simpa using hx'
---     · -- Deleting the edge did decrease k, so contract instead
---       simp only [not_forall, Classical.not_imp, not_le] at h'
---       obtain ⟨S, hSFin, hSsep, hcard⟩ := h'
---       let G'' := G /[hxy.contractFun] {e}
---       have hG''Vd := hxy.contractFun_validOn
---       have hG''term : (G.E \ {e}).ncard < G.E.ncard :=
---         Set.ncard_diff_singleton_lt_of_mem he Finite.edge_fin
---       have := Menger G'' (hxy.contractFun u) (hxy.contractFun v)
---         (Contract.map_mem hxy.contractFun {e} hu) (Contract.map_mem hxy.contractFun {e} hv)
---         ?_ ?_ k ?_
---       obtain ⟨Ps, hlen, hPVd, hPs⟩ := this
---       let f := fun (p : Path α β) (hp : p ∈ Ps) ↦ Contract.path hG''Vd (hPVd p hp).1 u hu v hv ?_ ?_
---       use Ps.pmap (fun p hp ↦ (f p hp).choose) (by simp), by simp [hlen], ?_, ?_
---       · rintro p hp
---         simp only [mem_singleton_iff, setOf_subset_setOf, mem_pmap] at hp
---         obtain ⟨p, hp, rfl⟩ := hp
---         obtain ⟨HVd, Hu, Hv, Hsub⟩ := (f p hp).choose_spec
---         exact ⟨HVd, Hu, Hv⟩
---       · rintro w pi pj hpi hpj hwpi hwpj hne
---         simp only [mem_singleton_iff, setOf_subset_setOf, mem_pmap] at hpi hpj
---         obtain ⟨pi, hpi, rfl⟩ := hpi
---         obtain ⟨pj, hpj, rfl⟩ := hpj
---         change (f pi hpi).choose ≠ (f pj hpj).choose at hne
---         obtain ⟨HpiVd, Hpiu, Hpiv, HpiSub⟩ := (f pi hpi).choose_spec
---         obtain ⟨HpjVd, Hpju, Hpjv, HpjSub⟩ := (f pj hpj).choose_spec
+lemma append_startSet {Ps₁ Ps₂ : PathEnsemble α β} (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) :
+    (Ps₁.append Ps₂ h₁Finish h₂Start).StartSet = Ps₁.StartSet := by
+  sorry
 
---         -- Contract.path and their vx
---         sorry
---       · obtain ⟨HVd, H, _H⟩ := hPVd p hp
---         exact H.symm
---       · obtain ⟨HVd, _H, H⟩ := hPVd p hp
---         exact H.symm
---       · simp only [IsBetween.contractFun, ne_eq]
---         split_ifs with hueq hveq hveq
---         · subst hueq hveq
---           simp only [ne_eq, not_true_eq_false] at hne
---         · subst hueq
---           rintro rfl
---           exact huv ⟨_, hxy.symm⟩
---         · subst hveq
---           rintro rfl
---           exact huv ⟨_, hxy⟩
---         · rintro rfl
---           simp only [ne_eq, not_true_eq_false] at hne
---       · rintro ⟨f, hfbtw⟩
---         rw [Contract.isBetween_iff] at hfbtw
---         obtain ⟨u', v', hbtw', huu', hvv', hfe⟩ := hfbtw
---         simp only [IsBetween.contractFun] at huu' hvv'
---         -- distance argument?
---         sorry
---       · rintro T htFin ⟨hu, hv, hconn⟩
---         refine h T htFin ⟨?_, ?_, ?_⟩
---         · sorry
---         · sorry
---         · contrapose! hconn
---           sorry
+lemma append_finishSet {Ps₁ Ps₂ : PathEnsemble α β} (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) :
+    (Ps₁.append Ps₂ h₁Finish h₂Start).FinishSet = Ps₂.FinishSet := by
+  sorry
 
--- termination_by G.E.ncard + k
+lemma append_VxSet {Ps₁ Ps₂ : PathEnsemble α β} (h₁Finish : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₁.FinishSet)
+    (h₂Start : Ps₁.VxSet ∩ Ps₂.VxSet = Ps₂.StartSet) :
+    (Ps₁.append Ps₂ h₁Finish h₂Start).VxSet = Ps₁.VxSet ∪ Ps₂.VxSet := by
+  sorry
+
+end PathEnsemble
 
 end disjoint
 

@@ -1,4 +1,4 @@
-import Kura.Basic
+import Kura.Construct
 
 
 open Set Function
@@ -130,6 +130,24 @@ lemma vx_ncard_le_of_le [hfin : Finite G₂] (hle : G₁ ≤ G₂) : G₁.V.ncar
 
 lemma edge_ncard_le_of_le [hfin : Finite G₂] (hle : G₁ ≤ G₂) : G₁.E.ncard ≤ G₂.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le hle) hfin.edge_fin
+
+lemma vx_disjoint_of_disjoint {G₁ G₂ : Graph α β} (hDisj : Disjoint G₁ G₂) : Disjoint G₁.V G₂.V := by
+  intro x hx1 hx2
+  let G : Graph α β := {
+    V := x
+    E := ∅
+    Inc v e := false
+    vx_mem_of_inc := by tauto
+    edge_mem_of_inc := by tauto
+    exists_vertex_inc := by tauto
+    not_hypergraph := by tauto}
+  specialize hDisj (?_ : G ≤ G₁) ?_
+  · exact ⟨hx1, (empty_subset _ : ∅ ⊆ _), by simp [G, Edgeless]⟩
+  · exact ⟨hx2, (empty_subset _ : ∅ ⊆ _), by simp [G, Edgeless]⟩
+  exact hDisj.1
+
+-- Not True!
+-- lemma Disjoint.edge_disjoint {G₁ G₂ : Graph α β} (hDisj : Disjoint G₁ G₂) : Disjoint G₁.E G₂.E := by
 
 /-- Induced subgraph -/
 def induce (G : Graph α β) (U : Set α) : Graph α β := by
@@ -622,7 +640,7 @@ lemma IsLoop.connected_iff_edgeDel_singleton (he : G.IsLoop e) :
 
 lemma induce_induce_eq_induce_restrict' (U V : Set α) : G[U][V] = G{G[U].E}[V] := by
   ext1
-  · simp only [induce_V, induce_E, restrict_V]
+  · rfl
   · ext e
     simp +contextual only [induce_E, induce_inc_iff, and_imp, mem_inter_iff, mem_setOf_eq,
       restrict_E, restrict_inc, and_self_left, iff_def, implies_true, and_self, imp_self]
@@ -637,6 +655,24 @@ lemma induce_induce_eq_induce_restrict (U V : Set α) : G[U][V] = G{{e | ∀ (x 
   congr 1
   rw [restrict_eq_restrict_iff]
   simp
+
+lemma induce_induce_eq_induce_left (U V : Set α) (h : U = V) : G[U][V] = G[U] := by
+  subst V
+  rw [induce_idem]
+
+lemma induce_induce_eq_induce_right (U V : Set α) (h : G.V ∩ V ⊆ U) : G[U][V] = G[V] := by
+  ext1
+  · rfl
+  · ext e
+    simp +contextual only [induce_induce_eq_induce_restrict, induce_E, restrict_E, restrict_inc,
+      mem_setOf_eq, and_imp, mem_inter_iff, iff_def, implies_true, and_self, true_and, and_true]
+    rintro he hincV x hxinc
+    exact h ⟨hxinc.vx_mem, hincV x hxinc⟩
+  · expose_names
+    simp +contextual only [induce_induce_eq_induce_restrict, induce_inc_iff, restrict_inc,
+      mem_setOf_eq, and_imp, iff_def, implies_true, and_self, true_and, and_true]
+    rintro hxinc hincV y hyinc
+    exact h ⟨hyinc.vx_mem, hincV y hyinc⟩
 
 /-- G{R}[U] is the prefered notation for explicit subgraph over G[U]{R} -/
 lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) :
@@ -704,10 +740,6 @@ structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
 lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u u S :=
   fun ⟨S, hS⟩ ↦ hS.not_connected <| Connected.refl <| by simp [hu, hS.not_mem_left]
 
-def IsVxSetSeparator (G : Graph α β) (V S T: Set α) : Prop :=
-  ∀ s ∈ S, ∀ t ∈ T, ¬ (G[G.V \ V]).Connected s t
-
-
 lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) :
     G.IsVxSeparator u v S ↔ (G -ᴳ e).IsVxSeparator u v S := by
   refine ⟨fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩, fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩⟩
@@ -726,6 +758,19 @@ lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) 
       rintro hx
       sorry
   · sorry
+
+def IsVxSetSeparator (G : Graph α β) (V S T: Set α) : Prop :=
+  ∀ s ∈ S, ∀ t ∈ T, ¬ (G[G.V \ V]).Connected s t
+
+lemma foo {V S : Set α} (hbtw : G.IsBetween e u v) (hu : ∃ s ∈ S, G[G.V \ V].Connected u s)
+    (hv : ∀ s ∈ S, ¬ G[G.V \ V].Connected v s) : v ∈ V := by
+  obtain ⟨s, hs, hconn⟩ := hu
+  by_contra! hvV
+  have hbtw' : G[G.V \ V].IsBetween e u v := by
+    simp only [induce_isBetween_iff, hbtw, mem_diff, hbtw.vx_mem_right, hvV, not_false_eq_true,
+      and_self, and_true, true_and]
+    exact hconn.mem_left
+  exact hv s hs (hbtw'.symm.connected.trans hconn)
 
 def IsVxConnected (G : Graph α β) (n : ℕ) : Prop :=
   ∀ S : Finset α, S.card < n → (G[G.V \ S]).Conn
