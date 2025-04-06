@@ -379,6 +379,11 @@ theorem Connected.of_Connected_induce_subset : (G[U]).Connected u v → U ⊆ G.
     apply Relation.TransGen.tail ih
     exact hradj.of_reflAdj_induce_subset hsubset
 
+lemma IsBetween.induce_of_mem {U : Set α} (hbtw : G.IsBetween e u v) (hu : u ∈ U) (hv : v ∈ U) :
+    G[U].IsBetween e u v := by
+  rw [induce_isBetween_iff]
+  exact ⟨hbtw, hu, hv⟩
+
 lemma Inc.induce_of_mem {U : Set α} (hinc : G.Inc u e) (hU : ∀ x, G.Inc x e → x ∈ U) :
     G[U].Inc u e := by simpa [hinc]
 
@@ -788,56 +793,121 @@ lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u
 def IsVxSetSeparator (G : Graph α β) (V S T: Set α) : Prop :=
   ∀ s ∈ S, ∀ t ∈ T, ¬ (G[G.V \ V]).Connected s t
 
-lemma IsVxSetSeparator.le {V S T : Set α} (h : G₂.IsVxSetSeparator V S T) (hle : G₁ ≤ G₂) :
-    G₁.IsVxSetSeparator V S T := by
+namespace IsVxSetSeparator
+variable {U V S S' T T' : Set α} (h : G.IsVxSetSeparator V S T)
+
+def leftSet (h : G.IsVxSetSeparator V S T) : Set α :=
+  {v | ∃ s ∈ S, G[G.V \ V].Connected v s}
+
+def rightSet (h : G.IsVxSetSeparator V S T) : Set α :=
+  {v | ∃ t ∈ T, G[G.V \ V].Connected v t}
+
+@[simp]
+lemma le (h : G₂.IsVxSetSeparator V S T) (hle : G₁ ≤ G₂) : G₁.IsVxSetSeparator V S T := by
   rintro s hs t ht hconn
   refine h s hs t ht (hconn.le (induce_le_induce hle ?_))
   exact Set.diff_subset_diff_left hle.1
 
-lemma IsVxSetSeparator.symm {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    G.IsVxSetSeparator V T S := by
+lemma symm (h : G.IsVxSetSeparator V S T) : G.IsVxSetSeparator V T S := by
   rintro s hs t ht hconn
   exact h t ht s hs hconn.symm
 
-lemma IsVxSetSeparator.comm {V S T : Set α} : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V T S :=
-  ⟨IsVxSetSeparator.symm, IsVxSetSeparator.symm⟩
+lemma comm : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V T S := ⟨symm, symm⟩
 
-lemma IsVxSetSeparator.iff_left_supported {V S T : Set α} :
-    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) T := by
+@[simp]
+lemma subset (h : G.IsVxSetSeparator U S T) (hUV : U ⊆ V) : G.IsVxSetSeparator V S T := by
+  rintro s hs t ht hconn
+  refine h s hs t ht (hconn.le (induce_le_induce (le_refl _) ?_))
+  exact diff_subset_diff_right hUV
+
+@[simp]
+lemma subset_source (h : G.IsVxSetSeparator V S' T) (hS : S ⊆ S') : G.IsVxSetSeparator V S T := by
+  rintro s hs t ht hconn
+  refine h s (hS hs) t ht (hconn.le (le_refl _))
+
+@[simp]
+lemma subset_target (h : G.IsVxSetSeparator V S T') (hT : T ⊆ T') : G.IsVxSetSeparator V S T := by
+  rintro s hs t ht hconn
+  refine h s hs t (hT ht) (hconn.le (le_refl _))
+
+@[simp]
+lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ (∀ s ∈ S, ∀ t ∈ T, ¬ G.Connected s t) := by
+  unfold IsVxSetSeparator
+  simp only [diff_empty, induce_V_eq_self]
+
+@[simp]
+lemma empty_source : G.IsVxSetSeparator V ∅ T := by
+  rintro s hs t ht hconn
+  rwa [mem_empty_iff_false] at hs
+
+@[simp]
+lemma empty_target : G.IsVxSetSeparator V S ∅ := by
+  rintro s hs t ht hconn
+  rwa [mem_empty_iff_false] at ht
+
+@[simp]
+lemma univ : G.IsVxSetSeparator univ S T := by
+  rintro s hs t ht hconn
+  simp only [diff_univ, induce_empty_eq_bot, instOrderBotGraph, mem_empty_iff_false,
+    not_false_eq_true, not_connected_of_not_mem] at hconn
+
+@[simp]
+lemma supp : G.IsVxSetSeparator G.V S T := by
+  rintro s hs t ht hconn
+  simp only [sdiff_self, bot_eq_empty, induce_empty_eq_bot, instOrderBotGraph, mem_empty_iff_false,
+    not_false_eq_true, not_connected_of_not_mem] at hconn
+
+@[simp]
+lemma source_subset (hSU : S ⊆ V) : G.IsVxSetSeparator V S T := by
+  rintro s hs t ht hconn
+  have := hconn.mem_left
+  simp only [induce_V, mem_diff, hSU hs, not_true_eq_false, and_false] at this
+
+@[simp]
+lemma target_subset (hTV : T ⊆ V) : G.IsVxSetSeparator V S T := by
+  rintro s hs t ht hconn
+  have := hconn.mem_right
+  simp only [induce_V, mem_diff, hTV ht, not_true_eq_false, and_false] at this
+
+@[simp]
+lemma induce : G[G.V \ U].IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (U ∪ V) S T := by
+  unfold IsVxSetSeparator
+  rw [induce_induce_eq_induce_right, induce_V, diff_diff]
+  exact inter_subset_right.trans diff_subset
+
+lemma iff_left_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) T := by
   constructor <;> rintro h s hs t ht hconn
   · exact h s (mem_of_mem_inter_left hs) t ht hconn
   · by_cases h' : s ∈ G.V
     · exact h s (mem_inter hs h') t ht hconn
     · exact h' hconn.mem_left.1
 
-lemma IsVxSetSeparator.iff_right_supported {V S T : Set α} :
-    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T ∩ G.V) := by
+lemma iff_right_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T ∩ G.V) := by
   constructor <;> rintro h s hs t ht hconn
   · exact h s hs t (mem_of_mem_inter_left ht) hconn
   · by_cases h' : t ∈ G.V
     · exact h s hs t (mem_inter ht h') hconn
     · exact h' hconn.mem_right.1
 
-lemma foo {V S : Set α} (hbtw : G.IsBetween e u v) (hu : ∃ s ∈ S, G[G.V \ V].Connected u s)
-    (hv : ∀ s ∈ S, ¬ G[G.V \ V].Connected v s) : v ∈ V := by
-  obtain ⟨s, hs, hconn⟩ := hu
-  by_contra! hvV
-  have hbtw' : G[G.V \ V].IsBetween e u v := by
-    simp only [induce_isBetween_iff, hbtw, mem_diff, hbtw.vx_mem_right, hvV, not_false_eq_true,
-      and_self, and_true, true_and]
-    exact hconn.mem_left
-  exact hv s hs (hbtw'.symm.connected.trans hconn)
+lemma iff_left_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S \ V) T := by
+  constructor <;> rintro h s hs t ht hconn
+  · exact h s (mem_of_mem_diff hs) t ht hconn
+  · exact h s ⟨hs, hconn.mem_left.2⟩ t ht hconn
 
-def IsVxSetSeparator.leftSet {V S T : Set α} (h : G.IsVxSetSeparator V S T) : Set α :=
-  {v | ∃ s ∈ S, G[G.V \ V].Connected v s}
+lemma iff_right_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T \ V) := by
+  constructor <;> rintro h s hs t ht hconn
+  · exact h s hs t (mem_of_mem_diff ht) hconn
+  · exact h s hs t ⟨ht, hconn.mem_right.2⟩ hconn
 
-lemma IsVxSetSeparator.leftSet_subset {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    h.leftSet ⊆ G.V := by
-  rintro v ⟨s, hs, hconn⟩
-  exact diff_subset hconn.mem_left
+lemma source_inter_target_subset (h : G.IsVxSetSeparator V S T) : G.V ∩ S ∩ T ⊆ V := by
+  rintro x hx
+  specialize h x hx.1.2 x hx.2
+  simpa only [Connected.refl_iff, induce_V, mem_diff, hx.1.1, true_and, not_not] using h
 
-lemma IsVxSetSeparator.subset_leftSet {V S T : Set α} (h : G.IsVxSetSeparator V S T) (hS : S ⊆ G.V) :
-    S ⊆ h.leftSet ∪ V := by
+lemma leftSet_subset (h : G.IsVxSetSeparator V S T) : h.leftSet ⊆ G.V \ V :=
+  fun _v ⟨_s, _hs, hconn⟩ ↦ hconn.mem_left
+
+lemma subset_leftSet (h : G.IsVxSetSeparator V S T) (hS : S ⊆ G.V) : S ⊆ h.leftSet ∪ V := by
   rintro s hs
   by_cases h' : s ∈ V
   · exact Or.inr h'
@@ -845,16 +915,10 @@ lemma IsVxSetSeparator.subset_leftSet {V S T : Set α} (h : G.IsVxSetSeparator V
     use s, hs
     exact Connected.refl ⟨hS hs, h'⟩
 
-def IsVxSetSeparator.rightSet {V S T : Set α} (h : G.IsVxSetSeparator V S T) : Set α :=
-  {v | ∃ t ∈ T, G[G.V \ V].Connected v t}
+lemma rightSet_subset (h : G.IsVxSetSeparator V S T) : h.rightSet ⊆ G.V \ V :=
+    fun _v ⟨_t, _ht, hconn⟩ ↦ hconn.mem_left
 
-lemma IsVxSetSeparator.rightSet_subset {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    h.rightSet ⊆ G.V := by
-  rintro v ⟨t, ht, hconn⟩
-  exact diff_subset hconn.mem_left
-
-lemma IsVxSetSeparator.subset_rightSet {V S T : Set α} (h : G.IsVxSetSeparator V S T) (hT : T ⊆ G.V) :
-    T ⊆ h.rightSet ∪ V := by
+lemma subset_rightSet (h : G.IsVxSetSeparator V S T) (hT : T ⊆ G.V) : T ⊆ h.rightSet ∪ V := by
   rintro t ht
   by_cases h' : t ∈ V
   · exact Or.inr h'
@@ -863,38 +927,37 @@ lemma IsVxSetSeparator.subset_rightSet {V S T : Set α} (h : G.IsVxSetSeparator 
     exact Connected.refl ⟨hT ht, h'⟩
 
 @[simp]
-lemma IsVxSetSeparator.symm_leftSet {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    h.symm.leftSet = h.rightSet := by
+lemma symm_leftSet (h : G.IsVxSetSeparator V S T) : h.symm.leftSet = h.rightSet := by
   ext v
   simp only [IsVxSetSeparator.leftSet, IsVxSetSeparator.rightSet, mem_setOf_eq, exists_eq_right]
 
 @[simp]
-lemma IsVxSetSeparator.symm_rightSet {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    h.symm.rightSet = h.leftSet := by
+lemma symm_rightSet (h : G.IsVxSetSeparator V S T) : h.symm.rightSet = h.leftSet := by
   ext v
   simp only [IsVxSetSeparator.leftSet, IsVxSetSeparator.rightSet, mem_setOf_eq, exists_eq_right]
 
-
-lemma IsVxSetSeparator.leftSet_rightSet_disjoint {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
+@[simp]
+lemma leftSet_rightSet_disjoint (h : G.IsVxSetSeparator V S T) :
     _root_.Disjoint h.leftSet h.rightSet := by
   rintro U hUl hUr a haU
   obtain ⟨s, hs, hconn⟩ := hUl haU
   obtain ⟨t, ht, hconn'⟩ := hUr haU
   exact h s hs t ht (hconn.symm.trans hconn')
 
-lemma IsVxSetSeparator.leftSet_V_disjoint {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    _root_.Disjoint h.leftSet V := by
+@[simp]
+lemma leftSet_V_disjoint (h : G.IsVxSetSeparator V S T) : _root_.Disjoint h.leftSet V := by
   rintro U hUl hUV a haU
   obtain ⟨s, hs, hconn⟩ := hUl haU
   exact hconn.mem_left.2 (hUV haU)
 
-lemma IsVxSetSeparator.rightSet_V_disjoint {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
-    _root_.Disjoint h.rightSet V := by
+@[simp]
+lemma rightSet_V_disjoint (h : G.IsVxSetSeparator V S T) : _root_.Disjoint h.rightSet V := by
   rintro U hUr hUV a haU
   obtain ⟨t, ht, hconn⟩ := hUr haU
   exact hconn.mem_left.2 (hUV haU)
 
-lemma IsVxSetSeparator.leftSetV_inter_rightSetV {V S T : Set α} (h : G.IsVxSetSeparator V S T) :
+@[simp]
+lemma leftSetV_inter_rightSetV (h : G.IsVxSetSeparator V S T) :
     (h.leftSet ∪ V) ∩ (h.rightSet ∪ V) = V := by
   ext a
   simp +contextual only [mem_inter_iff, mem_union, iff_def, and_imp, or_true, and_self,
@@ -902,6 +965,63 @@ lemma IsVxSetSeparator.leftSetV_inter_rightSetV {V S T : Set α} (h : G.IsVxSetS
   rintro (hl | hl) (hr | hr) <;> try assumption
   have := h.leftSet_rightSet_disjoint (by simp [hl] : {a} ≤ _) (by simp [hr] : {a} ≤ _)
   simp only [bot_eq_empty, le_eq_subset, subset_empty_iff, singleton_ne_empty] at this
+
+lemma leftSet_Sep_compl (h : G.IsVxSetSeparator V S T) :
+    G.IsVxSetSeparator V h.leftSet (h.leftSet ∪ V)ᶜ := by
+  rintro a ⟨s, hs, hconnas⟩ b hb hconn
+  refine hb ?_
+  left
+  use s, hs, hconn.symm.trans hconnas
+
+lemma rightSet_Sep_compl (h : G.IsVxSetSeparator V S T) :
+    G.IsVxSetSeparator V h.rightSet (h.rightSet ∪ V)ᶜ := by
+  rintro a ⟨t, ht, hconnat⟩ b hb hconn
+  refine hb ?_
+  left
+  use t, ht, hconn.symm.trans hconnat
+
+lemma compl_Sep_leftSet (h : G.IsVxSetSeparator V S T) :
+    G.IsVxSetSeparator V (h.leftSet ∪ V)ᶜ h.leftSet := h.leftSet_Sep_compl.symm
+
+lemma compl_Sep_rightSet (h : G.IsVxSetSeparator V S T) :
+    G.IsVxSetSeparator V (h.rightSet ∪ V)ᶜ h.rightSet := h.rightSet_Sep_compl.symm
+
+lemma leftSet_Sep_rightSet (h : G.IsVxSetSeparator V S T) :
+    G.IsVxSetSeparator V h.leftSet h.rightSet := by
+  refine h.leftSet_Sep_compl.subset_target ?_
+  simp only [compl_union, subset_inter_iff]
+  rw [subset_compl_iff_disjoint_left, subset_compl_iff_disjoint_left]
+  exact ⟨h.leftSet_rightSet_disjoint, h.rightSet_V_disjoint.symm⟩
+
+lemma mem_of_isBetween_leftSet (hbtw : G.IsBetween e u v) (hu : u ∈ h.leftSet) :
+    v ∈ h.leftSet ∪ V := by
+  obtain ⟨s, hs, hconn⟩ := hu
+  by_contra! hvV
+  simp only [leftSet, mem_union, mem_setOf_eq, not_or, not_exists, not_and] at hvV
+  obtain ⟨hnconn, hvV⟩ := hvV
+  exact hnconn s hs
+  <| (hbtw.induce_of_mem hconn.mem_left ⟨hbtw.vx_mem_right, hvV⟩).connected.symm.trans hconn
+
+lemma mem_of_isBetween_rightSet (hbtw : G.IsBetween e u v) (hv : v ∈ h.rightSet) :
+    u ∈ h.rightSet ∪ V := by
+  obtain ⟨t, ht, hconn⟩ := hv
+  by_contra! huV
+  simp only [rightSet, mem_union, mem_setOf_eq, not_or, not_exists, not_and] at huV
+  obtain ⟨hnconn, huV⟩ := huV
+  refine hnconn t ht <| hbtw.induce_of_mem (⟨hbtw.vx_mem_left, huV⟩ : u ∈ G.V \ V) hconn.mem_left
+  |>.connected.trans hconn
+
+/-- Given a set of edges, there is a separator that puts those edges on one side and the rest of
+the edges on the other side. -/
+def of_edges (G : Graph α β) (U : Set β) :
+    G.IsVxSetSeparator {v | (∃ e ∈ U, G.Inc v e) ∧ ∃ e' ∉ U, G.Inc v e'}
+    {v | ∃ e ∈ U, G.Inc v e} {v | ∃ e ∉ U, G.Inc v e} := by
+  rintro s ⟨e, heU, hse⟩ t ⟨f, hfU, htf⟩ hconn
+  sorry
+
+
+end IsVxSetSeparator
+
 
 def IsVxConnected (G : Graph α β) (n : ℕ) : Prop :=
   ∀ S : Finset α, S.card < n → (G[G.V \ S]).Conn
