@@ -1,5 +1,6 @@
 import Mathlib.Data.List.Sym
 import Mathlib.Data.List.DropRight
+import Mathlib.Data.List.Nodup
 import Batteries.Data.Nat.Basic
 import Kura.Dep.Fin
 
@@ -397,6 +398,18 @@ lemma getElem_val_eq_self {n : ℕ} {l : List α} (hn : n ≤ l.length) {i : Fin
     {htake : i.val < (l.take n).length} : l[i.val] = (l.take n)[i.val] := by
   simp only [getElem_take]
 
+lemma isPrefix_concat (l : List α) (a : α) : l <+: l.concat a := by
+  induction l with
+  | nil => simp only [concat_eq_append, nil_append, nil_prefix]
+  | cons b l ih => simp only [concat_eq_append, cons_append, cons_prefix_cons, prefix_append,
+    and_self]
+
+lemma nodup_concat {a : α} {l : List α} : (l.concat a).Nodup ↔ l.Nodup ∧ a ∉ l := by
+  refine ⟨fun h ↦ ⟨?_, ?_⟩, fun ⟨a, b⟩ ↦ a.concat b⟩
+  · exact h.sublist (isPrefix_concat l a).sublist
+  · intro hal
+    rw [← nodup_reverse, concat_eq_append, reverse_concat, nodup_cons] at h
+    exact h.1 (mem_reverse.mpr hal)
 
 lemma Chain.prefix {l1 l2 : List α} {a : α} {p : α → α → Prop} (h : List.Chain p a l2) (h' : l1 <+: l2) :
     List.Chain p a l1 := by

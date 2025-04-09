@@ -201,7 +201,7 @@ def induce (G : Graph α β) (U : Set α) : Graph α β := by
 
 notation G "[" S "]" => Graph.induce G S
 
-variable {U : Set α}
+variable {U U' : Set α}
 
 @[simp]
 abbrev vxDel (G : Graph α β) (V : Set α) : Graph α β := G[G.V \ V]
@@ -222,6 +222,10 @@ lemma induce_isBetween_iff : (G[U]).IsBetween e x y ↔ G.IsBetween e x y ∧ x 
 lemma IsBetween.of_IsBetween_induce (h : (G[U]).IsBetween e x y) : G.IsBetween e x y := by
   rw [induce_isBetween_iff] at h
   exact h.1
+
+lemma IsBetween.iff_induce_pair : G.IsBetween e x y ↔ G[{x, y}].IsBetween e x y := by
+  simp only [induce_isBetween_iff, mem_insert_iff, mem_singleton_iff, true_or, or_true, and_self,
+    and_true]
 
 @[simp]
 lemma induce_inc_iff : (G[U]).Inc v e ↔ G.Inc v e ∧ ∀ (x : α), G.Inc x e → x ∈ U := by
@@ -467,7 +471,7 @@ notation:10 G "-ᴳ" e => Graph.restrict G (Graph.E G \ {e})
 @[simp]
 abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
-variable {G : Graph α β} {R : Set β}
+variable {G : Graph α β} {R R' : Set β}
 
 @[simp]
 lemma restrict_V : (G{R}).V = G.V := rfl
@@ -706,8 +710,7 @@ lemma induce_induce_eq_induce_right (U V : Set α) (h : G.V ∩ V ⊆ U) : G[U][
     exact h ⟨hyinc.vx_mem, hincV y hyinc⟩
 
 /-- G{R}[U] is the prefered notation for explicit subgraph over G[U]{R} -/
-lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) :
-    G[U]{R} = G{R}[U] := by
+lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) : G[U]{R} = G{R}[U] := by
   ext1
   · simp only [restrict_V, induce_V]
   · ext e
@@ -760,6 +763,34 @@ theorem exists_subgraph_of_le (hle : G₁ ≤ G₂) : G₁ = G₂{G₁.E}[G₁.V
       exact hinc2.vx_mem
     · rintro h2inc h1e hforall
       exact (Inc_iff_Inc_of_edge_mem_le hle h1e).mpr h2inc
+
+-- @[simp]
+-- lemma induce_le_subgraph_iff : G[U'] ≤ G{R}[U] ↔ U' ⊆ U ∧ (∀ e ∈ G.E, (∀ u, G.Inc u e → u ∈ U') → e ∈ R) := by
+--   constructor
+--   · rintro h
+--     refine ⟨h.1, fun e he h' ↦ ?_⟩
+--     refine (h.2.1 (?_ : e ∈ G[U'].E)).1.2
+--     simp only [induce_E, mem_inter_iff, mem_setOf_eq]
+--     exact ⟨he, h'⟩
+--   · rintro ⟨hU, hR⟩
+--     refine ⟨hU, ?_, ?_⟩
+--     · rintro e
+--       simp +contextual only [induce_E, mem_inter_iff, mem_setOf_eq, restrict_E, restrict_inc,
+--         and_imp, implies_true, hR e, and_self, forall_const, true_and]
+--       rintro he h' x hxinc
+--       exact hU (h' x hxinc)
+--     · simp +contextual only [induce_E, mem_inter_iff, mem_setOf_eq, induce_inc_iff, implies_true,
+--       and_true, restrict_inc, hR, iff_self_and, and_imp]
+--       rintro v e he h hinc x hxinc
+--       exact hU (h x hxinc)
+
+lemma le_iff_of_mutual_le {G₁ G₂ G : Graph α β} (h1le : G₁ ≤ G) (h2le : G₂ ≤ G) : G₁ ≤ G₂ ↔
+    G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E := by
+  constructor <;> rintro h
+  · exact ⟨h.1, h.2.1⟩
+  · refine ⟨h.1, h.2, ?_⟩
+    rintro v e he
+    rw [Inc_iff_Inc_of_edge_mem_le h1le he, Inc_iff_Inc_of_edge_mem_le h2le (h.2 he)]
 
 
 @[mk_iff]

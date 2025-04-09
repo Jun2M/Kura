@@ -1,7 +1,7 @@
 import Mathlib.Logic.Embedding.Set
 import Mathlib.Logic.Equiv.Set
 import Mathlib.Tactic
-import Kura.Dep.UnpackSingleton
+import Kura.Dep.singletonEquiv
 
 
 lemma Set.rangeSplitting_apply' {α β : Type*} {f : α → β} (hf : Function.Injective f) (x : α) :

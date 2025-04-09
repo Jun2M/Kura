@@ -5,28 +5,31 @@ import Mathlib.Order.Closure
 import Mathlib.Combinatorics.SimpleGraph.Path
 import Kura.Dep.List
 
+variable {α : Type*} {r : α → α → Prop}
 
-lemma Irreflexive.ne_of_rel {α : Type u} {r : α → α → Prop} (h : Irreflexive r) {x y : α}
+
+lemma Irreflexive.ne_of_rel (h : Irreflexive r) {x y : α}
     (hxy : r x y) : x ≠ y := by
   rintro rfl
   exact h x hxy
 
-def List.extend? {α : Type*} (r : α → α → Prop) [DecidableRel r] (a : α) (l : List α) :
+def List.extend? (r : α → α → Prop) [DecidableRel r] (a : α) (l : List α) :
     Option (List α) :=
   match l with
   | [] => none
   | h :: _ => if r a h then some (a :: l) else none
 
-def List.Chain'_extend? {α : Type*} (r : α → α → Prop) [DecidableRel r] (a : α)
+def List.Chain'_extend? (r : α → α → Prop) [DecidableRel r] (a : α)
     (l : {l : List α // l.Chain' r}) : Option {l : List α // l.Chain' r} :=
   match l with
   | ⟨[], _⟩ => none
   | ⟨b :: bs, hl⟩ => if hr : r a b then some ⟨a :: b :: bs, by simp only [chain'_cons, hr, hl,
     and_self]⟩ else none
 
-lemma List.length_add_one_eq_of_Chain'_extend?_eq_some {α : Type*} {r : α → α → Prop} [DecidableRel r]
-    {a : α} {l l' : {l : List α // l.Chain' r}} (hl : List.Chain'_extend? r a l = some l') :
-    l.val.length + 1 = l'.val.length := by
+variable [DecidableRel r]
+
+lemma List.length_add_one_eq_of_Chain'_extend?_eq_some {a : α} {l l' : {l : List α // l.Chain' r}}
+    (hl : List.Chain'_extend? r a l = some l') : l.val.length + 1 = l'.val.length := by
   unfold List.Chain'_extend? at hl
   match l with
   | ⟨[], _⟩ => contradiction
@@ -35,9 +38,8 @@ lemma List.length_add_one_eq_of_Chain'_extend?_eq_some {α : Type*} {r : α → 
     obtain ⟨hr, rfl⟩ := hl
     simp only [length_cons]
 
-lemma List.suffix_of_Chain'_extend?_eq_some {α : Type*} {r : α → α → Prop} [DecidableRel r]
-    {a : α} {l l' : {l : List α // l.Chain' r}} (hl : List.Chain'_extend? r a l = some l') :
-    l.val.IsSuffix l'.val := by
+lemma List.suffix_of_Chain'_extend?_eq_some {a : α} {l l' : {l : List α // l.Chain' r}}
+    (hl : List.Chain'_extend? r a l = some l') : l.val.IsSuffix l'.val := by
   unfold List.Chain'_extend? at hl
   match l with
   | ⟨[], _⟩ => contradiction
@@ -47,17 +49,18 @@ lemma List.suffix_of_Chain'_extend?_eq_some {α : Type*} {r : α → α → Prop
     simp only [length_cons]
     exact suffix_cons a (b :: bs)
 
-instance DecidableRel_flip {α : Type*} {r : α → α → Prop} [DecidableRel r] : DecidableRel (flip r) :=
+instance DecidableRel_flip : DecidableRel (flip r) :=
   fun a b => decidable_of_iff' (r b a) (by rfl)
 
 namespace Relation
+section finsetChainLength
+variable [DecidableEq α] [Fintype α]
 
-instance ReflGenDecidable {α : Type*} {r : α → α → Prop} [DecidableEq α] [DecidableRel r] :
-    DecidableRel (ReflGen r) :=
+instance ReflGenDecidable : DecidableRel (ReflGen r) :=
   fun a b => decidable_of_iff' (b = a ∨ r a b) (Relation.reflGen_iff r a b)
 
-def finsetChainLength_rev {α : Type*} [Fintype α] [DecidableEq α] (r : α → α → Prop)
-    [DecidableRel r] (a : α) : (n : ℕ) → Finset {l : List α // l.Chain' (flip r)}
+def finsetChainLength_rev (r : α → α → Prop) [DecidableRel r] (a : α) :
+    (n : ℕ) → Finset {l : List α // l.Chain' (flip r)}
   | 0 => { ⟨[a], by simp⟩ }
   | n + 1 => Finset.univ.biUnion fun (w : α) =>
     (finsetChainLength_rev r a n).filterMap (fun l => List.Chain'_extend? (flip r) w l)
@@ -71,16 +74,15 @@ def finsetChainLength_rev {α : Type*} [Fintype α] [DecidableEq α] (r : α →
     subst hl2tail
     simpa using hl1tail)
 
-def finsetChainLength {α : Type*} [Fintype α] [DecidableEq α] (r : α → α → Prop) [DecidableRel r]
-    (a : α) (n : ℕ) : Finset {l : List α // l.Chain' r} :=
+def finsetChainLength (r : α → α → Prop) [DecidableRel r] (a : α) (n : ℕ) :
+    Finset {l : List α // l.Chain' r} :=
   (finsetChainLength_rev r a n).map ⟨by
     rintro ⟨l, hl⟩
     refine ⟨l.reverse, List.chain'_reverse.mpr hl⟩, by
       rintro ⟨l1, hl1⟩ ⟨l2, hl2⟩ h
       simpa only [Subtype.mk.injEq, List.reverse_inj] using h⟩
 
-lemma ne_nil_of_mem_finsetChainLength {α : Type*} [Fintype α] [DecidableEq α] {r : α → α → Prop}
-    [DecidableRel r] {a : α} {n : ℕ} {l : {l : List α // l.Chain' r}}
+lemma ne_nil_of_mem_finsetChainLength {a : α} {n : ℕ} {l : {l : List α // l.Chain' r}}
     (hl : l ∈ finsetChainLength r a n) : l.val ≠ [] := by
   induction' n with n ih <;> unfold finsetChainLength finsetChainLength_rev at hl
   · simp only [Finset.map_singleton, Function.Embedding.coeFn_mk, List.reverse_cons,
@@ -95,8 +97,7 @@ lemma ne_nil_of_mem_finsetChainLength {α : Type*} [Fintype α] [DecidableEq α]
     simp only [List.length_reverse, gt_iff_lt] at this ⊢
     omega
 
-lemma coe_finsetChainLength {α : Type*} [Fintype α] [DecidableEq α] {r : α → α → Prop}
-    [DecidableRel r] {a : α} {n : ℕ} : (finsetChainLength r a n : Set _) =
+lemma coe_finsetChainLength {a : α} {n : ℕ} : (finsetChainLength r a n : Set _) =
     {l : {l : List α // l.Chain' r} | ∃ h : l.val.length = n+1,
       l.val.head (List.ne_nil_of_length_pos (by omega)) = a} := by
   induction' n with n ih
@@ -109,7 +110,7 @@ lemma coe_finsetChainLength {α : Type*} [Fintype α] [DecidableEq α] {r : α �
     · rintro rfl
       simp [List.getLast_singleton, List.length_singleton, exists_const]
     · rintro ⟨h, rfl⟩
-      rw [List.length_eq_one] at h
+      rw [List.length_eq_one_iff] at h
       obtain ⟨a, hL⟩ := h
       rw [← Subtype.coe_inj]
       simp [hL, List.getLast_singleton]
@@ -172,14 +173,12 @@ lemma coe_finsetChainLength {α : Type*} [Fintype α] [DecidableEq α] {r : α �
           simp only [this.rel_head, ↓reduceDIte, Option.some.injEq, Subtype.mk.injEq]
           exact hreverse.symm
 
-lemma mem_finsetChainLength_iff {α : Type*} [Fintype α] [DecidableEq α] {r : α → α → Prop}
-    [DecidableRel r] {a : α} {n : ℕ} {l : {l : List α // l.Chain' r}} :
+lemma mem_finsetChainLength_iff {a : α} {n : ℕ} {l : {l : List α // l.Chain' r}} :
     l ∈ finsetChainLength r a n ↔
     ∃ hlen : l.val.length = n + 1, l.val.head (List.ne_nil_of_length_pos (by omega)) = a := by
   rw [← Finset.mem_coe, coe_finsetChainLength, Set.mem_setOf_eq]
 
-lemma ReflTransGen_iff_exists_finsetChainLength {α : Type*} [Fintype α] [DecidableEq α]
-    {r : α → α → Prop} [DecidableRel r] {a b : α} : ReflTransGen r a b ↔
+lemma ReflTransGen_iff_exists_finsetChainLength {a b : α} : ReflTransGen r a b ↔
     ∃ (n : Fin (Fintype.card α)) (l : {l : List α // l.Chain' r}) (h : l ∈ finsetChainLength r a n),
     l.val.getLast (ne_nil_of_mem_finsetChainLength h) = b := by
   constructor
@@ -200,12 +199,14 @@ lemma ReflTransGen_iff_exists_finsetChainLength {α : Type*} [Fintype α] [Decid
     · simp only [List.head_cons_tail]
 
 
-instance ReflTransGenDeciable {α : Type*} {r : α → α → Prop} [hFin: Fintype α] [hEq: DecidableEq α]
-    [hRel : DecidableRel r] : DecidableRel (ReflTransGen r) := fun a b => by
+instance ReflTransGenDeciable : DecidableRel (ReflTransGen r) := fun a b => by
   apply decidable_of_iff' _ (ReflTransGen_iff_exists_finsetChainLength)
 
+end finsetChainLength
 
-lemma TransGen.symmetric {α : Type*} {r : α → α → Prop} (h : Symmetric r) : Symmetric (TransGen r) := by
+
+omit [DecidableRel r] in
+lemma TransGen.symmetric (h : Symmetric r) : Symmetric (TransGen r) := by
   rintro x y hTG
   induction hTG with
   | single hr => exact single (h hr)
@@ -213,7 +214,7 @@ lemma TransGen.symmetric {α : Type*} {r : α → α → Prop} (h : Symmetric r)
 
 
 
-def ReflClosure {α : Type*} : ClosureOperator (α → α → Prop) where
+def ReflClosure : ClosureOperator (α → α → Prop) where
   toFun := ReflGen
   monotone' _ _ h _ _ h' := ReflGen.mono h h'
   le_closure' _ _ _ := ReflGen.single
@@ -225,7 +226,7 @@ def ReflClosure {α : Type*} : ClosureOperator (α → α → Prop) where
     · exact ReflGen.refl
     · exact ReflGen.single (ReflGen.single h')
 
-def TransClosure {α : Type*} : ClosureOperator (α → α → Prop) where
+def TransClosure : ClosureOperator (α → α → Prop) where
   toFun := TransGen
   monotone' _ _ h _ _ h' := TransGen.mono h h'
   le_closure' _ _ _ := TransGen.single
@@ -237,7 +238,7 @@ def TransClosure {α : Type*} : ClosureOperator (α → α → Prop) where
       | tail _ h' ih => exact TransGen.trans ih h'
     · exact TransGen.single h
 
-def ReflTransClosure {α : Type*} : ClosureOperator (α → α → Prop) where
+def ReflTransClosure : ClosureOperator (α → α → Prop) where
   toFun := ReflTransGen
   monotone' _ _ h _ _ h' := ReflTransGen.mono h h'
   le_closure' _ _ _ := ReflTransGen.single
@@ -249,7 +250,7 @@ def ReflTransClosure {α : Type*} : ClosureOperator (α → α → Prop) where
       | tail _ h' ih => exact ReflTransGen.trans ih h'
     · exact ReflTransGen.single h
 
-def EqvGenClosure {α : Type*} : ClosureOperator (α → α → Prop) where
+def EqvGenClosure : ClosureOperator (α → α → Prop) where
   toFun := EqvGen
   monotone' _ _ h _ _ h' := EqvGen.mono h h'
   le_closure' _ a b := EqvGen.rel a b
@@ -267,7 +268,7 @@ end Relation
 
 namespace ClosureOperator
 
-lemma closure_eq_closure_of_le_of_le_closure {α : Type*} {r s : α} [PartialOrder α]
+lemma closure_eq_closure_of_le_of_le_closure {r s : α} [PartialOrder α]
   {c : ClosureOperator α} (hle : r ≤ s) (hlec : s ≤ c r) : c r = c s := by
   apply le_antisymm
   · exact c.monotone hle

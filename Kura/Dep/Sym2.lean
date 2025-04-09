@@ -1,6 +1,6 @@
 import Mathlib.Data.Sym.Sym2.Order
 import Kura.Dep.Embedding
-import Kura.Dep.UnpackSingleton
+import Kura.Dep.singletonEquiv
 import Mathlib.Data.Sym.Card
 
 
