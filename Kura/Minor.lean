@@ -14,7 +14,7 @@ namespace Graph
     2. Vertices are relabeled according to the mapping function `φ`
 
     This is the fundamental operation for creating graph minors. -/
-def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
+noncomputable def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
   (G.vxMap φ){G.E \ C}
 
 notation:1023 G "/["φ"]" C => Graph.Contract G φ C
@@ -93,7 +93,7 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidOn G �
     simp only [ConnectedPartition, rel_ofRel'_eq]
     exact h_connected
 
-def SubgraphContractFun (G : Graph α β) (S : Set β) :=
+noncomputable def SubgraphContractFun (G : Graph α β) (S : Set β) :=
   fun x ↦ G{S}[{y | G{S}.Connected x y}]
 
 lemma SubgraphContractFun.ValidOn (S : Set β) : ValidOn G (SubgraphContractFun G S) S := by
@@ -115,7 +115,7 @@ lemma SubgraphContractFun.ValidOn (S : Set β) : ValidOn G (SubgraphContractFun 
 -- noncomputable def ContractSys.confine {m : ContractSys α β α'} (hmvalid : m.validOn G) (R : Set α) :
 --     ContractSys α β α' where
 --   toFun v := ite (m v ∈ R) (h := Classical.dec _) (m v) v
---   contractSet := {e ∈ m.contractSet | ∃ v, G.Inc v e ∧ m v ∈ R}
+--   contractSet := {e ∈ m.contractSet | ∃ v, G.Inc e v ∧ m v ∈ R}
 
 -- lemma ContractSys.ValidOn.confine {m : ContractSys α β} (hmvalid : m.validOn G) (R : Set α) :
 --     (m.confine hmvalid R).validOn (G[m.toFun ⁻¹' R]) := by
@@ -173,8 +173,8 @@ lemma E_subset : (G /[φ] C).E ⊆ G.E := by
   tauto_set
 
 @[simp]
-lemma Inc {x : α'} : (G /[φ] C).Inc x e ↔ ∃ v, φ v = x ∧ G.Inc v e ∧ e ∉ C := by
-  simp +contextual only [Contract, vxMap, restrict_inc, mem_diff, iff_def]
+lemma Inc {x : α'} : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ e ∉ C := by
+  simp +contextual only [Contract, vxMap_inc_iff, restrict_inc, mem_diff, iff_def]
   constructor
   · rintro ⟨⟨v, rfl, hv⟩, hin, hnin⟩
     use v
@@ -203,12 +203,13 @@ lemma contract_eq_contract_iff :
     simpa using hE
   · have hE' := Set.ext_iff.mp hE
     simp only [mem_diff, and_congr_right_iff] at hE'
-    ext1
+    apply ext_inc
     · simp
     · ext e
       specialize hE' e
       simpa  [E, mem_diff, and_congr_right_iff]
-    · simp only [Inc]
+    · intro e x
+      simp only [Inc]
       constructor <;> rintro ⟨x, rfl, hinc, hnin⟩ <;> use x, rfl, hinc
       · rwa [← hE' _ hinc.edge_mem]
       · rwa [hE' _ hinc.edge_mem]
@@ -216,10 +217,10 @@ lemma contract_eq_contract_iff :
 @[simp]
 lemma contract_restrict_eq_restrict_contract {S : Set β} :
     (G /[φ] C){S} = (G{S ∪ (G.E ∩ C)} /[φ] C) := by
-  ext x e
+  apply ext_inc
   · simp
   · simp only [restrict_E, E, mem_inter_iff, mem_diff, mem_union]
-    tauto
+    tauto_set
   · simp only [restrict_inc, Inc, mem_union, mem_inter_iff]
     tauto
 
@@ -366,7 +367,7 @@ lemma IsBetween.contractFun_validOn (hexy : G.IsBetween e x y) [DecidableEq α] 
     simp [hnadj, ha]
 
 lemma IsBetween.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.IsBetween e x y)
-    (h : ¬ G.Inc u e) : hexy.contractFun u = u := by
+    (h : ¬ G.Inc e u) : hexy.contractFun u = u := by
   simp only [contractFun, ite_eq_right_iff]
   rintro rfl
   exact (h hexy.inc_right).elim
@@ -391,7 +392,7 @@ lemma IsBetween.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsBetween e x y) 
 namespace Contract
 variable {φ : α → α'} {τ : α' → α''} {C D : Set β} {x y : α'}
 
-instance instFinite [h : G.Finite] : (G /[φ] C).Finite where
+instance instFinite [h : G.FiniteGraph] : (G /[φ] C).FiniteGraph where
   vx_fin := Set.Finite.image φ h.vx_fin
   edge_fin := by
     apply Set.Finite.subset (h.edge_fin)

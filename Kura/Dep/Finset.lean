@@ -4,6 +4,8 @@ import Kura.Dep.List
 import Mathlib.Data.Set.Card
 
 
+variable {α β: Type*}
+
 lemma Set.not_injOn_of_card_lt_card {s : Set α} {hs : s.Finite} {f : α → β}
     {hrange : (Set.range f).Finite} (h : hrange.toFinset.card < hs.toFinset.card) :
     ¬ Set.InjOn f s := by
@@ -19,7 +21,6 @@ lemma Set.not_injOn_of_card_lt_card {s : Set α} {hs : s.Finite} {f : α → β}
     subset_univ]
 
 namespace Multiset
-variable {α : Type*}
 
 def attachWith (s : Multiset α) (P : α → Prop) (H : ∀ (x : α), x ∈ s → P x) :
   Multiset {x // P x} :=
@@ -58,19 +59,19 @@ lemma ne_zero_of_mem {s : Multiset α} {a : α} (h : a ∈ s) : s ≠ 0 := by
   rw [h0] at h
   exact not_mem_zero a h
 
-lemma attachWith_map_val' [DecidableEq α] {s : Multiset α} {P : α → Prop}
-  (H : ∀ (x : α), x ∈ s → P x) (f : α → β) :
-    (s.attachWith P H).map (f ·.val) = s.map f := by
-  apply Quot.inductionOn
-  rintro l
-  -- have := List.attachWith_map_val
-  sorry
+-- lemma attachWith_map_val' [DecidableEq α] {s : Multiset α} {P : α → Prop}
+--   (H : ∀ (x : α), x ∈ s → P x) (f : α → β) :
+--     (s.attachWith P H).map (f ·.val) = s.map f := by
+--   apply Quot.inductionOn
+--   rintro l
+--   -- have := List.attachWith_map_val
+--   sorry
 
-@[simp]
-lemma attachWith_map_val [DecidableEq α] (s : Multiset α) {P : α → Prop}
-  (H : ∀ (x : α), x ∈ s → P x) : (s.attachWith P H).map Subtype.val = s := by
-  -- exact Quot.induction (fun l => (attachWith_map_val' H Subtype.val).symm) s
-  sorry
+-- @[simp]
+-- lemma attachWith_map_val [DecidableEq α] (s : Multiset α) {P : α → Prop}
+--   (H : ∀ (x : α), x ∈ s → P x) : (s.attachWith P H).map Subtype.val = s := by
+--   -- exact Quot.induction (fun l => (attachWith_map_val' H Subtype.val).symm) s
+--   sorry
 
 @[simp]
 lemma sizeOf_coe (l : List α) : sizeOf (l : Multiset α) = sizeOf l := rfl
@@ -98,6 +99,20 @@ lemma sizeOf_filter_lt_filter {p q : α → Prop} [DecidablePred p] [DecidablePr
     (by simpa using hs) hp hq]
 
 
+lemma pair_eq_pair_iff {a b c d : α} :
+    ({a, b} : Multiset α) = {c, d} ↔ a = c ∧ b = d ∨ a = d ∧ b = c := by
+  constructor
+  · intro h
+    have ha : a ∈ ({a, b} : Multiset α) := by simp
+    simp only [h, insert_eq_cons, mem_cons, mem_singleton] at ha
+    obtain rfl | rfl := ha
+    · simp_all only [insert_eq_cons, cons_inj_right, singleton_inj, and_self, true_or]
+    · rw [pair_comm] at h
+      simp_all only [insert_eq_cons, cons_inj_left, and_self, or_true]
+  · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
+    · rfl
+    · rw [pair_comm]
+
 end Multiset
 
 namespace Finset
@@ -112,6 +127,8 @@ def attachWith {α : Type*} (s : Finset α) (P : α → Prop) (H : ∀ (x : α),
   nodup := s.nodup.pmap (by simp only [Subtype.mk.injEq, imp_self, implies_true])
 
 end Finset
+
+variable {V : Type*}
 
 instance Fintype.subtypeOfFintype [Fintype V] (P : V → Prop) [DecidablePred P] : Fintype {v // P v} where
   elems := Finset.attachWith (Finset.univ.filter P) P (by simp only [Finset.mem_filter,

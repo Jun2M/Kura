@@ -1453,10 +1453,9 @@ lemma append_validOn {p q : Path α β} (heq : p.val.finish = q.val.start)
     (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) : (p.append q hDisj).val.ValidOn G :=
   Walk.append_validOn heq hpVd hqVd
 
-lemma edge_not_isLoop (he : e ∈ p.val.edge) (hVd : p.val.ValidOn G) : ¬ G.IsLoop e := by
+lemma edge_not_isLoop (he : e ∈ p.val.edge) (hVd : p.val.ValidOn G) : ¬ G.IsLoopAt e x := by
   intro hloop
-  rw [IsLoop_iff_IsBetween] at hloop
-  obtain ⟨x, hbtw⟩ := hloop
+  rw [IsLoopAt_iff_IsBetween] at hloop
   obtain ⟨w₁, w₂, hw12, hnin⟩ := eq_append_cons_of_edge_mem he
   have hbtw' : G.IsBetween e w₁.finish w₂.start := by
     simp only [ValidOn, hw12] at hVd
@@ -1465,7 +1464,7 @@ lemma edge_not_isLoop (he : e ∈ p.val.edge) (hVd : p.val.ValidOn G) : ¬ G.IsL
   have hNodup := hw12 ▸ p.prop
   simp only [Walk.append_vx, cons_vx] at hNodup
   have := List.Nodup.of_append_right hNodup
-  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hbtw.eq_or_eq_of_IsBetween hbtw'
+  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hloop.eq_or_eq_of_IsBetween hbtw'
   · rw [← w₂.vx.head_cons_tail vx_ne_nil, heq, start_eq_vx_head] at this
     simp only [head_cons_tail, nodup_cons, head_mem, not_true_eq_false, false_and] at this
   · rw [← w₂.vx.head_cons_tail vx_ne_nil, ← heq, start_eq_vx_head] at this
@@ -1474,9 +1473,9 @@ lemma edge_not_isLoop (he : e ∈ p.val.edge) (hVd : p.val.ValidOn G) : ¬ G.IsL
 lemma ne_of_isBetween_edge_mem (hVd : p.val.ValidOn G) (hbtw : G.IsBetween e u v)
     (he : e ∈ p.val.edge) : u ≠ v := by
   rintro huv
-  refine edge_not_isLoop he hVd ?_
-  rw [IsLoop_iff_IsBetween]
-  exact ⟨v, huv ▸ hbtw⟩
+  refine edge_not_isLoop (x := v) he hVd ?_
+  rw [IsLoopAt_iff_IsBetween]
+  exact huv ▸ hbtw
 
 @[simp]
 lemma start_not_mem_vx_tail {p : Path α β} : p.val.start ∉ p.val.vx.tail := by
@@ -2039,7 +2038,7 @@ lemma FinishSet_ncard : Ps.FinishSet.ncard = Ps.Paths.ncard := by
 lemma ValidOn.le {G' : Graph α β} (h : G ≤ G') (hVd : Ps.ValidOn G) :
     Ps.ValidOn G' := fun p hp ↦ (hVd p hp).le h
 
-lemma finite_of_finite_graph (h : G.Finite) (hVd : Ps.ValidOn G) : Ps.Paths.Finite := by
+lemma finite_of_finite_graph (h : G.FiniteGraph) (hVd : Ps.ValidOn G) : Ps.Paths.Finite := by
   have hle := (Ps.startSet_subset_VxSet).trans (Ps.VxSet_subset_of_validOn hVd)
   have hst : Ps.StartSet.Finite := Finite.subset h.1 hle
   exact (finite_image_iff Ps.start_injOn).mp hst

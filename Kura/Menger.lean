@@ -1,4 +1,5 @@
 import Kura.Walk
+import Mathlib.Data.Set.Disjoint
 
 open Set Function List Nat Graph.Path.PathEnsemble
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β}
@@ -7,7 +8,7 @@ namespace Graph
 namespace Path
 
 set_option maxHeartbeats 1000000 in
-theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : G.Finite] (S T : Set α)
+theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : G.FiniteGraph] (S T : Set α)
     (k : ℕ) (hS : S.Finite) (hT : T.Finite) (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard) :
     ∃ (Ps : PathEnsemble α β), Ps.Paths.ncard = k ∧ Ps.ValidOn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
   classical
@@ -72,16 +73,17 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     rw [← induce_induce_eq_induce_right (G.V \ U), ← diff_diff]
     exact induce_le _ diff_subset
     tauto_set
-  -- have hGeleG : Ge ≤ G := (induce_le (G{G.E \ {e}}) diff_subset).trans (restrict_le G _)
+  have hGeleG : Ge ≤ G := sorry
+  -- (induce_le (G{G.E \ {e}}) diff_subset).trans (restrict_le G _)
   -- Golf this somehow?
   have hGxleGe : G[(G.V \ U) \ {x}] ≤ Ge := by
     rw [le_iff_of_mutual_le hGxleGU hGeleGU]
-    use diff_diff ▸ Set.diff_subset, fun e ↦ ?_
+    use diff_subset, fun e ↦ ?_
     simp +contextual only [union_singleton, induce_E, mem_diff, Set.mem_insert_iff, not_or,
       Set.mem_inter_iff, mem_setOf_eq, restrict_E, restrict_inc, mem_singleton_iff, and_imp,
       true_and, not_false_eq_true, and_self, implies_true, imp_self, and_true, x, Ge]
     rintro he hinc rfl
-    exact (hinc x (hxy.inc_left.le <| induce_le G Set.diff_subset)).2.1 rfl
+    exact (hinc x (hxy.inc_left.le <| induce_le G Set.diff_subset)).2 rfl
   have hGyleGe : G[G.V \ (U ∪ {y})] ≤ Ge := by
     rw [le_iff_of_mutual_le (induce_le G diff_subset) hGeleG]
     use diff_diff ▸ Set.diff_subset, fun e ↦ ?_
@@ -164,8 +166,7 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     obtain ⟨u, huU, huv⟩ := hUV
     have hUdiffu : ((U ∪ {x}) \ {u}).ncard < (U ∪ {x}).ncard := by
       refine Set.ncard_lt_ncard ?_ hUxFin
-      simp only [union_singleton, diff_ssubset_left_iff, inter_singleton_nonempty,
-        Set.mem_insert_iff, huU, or_true]
+      simp only [union_singleton, diff_singleton_sSubset, Set.mem_insert_iff, huU, or_true, Ge, x]
     specialize hsep ((U ∪ {x}) \ {u}) (Finite.diff hUxFin) ?_
     · rintro a ha b hb hconn
       refine hUxSep a ha b hb ?_
@@ -212,7 +213,7 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
   have hPUVdUxy : PU.ValidOn (G[insert x (insert y U)]) := by
     rintro p (hp | rfl)
     · refine (PathEnsemble.nil_validOn p hp).le (induce_le_induce (le_refl _) ?_)
-      exact (subset_insert _ _).trans (subset_insert _ _)
+      exact (Set.subset_insert _ _).trans (subset_insert _ _)
     · refine IsBetween.path_validOn ?_ hxney
       simp only [induce_isBetween_iff, hxy.le (induce_le _ diff_subset), Set.mem_insert_iff,
         true_or, or_true, and_self, x]
@@ -272,7 +273,7 @@ decreasing_by
       use e, he
       intro he'
       have hinc := hxy.inc_right.le (induce_le G diff_subset)
-      rw [← hle.2.2 _ _ he'] at hinc
+      rw [← Inc_iff_Inc_of_le hle he'] at hinc
       have := hinc.vx_mem
       unfold L at hLy
       unfold x at hxney
@@ -284,7 +285,7 @@ decreasing_by
       use e, he
       intro he'
       have hinc := hxy.inc_left.le (induce_le G diff_subset)
-      rw [← hle.2.2 _ _ he'] at hinc
+      rw [← Inc_iff_Inc_of_le hle he'] at hinc
       have := hinc.vx_mem
       unfold R at hRx
       unfold y at hxney
