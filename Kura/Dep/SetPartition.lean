@@ -7,6 +7,10 @@ open Set Partition
 
 variable {α : Type*} {s x y z : α}
 
+@[simp]
+lemma Set.ext_iff_simp {α : Type*} {P Q : α → Prop} : {x | P x} = {x | Q x} ↔ ∀ x, P x ↔ Q x :=
+  Set.ext_iff
+
 section Rel
 
 variable {s t : Set α} {a b : α} {P : Partition s}

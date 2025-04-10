@@ -2,7 +2,7 @@ import Kura.Basic
 import Kura.Dep.SetPartition
 
 open Set Function
-variable {α β : Type*} {G H : Graph α β} {u v w x y : α} {e f g : β}
+variable {α α' β : Type*} {G H : Graph α β} {u v w x y : α} {e f g : β}
 namespace Graph
 
 
@@ -51,24 +51,27 @@ def ConnectedPartition (G : Graph α β) : Partition G.V :=
 
 -- end ConnectedPartition
 
-def vxMap {α' : Type*} (G : Graph α β) (φ : α → α') : Graph α' β where
-  V := φ '' G.V
-  E := G.E
-  Inc v e := ∃ v₀, φ v₀ = v ∧ G.Inc v₀ e
-  vx_mem_of_inc v e := by
-    rintro ⟨v₀, rfl, hv₀⟩
-    exact mem_image_of_mem _ hv₀.vx_mem
-  edge_mem_of_inc v e := by
-    rintro ⟨v₀, rfl, hv₀⟩
-    exact hv₀.edge_mem
-  exists_vertex_inc e he := by
-    obtain ⟨v, hv⟩ := G.exists_vertex_inc he
-    exact ⟨φ v, v, rfl, hv⟩
-  not_hypergraph x y z e := by
-    rintro ⟨x, rfl, hx⟩ ⟨y, rfl, hy⟩ ⟨z, rfl, hz⟩
-    obtain h | h | h := G.not_hypergraph hx hy hz <;>
-    simp only [h, true_or, or_true]
 
+lemma vxMap_aux (G : Graph α β) {f : α → α'} {x : α'} :
+    (G.incFun e).mapDomain f x ≠ 0 ↔ ∃ v, f v = x ∧ G.Inc e v := by
+  classical
+  simp +contextual [← incFun_eq_zero, Finsupp.mapDomain, Finsupp.sum,
+    Finsupp.single_apply, and_comm, ← incFun_ne_zero]
+
+/-- Maps are easy too -/
+noncomputable def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β where
+  V := f '' G.V
+  E := G.E
+  incFun e := (G.incFun e).mapDomain f
+  sum_eq e he := by rwa [Finsupp.sum_mapDomain_index (by simp) (by simp), G.sum_eq]
+  vertex_support e v := by
+    classical
+    simp only [ne_eq, vxMap_aux, Set.mem_image, forall_exists_index, and_imp]
+    exact fun x hxv h ↦ ⟨x, h.vx_mem, hxv⟩
+  edge_support e v := by
+    classical
+    simp only [ne_eq, vxMap_aux, forall_exists_index, and_imp]
+    exact fun _ _ ↦ Inc.edge_mem
 
 variable {α' : Type*} {φ : α → α'}
 
@@ -78,21 +81,23 @@ lemma vxMap.V : (G.vxMap φ).V = φ '' G.V := rfl
 @[simp]
 lemma vxMap.E : (G.vxMap φ).E = G.E := rfl
 
+/-- `vxMap` has the expected incidence predicate. -/
 @[simp]
-lemma vxMap.Inc {x : α'} : (G.vxMap φ).Inc x e ↔ ∃ v, φ v = x ∧ G.Inc v e := by
-  simp only [vxMap, exists_prop, exists_and_right, exists_eq_right]
+lemma vxMap_inc_iff (G : Graph α β) (f : α → α') (x : α') (e : β) :
+    (G.vxMap f).Inc e x ↔ ∃ v, f v = x ∧ G.Inc e v := by
+  rw [← incFun_ne_zero, ← vxMap_aux]
+  rfl
+
+@[simp]
+lemma vxMap_toMultiset_eq_map_toMultiset (G : Graph α β) (f : α → α') (e : β) :
+    (G.vxMap f).toMultiset e = Multiset.map f (G.toMultiset e) := by
+  simp only [vxMap, toMultiset, Finsupp.toMultiset_map]
 
 lemma IsBetween.vxMap_of_isBetween {x y : α} (hBtw : G.IsBetween e x y) (φ : α → α') :
     (G.vxMap φ).IsBetween e (φ x) (φ y) := by
-  refine ⟨?_, ?_, fun heq ↦ ⟨φ x, ?_, ?_⟩⟩ <;> simp only [vxMap.Inc, forall_exists_index,
-    and_imp]
-  · use x, rfl, hBtw.inc_left
-  · use y, rfl, hBtw.inc_right
-  · use x, rfl, hBtw.inc_left
-  · rintro y' v rfl hv
-    obtain rfl | rfl := hBtw.eq_of_inc hv
-    · rfl
-    · exact heq.symm
+  unfold IsBetween at hBtw ⊢
+  simp only [Multiset.insert_eq_cons, vxMap_toMultiset_eq_map_toMultiset, ← hBtw, Multiset.map_cons,
+    Multiset.map_singleton]
 
 @[simp]
 lemma vxMap.IsBetween {x y : α'} : (G.vxMap φ).IsBetween e x y ↔
@@ -109,14 +114,14 @@ lemma vxMap.IsBetween {x y : α'} : (G.vxMap φ).IsBetween e x y ↔
     exact hbtw.vxMap_of_isBetween φ
 
 
-def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where
-  V := G.V
-  E := σ ⁻¹' G.E
-  Inc v e := G.Inc v (σ e)
-  vx_mem_of_inc v e hinc := G.vx_mem_of_inc hinc
-  edge_mem_of_inc v e hinc := hinc.edge_mem
-  exists_vertex_inc e he := by
+-- def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where
+--   V := G.V
+--   E := σ ⁻¹' G.E
+--   Inc v e := G.Inc v (σ e)
+--   vx_mem_of_inc v e hinc := G.vx_mem_of_inc hinc
+--   edge_mem_of_inc v e hinc := hinc.edge_mem
+--   exists_vertex_inc e he := by
 
-    obtain ⟨v, hvinc⟩ := G.exists_vertex_inc he
-    use v
-  not_hypergraph x y z e hxinc hyinc hzinc := G.not_hypergraph hxinc hyinc hzinc
+--     obtain ⟨v, hvinc⟩ := G.exists_vertex_inc he
+--     use v
+--   not_hypergraph x y z e hxinc hyinc hzinc := G.not_hypergraph hxinc hyinc hzinc

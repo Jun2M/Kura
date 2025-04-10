@@ -1,4 +1,4 @@
-import Kura.Construct
+import Kura.Isolated
 
 
 open Set Function
@@ -8,25 +8,26 @@ namespace Graph
 
 /-- Subgraph order of Graph -/
 instance instPartialOrderGraph : PartialOrder (Graph α β) where
-  le G₁ G₂ := G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧ ∀ v e (hin : e ∈ G₁.E),
-    G₁.Inc v e ↔ G₂.Inc v e
+  le G₁ G₂ := G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧ ∀ e (hin : e ∈ G₁.E), G₁.incFun e = G₂.incFun e
   le_refl G := by simp only [subset_refl, le_refl, implies_true, exists_const, and_self]
   le_trans G₁ G₂ G₃ h₁₂ h₂₃ := by
     obtain ⟨h₁₂v, h₁₂e, h₁₂S⟩ := h₁₂
     obtain ⟨h₂₃v, h₂₃e, h₂₃S⟩ := h₂₃
     refine ⟨h₁₂v.trans h₂₃v, h₁₂e.trans h₂₃e, ?_⟩
-    rintro v e hin
-    rw [h₁₂S _ _ hin, h₂₃S _ _ (h₁₂e hin)]
+    rintro e he
+    rw [h₁₂S _ he, h₂₃S _ (h₁₂e he)]
   le_antisymm G₁ G₂ h₁₂ h₂₁ := by
     ext1
     · exact h₁₂.1.antisymm h₂₁.1
     · exact h₁₂.2.1.antisymm h₂₁.2.1
-    · rename_i v e
+    · ext e x
       by_cases h : e ∈ G₁.E
-      · rw [h₁₂.2.2 _ _ h]
-      · constructor <;> intro hInc <;> exfalso
-        · exact h <| G₁.edge_mem_of_inc hInc
-        · exact h <| (h₁₂.2.1.antisymm h₂₁.2.1) ▸ (G₂.edge_mem_of_inc hInc)
+      · rw [h₁₂.2.2 _ h]
+      · have : e ∉ G₂.E := by
+          contrapose! h
+          exact h₂₁.2.1 h
+        simp only [h, not_false_eq_true, incFun_of_not_mem_edgeSet, Finsupp.coe_zero, Pi.zero_apply,
+          this]
 
 @[simp]
 lemma vx_subset_of_le (hle : G₁ ≤ G₂) : G₁.V ⊆ G₂.V := hle.1
@@ -40,48 +41,36 @@ lemma edge_subset_of_le (hle : G₁ ≤ G₂) : G₁.E ⊆ G₂.E := hle.2.1
 @[simp]
 lemma edge_mem_of_le (hle : G₁ ≤ G₂) : e ∈ G₁.E → e ∈ G₂.E := (hle.2.1 ·)
 
-lemma Inc_iff_Inc_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) : G₁.Inc v e ↔ G₂.Inc v e :=
-  hle.2.2 _ _ he
+lemma Inc_iff_Inc_of_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) : G₁.Inc e v ↔ G₂.Inc e v := by
+  unfold Inc
+  rw [hle.2.2 e he]
+
+lemma incFun_eq_incFun_of_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) : G₁.incFun e = G₂.incFun e :=
+  hle.2.2 e he
 
 @[simp]
-lemma Inc.le (hinc : G₁.Inc x e) (hle : G₁ ≤ G₂) : G₂.Inc x e := by
-  rwa [← hle.2.2 _ _ hinc.edge_mem]
+lemma Inc.le (hinc : G₁.Inc e x) (hle : G₁ ≤ G₂) : G₂.Inc e x := by
+  rwa [← Inc_iff_Inc_of_le hle hinc.edge_mem]
 
 lemma IsLoop_iff_IsLoop_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
-    G₁.IsLoop e ↔ G₂.IsLoop e := by
-  constructor <;> rintro ⟨v, hinc, heq⟩
-  · use v, (Inc_iff_Inc_of_edge_mem_le hle he).mp hinc
-    intro y hy
-    refine heq y ?_
-    beta_reduce
-    rwa [Inc_iff_Inc_of_edge_mem_le hle hinc.edge_mem]
-  · use v, (Inc_iff_Inc_of_edge_mem_le hle he).mpr hinc
-    intro y hy
-    refine heq y ?_
-    beta_reduce
-    rwa [← Inc_iff_Inc_of_edge_mem_le hle he]
+    G₁.IsLoopAt e x ↔ G₂.IsLoopAt e x := by
+  unfold IsLoopAt
+  rw [incFun_eq_incFun_of_le hle he]
 
-lemma IsLoop.le (hisLoop : G₁.IsLoop e) (hle : G₁ ≤ G₂) : G₂.IsLoop e := by
-  rwa [← IsLoop_iff_IsLoop_of_edge_mem_le hle hisLoop.mem]
+lemma IsLoop.le (hisLoopAt : G₁.IsLoopAt e x) (hle : G₁ ≤ G₂) : G₂.IsLoopAt e x := by
+  rwa [← IsLoop_iff_IsLoop_of_edge_mem_le hle hisLoopAt.edge_mem]
 
 lemma IsBetween_iff_IsBetween_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
     G₁.IsBetween e u v ↔ G₂.IsBetween e u v := by
-  constructor <;> rintro ⟨hincu, hincv, hLoop⟩
-  · use hincu.le hle, hincv.le hle
-    rwa [← IsLoop_iff_IsLoop_of_edge_mem_le hle he]
-  · refine ⟨?_, ?_, ?_⟩
-    on_goal 3 => rwa [IsLoop_iff_IsLoop_of_edge_mem_le hle he]
-    all_goals
-      simp_rw [Inc_iff_Inc_of_edge_mem_le hle he]
-      assumption
+  unfold IsBetween toMultiset
+  rw [incFun_eq_incFun_of_le hle he]
 
 lemma IsBetween.le (h : G₁.IsBetween e u v) (hle : G₁ ≤ G₂) : G₂.IsBetween e u v := by
   rwa [← IsBetween_iff_IsBetween_of_edge_mem_le hle (edge_mem h)]
 
 lemma Adj.le (hadj : G₁.Adj u v) (hle : G₁ ≤ G₂) : G₂.Adj u v := by
-  obtain ⟨e, hincu, hincv, hLoop⟩ := hadj
-  use e, hincu.le hle, hincv.le hle
-  exact fun a ↦ (hLoop a).le hle
+  obtain ⟨e, hbtw⟩ := hadj
+  use e, hbtw.le hle
 
 lemma reflAdj.le (h : G₁.reflAdj u w) (hle : G₁ ≤ G₂) : G₂.reflAdj u w := by
   obtain hadj | ⟨rfl, hu⟩ := h
@@ -97,30 +86,29 @@ lemma Connected.le (h : G₁.Connected u v) (hle : G₁ ≤ G₂) : G₂.Connect
 
 @[simp]
 instance instOrderBotGraph : OrderBot (Graph α β) where
-  bot := {
-    V := ∅,
-    E := ∅,
-    Inc v e := False,
-    vx_mem_of_inc := by simp only [mem_empty_iff_false, imp_self, implies_true],
-    edge_mem_of_inc := by simp only [mem_empty_iff_false, imp_self, implies_true],
-    exists_vertex_inc := by simp only [mem_empty_iff_false, exists_false, imp_self, implies_true],
-    not_hypergraph := by simp only [IsEmpty.forall_iff, implies_true]
-  }
-  bot_le G := by
-    refine ⟨?_, ?_, ?_⟩
-    · simp only [empty_subset]
-    · simp only [empty_subset]
-    · simp only [mem_empty_iff_false, false_iff, IsEmpty.forall_iff, implies_true]
+  bot := Edgeless ∅
+  bot_le G := by refine ⟨?_, ?_, ?_⟩ <;> simp only [Edgeless, empty_subset, mem_empty_iff_false,
+    false_iff, IsEmpty.forall_iff, implies_true]
 
 instance instInhabitedGraph : Inhabited (Graph α β) where
   default := ⊥
 
 @[simp]
+lemma bot_V : (⊥ : Graph α β).V = ∅ := rfl
+
+@[simp]
+lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
+
+@[simp]
+lemma bot_incFun : (⊥ : Graph α β).incFun = 0 := rfl
+
+
+@[simp]
 lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
   constructor <;> rintro h
-  · ext1
+  · apply ext_inc
     · exact h
-    · simp only [instOrderBotGraph]
+    · simp only [bot_E]
       by_contra! hE
       have := h ▸ (G.exists_vertex_inc hE.some_mem).choose_spec.vx_mem
       simp only [mem_empty_iff_false] at this

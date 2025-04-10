@@ -1,31 +1,31 @@
 import Mathlib.Data.Sym.Sym2.Order
-import Kura.Dep.Embedding
 import Kura.Dep.singletonEquiv
 import Mathlib.Data.Sym.Card
+import Mathlib.Data.Nat.Cast.Order.Basic
 
 
 namespace Sym2
 
-instance Functor : Functor Sym2 where
-  map f := Sym2.map f
+-- instance Functor : Functor Sym2 where
+--   map f := Sym2.map f
 
-@[simp]
-lemma Functor.eq_map {α β : Type u} (f : α → β) :
-  (f <$> ·) = Sym2.map f := by
-  rfl
+-- @[simp]
+-- lemma Functor.eq_map {α β : Type*} (f : α → β) :
+--   (f <$> ·) = Sym2.map f := by
+--   rfl
 
-instance LawfulFunctor : LawfulFunctor Sym2 where
-  map_const := by
-    intro α β
-    rfl
-  id_map := by
-    intro α sa
-    change Sym2.map id sa = sa
-    simp only [id_eq, map_id']
-  comp_map := by
-    intro α β γ f g sa
-    change Sym2.map (g ∘ f) sa = Sym2.map g (Sym2.map f sa)
-    rw [Sym2.map_map]
+-- instance LawfulFunctor : LawfulFunctor Sym2 where
+--   map_const := by
+--     intro α β
+--     rfl
+--   id_map := by
+--     intro α sa
+--     change Sym2.map id sa = sa
+--     simp only [id_eq, map_id']
+--   comp_map := by
+--     intro α β γ f g sa
+--     change Sym2.map (g ∘ f) sa = Sym2.map g (Sym2.map f sa)
+--     rw [Sym2.map_map]
 
 -- lemma FunctorSetLikeCommute {α β : Type u} (f : α → β) :
 --   (SetLike.coe ∘ (f <$> ·) : Sym2 α → Set β) = (f <$> ·) ∘ SetLike.coe := by
@@ -33,7 +33,7 @@ instance LawfulFunctor : LawfulFunctor Sym2 where
 --   simp
 
 
-variable {α : Type*}
+variable {α β : Type*}
 
 lemma out_mk_eq_or_swap (v w : α) : Quot.out s(v, w) = (v, w) ∨ Quot.out s(v, w) = (w, v) := by
   unfold Quot.out
@@ -123,20 +123,20 @@ instance instCanLiftSym2Subtype (p : α → Prop) :
     use Sym2.mk (⟨ x.out.1, h x.out.1 (by simp) ⟩, ⟨ x.out.2, h x.out.2 (by simp) ⟩)
     simp
 
-instance instCanLiftSym2CanLift [CanLift α β f p] :
-  CanLift (Sym2 α) (Sym2 β) (Sym2.map f) (fun x => ∀ i ∈ x, p i) where
-  prf := by
-    intro x h
-    have : ∀ (x : α), p x → ∃ (y : β), f y = x := CanLift.prf
-    obtain ⟨ y1, hy1 ⟩ := this x.out.1 (h x.out.1 (Sym2.out_fst_mem x))
-    obtain ⟨ y2, hy2 ⟩ := this x.out.2 (h x.out.2 (Sym2.out_snd_mem x))
-    use s(y1, y2)
-    simp [hy1, hy2]
+-- instance instCanLiftSym2CanLift [CanLift α β f p] :
+--   CanLift (Sym2 α) (Sym2 β) (Sym2.map f) (fun x => ∀ i ∈ x, p i) where
+--   prf := by
+--     intro x h
+--     have : ∀ (x : α), p x → ∃ (y : β), f y = x := CanLift.prf
+--     obtain ⟨ y1, hy1 ⟩ := this x.out.1 (h x.out.1 (Sym2.out_fst_mem x))
+--     obtain ⟨ y2, hy2 ⟩ := this x.out.2 (h x.out.2 (Sym2.out_snd_mem x))
+--     use s(y1, y2)
+--     simp [hy1, hy2]
 
-noncomputable def liftSym2lift [CanLift α β f p] (x : Sym2 α) (h : ∀ i ∈ x, p i) : Sym2 β := by
-  let a : ∃ y, map f y = x := CanLift.prf x h
-  choose y _ using a
-  exact y
+-- noncomputable def liftSym2lift [CanLift α β f p] (x : Sym2 α) (h : ∀ i ∈ x, p i) : Sym2 β := by
+--   let a : ∃ y, map f y = x := CanLift.prf x h
+--   choose y _ using a
+--   exact y
 
 
 theorem subtype_iff_mem_sat {p : α → Prop} :
@@ -155,14 +155,27 @@ theorem subtype_iff_mem_sat {p : α → Prop} :
     exact x'.out.2.2
 
 
-instance CoeSym2Coercion {β : Type v} [Coe α β] :
-  Coe (Sym2 α) (Sym2 β) where
-  coe x := x.map (↑)
+-- instance CoeSym2Coercion {β : Type v} [Coe α β] :
+--   Coe (Sym2 α) (Sym2 β) where
+--   coe x := x.map (↑)
 
 
-theorem equivMultisetsymmEq (a b : α):
+theorem equivMultisetsymmEq (a b : α) :
   (Sym2.equivMultiset α).symm ⟨{a, b}, rfl⟩ = s(a, b) := by
   rfl
+
+@[simp]
+theorem equivMultisetsymmEq_iff {m : { s // Multiset.card s = 2 }} (a b : α) :
+  (Sym2.equivMultiset α).symm m = s(a, b) ↔ m.val = {a, b} := by
+  constructor <;> rintro h
+  · rw [← equivMultisetsymmEq a b] at h
+    simp only [EmbeddingLike.apply_eq_iff_eq] at h
+    rw [← Subtype.coe_inj] at h
+    exact h
+  · have : m = ⟨{a, b}, rfl⟩ := by
+      rw [← Subtype.coe_inj, h]
+    subst m
+    rfl
 
 private theorem mem_equivMultisetsymm_mem_of_eq (a : α) (m : { s // Multiset.card s = 2 })
     (s : Sym2 α) : s = (Sym2.equivMultiset α).symm m → (a ∈ s ↔ a ∈ m.val) := by
@@ -355,7 +368,7 @@ lemma card_not_IsDiag_eq_choose_two [DecidableEq α] [Fintype α] :
     simp only [Nat.ascFactorial_succ, add_zero, Nat.ascFactorial_zero, mul_one]
   · by_cases hn : n = 0
     · rw [hn]
-      simp only [zero_add, Nat.one_le_ofNat, Nat.sub_eq_zero_of_le, mul_zero, dvd_zero]
+      simp only [zero_add, Nat.reduceLeDiff, Nat.sub_eq_zero_of_le, mul_zero, Nat.dvd_zero]
     · convert Nat.factorial_dvd_ascFactorial (n - 1) 2 using 1
       simp [Nat.ascFactorial_succ, add_zero, Nat.ascFactorial_zero, mul_one, Nat.sub_add_cancel (by omega : 1 ≤ n)]
   · rintro a b h

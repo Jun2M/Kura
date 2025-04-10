@@ -29,11 +29,11 @@ lemma Set.rangeFactorization_injective_iff {α β : Type*} (f : α → β) :
     simpa only [rangeFactorization_coe] using hxy
 
 @[simp]
-lemma Subtype.impEmbedding_val {α : Type u_1} (p q : α → Prop) (h : ∀ (x : α), p x → q x)
+lemma Subtype.impEmbedding_val {α : Type*} (p q : α → Prop) (h : ∀ (x : α), p x → q x)
     (x : { x : α // p x }) : (Subtype.impEmbedding p q h x).val = x.val := rfl
 
 @[simp]
-lemma Subtype.val_comp_impEmbedding {α : Type u_1} (p q : α → Prop) (h : ∀ (x : α), p x → q x) :
+lemma Subtype.val_comp_impEmbedding {α : Type*} (p q : α → Prop) (h : ∀ (x : α), p x → q x) :
     (Subtype.val ∘ Subtype.impEmbedding p q h) = Subtype.val := rfl
 
 @[simp]
@@ -103,7 +103,7 @@ lemma Function.Embedding.rangeSplitting_eq_val {α β : Type*} (f : α ↪ β) (
 
 def Set.rangeSplitting' {α β : Type*} [Fintype α] [DecidableEq β] (f : α ↪ β) :
     Set.range f → α :=
-  fun b ↦ (Finset.univ.filter (fun a => f a = b)).unpackSingleton (by
+  fun b ↦ (Finset.univ.filter (fun a => f a = b)).singletonEquiv (by
     apply le_antisymm
     · by_contra! h
       rw [Finset.one_lt_card_iff] at h
