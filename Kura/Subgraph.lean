@@ -206,28 +206,6 @@ noncomputable def induce (G : Graph α β) (U : Set α) : Graph α β := by
   · rintro e x y u v ⟨hxy, hx, hy⟩ ⟨huv, hu, hv⟩
     exact hxy.eq_or_eq_of_IsBetween huv
 
-  -- V := U
-  -- E := G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ U}
-  -- incFun e :=
-  --   haveI := Classical.dec (∀ (x : α), G.Inc e x → x ∈ U)
-  --   if (∀ (x : α), G.Inc e x → x ∈ U) then G.incFun e else 0
-  -- sum_eq := by
-  --   rintro e ⟨he, heU⟩
-  --   beta_reduce
-  --   split_ifs with h
-  --   · exact G.sum_eq he
-  --   · simp only [mem_setOf_eq, h] at heU
-  -- vertex_support e v hinc := by
-  --   simp only at hinc
-  --   split_ifs at hinc with h
-  --   · exact h v hinc
-  --   · simp at hinc
-  -- edge_support e v hinc := by
-  --   simp only at hinc
-  --   split_ifs at hinc with h
-  --   · refine ⟨Inc.edge_mem hinc, h⟩
-  --   · simp at hinc
-
 notation G "[" S "]" => Graph.induce G S
 
 variable {U V U' V' : Set α}
@@ -635,15 +613,22 @@ notation G "{" S "}" => Graph.restrict G S
 @[simp]
 noncomputable abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
-notation G "-ₑ" F => Graph.edgeDel G F
+infix:70 " -ₑ " => Graph.edgeDel
 
-variable {G H : Graph α β} {R R'  : Set β}
+variable {G H : Graph α β} {S S' R R'  : Set β}
 
 @[simp]
 theorem restrict_V : (G{R}).V = G.V := rfl
 
 @[simp]
+theorem edgeDel_V : (G -ₑ R).V = G.V := rfl
+
+@[simp]
 theorem restrict_E : (G{R}).E = G.E ∩ R := rfl
+
+@[simp]
+theorem edgeDel_E : (G -ₑ R).E = G.E \ R := by
+  simp only [edgeDel, restrict_E, inter_eq_right, diff_subset]
 
 @[simp]
 theorem restrict_inc : (G{R}).Inc e v ↔ G.Inc e v ∧ e ∈ R := by
@@ -652,10 +637,19 @@ theorem restrict_inc : (G{R}).Inc e v ↔ G.Inc e v ∧ e ∈ R := by
   split_ifs with he <;> simp [he]
 
 @[simp]
+theorem edgeDel_inc : (G -ₑ R).Inc e v ↔ G.Inc e v ∧ e ∉ R := by
+  simp only [edgeDel, restrict_inc, mem_diff, and_congr_right_iff, and_iff_right_iff_imp]
+  exact fun h _ ↦ h.edge_mem
+
+@[simp]
 lemma restrict_le (G : Graph α β) (R : Set β) : G{R} ≤ G := by
   refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, subset_refl, inter_subset_left, mem_inter_iff,
     ite_eq_left_iff, and_imp]
   tauto
+
+@[simp]
+lemma edgeDel_le (G : Graph α β) (R : Set β) : (G -ₑ R) ≤ G := by
+  simp only [edgeDel, restrict_le]
 
 @[simp]
 lemma restrict_isBetween : (G{R}).IsBetween e x y ↔ G.IsBetween e x y ∧ e ∈ R := by
@@ -667,21 +661,21 @@ lemma restrict_isBetween : (G{R}).IsBetween e x y ↔ G.IsBetween e x y ∧ e �
     rwa [IsBetween_iff_IsBetween_of_edge_mem_le (restrict_le G R) ?_]
     simp only [restrict_E, mem_inter_iff, hbtw.edge_mem, he, and_self]
 
+@[simp]
+lemma edgeDel_isBetween : (G -ₑ R).IsBetween e x y ↔ G.IsBetween e x y ∧ e ∉ R := by
+  simp [edgeDel, restrict_isBetween]
+  exact fun h _ ↦ h.edge_mem
+
 /-- If an edge is in the restricted subgraph, it's in the original graph and the restricting set. -/
 @[simp]
-lemma mem_restrict_E_iff {G : Graph α β} {e : β} {R : Set β} : e ∈ (G{R}).E ↔ e ∈ G.E ∧ e ∈ R := by
+lemma mem_restrict_E_iff : e ∈ (G{R}).E ↔ e ∈ G.E ∧ e ∈ R := by
   simp only [restrict_E, mem_inter_iff]
 
-/-- Adjacency in restricted subgraphs implies adjacency in the original graph. -/
-lemma Adj.of_Adj_restrict {G : Graph α β} {u v : α} {R : Set β} :
-    (G{R}).Adj u v → G.Adj u v := (Adj.le · (restrict_le G R))
+@[simp]
+lemma mem_edgeDel_E_iff : e ∈ (G -ₑ R).E ↔ e ∈ G.E ∧ e ∉ R := by
+  simp only [edgeDel_E, mem_diff]
 
-/-- Connectedness in a restricted subgraph implies connectedness in the original graph. -/
-theorem Connected.of_Connected_restrict {G : Graph α β} {u v : α} {R : Set β} :
-    (G{R}).Connected u v → G.Connected u v :=
-  (Connected.le · (restrict_le G R))
-
-lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) {S R : Set β} (hSR : S ⊆ R) : G₁{S} ≤ G₂{R} := by
+lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) (hSR : S ⊆ R) : G₁{S} ≤ G₂{R} := by
   refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, vx_subset_of_le hle, subset_inter_iff, mem_inter_iff,
   and_imp]
   · refine ⟨?_, ?_⟩
@@ -695,7 +689,131 @@ lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) {S R : Set β} (hSR : S �
     · exact incFun_eq_incFun_of_le hle he1
     · exact False.elim (heR (hSR heS))
 
-lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂) {S : Set β}
+lemma edgeDel_le_edgeDel_of_le (hle : G₁ ≤ G₂) (hSR : S ⊆ R) : G₁ -ₑ R ≤ G₂ -ₑ S :=
+  restrict_le_restrict_of_le hle <| diff_subset_diff (edge_subset_of_le hle) hSR
+
+@[simp]
+lemma restrict_le_restrict_iff (G : Graph α β) (R S : Set β) :
+    G{R} ≤ G{S} ↔ G.E ∩ R ⊆ G.E ∩ S := by
+  refine ⟨edge_subset_of_le, ?_⟩
+  rintro h
+  refine ⟨subset_rfl, h, ?_⟩
+  simp_rw [← inc_eq_inc_iff, funext_iff]
+  simp +contextual only [restrict_E, mem_inter_iff, restrict_inc, and_true, eq_iff_iff,
+    iff_self_and, and_imp]
+  rintro e he hR v hinc
+  simp [hR, (h ⟨he, hR⟩).2]
+
+@[simp]
+lemma edgeDel_le_edgeDel_iff (G : Graph α β) (R S : Set β) :
+    G -ₑ R ≤ G -ₑ S ↔ G.E \ R ⊆ G.E \ S := by
+  rw [restrict_le_restrict_iff, inter_eq_right.mpr diff_subset, inter_eq_right.mpr diff_subset]
+
+@[simp]
+lemma restrict_eq_restrict_iff (G : Graph α β) (R S : Set β) :
+    G{R} = G{S} ↔ G.E ∩ R = G.E ∩ S := by
+  rw [le_antisymm_iff, subset_antisymm_iff, restrict_le_restrict_iff, restrict_le_restrict_iff]
+
+@[simp]
+lemma edgeDel_eq_edgeDel_iff (G : Graph α β) (R S : Set β) :
+    G -ₑ R = G -ₑ S ↔ G.E \ R = G.E \ S := by
+  rw [le_antisymm_iff, subset_antisymm_iff, edgeDel_le_edgeDel_iff, edgeDel_le_edgeDel_iff]
+
+@[simp]
+lemma restrict_eq_self_iff (G : Graph α β) (R : Set β) : G{R} = G ↔ G.E ⊆ R := by
+  constructor <;> intro h
+  · rw [← h]
+    simp only [restrict_E, inter_subset_right]
+  · apply ext_inc
+    · simp only [restrict]
+    · simp only [restrict_E, inter_eq_left, h]
+    · simp only [restrict_inc, and_iff_left_iff_imp]
+      intro e v hinc
+      exact h hinc.edge_mem
+
+@[simp]
+lemma edgeDel_eq_self_iff (G : Graph α β) (R : Set β) : G -ₑ R = G ↔ Disjoint G.E R := by
+  rw [restrict_eq_self_iff, ← Set.subset_compl_iff_disjoint_right, diff_eq_compl_inter]
+  simp only [subset_inter_iff, subset_refl, and_true]
+
+@[simp]
+lemma restrict_univ_eq_self : G{Set.univ} = G := by
+  rw [restrict_eq_self_iff]
+  exact subset_univ _
+
+@[simp]
+lemma edgeDel_univ_eq_self : G -ₑ Set.univ = Edgeless G.V β := by
+  apply eq_Edgeless_of_E_empty
+  simp only [edgeDel, diff_univ, restrict_E, inter_empty]
+
+@[simp]
+lemma restrict_E_eq_self : G{G.E} = G := by
+  rw [restrict_eq_self_iff]
+
+@[simp]
+lemma edgeDel_E_eq_self : G -ₑ G.E = Edgeless G.V β := by
+  apply eq_Edgeless_of_E_empty
+  simp only [edgeDel, sdiff_self, bot_eq_empty, restrict_E, inter_empty]
+
+
+lemma restrict_E_subset_singleton (e : β) : G{{e}}.E ⊆ {e} := by simp
+
+lemma restrict_monotone (G : Graph α β) : Monotone (fun R ↦ G{R}) := by
+  rintro R S h
+  rw [restrict_le_restrict_iff]
+  exact inter_subset_inter (fun ⦃a⦄ a ↦ a) h
+
+@[simp]
+lemma restrict_mono (G : Graph α β) (R S : Set β) (h : R ⊆ S) : G{R} ≤ G{S} :=
+  restrict_monotone G h
+
+lemma edgeDel_antitone (G : Graph α β) : Antitone (fun R ↦ G -ₑ R) := by
+  rintro R S h
+  rw [edgeDel_le_edgeDel_iff]
+  exact diff_subset_diff_right h
+
+@[simp]
+lemma edgeDel_anti (G : Graph α β) (R S : Set β) (h : S ⊆ R) : G -ₑ R ≤ G -ₑ S :=
+  edgeDel_antitone G h
+
+@[simp]
+lemma restrict_restrict_eq_restrict_inter (R S : Set β) : G{R}{S} = G{R ∩ S} := by
+  apply ext_inc
+  · simp only [restrict, inter_assoc, mem_inter_iff]
+  · simp only [restrict, mem_inter_iff]
+    rw [← inter_assoc]
+  · intro e v
+    simp only [restrict_inc, mem_inter_iff]
+    rw [and_assoc]
+
+@[simp]
+lemma edgeDel_edgeDel_eq_edgeDel_union (R S : Set β) : (G -ₑ R) -ₑ S = G -ₑ (R ∪ S) := by
+  simp only [edgeDel, restrict_E, restrict_restrict_eq_restrict_inter, restrict_eq_restrict_iff]
+  tauto_set
+
+@[simp]
+lemma restrict_idem (R : Set β) : G{R}{R} = G{R} := by
+  convert G.restrict_restrict_eq_restrict_inter R R
+  simp only [inter_self]
+
+@[simp]
+lemma edgeDel_idem (R : Set β) : (G -ₑ R) -ₑ R = G -ₑ R := by
+  convert G.edgeDel_edgeDel_eq_edgeDel_union R R
+  simp only [union_self]
+
+/-- Adjacency in restricted subgraphs implies adjacency in the original graph. -/
+lemma Adj.of_Adj_restrict : (G{R}).Adj u v → G.Adj u v := (Adj.le · (restrict_le G R))
+
+lemma Adj.of_Adj_edgeDel : (G -ₑ R).Adj u v → G.Adj u v := (Adj.le · (edgeDel_le G R))
+
+/-- Connectedness in a restricted subgraph implies connectedness in the original graph. -/
+lemma Connected.of_Connected_restrict : (G{R}).Connected u v → G.Connected u v :=
+  (Connected.le · (restrict_le G R))
+
+lemma Connected.of_Connected_edgeDel : (G -ₑ R).Connected u v → G.Connected u v :=
+  (Connected.le · (edgeDel_le G R))
+
+lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂)
     (hSradj : G₂{S}.reflAdj u v) (h : G₂.E ∩ S ⊆ G₁.E) (hu : u ∈ G₁.V) : G₁{S}.reflAdj u v := by
   have := restrict_le_restrict_of_le hle (Subset.rfl : S ⊆ S)
   refine hSradj.imp ?_ ?_
@@ -730,72 +848,6 @@ lemma restrict_Connected_iff_restrict_Connected_of_le (hle : G₁ ≤ G₂) {S :
     exact restrict_le_restrict_of_le hle fun ⦃a⦄ a ↦ a
   · exact Connected.restrict_of_le_inter_subset hle hconn h hu
 
-@[simp]
-theorem restrict_le_restrict_iff (G : Graph α β) (R S : Set β) :
-    G{R} ≤ G{S} ↔ G.E ∩ R ⊆ G.E ∩ S := by
-  refine ⟨edge_subset_of_le, ?_⟩
-  rintro h
-  refine ⟨subset_rfl, h, ?_⟩
-  simp_rw [← inc_eq_inc_iff, funext_iff]
-  simp +contextual only [restrict_E, mem_inter_iff, restrict_inc, and_true, eq_iff_iff,
-    iff_self_and, and_imp]
-  rintro e he hR v hinc
-  simp [hR, (h ⟨he, hR⟩).2]
-
-@[simp]
-theorem restrict_eq_restrict_iff (G : Graph α β) (R S : Set β) :
-    G{R} = G{S} ↔ G.E ∩ R = G.E ∩ S := by
-  rw [le_antisymm_iff, subset_antisymm_iff, restrict_le_restrict_iff, restrict_le_restrict_iff]
-
-@[simp]
-theorem restrict_eq_self_iff (G : Graph α β) (R : Set β) : G{R} = G ↔ G.E ⊆ R := by
-  constructor <;> intro h
-  · rw [← h]
-    simp only [restrict_E, inter_subset_right]
-  · apply ext_inc
-    · simp only [restrict]
-    · simp only [restrict_E, inter_eq_left, h]
-    · simp only [restrict_inc, and_iff_left_iff_imp]
-      intro e v hinc
-      exact h hinc.edge_mem
-
-@[simp]
-lemma restrict_univ_eq_self : G{Set.univ} = G := by
-  rw [restrict_eq_self_iff]
-  exact subset_univ _
-
-@[simp]
-lemma restrict_E_eq_self : G{G.E} = G := by
-  rw [restrict_eq_self_iff]
-
-lemma restrict_E_subset_singleton (e : β) : G{{e}}.E ⊆ {e} := by simp
-
-@[simp]
-lemma restrict_mono (G : Graph α β) (R S : Set β) (h : R ⊆ S) : G{R} ≤ G{S} := by
-  refine ⟨?_, ?_, ?_⟩ <;> simp only [restrict, subset_refl, inter_subset_left, mem_inter_iff,
-    and_iff_left_iff_imp, and_imp]
-  · exact inter_subset_inter (fun ⦃a⦄ a ↦ a) h
-  · simp +contextual only [↓reduceIte]
-    rintro e he hmemR
-    split_ifs with heS
-    · rfl
-    · exact False.elim (heS (h hmemR))
-
-@[simp]
-theorem restrict_restrict_eq_restrict_inter (R S : Set β) : G{R}{S} = G{R ∩ S} := by
-  apply ext_inc
-  · simp only [restrict, inter_assoc, mem_inter_iff]
-  · simp only [restrict, mem_inter_iff]
-    rw [← inter_assoc]
-  · intro e v
-    simp only [restrict_inc, mem_inter_iff]
-    rw [and_assoc]
-
-@[simp]
-lemma restrict_idem (R : Set β) : G{R}{R} = G{R} := by
-  convert G.restrict_restrict_eq_restrict_inter R R
-  simp only [inter_self]
-
 /-- A restricted subgraph of a finite graph is also finite. -/
 instance finite_of_finite_restrict {R : Set β} [h : G.FiniteGraph] : (G{R}).FiniteGraph := by
   constructor
@@ -806,13 +858,24 @@ instance finite_of_finite_restrict {R : Set β} [h : G.FiniteGraph] : (G{R}).Fin
     apply Set.Finite.subset h.edge_fin
     simp only [restrict_E, inter_subset_left]
 
+instance finite_of_finite_edgeDel {R : Set β} [h : G.FiniteGraph] : (G -ₑ R).FiniteGraph :=
+  finite_of_finite_restrict
+
 @[simp]
 lemma vx_ncard_le_of_restrict [hfin : G.FiniteGraph] : (G{R}).V.ncard ≤ G.V.ncard :=
   Set.ncard_le_ncard (vx_subset_of_le (restrict_le G R)) hfin.vx_fin
 
 @[simp]
+lemma vx_ncard_le_of_edgeDel [hfin : G.FiniteGraph] : (G -ₑ R).V.ncard ≤ G.V.ncard :=
+  Set.ncard_le_ncard (vx_subset_of_le (edgeDel_le G R)) hfin.vx_fin
+
+@[simp]
 lemma edge_ncard_le_of_restrict [hfin : G.FiniteGraph] : (G{R}).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le (restrict_le G R)) hfin.edge_fin
+
+@[simp]
+lemma edge_ncard_le_of_edgeDel [hfin : G.FiniteGraph] : (G -ₑ R).E.ncard ≤ G.E.ncard :=
+  Set.ncard_le_ncard (edge_subset_of_le (edgeDel_le G R)) hfin.edge_fin
 
 @[simp]
 lemma EdgeDel_singleton_isBetween_iff_isBetween_of_ne {e' : β} (hne : e ≠ e') :

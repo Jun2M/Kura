@@ -9,6 +9,12 @@ namespace Graph
 section edge_empty
 
 @[simp]
+lemma incFun_eq_zero_of_E_empty (h : G.E = ∅) : G.incFun = 0 := by
+  ext e v
+  simp only [h, mem_empty_iff_false, not_false_eq_true, incFun_of_not_mem_edgeSet, Finsupp.coe_zero,
+    Pi.zero_apply]
+
+@[simp]
 lemma not_inc_of_E_empty (h : G.E = ∅) : ¬ G.Inc e v := by
   rintro hinc
   have := h ▸ hinc.edge_mem
@@ -59,6 +65,12 @@ lemma Edgeless.E (V : Set α) (β : Type*) : (Edgeless V β).E = ∅ := rfl
 
 @[simp]
 lemma Edgeless.incFun (V : Set α) (β : Type*) : (Edgeless V β).incFun = 0 := rfl
+
+lemma eq_Edgeless_of_E_empty (h : G.E = ∅) : G = Edgeless G.V β := by
+  ext1
+  · rfl
+  · exact h
+  · simp [h]
 
 end edge_empty
 section edge_subsingleton

@@ -233,7 +233,7 @@ lemma handshake [Finite α] [Finite β] (G : Graph α β) :
 
 end Degree
 
-section Connected
+section IsBetween
 
 variable {u v : α}
 
@@ -668,60 +668,4 @@ lemma Connected.refl_iff {G : Graph α β} {x : α} : G.Connected x x ↔ x ∈ 
 class Conn (G : Graph α β) : Prop where
   all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
 
-
-
--- lemma exists_mem_toSym2_iff_inc {G : Graph α β} {e : β} {y : α} :
---     (∃ (he : e ∈ G.E), y ∈ G.toSym2 he) ↔ G.Inc e y := by
---   by_cases h : G.IsLoop e
---   · simp only [toSym2, h, ↓reduceDIte, Sym2.mem_iff, or_self, exists_prop]
---     obtain ⟨hinc, heq⟩ := h.choose_spec
---     constructor
---     · rintro ⟨he, rfl⟩
---       exact hinc
---     · rintro h
---       exact ⟨G.edge_mem_of_inc h, heq _ h⟩
---   · simp only [toSym2, h, ↓reduceDIte, ne_eq, Sym2.mem_iff]
---     constructor
---     · rintro ⟨he, hor⟩
---       obtain ⟨H1, H2, H3⟩ := (G.exist_two_of_not_loop he h).choose_spec.choose_spec
---       cases hor <;> subst y <;> assumption
---     · rintro hinc
---       have he := G.edge_mem_of_inc hinc
---       use he
---       obtain ⟨H1, H2, H3⟩ := (G.exist_two_of_not_loop he h).choose_spec.choose_spec
---       have heqor := G.not_hypergraph hinc H2 H3
---       simpa only [ne_eq, H1, false_or] using heqor
-
--- @[simp]
--- lemma mem_toSym2_iff_inc {G : Graph α β} {e : β} {y : α} (he : e ∈ G.E):
---     y ∈ G.toSym2 he ↔ G.Inc y e := by
---   rw [← exists_mem_toSym2_iff_inc]
---   simp only [he, exists_true_left]
-
--- @[simp]
--- lemma mem_toSym2_of_inc {G : Graph α β} {e : β} {y : α} (h : G.Inc y e) :
---     y ∈ G.toSym2 (G.edge_mem_of_inc h) := by
---   rw [← exists_mem_toSym2_iff_inc] at h
---   obtain ⟨he, h⟩ := h
---   exact h
-
--- @[simp]
--- lemma mem_of_mem_toSym2 {G : Graph α β} {e : β} {y : α} (he : e ∈ G.E) (h : y ∈ G.toSym2 he) :
---     y ∈ G.V := by
---   apply G.vx_mem_of_inc
---   rw [← exists_mem_toSym2_iff_inc]
---   use he
-
-end Connected
-
-
--- /-- deletion is easy (although we have to hide `Decidable` in there )-/
--- noncomputable def edgeDel (G : Graph α β) (D : Set β) : Graph α β where
---   V := G.V
---   E := G.E \ D
---   incFun e :=
---     haveI := Classical.dec (e ∈ D)
---     if e ∈ D then 0 else G.incFun e
---   sum_eq e he := by simp [he.2, G.sum_eq he.1]
---   vertex_support e v h := G.vertex_support (e := e) <| by aesop
---   edge_support e v h := ⟨G.edge_support (v := v) (by aesop), by aesop⟩
+end IsBetween
