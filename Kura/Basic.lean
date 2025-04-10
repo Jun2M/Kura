@@ -169,7 +169,7 @@ lemma exists_vertex_inc (G : Graph α β) (he : e ∈ G.E) : ∃ v, G.Inc e v :=
 --     Graph α β where
 --   V := V
 --   E := E
---   incFun e := 2
+--   incFun e :=
 
 section Degree
 
@@ -374,24 +374,41 @@ lemma exist_IsBetween_of_mem_of_distinct {P : α → Prop} (hP1 : ∃ x, G.Inc e
 --   exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y
 --   eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)
 
--- def ofGraphIsBetween (h : GraphIsBetween α β) : Graph α β where
---   V := h.V
---   E := h.E
---   Inc v e := ∃ u, h.isBtw e v u
---   vx_mem_of_inc := by
---     rintro v e ⟨u, hbtw⟩
---     exact h.vx_mem_of_isBtw_left e v u hbtw
---   edge_mem_of_inc := by
---     rintro v e ⟨u, hbtw⟩
---     exact h.edge_mem_of_isBtw e v u hbtw
---   exists_vertex_inc := by
---     rintro e he
---     exact h.exists_vertex_isBtw e he
---   not_hypergraph := by
---     rintro x y z e ⟨x', hx'⟩ ⟨y', hy'⟩ ⟨z', hz'⟩
---     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_of_isBtw hx' hy' <;>
---     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_of_isBtw hz' hy' <;>
---     tauto
+noncomputable def ofIsBetween (V : Set α) (E : Set β) (isBtw : β → α → α → Prop)
+    (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
+    (vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V)
+    (edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E)
+    (exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y)
+    (eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)) :
+    Graph α β where
+  V := V
+  E := E
+  incFun e := by
+    classical
+    by_cases he : e ∈ E
+    · choose x y hbtw using exists_vertex_isBtw e he
+      exact Multiset.toFinsupp {x, y}
+    · exact 0
+  sum_eq e he := by
+    classical
+    simp only [he, ↓reduceDIte]
+    change (Multiset.toFinsupp _).sum (fun _ ↦ id) = 2
+    rw [Multiset.toFinsupp_sum_eq]
+    rfl
+  vertex_support e v h := by
+    by_cases he : e ∈ E
+    · simp only [he, ↓reduceDIte, Multiset.insert_eq_cons, Multiset.toFinsupp_apply, ne_eq,
+      Multiset.count_eq_zero, Multiset.mem_cons, Multiset.mem_singleton, -not_or, not_and,
+      not_not] at h
+      obtain rfl | rfl := h
+      · obtain ⟨y, hbtw⟩ := exists_vertex_isBtw e he |>.choose_spec
+        refine vx_mem_of_isBtw_left e _ _ hbtw
+      · obtain hbtw := exists_vertex_isBtw e he |>.choose_spec |>.choose_spec
+        refine vx_mem_of_isBtw_left e _ _ (hsymm _ _ _ hbtw)
+    · simp only [he, ↓reduceDIte, coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
+  edge_support e v h := by
+    by_contra! he
+    simp only [he, ↓reduceDIte, coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
 
 -- @[simp]
 -- lemma IsBetween.ofGraphIsBetween (G' : GraphIsBetween α β) :

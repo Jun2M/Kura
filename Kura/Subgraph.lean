@@ -86,7 +86,7 @@ lemma Connected.le (h : G₁.Connected u v) (hle : G₁ ≤ G₂) : G₂.Connect
 
 @[simp]
 instance instOrderBotGraph : OrderBot (Graph α β) where
-  bot := Edgeless ∅
+  bot := Edgeless ∅ β
   bot_le G := by refine ⟨?_, ?_, ?_⟩ <;> simp only [Edgeless, empty_subset, mem_empty_iff_false,
     false_iff, IsEmpty.forall_iff, implies_true]
 
@@ -102,6 +102,10 @@ lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
 @[simp]
 lemma bot_incFun : (⊥ : Graph α β).incFun = 0 := rfl
 
+@[simp]
+lemma bot_inc : (⊥ : Graph α β).Inc = fun _ _ ↦ False := by
+  ext e a
+  simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty]
 
 @[simp]
 lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
@@ -112,16 +116,15 @@ lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
       by_contra! hE
       have := h ▸ (G.exists_vertex_inc hE.some_mem).choose_spec.vx_mem
       simp only [mem_empty_iff_false] at this
-    · simp only [instOrderBotGraph, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_vx_mem,
-      iff_false]
-      rintro hinc
+    · simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty, iff_false]
+      rintro e v hinc
       have := h ▸ hinc.vx_mem
       simp only [mem_empty_iff_false] at this
   · rw [h]
     rfl
 
 /-- If G₁ ≤ G₂ and G₂ is finite, then G₁ is finite too. -/
-theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h : Finite G₂] : Finite G₁ := by
+theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h : G₂.FiniteGraph] : G₁.FiniteGraph := by
   constructor
   · -- Prove the vertex set is finite
     apply Set.Finite.subset h.vx_fin
@@ -130,22 +133,15 @@ theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h :
     apply Set.Finite.subset h.edge_fin
     exact edge_subset_of_le hle
 
-lemma vx_ncard_le_of_le [hfin : Finite G₂] (hle : G₁ ≤ G₂) : G₁.V.ncard ≤ G₂.V.ncard :=
+lemma vx_ncard_le_of_le [hfin : G₂.FiniteGraph] (hle : G₁ ≤ G₂) : G₁.V.ncard ≤ G₂.V.ncard :=
   Set.ncard_le_ncard (vx_subset_of_le hle) hfin.vx_fin
 
-lemma edge_ncard_le_of_le [hfin : Finite G₂] (hle : G₁ ≤ G₂) : G₁.E.ncard ≤ G₂.E.ncard :=
+lemma edge_ncard_le_of_le [hfin : G₂.FiniteGraph] (hle : G₁ ≤ G₂) : G₁.E.ncard ≤ G₂.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le hle) hfin.edge_fin
 
 lemma vx_disjoint_of_disjoint {G₁ G₂ : Graph α β} (hDisj : Disjoint G₁ G₂) : Disjoint G₁.V G₂.V := by
   intro x hx1 hx2
-  let G : Graph α β := {
-    V := x
-    E := ∅
-    Inc v e := false
-    vx_mem_of_inc := by tauto
-    edge_mem_of_inc := by tauto
-    exists_vertex_inc := by tauto
-    not_hypergraph := by tauto}
+  let G : Graph α β := Edgeless x β
   specialize hDisj (?_ : G ≤ G₁) ?_
   · exact ⟨hx1, (empty_subset _ : ∅ ⊆ _), by simp [G, Edgeless]⟩
   · exact ⟨hx2, (empty_subset _ : ∅ ⊆ _), by simp [G, Edgeless]⟩
@@ -160,8 +156,8 @@ lemma le_of_exist_mutual_le (hle1 : G₁ ≤ G) (hle2 : G₂ ≤ G) : G₁ ≤ G
     exact ⟨vx_subset_of_le h, edge_subset_of_le h⟩
   · rintro ⟨hV, hE⟩
     refine ⟨hV, hE, ?_⟩
-    rintro v e he
-    rw [Inc_iff_Inc_of_edge_mem_le hle1 he, Inc_iff_Inc_of_edge_mem_le hle2 (hE he)]
+    rintro e he
+    rw [incFun_eq_incFun_of_le hle1 he, incFun_eq_incFun_of_le hle2 (hE he)]
 
 /-- Induced subgraph -/
 def induce (G : Graph α β) (U : Set α) : Graph α β := by

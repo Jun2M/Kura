@@ -8,18 +8,18 @@ namespace Graph
 
 section edge_empty
 
-def Edgeless (V : Set α) : Graph α β where
-  V := V
-  E := ∅
-  incFun := fun _ => 0
-  sum_eq := by tauto
-  vertex_support := by tauto
-  edge_support := by tauto
+@[simp]
+lemma not_inc_of_E_empty (h : G.E = ∅) : ¬ G.Inc e v := by
+  rintro hinc
+  have := h ▸ hinc.edge_mem
+  simp only [mem_empty_iff_false] at this
 
+@[simp]
 lemma not_isBetween_of_E_empty (h : G.E = ∅) : ¬ G.IsBetween e x y := by
   contrapose! h
   use e, h.edge_mem
 
+@[simp]
 lemma not_adj_of_E_empty (h : G.E = ∅) : ¬ G.Adj x y := by
   rintro ⟨e, hbtw⟩
   exact (h ▸ hbtw.edge_mem : _)
@@ -28,6 +28,7 @@ lemma not_adj_of_E_empty (h : G.E = ∅) : ¬ G.Adj x y := by
 lemma reflAdj_iff_eq_mem_of_E_empty (h : G.E = ∅) : G.reflAdj x y ↔ x = y ∧ x ∈ G.V:= by
   simp only [reflAdj, not_adj_of_E_empty h, false_or]
 
+@[simp]
 lemma connected_iff_reflAdj_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ G.reflAdj x y := by
   constructor <;> rintro h
   · induction h with
@@ -41,6 +42,23 @@ lemma connected_iff_reflAdj_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ G.r
 @[simp]
 lemma connected_iff_eq_mem_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ x = y ∧ x ∈ G.V := by
   rw [← reflAdj_iff_eq_mem_of_E_empty h, connected_iff_reflAdj_of_E_empty h]
+
+def Edgeless (V : Set α) (β : Type*) : Graph α β where
+  V := V
+  E := ∅
+  incFun := fun _ => 0
+  sum_eq := by tauto
+  vertex_support := by tauto
+  edge_support := by tauto
+
+@[simp]
+lemma Edgeless.V (V : Set α) (β : Type*) : (Edgeless V β).V = V := rfl
+
+@[simp]
+lemma Edgeless.E (V : Set α) (β : Type*) : (Edgeless V β).E = ∅ := rfl
+
+@[simp]
+lemma Edgeless.incFun (V : Set α) (β : Type*) : (Edgeless V β).incFun = 0 := rfl
 
 end edge_empty
 section edge_subsingleton
