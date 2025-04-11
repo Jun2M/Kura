@@ -392,7 +392,7 @@ lemma IsBetween.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsBetween e x y) 
 namespace Contract
 variable {φ : α → α'} {τ : α' → α''} {C D : Set β} {x y : α'}
 
-instance instFinite [h : G.FiniteGraph] : (G /[φ] C).FiniteGraph where
+instance instFinite [h : G.Finite] : (G /[φ] C).Finite where
   vx_fin := Set.Finite.image φ h.vx_fin
   edge_fin := by
     apply Set.Finite.subset (h.edge_fin)

@@ -148,7 +148,7 @@ lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
     rfl
 
 /-- If G₁ ≤ G₂ and G₂ is finite, then G₁ is finite too. -/
-theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h : G₂.FiniteGraph] : G₁.FiniteGraph := by
+theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h : G₂.Finite] : G₁.Finite := by
   constructor
   · -- Prove the vertex set is finite
     apply Set.Finite.subset h.vx_fin
@@ -157,10 +157,10 @@ theorem finite_of_le_finite {G₁ G₂ : Graph α β} (hle : G₁ ≤ G₂) [h :
     apply Set.Finite.subset h.edge_fin
     exact edge_subset_of_le hle
 
-lemma vx_ncard_le_of_le [hfin : G₂.FiniteGraph] (hle : G₁ ≤ G₂) : G₁.V.ncard ≤ G₂.V.ncard :=
+lemma vx_ncard_le_of_le [hfin : G₂.Finite] (hle : G₁ ≤ G₂) : G₁.V.ncard ≤ G₂.V.ncard :=
   Set.ncard_le_ncard (vx_subset_of_le hle) hfin.vx_fin
 
-lemma edge_ncard_le_of_le [hfin : G₂.FiniteGraph] (hle : G₁ ≤ G₂) : G₁.E.ncard ≤ G₂.E.ncard :=
+lemma edge_ncard_le_of_le [hfin : G₂.Finite] (hle : G₁ ≤ G₂) : G₁.E.ncard ≤ G₂.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le hle) hfin.edge_fin
 
 lemma vx_disjoint_of_disjoint {G₁ G₂ : Graph α β} (hDisj : Disjoint G₁ G₂) : Disjoint G₁.V G₂.V := by
@@ -577,17 +577,17 @@ lemma Isolated.induce_of_not_mem (hu : u ∉ G.V) : G[U].Isolated u := by
   exact hu hinc.1.vx_mem
 
 /-- A subgraph of a finite graph is also finite. -/
-instance finite_of_finite_induce [h : G.FiniteGraph] (hU : Set.Finite U) : (G[U]).FiniteGraph := by
+instance finite_of_finite_induce [h : G.Finite] (hU : Set.Finite U) : (G[U]).Finite := by
   refine ⟨hU, ?_⟩
   apply Set.Finite.subset h.edge_fin
   simp only [induce_E, inter_subset_left]
 
 @[simp]
-lemma vx_ncard_le_of_induce [hfin : G.FiniteGraph] (hU : U ⊆ G.V) : (G[U]).V.ncard ≤ G.V.ncard :=
+lemma vx_ncard_le_of_induce [hfin : G.Finite] (hU : U ⊆ G.V) : (G[U]).V.ncard ≤ G.V.ncard :=
   Set.ncard_le_ncard hU hfin.vx_fin
 
 @[simp]
-lemma edge_ncard_le_of_induce [hfin : G.FiniteGraph] : (G[U]).E.ncard ≤ G.E.ncard :=
+lemma edge_ncard_le_of_induce [hfin : G.Finite] : (G[U]).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (G.induce_E_le U) hfin.edge_fin
 
 /-- Restrict a graph to a set of edges -/
@@ -852,7 +852,7 @@ lemma restrict_Connected_iff_restrict_Connected_of_le (hle : G₁ ≤ G₂) {S :
   · exact Connected.restrict_of_le_inter_subset hle hconn h hu
 
 /-- A restricted subgraph of a finite graph is also finite. -/
-instance finite_of_finite_restrict {R : Set β} [h : G.FiniteGraph] : (G{R}).FiniteGraph := by
+instance finite_of_finite_restrict {R : Set β} [h : G.Finite] : (G{R}).Finite := by
   constructor
   · -- Prove the vertex set is finite
     simp only [restrict_V]
@@ -861,23 +861,23 @@ instance finite_of_finite_restrict {R : Set β} [h : G.FiniteGraph] : (G{R}).Fin
     apply Set.Finite.subset h.edge_fin
     simp only [restrict_E, inter_subset_left]
 
-instance finite_of_finite_edgeDel {R : Set β} [h : G.FiniteGraph] : (G -ₑ R).FiniteGraph :=
+instance finite_of_finite_edgeDel {R : Set β} [h : G.Finite] : (G -ₑ R).Finite :=
   finite_of_finite_restrict
 
 @[simp]
-lemma vx_ncard_le_of_restrict [hfin : G.FiniteGraph] : (G{R}).V.ncard ≤ G.V.ncard :=
+lemma vx_ncard_le_of_restrict [hfin : G.Finite] : (G{R}).V.ncard ≤ G.V.ncard :=
   Set.ncard_le_ncard (vx_subset_of_le (restrict_le G R)) hfin.vx_fin
 
 @[simp]
-lemma vx_ncard_le_of_edgeDel [hfin : G.FiniteGraph] : (G -ₑ R).V.ncard ≤ G.V.ncard :=
+lemma vx_ncard_le_of_edgeDel [hfin : G.Finite] : (G -ₑ R).V.ncard ≤ G.V.ncard :=
   Set.ncard_le_ncard (vx_subset_of_le (edgeDel_le G R)) hfin.vx_fin
 
 @[simp]
-lemma edge_ncard_le_of_restrict [hfin : G.FiniteGraph] : (G{R}).E.ncard ≤ G.E.ncard :=
+lemma edge_ncard_le_of_restrict [hfin : G.Finite] : (G{R}).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le (restrict_le G R)) hfin.edge_fin
 
 @[simp]
-lemma edge_ncard_le_of_edgeDel [hfin : G.FiniteGraph] : (G -ₑ R).E.ncard ≤ G.E.ncard :=
+lemma edge_ncard_le_of_edgeDel [hfin : G.Finite] : (G -ₑ R).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le (edgeDel_le G R)) hfin.edge_fin
 
 @[simp]
@@ -1098,7 +1098,7 @@ lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u
 --       sorry
 --   · sorry
 
-def IsVxSetSeparator (G : Graph α β) (V S T: Set α) : Prop :=
+def IsVxSetSeparator (G : Graph α β) (V S T : Set α) : Prop :=
   ∀ s ∈ S, ∀ t ∈ T, ¬ (G - V).Connected s t
 
 namespace IsVxSetSeparator
@@ -1109,6 +1109,9 @@ def leftSet (h : G.IsVxSetSeparator V S T) : Set α :=
 
 def rightSet (h : G.IsVxSetSeparator V S T) : Set α :=
   {v | ∃ t ∈ T, (G - V).Connected v t}
+
+lemma isVxSetSeparator_iff_inter_vxSet (G : Graph α β) {V S T : Set α} :
+    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) (T ∩ G.V) := sorry
 
 @[simp]
 lemma le (h : G₂.IsVxSetSeparator V S T) (hle : G₁ ≤ G₂) : G₁.IsVxSetSeparator V S T := by

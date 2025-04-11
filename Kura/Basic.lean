@@ -36,13 +36,13 @@ variable {α α' β β' : Type*} {G : Graph α β} {x y v w : α} {e f : β}
 
 namespace Graph
 
-class FiniteGraph (G : Graph α β) : Prop where
+protected class Finite (G : Graph α β) : Prop where
   vx_fin : G.V.Finite
   edge_fin : G.E.Finite
 
-instance instvxFinite [G.FiniteGraph] : G.V.Finite := FiniteGraph.vx_fin
+instance instvxFinite [G.Finite] : G.V.Finite := Finite.vx_fin
 
-instance instedgeFinite [G.FiniteGraph] : G.E.Finite := FiniteGraph.edge_fin
+instance instedgeFinite [G.Finite] : G.E.Finite := Finite.edge_fin
 
 /-- Incidence -/
 def Inc (G : Graph α β) (e : β) (x : α) : Prop := G.incFun e x ≠ 0
@@ -423,9 +423,9 @@ lemma exist_IsBetween_of_mem_of_distinct {P : α → Prop} (hP1 : ∃ x, G.Inc e
 noncomputable def ofIsBetween (V : Set α) (E : Set β) (isBtw : β → α → α → Prop)
     (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
     (vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V)
-    (edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E)
+    (_edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E)
     (exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y)
-    (eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u))
+    (_eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u))
     : Graph α β where
   V := V
   E := E

@@ -1,4 +1,4 @@
-import Kura.Walk
+import Kura.PathEnsemble
 import Mathlib.Data.Set.Disjoint
 
 open Set Function List Nat Graph.Path.PathEnsemble
@@ -8,14 +8,18 @@ namespace Graph
 namespace Path
 
 set_option maxHeartbeats 1000000 in
-theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : G.FiniteGraph] (S T : Set α)
-    (k : ℕ) (hS : S.Finite) (hT : T.Finite) (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard) :
+theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : Set α)
+    (k : ℕ)
+    (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard)  :
+    -- (hsep' : ∀ U, G.IsVxSetSeparator U S T → k ≤ U.encard) :
     ∃ (Ps : PathEnsemble α β), Ps.Paths.ncard = k ∧ Ps.ValidOn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
   classical
+
   obtain hE | hE := (em (G.E.Nonempty)).symm
   · rw [Set.nonempty_iff_ne_empty, not_not] at hE
     let X := G.V ∩ S ∩ T
-    have hXfin : X.Finite := Finite.inter_of_right hT (G.V ∩ S)
+    have hXfin : X.Finite := sorry
+    -- Finite.inter_of_right hT (G.V ∩ S)
     have hXsep : G.IsVxSetSeparator X S T := by
       rintro a ha b hb hconn
       rw [connected_iff_eq_mem_of_E_empty] at hconn
@@ -33,7 +37,7 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
 
   obtain ⟨e, he⟩ := hE
   by_cases h : ∀ U : Set α, U.Finite → G{G.E \ {e}}.IsVxSetSeparator U S T → k ≤ U.ncard
-  · obtain ⟨Ps, hlen, hPVd, hPs⟩ := Menger_VxSet (G{G.E \ {e}}) S T k hS hT h
+  · obtain ⟨Ps, hlen, hPVd, hPs⟩ := Menger_VxSet (G{G.E \ {e}}) S T k h
     use Ps, hlen, hPVd.le (restrict_le _ _), hPs.1, hPs.2
 
   simp only [not_forall, Classical.not_imp, not_le] at h
@@ -196,14 +200,14 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     exact diff_subset hconn.mem_left
   obtain ⟨Psx, hlenx, hPVdx, hPsxStartSet, hPsxFinishSet⟩ :=
     Menger_VxSet (hfin := ⟨(hfin.vx_fin.subset hLV).union hUxFin, hfin.edge_fin.subset (induce_E_le (L ∪ (U ∪ {x})))⟩)
-      (G[L ∪ (U ∪ {x})]) S (U ∪ {x}) k hS hUxFin (fun V hVFin hVsep ↦
+      (G[L ∪ (U ∪ {x})]) S (U ∪ {x}) k (fun V hVFin hVsep ↦
       hsep V hVFin (IsVxSetSeparator.IsPreorder.trans V (U ∪ {x}) T ((hUxSep.leftSetV_iff hUx _).mp hVsep) hUxSep))
   have hRV : R ⊆ G.V := by
     rintro r ⟨t, ht, hconn⟩
     exact Set.diff_subset hconn.mem_left
   obtain ⟨Psy, hleny, hPVdy, hPsyStartSet, hPsyFinishSet⟩ :=
     Menger_VxSet (hfin := ⟨(hfin.vx_fin.subset hRV).union hUyFin, hfin.edge_fin.subset (induce_E_le (R ∪ (U ∪ {y})))⟩)
-      (G[R ∪ (U ∪ {y})]) (U ∪ {y}) T k hUyFin hT (fun V hVFin hVsep ↦
+      (G[R ∪ (U ∪ {y})]) (U ∪ {y}) T k (fun V hVFin hVsep ↦
       hsep V hVFin (IsVxSetSeparator.IsPreorder.trans V (U ∪ {y}) S ((hUySep.symm.leftSetV_iff hUy _).mp hVsep.symm) hUySep.symm).symm)
 
   let PU : PathEnsemble α β := PathEnsemble.insert (hxy.path hxney) (PathEnsemble.nil U β) (by
@@ -245,7 +249,7 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     exact empty_subset (U ∪ {x})
   have heq1 : Psx.FinishSet = PU.StartSet := hPsxFinishSet.trans hPUStartSet.symm
   have hsu2 : (Psx.append PU hsu1 heq1).VxSet ∩ Psy.VxSet ⊆ (Psx.append PU hsu1 heq1).FinishSet := by
-    
+
     sorry
   have heq2 : (Psx.append PU hsu1 heq1).FinishSet = Psy.StartSet := by
     sorry
