@@ -1,67 +1,108 @@
 import Kura.PathEnsemble
 import Mathlib.Data.Set.Disjoint
+import Mathlib.Tactic.TautoSet
 
 open Set Function List Nat Graph.Path.PathEnsemble
-variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β}
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {X S T : Set α}
+  {F F' : Set β} {W P Q : Graph.Walk α β}
 
 namespace Graph
-namespace Path
+
+def SetConnected (G : Graph α β) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.Connected s t
+
+def IsEdgeSetSeparator (G : Graph α β) (S T : Set α) (F : Set β) :=
+  ¬ (G.edgeDel F).SetConnected S T
+
+lemma IsEdgeSetSeparator.mono (h : G.IsEdgeSetSeparator S T F) (h_subset : F ⊆ F') :
+    G.IsEdgeSetSeparator S T F' := sorry
+
+@[mk_iff]
+structure IsWalkFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
+  validOn : W.ValidOn G
+  start_mem : W.start ∈ S
+  finish_mem : W.finish ∈ T
+
+@[mk_iff]
+structure IsPath (G : Graph α β) (W : Walk α β) : Prop where
+  validOn : W.ValidOn G
+  nodup : W.vx.Nodup
+
+@[mk_iff]
+structure IsPathFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
+  validOn : W.ValidOn G
+  nodup : W.vx.Nodup
+  start_mem : W.start ∈ S
+  finish_mem : W.finish ∈ T
+
+lemma IsPathFrom.isWalkFrom (h : G.IsPathFrom S T P) : G.IsWalkFrom S T P := sorry
+
+-- can be iff.
+lemma IsEdgeSetSeparator.nonempty_inter (h : G.IsEdgeSetSeparator S T F)
+    (hW : G.IsWalkFrom S T W) : ({e | e ∈ W.edge} ∩ F).Nonempty := sorry
+
+lemma not_isVxSetSeparator_iff :
+    ¬ G.IsVxSetSeparator X S T ↔ ∃ P, (G - X).IsPathFrom S T P := sorry
+
+lemma foo1 (h : G.SetConnected S T) (hsep : G.IsEdgeSetSeparator S T F) :
+    ∃ e x y, G.IsBetween e x y ∧ e ∈ F ∧
+      (G -ₑ {e}).SetConnected S {x} ∧ (G -ₑ {e}).SetConnected {y} T := sorry
+
+-- lemma foo1 (G : Graph α β) (S T : Set α) (F : Set β) (hST : (G.edgeDel F).Connected S T) : sorry
+
+open Path
 
 set_option maxHeartbeats 1000000 in
 theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : Set α)
     (k : ℕ)
-    (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard)  :
-    -- (hsep' : ∀ U, G.IsVxSetSeparator U S T → k ≤ U.encard) :
-    ∃ (Ps : PathEnsemble α β), Ps.Paths.ncard = k ∧ Ps.ValidOn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
+    -- (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard)  :
+    (hsep' : ∀ U, G.IsVxSetSeparator U S T → k ≤ U.encard) :
+    ∃ (Ps : PathEnsemble α β), k ≤ Ps.Paths.encard ∧ Ps.ValidOn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
   classical
 
-  obtain hE | hE := (em (G.E.Nonempty)).symm
-  · rw [Set.nonempty_iff_ne_empty, not_not] at hE
-    let X := G.V ∩ S ∩ T
-    have hXfin : X.Finite := sorry
-    -- Finite.inter_of_right hT (G.V ∩ S)
-    have hXsep : G.IsVxSetSeparator X S T := by
-      rintro a ha b hb hconn
-      rw [connected_iff_eq_mem_of_E_empty] at hconn
-      obtain ⟨rfl, haV, haX⟩ := hconn
-      exact haX ⟨⟨haV, ha⟩, hb⟩
-      · exact subset_eq_empty (induce_le G Set.diff_subset).2.1 hE
-    obtain ⟨Y, hYsu, hYcard⟩ := exists_subset_card_eq <| hsep X hXfin hXsep
-    have hYfin : Fintype Y.Elem := (hXfin.subset hYsu |>.fintype)
-    use PathEnsemble.nil Y β, by simpa, PathEnsemble.nil_validOn' ?_, ?_, ?_
-    · exact hYsu.trans <| Set.inter_subset_left.trans Set.inter_subset_left
-    · rw [PathEnsemble.nil_startSet]
-      exact hYsu.trans (Set.inter_subset_left.trans Set.inter_subset_right)
-    · rw [PathEnsemble.nil_finishSet]
-      exact hYsu.trans Set.inter_subset_right
+  obtain hE | ⟨e, hE⟩ := G.E.eq_empty_or_nonempty
+  · use PathEnsemble.nil (G.V ∩ S ∩ T) β
+    simp only [nil_encard, nil_validOn_iff, nil_startSet, nil_finishSet, Set.inter_subset_right,
+      and_true]
+    refine ⟨hsep' _ ?_, by tauto_set⟩
+    rintro a ha b hb hconn
+    rw [connected_iff_eq_mem_of_E_empty] at hconn
+    obtain ⟨rfl, haV, haX⟩ := hconn
+    exact haX ⟨⟨haV, ha⟩, hb⟩
+    · exact subset_eq_empty (induce_le G Set.diff_subset).2.1 hE
 
-  obtain ⟨e, he⟩ := hE
-  by_cases h : ∀ U : Set α, U.Finite → G{G.E \ {e}}.IsVxSetSeparator U S T → k ≤ U.ncard
+
+  by_cases h : ∀ U : Set α, G{G.E \ {e}}.IsVxSetSeparator U S T → k ≤ U.encard
   · obtain ⟨Ps, hlen, hPVd, hPs⟩ := Menger_VxSet (G{G.E \ {e}}) S T k h
     use Ps, hlen, hPVd.le (restrict_le _ _), hPs.1, hPs.2
 
   simp only [not_forall, Classical.not_imp, not_le] at h
-  obtain ⟨U, hUFin, hUsep, hUcard⟩ := h
+
+  obtain ⟨U, hUsep, hUcard⟩ := h
+
 
   -- There is a path that uses e and none of the vertices in U
-  have : ¬ G.IsVxSetSeparator U S T := by
-    rintro h
-    specialize hsep U hUFin h
-    omega
-  simp only [IsVxSetSeparator, not_forall, Classical.not_imp, Decidable.not_not] at this
-  obtain ⟨s, hs, t, ht, hconn⟩ := this
-  obtain ⟨p, hpVdU, rfl, rfl⟩ := Connected.iff_path.mp hconn; clear hconn
-  have hpe : e ∈ p.val.edge := by
-    have hpVd : p.val.ValidOn G := hpVdU.le (induce_le G Set.diff_subset)
-    by_contra! hpe
-    refine hUsep p.val.start hs p.val.finish ht
-    <| p.val.connected_of_validOn
-    <| hpVd.subgraph (fun _x hx ↦ hpVdU.mem_of_mem_vx hx)
-    <| fun e' he' ↦ ⟨hpVd.mem_of_mem_edge he', ?_⟩
-    simp only [mem_singleton_iff]
-    rintro rfl
-    exact hpe he'
-  obtain ⟨w₁, w₂, hw12, hnin⟩ := Walk.eq_append_cons_of_edge_mem hpe
+  have h : ¬ G.IsVxSetSeparator U S T :=  fun h ↦ hUcard.not_le <| hsep' U h
+  obtain ⟨P, hP⟩ := not_isVxSetSeparator_iff.1 h
+  have hsep'' : (G - U).IsEdgeSetSeparator S T {e} := by
+    rw [IsEdgeSetSeparator]
+    -- use commutativity of deletion
+    sorry
+  have heP : e ∈ P.edge := by simpa using hsep''.nonempty_inter hP.isWalkFrom
+
+  -- simp only [IsVxSetSeparator, not_forall, Classical.not_imp, Decidable.not_not, exists_prop] at h
+  -- obtain ⟨s, hs, t, ht, hconn⟩ := h
+  -- obtain ⟨p, hpVdU, rfl, rfl⟩ := Connected.iff_path.mp hconn; clear hconn
+  -- have hpe : e ∈ p.val.edge := by
+  --   have hpVd : p.val.ValidOn G := hpVdU.le (induce_le G Set.diff_subset)
+  --   by_contra! hpe
+  --   refine hUsep p.val.start hs p.val.finish ht
+  --   <| p.val.connected_of_validOn
+  --   <| hpVd.subgraph (fun _x hx ↦ hpVdU.mem_of_mem_vx hx)
+  --   <| fun e' he' ↦ ⟨hpVd.mem_of_mem_edge he', ?_⟩
+  --   simp only [mem_singleton_iff]
+  --   rintro rfl
+  --   exact hpe he'
+  obtain ⟨w₁, w₂, hw12, hnin⟩ := Walk.eq_append_cons_of_edge_mem heP
   let x := w₁.finish
   let y := w₂.start
   have hxy : G[G.V \ U].IsBetween e x y := (hw12 ▸ hpVdU).append_right_validOn.1

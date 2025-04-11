@@ -259,6 +259,10 @@ lemma nil_finishSet : (nil U β).FinishSet = U := by
 lemma nil_ncard : (nil U β).Paths.ncard = U.ncard :=
   ncard_image_of_injective U nil_injective
 
+@[simp]
+lemma nil_encard : (nil U β).Paths.encard = U.encard :=
+  nil_injective.encard_image _
+
 lemma startSet_subset_VxSet : Ps.StartSet ⊆ Ps.VxSet := by
   rintro x ⟨p, hp, rfl⟩
   use p, hp, start_vx_mem
@@ -267,15 +271,21 @@ lemma finishSet_subset_VxSet : Ps.FinishSet ⊆ Ps.VxSet := by
   rintro x ⟨p, hp, rfl⟩
   use p, hp, finish_vx_mem
 
-lemma VxSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.VxSet ⊆ G.V := by
+lemma ValidOn.vxSet_subset (hVd : Ps.ValidOn G) : Ps.VxSet ⊆ G.V := by
   rintro x ⟨p, hp, hx⟩
   exact (hVd p hp).mem_of_mem_vx hx
 
-lemma startSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.StartSet ⊆ G.V :=
-  startSet_subset_VxSet.trans (VxSet_subset_of_validOn hVd)
+@[simp]
+lemma nil_validOn_iff : (nil U β).ValidOn G ↔ U ⊆ G.V :=
+  ⟨fun h ↦ by simpa using h.vxSet_subset, nil_validOn'⟩
 
+-- dot notation
+lemma startSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.StartSet ⊆ G.V :=
+  startSet_subset_VxSet.trans hVd.vxSet_subset
+
+-- dot notation
 lemma finishSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.FinishSet ⊆ G.V :=
-  finishSet_subset_VxSet.trans (VxSet_subset_of_validOn hVd)
+  finishSet_subset_VxSet.trans hVd.vxSet_subset
 
 lemma mem_startSet_finishSet (hstart : x ∈ Ps.StartSet) (hfinish : x ∈ Ps.FinishSet) :
   ∃ p ∈ Ps.Paths, p = Path.nil x := by
@@ -313,7 +323,7 @@ lemma ValidOn.le {G' : Graph α β} (h : G ≤ G') (hVd : Ps.ValidOn G) :
     Ps.ValidOn G' := fun p hp ↦ (hVd p hp).le h
 
 lemma finite_of_finite_graph (h : G.Finite) (hVd : Ps.ValidOn G) : Ps.Paths.Finite := by
-  have hle := (Ps.startSet_subset_VxSet).trans (Ps.VxSet_subset_of_validOn hVd)
+  have hle := (Ps.startSet_subset_VxSet).trans hVd.vxSet_subset
   have hst : Ps.StartSet.Finite := Finite.subset h.1 hle
   exact (finite_image_iff Ps.start_injOn).mp hst
 
