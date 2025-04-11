@@ -8,6 +8,7 @@ import Kura.Dep.SetPartition
 import Kura.Dep.Sym2
 import Kura.Dep.Finset
 
+
 open Finsupp Set Function
 
 /-- This lemma should be in mathlib. -/
@@ -32,7 +33,7 @@ lemma finsum_mem_const {α M : Type*} (s : Set α) [AddCommMonoid M] (c : M) :
   vertex_support : ∀ ⦃e v⦄, incFun e v ≠ 0 → v ∈ V
   edge_support : ∀ ⦃e v⦄, incFun e v ≠ 0 → e ∈ E
 
-variable {α α' β β' : Type*} {G : Graph α β} {x y v w : α} {e f : β}
+variable {α α' β β' : Type*} {G G' : Graph α β} {x y z u v w : α} {e f : β}
 
 namespace Graph
 
@@ -152,7 +153,7 @@ lemma isNonloopAt_iff : G.IsNonloopAt e v ↔ G.Inc e v ∧ ∃ x, G.Inc e x ∧
   ⟨fun h ↦ ⟨h.inc, h.exists_inc_ne⟩, fun ⟨h, _, hex, hxv⟩ ↦ h.isLoopAt_or_isNonloopAt.elim
     (fun h' ↦ (hxv <| h'.eq_of_inc hex).elim) id⟩
 
-lemma inc_eq_inc_iff {G' : Graph α β} : G.Inc e = G'.Inc e ↔ G.incFun e = G'.incFun e := by
+lemma inc_eq_inc_iff : G.Inc e = G'.Inc e ↔ G.incFun e = G'.incFun e := by
   constructor <;> rintro h <;> ext x
   · obtain h0 | h1 | h2 := G'.incFun_eq_zero_or_one_or_two e x
     · rwa [h0, G.incFun_eq_zero, h, ← G'.incFun_eq_zero]
@@ -164,7 +165,7 @@ lemma inc_eq_inc_iff {G' : Graph α β} : G.Inc e = G'.Inc e ↔ G.incFun e = G'
     rw [h]
 
 /-- Two graphs with the same incidences are the same. -/
-lemma ext_inc {G G' : Graph α β} (hV : G.V = G'.V) (hE : G.E = G'.E)
+lemma ext_inc (hV : G.V = G'.V) (hE : G.E = G'.E)
     (h : ∀ e x, G.Inc e x ↔ G'.Inc e x) : G = G' := by
   ext e x
   · rw [hV]
@@ -192,6 +193,301 @@ lemma exists_vertex_inc (G : Graph α β) (he : e ∈ G.E) : ∃ v, G.Inc e v :=
 --   V := V
 --   E := E
 --   incFun e :=
+
+def toMultiset (G : Graph α β) (e : β) : Multiset α := (G.incFun e).toMultiset
+
+@[simp]
+lemma mem_toMultiset_iff : u ∈ G.toMultiset e ↔ G.Inc e u := by
+  simp only [toMultiset, mem_toMultiset, Inc.iff_mem_support, ne_eq, incFun_eq_zero, not_not]
+
+lemma toMultiset_card (he : e ∈ G.E) : (G.toMultiset e).card = 2 := by
+  simp only [toMultiset, card_toMultiset]
+  exact G.sum_eq he
+
+lemma toMultiset_count [DecidableEq α] (x : α) : (G.toMultiset e).count x = G.incFun e x := by
+  rw [toMultiset, count_toMultiset]
+
+noncomputable def toSym2 (G : Graph α β) {e : β} (he : e ∈ G.E) : Sym2 α :=
+  Sym2.equivMultiset α |>.symm ⟨G.toMultiset e, toMultiset_card he⟩
+
+lemma mem_toSym2_iff (he : e ∈ G.E) : x ∈ G.toSym2 he ↔ G.Inc e x := by
+  simp only [toSym2, Sym2.mem_equivMultisetsymm_mem, mem_toMultiset_iff]
+
+def Inc₂ (G : Graph α β) (e : β) (x y : α) : Prop := {x, y} = G.toMultiset e
+
+theorem Inc₂.symm (h : G.Inc₂ e x y) : G.Inc₂ e y x := by
+  unfold Inc₂ at h ⊢
+  rw [← h]
+  exact Multiset.pair_comm y x
+
+lemma Inc₂.comm : G.Inc₂ e x y ↔ G.Inc₂ e y x := by
+  refine ⟨Inc₂.symm, Inc₂.symm⟩
+
+theorem Inc₂.inc_left (h : G.Inc₂ e x y) : G.Inc e x := by
+  rw [← mem_toMultiset_iff, ← h]
+  simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, true_or]
+
+theorem Inc₂.inc_right (h : G.Inc₂ e x y) : G.Inc e y := h.symm.inc_left
+
+lemma Inc₂.vx_mem_left (h : G.Inc₂ e x y) : x ∈ G.V := h.inc_left.vx_mem
+
+@[simp]
+lemma not_inc₂_of_not_vx_mem_left (h : x ∉ G.V) : ¬ G.Inc₂ e x y :=
+  by_contra fun h' ↦ h <| (not_not.mp h').vx_mem_left
+
+lemma Inc₂.vx_mem_right (h : G.Inc₂ e x y) : y ∈ G.V := h.inc_right.vx_mem
+
+@[simp]
+lemma not_inc₂_of_not_vx_mem_right (h : y ∉ G.V) : ¬ G.Inc₂ e x y :=
+  by_contra fun h' ↦ h <| (not_not.mp h').vx_mem_right
+
+lemma Inc₂.edge_mem (h : G.Inc₂ e x y) : e ∈ G.E := h.inc_left.edge_mem
+
+@[simp]
+lemma not_inc₂_of_not_edge_mem (h : e ∉ G.E) : ¬ G.Inc₂ e x y :=
+  by_contra fun h' ↦ h <| (not_not.mp h').edge_mem
+
+lemma Inc₂.inc_iff (hBtw : G.Inc₂ e x y) : G.Inc e u ↔ u = x ∨ u = y := by
+  constructor
+  · rintro hinc
+    rw [← mem_toMultiset_iff, ← hBtw] at hinc
+    exact List.mem_pair.mp hinc
+  · rintro (rfl | rfl)
+    · exact hBtw.inc_left
+    · exact hBtw.inc_right
+
+@[simp]
+lemma forall_inc_iff {P : α → Prop} (hbtw : G.Inc₂ e x y): (∀ x, G.Inc e x → P x) ↔ P x ∧ P y := by
+  constructor
+  · rintro h
+    use h x hbtw.inc_left, h y hbtw.inc_right
+  · rintro ⟨hx, hy⟩ u hu
+    obtain rfl | rfl := hbtw.inc_iff.mp hu <;> assumption
+
+lemma Inc₂.pair_eq (h1 : G.Inc₂ e x y) (h2 : G.Inc₂ e u v) :
+    ({x, y} : Multiset α) = {u, v} := by
+  unfold Inc₂ at h1 h2
+  rwa [← h2] at h1
+
+lemma Inc₂.toSym2_eq (h : G.Inc₂ e x y) : G.toSym2 h.edge_mem = s(x, y) := by
+  unfold Inc₂ at h
+  simp only [toSym2, ← h]
+  rfl
+
+lemma toSym2_eq_iff_inc₂ (he : e ∈ G.E) : G.toSym2 he = s(x, y) ↔ G.Inc₂ e x y := by
+  simp only [toSym2, Sym2.equivMultisetsymmEq_iff]
+  rw [eq_comm]
+  rfl
+
+lemma Inc₂.sym2_eq (h1 : G.Inc₂ e x y) (h2 : G.Inc₂ e u v) : s(x, y) = s(u, v) := by
+  rw [← h1.toSym2_eq, ← h2.toSym2_eq]
+
+lemma Inc₂.eq_or_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) :
+    x = u ∧ y = v ∨ x = v ∧ y = u := by
+  have := h.sym2_eq h'
+  simpa using this
+
+lemma inc_iff_exists_inc₂ : G.Inc e u ↔ ∃ v, G.Inc₂ e u v := by
+  by_cases he : e ∈ G.E
+  · simp_rw [← mem_toSym2_iff he, ← toSym2_eq_iff_inc₂ he]
+    exact Sym2.mem_iff_exists
+  · simp [he]
+
+lemma Inc₂.eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e x u) : y = u := by
+  obtain ⟨_h, rfl⟩ | ⟨rfl , rfl⟩ := h.eq_or_eq_of_inc₂ h' <;> rfl
+
+@[simp]
+lemma Inc₂.inc₂_iff_eq_left (h : G.Inc₂ e x y) : G.Inc₂ e u y ↔ u = x :=
+  ⟨fun h' => (h.symm.eq_of_inc₂ h'.symm).symm, fun h' => h' ▸ h⟩
+
+@[simp]
+lemma Inc₂.inc₂_iff_eq_right (h : G.Inc₂ e x y) : G.Inc₂ e x u ↔ y = u :=
+  ⟨fun h' => h.eq_of_inc₂ h', fun h' => h' ▸ h⟩
+
+lemma IsLoopAt_iff_toMultiset_eq_replicate_two : G.IsLoopAt e x ↔
+    G.toMultiset e = Multiset.replicate 2 x := by
+  classical
+  constructor <;> rintro h
+  · have he : e ∈ G.E := h.edge_mem
+    unfold IsLoopAt at h
+    rw [← toMultiset_count x, ← toMultiset_card he, Multiset.count_eq_card] at h
+    rw [Multiset.eq_replicate_card.mpr fun a b ↦ (h a b).symm, toMultiset_card he]
+  · rw [IsLoopAt, ← toMultiset_count, h]
+    simp
+
+lemma IsLoopAt_iff_inc₂ : G.IsLoopAt e x ↔ G.Inc₂ e x x := by
+  rw [IsLoopAt_iff_toMultiset_eq_replicate_two, Inc₂, eq_comm]
+  simp
+
+@[simp]
+lemma Inc₂.IsLoopAt_iff_eq (hbtw : G.Inc₂ e x y) : G.IsLoopAt e x ↔ x = y := by
+  rw [IsLoopAt_iff_inc₂, hbtw.inc₂_iff_eq_right, eq_comm]
+
+lemma exist_inc₂_of_mem (he : e ∈ G.E) : ∃ x y, G.Inc₂ e x y := by
+  simp_rw [← toSym2_eq_iff_inc₂ he]
+  induction' G.toSym2 he with x y
+  use x, y
+
+lemma inc₂_iff_inc_and_loop :
+    G.Inc₂ e x y ↔ G.Inc e x ∧ G.Inc e y ∧ (x = y → G.IsLoopAt e x) := by
+  constructor
+  · rintro h
+    refine ⟨h.inc_left, h.inc_right, ?_⟩
+    rintro rfl
+    rw [h.IsLoopAt_iff_eq]
+  · rintro ⟨hincx, hincy, hloop⟩
+    by_cases h : x = y
+    · subst y
+      specialize hloop rfl
+      exact IsLoopAt_iff_inc₂.mp hloop
+    · unfold Inc₂
+      have : {x, y} ≤ G.toMultiset e := by
+        rw [Multiset.le_iff_subset]
+        · rintro z hz
+          simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hz
+          obtain rfl | rfl := hz <;> simpa
+        · simpa
+      refine Multiset.eq_of_le_of_card_le this ?_
+      rw [toMultiset_card hincx.edge_mem]
+      simp
+
+lemma inc₂_eq_inc₂_iff_inc_eq_inc : G.Inc₂ e = G'.Inc₂ e ↔ G.Inc e = G'.Inc e := by
+  constructor <;> rintro h
+  · simp_rw [funext_iff, inc_iff_exists_inc₂, eq_iff_iff]
+    exact fun x => exists_congr (fun y => by rw [h])
+  · ext x y
+    rw [inc₂_iff_inc_and_loop, inc₂_iff_inc_and_loop, isLoopAt_iff, isLoopAt_iff, h]
+
+lemma inc₂_eq_inc₂_iff : G.Inc₂ e = G'.Inc₂ e ↔ G.incFun e = G'.incFun e :=
+  inc₂_eq_inc₂_iff_inc_eq_inc.trans inc_eq_inc_iff
+
+lemma exist_Inc₂_of_mem_of_distinct {P : α → Prop} (hP1 : ∃ x, G.Inc e x ∧ P x)
+    (hP2 : ∃ x, G.Inc e x ∧ ¬ P x) : ∃ x y, G.Inc₂ e x y ∧ P x ∧ ¬ P y := by
+  obtain ⟨x, hxinc, hx⟩ := hP1
+  obtain ⟨y, hyinc, hy⟩ := hP2
+  use x, y, ?_, hx, hy
+  rw [inc₂_iff_inc_and_loop]
+  use hxinc, hyinc, ?_
+  rintro rfl
+  exact (hy hx).elim
+
+noncomputable def ofInc₂ (V : Set α) (E : Set β) (isBtw : β → α → α → Prop)
+    (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
+    (vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V)
+    (_edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E)
+    (exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y)
+    (_eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u))
+    : Graph α β where
+  V := V
+  E := E
+  incFun e := by
+    classical
+    by_cases he : e ∈ E
+    · choose x y hbtw using exists_vertex_isBtw e he
+      exact Multiset.toFinsupp {x, y}
+    · exact 0
+  sum_eq e he := by
+    classical
+    simp only [he, ↓reduceDIte]
+    change (Multiset.toFinsupp _).sum (fun _ ↦ id) = 2
+    rw [Multiset.toFinsupp_sum_eq]
+    rfl
+  vertex_support e v h := by
+    by_cases he : e ∈ E
+    · simp only [he, ↓reduceDIte, Multiset.insert_eq_cons, Multiset.toFinsupp_apply, ne_eq,
+      Multiset.count_eq_zero, Multiset.mem_cons, Multiset.mem_singleton, not_and,
+      not_not] at h
+      obtain rfl | rfl := h
+      · obtain ⟨y, hbtw⟩ := exists_vertex_isBtw e he |>.choose_spec
+        refine vx_mem_of_isBtw_left e _ _ hbtw
+      · obtain hbtw := exists_vertex_isBtw e he |>.choose_spec |>.choose_spec
+        refine vx_mem_of_isBtw_left e _ _ (hsymm _ _ _ hbtw)
+    · simp only [he, ↓reduceDIte, coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
+  edge_support e v h := by
+    by_contra! he
+    simp only [he, ↓reduceDIte, coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
+
+@[simp]
+lemma Inc₂.ofInc₂ {V : Set α} {E : Set β} {isBtw : β → α → α → Prop}
+    {hsymm : ∀ e x y, isBtw e x y → isBtw e y x}
+    {vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V}
+    {edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E}
+    {exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y}
+    {eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)} :
+    (ofInc₂ V E isBtw hsymm vx_mem_of_isBtw_left edge_mem_of_isBtw exists_vertex_isBtw eq_of_isBtw).Inc₂ e x y ↔
+      isBtw e x y := by
+  unfold Graph.ofInc₂
+  simp only [Inc₂, toMultiset]
+  by_cases he : e ∈ E
+  · simp only [he, ↓reduceDIte, Multiset.toFinsupp_toMultiset]
+    let u := (exists_vertex_isBtw e he).choose
+    let v := (exists_vertex_isBtw e he).choose_spec.choose
+    have huv : isBtw e u v := (exists_vertex_isBtw e he).choose_spec.choose_spec
+    change ({x, y} : Multiset α) = {u, v} ↔ _
+    rw [Multiset.pair_eq_pair_iff]
+    constructor
+    · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
+      · exact huv
+      · exact hsymm e _ _ huv
+    · exact fun a ↦ eq_of_isBtw (hsymm e y x (hsymm e x y a)) huv
+  · simp only [Multiset.insert_eq_cons, he, ↓reduceDIte, map_zero, Multiset.cons_ne_zero,
+    false_iff]
+    contrapose! he
+    exact edge_mem_of_isBtw e y x (hsymm e x y (hsymm e y x (hsymm e x y he)))
+
+@[simp]
+lemma Inc.ofInc₂ {V : Set α} {E : Set β} {isBtw : β → α → α → Prop}
+    {hsymm : ∀ e x y, isBtw e x y → isBtw e y x}
+    {vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V}
+    {edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E}
+    {exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y}
+    {eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)} :
+    (ofInc₂ V E isBtw hsymm vx_mem_of_isBtw_left edge_mem_of_isBtw exists_vertex_isBtw eq_of_isBtw).Inc e v ↔
+      ∃ u, isBtw e v u := by
+  simp_rw [inc_iff_exists_inc₂, Inc₂.ofInc₂]
+
+
+def Adj (G : Graph α β) (x y : α) : Prop :=
+  ∃ e, G.Inc₂ e x y
+
+lemma Adj.comm : G.Adj x y ↔ G.Adj y x := by
+  unfold Adj
+  constructor <;>
+  · rintro ⟨e, h⟩
+    exact ⟨e, h.symm⟩
+
+lemma Adj.symm (h : G.Adj x y) : G.Adj y x := by
+  obtain ⟨e, h⟩ := h
+  exact ⟨e, h.symm⟩
+
+@[simp]
+lemma Adj.mem_left (h : G.Adj x y) : x ∈ G.V := by
+  obtain ⟨e, hbtw⟩ := h
+  exact hbtw.vx_mem_left
+
+@[simp]
+lemma Adj.mem_right (h : G.Adj x y) : y ∈ G.V := by
+  rw [Adj.comm] at h
+  exact Adj.mem_left h
+
+@[simp]
+lemma not_adj_of_not_mem_left (h : x ∉ G.V) : ¬G.Adj x y := by
+  rintro ⟨e, hbtw⟩
+  exact h hbtw.vx_mem_left
+
+@[simp]
+lemma not_adj_of_not_mem_right (h : y ∉ G.V) : ¬G.Adj x y := by
+  rw [Adj.comm]
+  exact not_adj_of_not_mem_left h
+
+@[simp]
+lemma Inc₂.Adj (h : G.Inc₂ e x y) : G.Adj x y := by
+  use e
+
+def edgeNhd (G : Graph α β) (v : α) : Set β := {e | G.Inc e v}
+
+def vxNhd (G : Graph α β) (v : α) : Set α := {x | G.Adj v x}
+
 
 section Degree
 
@@ -233,312 +529,7 @@ lemma handshake [Finite α] [Finite β] (G : Graph α β) :
 
 end Degree
 
-section IsBetween
-
-variable {u v : α}
-
-def toMultiset (G : Graph α β) (e : β) : Multiset α := (G.incFun e).toMultiset
-
-@[simp]
-lemma mem_toMultiset_iff : u ∈ G.toMultiset e ↔ G.Inc e u := by
-  simp only [toMultiset, mem_toMultiset, Inc.iff_mem_support, ne_eq, incFun_eq_zero, not_not]
-
-lemma toMultiset_card (he : e ∈ G.E) : (G.toMultiset e).card = 2 := by
-  simp only [toMultiset, card_toMultiset]
-  exact G.sum_eq he
-
-lemma toMultiset_count [DecidableEq α] (x : α) : (G.toMultiset e).count x = G.incFun e x := by
-  rw [toMultiset, count_toMultiset]
-
-noncomputable def toSym2 (G : Graph α β) {e : β} (he : e ∈ G.E) : Sym2 α :=
-  Sym2.equivMultiset α |>.symm ⟨G.toMultiset e, toMultiset_card he⟩
-
-lemma mem_toSym2_iff (he : e ∈ G.E) : x ∈ G.toSym2 he ↔ G.Inc e x := by
-  simp only [toSym2, Sym2.mem_equivMultisetsymm_mem, mem_toMultiset_iff]
-
-def IsBetween (G : Graph α β) (e : β) (x y : α) : Prop := {x, y} = G.toMultiset e
-
-theorem IsBetween.symm (h : G.IsBetween e x y) : G.IsBetween e y x := by
-  unfold IsBetween at h ⊢
-  rw [← h]
-  exact Multiset.pair_comm y x
-
-lemma IsBetween.comm : G.IsBetween e x y ↔ G.IsBetween e y x := by
-  refine ⟨IsBetween.symm, IsBetween.symm⟩
-
-theorem IsBetween.inc_left (h : G.IsBetween e x y) : G.Inc e x := by
-  rw [← mem_toMultiset_iff, ← h]
-  simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton, true_or]
-
-theorem IsBetween.inc_right (h : G.IsBetween e x y) : G.Inc e y := h.symm.inc_left
-
-lemma IsBetween.vx_mem_left (h : G.IsBetween e x y) : x ∈ G.V := h.inc_left.vx_mem
-
-@[simp]
-lemma not_isBetween_of_not_vx_mem_left (h : x ∉ G.V) : ¬ G.IsBetween e x y :=
-  by_contra fun h' ↦ h <| (not_not.mp h').vx_mem_left
-
-lemma IsBetween.vx_mem_right (h : G.IsBetween e x y) : y ∈ G.V := h.inc_right.vx_mem
-
-@[simp]
-lemma not_isBetween_of_not_vx_mem_right (h : y ∉ G.V) : ¬ G.IsBetween e x y :=
-  by_contra fun h' ↦ h <| (not_not.mp h').vx_mem_right
-
-lemma IsBetween.edge_mem (h : G.IsBetween e x y) : e ∈ G.E := h.inc_left.edge_mem
-
-@[simp]
-lemma not_isBetween_of_not_edge_mem (h : e ∉ G.E) : ¬ G.IsBetween e x y :=
-  by_contra fun h' ↦ h <| (not_not.mp h').edge_mem
-
-lemma IsBetween.inc_iff (hBtw : G.IsBetween e x y) : G.Inc e u ↔ u = x ∨ u = y := by
-  constructor
-  · rintro hinc
-    rw [← mem_toMultiset_iff, ← hBtw] at hinc
-    exact List.mem_pair.mp hinc
-  · rintro (rfl | rfl)
-    · exact hBtw.inc_left
-    · exact hBtw.inc_right
-
-@[simp]
-lemma forall_inc_iff {P : α → Prop} (hbtw : G.IsBetween e x y):
-    (∀ x, G.Inc e x → P x) ↔ P x ∧ P y := by
-  constructor
-  · rintro h
-    use h x hbtw.inc_left, h y hbtw.inc_right
-  · rintro ⟨hx, hy⟩ u hu
-    obtain rfl | rfl := hbtw.inc_iff.mp hu <;> assumption
-
-lemma IsBetween.pair_eq (h1 : G.IsBetween e x y) (h2 : G.IsBetween e u v) :
-    ({x, y} : Multiset α) = {u, v} := by
-  unfold IsBetween at h1 h2
-  rwa [← h2] at h1
-
-lemma IsBetween.toSym2_eq (h : G.IsBetween e x y) : G.toSym2 h.edge_mem = s(x, y) := by
-  unfold IsBetween at h
-  simp only [toSym2, ← h]
-  rfl
-
-lemma toSym2_eq_iff_IsBetween (he : e ∈ G.E) : G.toSym2 he = s(x, y) ↔ G.IsBetween e x y := by
-  simp only [toSym2, Sym2.equivMultisetsymmEq_iff]
-  rw [eq_comm]
-  rfl
-
-lemma IsBetween.sym2_eq (h1 : G.IsBetween e x y) (h2 : G.IsBetween e u v) :
-    s(x, y) = s(u, v) := by
-  rw [← h1.toSym2_eq, ← h2.toSym2_eq]
-
-lemma IsBetween.eq_or_eq_of_IsBetween (h : G.IsBetween e x y) (h' : G.IsBetween e u v) :
-    x = u ∧ y = v ∨ x = v ∧ y = u := by
-  have := h.sym2_eq h'
-  simpa using this
-
-lemma inc_iff_exists_IsBetween : G.Inc e u ↔ ∃ v, G.IsBetween e u v := by
-  by_cases he : e ∈ G.E
-  · simp_rw [← mem_toSym2_iff he, ← toSym2_eq_iff_IsBetween he]
-    exact Sym2.mem_iff_exists
-  · simp [he]
-
-lemma IsBetween.eq_of_IsBetween (h : G.IsBetween e x y) (h' : G.IsBetween e x u) : y = u := by
-  obtain ⟨_h, rfl⟩ | ⟨rfl , rfl⟩ := h.eq_or_eq_of_IsBetween h' <;> rfl
-
-@[simp]
-lemma IsBetween.IsBetween_iff_eq_left (h : G.IsBetween e x y) : G.IsBetween e u y ↔ u = x :=
-  ⟨fun h' => (h.symm.eq_of_IsBetween h'.symm).symm, fun h' => h' ▸ h⟩
-
-@[simp]
-lemma IsBetween.IsBetween_iff_eq_right (h : G.IsBetween e x y) : G.IsBetween e x u ↔ y = u :=
-  ⟨fun h' => h.eq_of_IsBetween h', fun h' => h' ▸ h⟩
-
-lemma IsLoopAt_iff_toMultiset_eq_replicate_two : G.IsLoopAt e x ↔
-    G.toMultiset e = Multiset.replicate 2 x := by
-  classical
-  constructor <;> rintro h
-  · have he : e ∈ G.E := h.edge_mem
-    unfold IsLoopAt at h
-    rw [← toMultiset_count x, ← toMultiset_card he, Multiset.count_eq_card] at h
-    rw [Multiset.eq_replicate_card.mpr fun a b ↦ (h a b).symm, toMultiset_card he]
-  · rw [IsLoopAt, ← toMultiset_count, h]
-    simp
-
-lemma IsLoopAt_iff_IsBetween : G.IsLoopAt e x ↔ G.IsBetween e x x := by
-  rw [IsLoopAt_iff_toMultiset_eq_replicate_two, IsBetween, eq_comm]
-  simp
-
-@[simp]
-lemma IsBetween.IsLoopAt_iff_eq (hbtw : G.IsBetween e x y) :
-    G.IsLoopAt e x ↔ x = y := by
-  rw [IsLoopAt_iff_IsBetween, hbtw.IsBetween_iff_eq_right, eq_comm]
-
-lemma exist_IsBetween_of_mem (he : e ∈ G.E) : ∃ x y, G.IsBetween e x y := by
-  simp_rw [← toSym2_eq_iff_IsBetween he]
-  induction' G.toSym2 he with x y
-  use x, y
-
-lemma IsBetween_iff_inc_and_loop :
-    G.IsBetween e x y ↔ G.Inc e x ∧ G.Inc e y ∧ (x = y → G.IsLoopAt e x) := by
-  constructor
-  · rintro h
-    refine ⟨h.inc_left, h.inc_right, ?_⟩
-    rintro rfl
-    rw [h.IsLoopAt_iff_eq]
-  · rintro ⟨hincx, hincy, hloop⟩
-    by_cases h : x = y
-    · subst y
-      specialize hloop rfl
-      exact IsLoopAt_iff_IsBetween.mp hloop
-    · unfold IsBetween
-      have : {x, y} ≤ G.toMultiset e := by
-        rw [Multiset.le_iff_subset]
-        · rintro z hz
-          simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hz
-          obtain rfl | rfl := hz <;> simpa
-        · simpa
-      refine Multiset.eq_of_le_of_card_le this ?_
-      rw [toMultiset_card hincx.edge_mem]
-      simp
-
-lemma isBetween_eq_isBetween_iff_inc_eq_inc {G' : Graph α β} :
-    G.IsBetween e = G'.IsBetween e ↔ G.Inc e = G'.Inc e := by
-  constructor <;> rintro h
-  · simp_rw [funext_iff, inc_iff_exists_IsBetween, eq_iff_iff]
-    exact fun x => exists_congr (fun y => by rw [h])
-  · ext x y
-    rw [IsBetween_iff_inc_and_loop, IsBetween_iff_inc_and_loop, isLoopAt_iff, isLoopAt_iff, h]
-
-lemma isBetween_eq_isBetween_iff {G' : Graph α β} :
-    G.IsBetween e = G'.IsBetween e ↔ G.incFun e = G'.incFun e :=
-  isBetween_eq_isBetween_iff_inc_eq_inc.trans inc_eq_inc_iff
-
-lemma exist_IsBetween_of_mem_of_distinct {P : α → Prop} (hP1 : ∃ x, G.Inc e x ∧ P x)
-    (hP2 : ∃ x, G.Inc e x ∧ ¬ P x) : ∃ x y, G.IsBetween e x y ∧ P x ∧ ¬ P y := by
-  obtain ⟨x, hxinc, hx⟩ := hP1
-  obtain ⟨y, hyinc, hy⟩ := hP2
-  use x, y, ?_, hx, hy
-  rw [IsBetween_iff_inc_and_loop]
-  use hxinc, hyinc, ?_
-  rintro rfl
-  exact (hy hx).elim
-
-
-noncomputable def ofIsBetween (V : Set α) (E : Set β) (isBtw : β → α → α → Prop)
-    (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
-    (vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V)
-    (_edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E)
-    (exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y)
-    (_eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u))
-    : Graph α β where
-  V := V
-  E := E
-  incFun e := by
-    classical
-    by_cases he : e ∈ E
-    · choose x y hbtw using exists_vertex_isBtw e he
-      exact Multiset.toFinsupp {x, y}
-    · exact 0
-  sum_eq e he := by
-    classical
-    simp only [he, ↓reduceDIte]
-    change (Multiset.toFinsupp _).sum (fun _ ↦ id) = 2
-    rw [Multiset.toFinsupp_sum_eq]
-    rfl
-  vertex_support e v h := by
-    by_cases he : e ∈ E
-    · simp only [he, ↓reduceDIte, Multiset.insert_eq_cons, Multiset.toFinsupp_apply, ne_eq,
-      Multiset.count_eq_zero, Multiset.mem_cons, Multiset.mem_singleton, not_and,
-      not_not] at h
-      obtain rfl | rfl := h
-      · obtain ⟨y, hbtw⟩ := exists_vertex_isBtw e he |>.choose_spec
-        refine vx_mem_of_isBtw_left e _ _ hbtw
-      · obtain hbtw := exists_vertex_isBtw e he |>.choose_spec |>.choose_spec
-        refine vx_mem_of_isBtw_left e _ _ (hsymm _ _ _ hbtw)
-    · simp only [he, ↓reduceDIte, coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
-  edge_support e v h := by
-    by_contra! he
-    simp only [he, ↓reduceDIte, coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
-
-@[simp]
-lemma IsBetween.ofIsBetween {V : Set α} {E : Set β} {isBtw : β → α → α → Prop}
-    {hsymm : ∀ e x y, isBtw e x y → isBtw e y x}
-    {vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V}
-    {edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E}
-    {exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y}
-    {eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)} :
-    (ofIsBetween V E isBtw hsymm vx_mem_of_isBtw_left edge_mem_of_isBtw exists_vertex_isBtw eq_of_isBtw).IsBetween e x y ↔
-      isBtw e x y := by
-  unfold Graph.ofIsBetween
-  simp only [IsBetween, toMultiset]
-  by_cases he : e ∈ E
-  · simp only [he, ↓reduceDIte, Multiset.toFinsupp_toMultiset]
-    let u := (exists_vertex_isBtw e he).choose
-    let v := (exists_vertex_isBtw e he).choose_spec.choose
-    have huv : isBtw e u v := (exists_vertex_isBtw e he).choose_spec.choose_spec
-    change ({x, y} : Multiset α) = {u, v} ↔ _
-    rw [Multiset.pair_eq_pair_iff]
-    constructor
-    · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
-      · exact huv
-      · exact hsymm e _ _ huv
-    · exact fun a ↦ eq_of_isBtw (hsymm e y x (hsymm e x y a)) huv
-  · simp only [Multiset.insert_eq_cons, he, ↓reduceDIte, map_zero, Multiset.cons_ne_zero,
-    false_iff]
-    contrapose! he
-    exact edge_mem_of_isBtw e y x (hsymm e x y (hsymm e y x (hsymm e x y he)))
-
-@[simp]
-lemma Inc.ofIsBetween {V : Set α} {E : Set β} {isBtw : β → α → α → Prop}
-    {hsymm : ∀ e x y, isBtw e x y → isBtw e y x}
-    {vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V}
-    {edge_mem_of_isBtw : ∀ e x y, isBtw e x y → e ∈ E}
-    {exists_vertex_isBtw : ∀ e, e ∈ E → ∃ x y, isBtw e x y}
-    {eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)} :
-    (ofIsBetween V E isBtw hsymm vx_mem_of_isBtw_left edge_mem_of_isBtw exists_vertex_isBtw eq_of_isBtw).Inc e v ↔
-      ∃ u, isBtw e v u := by
-  simp_rw [inc_iff_exists_IsBetween, IsBetween.ofIsBetween]
-
-
-def Adj (G : Graph α β) (x y : α) : Prop :=
-  ∃ e, G.IsBetween e x y
-
-lemma Adj.comm : G.Adj x y ↔ G.Adj y x := by
-  unfold Adj
-  constructor <;>
-  · rintro ⟨e, h⟩
-    exact ⟨e, h.symm⟩
-
-lemma Adj.symm (h : G.Adj x y) : G.Adj y x := by
-  obtain ⟨e, h⟩ := h
-  exact ⟨e, h.symm⟩
-
-@[simp]
-lemma Adj.mem_left (h : G.Adj x y) : x ∈ G.V := by
-  obtain ⟨e, hbtw⟩ := h
-  exact hbtw.vx_mem_left
-
-@[simp]
-lemma Adj.mem_right (h : G.Adj x y) : y ∈ G.V := by
-  rw [Adj.comm] at h
-  exact Adj.mem_left h
-
-@[simp]
-lemma not_adj_of_not_mem_left (h : x ∉ G.V) : ¬G.Adj x y := by
-  rintro ⟨e, hbtw⟩
-  exact h hbtw.vx_mem_left
-
-@[simp]
-lemma not_adj_of_not_mem_right (h : y ∉ G.V) : ¬G.Adj x y := by
-  rw [Adj.comm]
-  exact not_adj_of_not_mem_left h
-
-@[simp]
-lemma IsBetween.Adj (h : G.IsBetween e x y) : G.Adj x y := by
-  use e
-
-def edgeNhd (G : Graph α β) (v : α) : Set β := {e | G.Inc e v}
-
-def vxNhd (G : Graph α β) (v : α) : Set α := {x | G.Adj v x}
-
-
-
+section Connected
 
 @[simp]
 def reflAdj (G : Graph α β) (x y : α) :=
@@ -566,7 +557,7 @@ lemma Inc.reflAdj_of_inc (hx : G.Inc e x) (hy : G.Inc e y) : G.reflAdj x y := by
     exact ⟨rfl, hx.vx_mem⟩
   · left
     use e
-    rw [IsBetween_iff_inc_and_loop]
+    rw [inc₂_iff_inc_and_loop]
     use hx, hy, fun h ↦ (hxy h).elim
 
 @[simp]
@@ -581,7 +572,7 @@ lemma reflAdj.mem_right (h : G.reflAdj x y) : y ∈ G.V := by
   exact h.mem_left
 
 @[simp]
-lemma IsBetween.reflAdj (h : G.IsBetween e x y) : G.reflAdj x y := by
+lemma Inc₂.reflAdj (h : G.Inc₂ e x y) : G.reflAdj x y := by
   left
   use e
 
@@ -602,7 +593,7 @@ lemma reflAdj.Adj_iff_ne (hne : x ≠ y) : G.reflAdj x y ↔ G.Adj x y :=
 def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
 
 @[simp]
-lemma IsBetween.connected (h : G.IsBetween e x y) : G.Connected x y :=
+lemma Inc₂.connected (h : G.Inc₂ e x y) : G.Connected x y :=
   Relation.TransGen.single h.reflAdj
 
 @[simp]
@@ -625,7 +616,7 @@ lemma Connected.comm : G.Connected x y ↔ G.Connected y x := by
   exact reflAdj.comm
 
 @[simp]
-lemma Connected.refl {G : Graph α β} {x : α} (hx : x ∈ G.V) : G.Connected x x :=
+lemma Connected.refl (hx : x ∈ G.V) : G.Connected x x :=
   connected_self hx
 
 lemma Connected.symm (h : G.Connected x y) : G.Connected y x := by
@@ -633,7 +624,7 @@ lemma Connected.symm (h : G.Connected x y) : G.Connected y x := by
 
 instance : IsSymm α (G.Connected) := ⟨fun _ _ ↦ Connected.symm⟩
 
-lemma Connected.trans {G : Graph α β} {x y z : α} (hxy : G.Connected x y) (hyz : G.Connected y z) :
+lemma Connected.trans (hxy : G.Connected x y) (hyz : G.Connected y z) :
     G.Connected x z := Relation.TransGen.trans hxy hyz
 
 instance : IsTrans α (G.Connected) := ⟨fun _ _ _ ↦ Connected.trans⟩
@@ -660,7 +651,7 @@ lemma not_connected_of_not_mem' (h : y ∉ G.V) : ¬G.Connected x y := by
   exact not_connected_of_not_mem h
 
 @[simp]
-lemma Connected.refl_iff {G : Graph α β} {x : α} : G.Connected x x ↔ x ∈ G.V := by
+lemma Connected.refl_iff : G.Connected x x ↔ x ∈ G.V := by
   refine ⟨?_, Connected.refl⟩
   rintro h
   exact h.mem_left
@@ -668,4 +659,4 @@ lemma Connected.refl_iff {G : Graph α β} {x : α} : G.Connected x x ↔ x ∈ 
 class Conn (G : Graph α β) : Prop where
   all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
 
-end IsBetween
+end Connected

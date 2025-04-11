@@ -93,25 +93,25 @@ lemma vxMap_toMultiset_eq_map_toMultiset (G : Graph α β) (f : α → α') (e :
     (G.vxMap f).toMultiset e = Multiset.map f (G.toMultiset e) := by
   simp only [vxMap, toMultiset, Finsupp.toMultiset_map]
 
-lemma IsBetween.vxMap_of_isBetween {x y : α} (hBtw : G.IsBetween e x y) (φ : α → α') :
-    (G.vxMap φ).IsBetween e (φ x) (φ y) := by
-  unfold IsBetween at hBtw ⊢
+lemma Inc₂.vxMap_of_inc₂ {x y : α} (hBtw : G.Inc₂ e x y) (φ : α → α') :
+    (G.vxMap φ).Inc₂ e (φ x) (φ y) := by
+  unfold Inc₂ at hBtw ⊢
   simp only [Multiset.insert_eq_cons, vxMap_toMultiset_eq_map_toMultiset, ← hBtw, Multiset.map_cons,
     Multiset.map_singleton]
 
 @[simp]
-lemma vxMap.IsBetween {x y : α'} : (G.vxMap φ).IsBetween e x y ↔
-    ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.IsBetween e x' y' := by
+lemma vxMap.Inc₂ {x y : α'} : (G.vxMap φ).Inc₂ e x y ↔
+    ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.Inc₂ e x' y' := by
   constructor
   · rintro hBtw
     obtain he : e ∈ G.E := hBtw.edge_mem
-    obtain ⟨x', y', hbtw⟩ := exist_IsBetween_of_mem he
-    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (hbtw.vxMap_of_isBetween φ).eq_or_eq_of_IsBetween hBtw
+    obtain ⟨x', y', hbtw⟩ := exist_inc₂_of_mem he
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (hbtw.vxMap_of_inc₂ φ).eq_or_eq_of_inc₂ hBtw
     · use x', rfl, y'
     · use y', rfl, x', rfl
       exact hbtw.symm
   · rintro ⟨x', rfl, y', rfl, hbtw⟩
-    exact hbtw.vxMap_of_isBetween φ
+    exact hbtw.vxMap_of_inc₂ φ
 
 
 -- def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where

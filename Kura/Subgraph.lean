@@ -72,25 +72,25 @@ lemma le_iff_inc : G₁ ≤ G₂ ↔ G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧
     ext x
     exact hinc e he x
 
-lemma le_iff_isBetween : G₁ ≤ G₂ ↔ G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧ ∀ e ∈ G₁.E, ∀ v w,
-  G₁.IsBetween e v w ↔ G₂.IsBetween e v w := by
+lemma le_iff_inc₂ : G₁ ≤ G₂ ↔ G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧ ∀ e ∈ G₁.E, ∀ v w,
+  G₁.Inc₂ e v w ↔ G₂.Inc₂ e v w := by
   constructor
   · rintro ⟨hV, hE, hinc⟩
     refine ⟨hV, hE, fun e he v w ↦ ?_⟩
-    unfold IsBetween toMultiset
+    unfold Inc₂ toMultiset
     rw [hinc e he]
   · refine fun ⟨hV, hE, hinc⟩ ↦ ⟨hV, hE, fun e he ↦ ?_⟩
-    rw [← isBetween_eq_isBetween_iff]
+    rw [← inc₂_eq_inc₂_iff]
     ext v w
     exact hinc e he v w
 
-lemma IsBetween_iff_IsBetween_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
-    G₁.IsBetween e u v ↔ G₂.IsBetween e u v := by
-  unfold IsBetween toMultiset
+lemma inc₂_iff_inc₂_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
+    G₁.Inc₂ e u v ↔ G₂.Inc₂ e u v := by
+  unfold Inc₂ toMultiset
   rw [incFun_eq_incFun_of_le hle he]
 
-lemma IsBetween.le (h : G₁.IsBetween e u v) (hle : G₁ ≤ G₂) : G₂.IsBetween e u v := by
-  rwa [← IsBetween_iff_IsBetween_of_edge_mem_le hle (edge_mem h)]
+lemma Inc₂.le (h : G₁.Inc₂ e u v) (hle : G₁ ≤ G₂) : G₂.Inc₂ e u v := by
+  rwa [← inc₂_iff_inc₂_of_edge_mem_le hle (edge_mem h)]
 
 lemma Adj.le (hadj : G₁.Adj u v) (hle : G₁ ≤ G₂) : G₂.Adj u v := by
   obtain ⟨e, hbtw⟩ := hadj
@@ -191,20 +191,20 @@ instance instForallIncDecidable (U : Set α) [DecidablePred (· ∈ U)] :
 
 /-- Induced subgraph -/
 noncomputable def induce (G : Graph α β) (U : Set α) : Graph α β := by
-  apply ofIsBetween U (G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ U})
-    (fun e x y ↦ G.IsBetween e x y ∧ x ∈ U ∧ y ∈ U) (fun e x y ⟨hbtw, hx, hy⟩ ↦ ⟨hbtw.symm, hy, hx⟩)
+  apply ofInc₂ U (G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ U})
+    (fun e x y ↦ G.Inc₂ e x y ∧ x ∈ U ∧ y ∈ U) (fun e x y ⟨hbtw, hx, hy⟩ ↦ ⟨hbtw.symm, hy, hx⟩)
     (fun e x y ⟨hbtw, hx, hy⟩ ↦ hx)
   · rintro e x y ⟨hbtw, hx, hy⟩
     simp only [mem_inter_iff, hbtw.edge_mem, mem_setOf_eq, true_and]
     rw [forall_inc_iff hbtw]
     exact ⟨hx, hy⟩
   · rintro e he
-    obtain ⟨x, y, hbtw⟩ := G.exist_IsBetween_of_mem he.1
+    obtain ⟨x, y, hbtw⟩ := G.exist_inc₂_of_mem he.1
     use x, y, hbtw
     rw [← forall_inc_iff hbtw]
     exact he.2
   · rintro e x y u v ⟨hxy, hx, hy⟩ ⟨huv, hu, hv⟩
-    exact hxy.eq_or_eq_of_IsBetween huv
+    exact hxy.eq_or_eq_of_inc₂ huv
 
 notation G "[" S "]" => Graph.induce G S
 
@@ -237,38 +237,38 @@ lemma vxDel_E_le (U : Set α) : (G - U).E ⊆ G.E := by simp only [vxDel_E, mem_
   inter_subset_left]
 
 @[simp]
-lemma induce_isBetween_iff : (G[U]).IsBetween e x y ↔ G.IsBetween e x y ∧ x ∈ U ∧ y ∈ U :=
-  IsBetween.ofIsBetween
+lemma induce_inc₂_iff : (G[U]).Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∈ U ∧ y ∈ U :=
+  Inc₂.ofInc₂
 
 @[simp]
-lemma vxDel_isBetween_iff : (G - U).IsBetween e x y ↔ G.IsBetween e x y ∧ x ∉ U ∧ y ∉ U := by
-  simp +contextual only [← vxDel_notation, induce_isBetween_iff, mem_diff, iff_def,
+lemma vxDel_inc₂_iff : (G - U).Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∉ U ∧ y ∉ U := by
+  simp +contextual only [← vxDel_notation, induce_inc₂_iff, mem_diff, iff_def,
     not_false_eq_true, and_self, implies_true, and_true, true_and, and_imp]
   rintro hbtw hx hy
   exact ⟨hbtw.vx_mem_left, hbtw.vx_mem_right⟩
 
-lemma IsBetween.of_IsBetween_induce (h : (G[U]).IsBetween e x y) : G.IsBetween e x y := by
-  rw [induce_isBetween_iff] at h
+lemma Inc₂.of_inc₂_induce (h : (G[U]).Inc₂ e x y) : G.Inc₂ e x y := by
+  rw [induce_inc₂_iff] at h
   exact h.1
 
-lemma IsBetween.of_IsBetween_vxDel (h : (G - U).IsBetween e x y) : G.IsBetween e x y := by
-  rw [vxDel_isBetween_iff] at h
+lemma Inc₂.of_inc₂_vxDel (h : (G - U).Inc₂ e x y) : G.Inc₂ e x y := by
+  rw [vxDel_inc₂_iff] at h
   exact h.1
 
-lemma IsBetween.iff_induce_pair : G.IsBetween e x y ↔ G[{x, y}].IsBetween e x y := by
-  simp only [induce_isBetween_iff, mem_insert_iff, mem_singleton_iff, true_or, or_true, and_self,
+lemma Inc₂.iff_induce_pair : G.Inc₂ e x y ↔ G[{x, y}].Inc₂ e x y := by
+  simp only [induce_inc₂_iff, mem_insert_iff, mem_singleton_iff, true_or, or_true, and_self,
     and_true]
 
 @[simp]
 lemma induce_inc_iff : (G[U]).Inc e v ↔ G.Inc e v ∧ ∀ (x : α), G.Inc e x → x ∈ U := by
-  simp only [induce, Inc.ofIsBetween]
+  simp only [induce, Inc.ofInc₂]
   constructor
   · rintro ⟨u, hbtw, hv, hu⟩
     refine ⟨hbtw.inc_left, ?_⟩
     rw [forall_inc_iff hbtw]
     exact ⟨hv, hu⟩
   · rintro ⟨hinc, hU⟩
-    obtain ⟨x, y, hx⟩ := G.exist_IsBetween_of_mem hinc.edge_mem
+    obtain ⟨x, y, hx⟩ := G.exist_inc₂_of_mem hinc.edge_mem
     obtain rfl | rfl := hx.inc_iff.mp hinc
     · use y, hx, hU v hx.inc_left, hU y hx.inc_right
     · use x, hx.symm, hU v hx.inc_right, hU x hx.inc_left
@@ -292,12 +292,12 @@ lemma Inc.of_Inc_vxDel (h : (G - U).Inc e v) : G.Inc e v := by
 lemma induce_isLoopAt_iff : (G[U]).IsLoopAt e x ↔ G.IsLoopAt e x ∧ ∀ (y : α), G.Inc e y → y ∈ U := by
   constructor
   · rintro hloop
-    simp only [IsLoopAt_iff_IsBetween, induce_isBetween_iff, and_self] at hloop ⊢
+    simp only [IsLoopAt_iff_inc₂, induce_inc₂_iff, and_self] at hloop ⊢
     obtain ⟨hbtw, hmem⟩ := hloop
     rw [forall_inc_iff hbtw]
     exact ⟨hbtw, hmem, hmem⟩
   · rintro ⟨hloop, hmem⟩
-    rw [IsLoopAt_iff_IsBetween] at hloop ⊢
+    rw [IsLoopAt_iff_inc₂] at hloop ⊢
     rw [forall_inc_iff hloop] at hmem
     simp [hloop, hmem]
 
@@ -446,10 +446,10 @@ lemma mem_induce_V_iff : v ∈ (G[U]).V ↔ v ∈ U := by rw [induce_V]
 
 /-- Adjacency in induced subgraphs implies adjacency in the original graph. -/
 lemma Adj.of_Adj_induce : (G[U]).Adj u v → G.Adj u v :=
-  fun ⟨e, hBtw⟩ ↦ ⟨e, hBtw.of_IsBetween_induce⟩
+  fun ⟨e, hBtw⟩ ↦ ⟨e, hBtw.of_inc₂_induce⟩
 
 lemma Adj.of_Adj_vxDel : (G - U).Adj u v → G.Adj u v :=
-  fun ⟨e, hBtw⟩ ↦ ⟨e, hBtw.of_IsBetween_vxDel⟩
+  fun ⟨e, hBtw⟩ ↦ ⟨e, hBtw.of_inc₂_vxDel⟩
 
 lemma reflAdj.of_reflAdj_induce_ne : (G[U]).reflAdj u v → u ≠ v → G.reflAdj u v := by
   rintro (hAdj | ⟨rfl, hmem⟩) hne
@@ -491,14 +491,14 @@ theorem Connected.of_Connected_vxDel : (G - U).Connected u v → G.Connected u v
   | single hradj => exact reflAdj.connected hradj.of_reflAdj_vxDel
   | tail _hconn hradj ih => exact Relation.TransGen.tail ih hradj.of_reflAdj_vxDel
 
-lemma IsBetween.induce_of_mem (hbtw : G.IsBetween e u v) (hu : u ∈ U) (hv : v ∈ U) :
-    G[U].IsBetween e u v := by
-  rw [induce_isBetween_iff]
+lemma Inc₂.induce_of_mem (hbtw : G.Inc₂ e u v) (hu : u ∈ U) (hv : v ∈ U) :
+    G[U].Inc₂ e u v := by
+  rw [induce_inc₂_iff]
   exact ⟨hbtw, hu, hv⟩
 
-lemma IsBetween.vxDel_of_mem (hbtw : G.IsBetween e u v) (hu : u ∉ U) (hv : v ∉ U) :
-    (G - U).IsBetween e u v := by
-  rw [vxDel_isBetween_iff]
+lemma Inc₂.vxDel_of_mem (hbtw : G.Inc₂ e u v) (hu : u ∉ U) (hv : v ∉ U) :
+    (G - U).Inc₂ e u v := by
+  rw [vxDel_inc₂_iff]
   exact ⟨hbtw, hu, hv⟩
 
 lemma Inc.induce_of_mem (hinc : G.Inc e u) (hU : ∀ x, G.Inc e x → x ∈ U) :
@@ -515,20 +515,20 @@ lemma Adj.induce_of_mem (hadj : G.Adj u v) (hU : ∀ x, G.reflAdj u x → x ∈ 
     apply hU
     exact hBtw.inc_left.reflAdj_of_inc hinc
   use e
-  rw [IsBetween_iff_inc_and_loop]
+  rw [inc₂_iff_inc_and_loop]
   refine ⟨?_, ?_, ?_⟩
   · simpa only [induce_inc_iff, hBtw.inc_left, true_and]
   · simpa only [induce_inc_iff, hBtw.inc_right, true_and]
   · rintro rfl
     rw [forall_inc_iff hBtw] at he
-    rw [IsLoopAt_iff_IsBetween, induce_isBetween_iff]
+    rw [IsLoopAt_iff_inc₂, induce_inc₂_iff]
     exact ⟨hBtw, he⟩
 
 lemma Adj.vxDel_of_mem (hadj : G.Adj u v) (hU : ∀ x, G.reflAdj u x → x ∉ U) :
     (G - U).Adj u v := by
   obtain ⟨e, hBtw⟩ := hadj
   use e
-  simp only [vxDel_isBetween_iff, hBtw, true_and]
+  simp only [vxDel_inc₂_iff, hBtw, true_and]
   use hU u <| reflAdj.refl hBtw.vx_mem_left, hU v hBtw.reflAdj
 
 lemma reflAdj.induce_of_mem (hradj : G.reflAdj u v) (hU : ∀ x, G.reflAdj u x → x ∈ U) :
@@ -655,18 +655,18 @@ lemma edgeDel_le (G : Graph α β) (R : Set β) : (G -ₑ R) ≤ G := by
   simp only [edgeDel, restrict_le]
 
 @[simp]
-lemma restrict_isBetween : (G{R}).IsBetween e x y ↔ G.IsBetween e x y ∧ e ∈ R := by
+lemma restrict_inc₂ : (G{R}).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∈ R := by
   constructor
   · rintro hbtw
     refine ⟨?_, mem_of_mem_inter_right (restrict_E ▸ hbtw.edge_mem)⟩
     exact hbtw.le (restrict_le G R)
   · rintro ⟨hbtw, he⟩
-    rwa [IsBetween_iff_IsBetween_of_edge_mem_le (restrict_le G R) ?_]
+    rwa [inc₂_iff_inc₂_of_edge_mem_le (restrict_le G R) ?_]
     simp only [restrict_E, mem_inter_iff, hbtw.edge_mem, he, and_self]
 
 @[simp]
-lemma edgeDel_isBetween : (G -ₑ R).IsBetween e x y ↔ G.IsBetween e x y ∧ e ∉ R := by
-  simp [edgeDel, restrict_isBetween]
+lemma edgeDel_inc₂ : (G -ₑ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
+  simp [edgeDel, restrict_inc₂]
   exact fun h _ ↦ h.edge_mem
 
 /-- If an edge is in the restricted subgraph, it's in the original graph and the restricting set. -/
@@ -822,7 +822,7 @@ lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂)
   refine hSradj.imp ?_ ?_
   · rintro ⟨e, hBtw⟩
     use e
-    rwa [IsBetween_iff_IsBetween_of_edge_mem_le this ?_]
+    rwa [inc₂_iff_inc₂_of_edge_mem_le this ?_]
     · have he2S := hBtw.edge_mem
       exact ⟨h he2S, he2S.2⟩
   · simp only [restrict_V, and_imp]
@@ -881,10 +881,10 @@ lemma edge_ncard_le_of_edgeDel [hfin : G.Finite] : (G -ₑ R).E.ncard ≤ G.E.nc
   Set.ncard_le_ncard (edge_subset_of_le (edgeDel_le G R)) hfin.edge_fin
 
 @[simp]
-lemma EdgeDel_singleton_isBetween_iff_isBetween_of_ne {e' : β} (hne : e ≠ e') :
-    (G -ₑ {e}).IsBetween e' u v ↔ G.IsBetween e' u v := by
+lemma EdgeDel_singleton_inc₂_iff_inc₂_of_ne {e' : β} (hne : e ≠ e') :
+    (G -ₑ {e}).Inc₂ e' u v ↔ G.Inc₂ e' u v := by
   refine ⟨fun h ↦ h.le (restrict_le G _), fun h ↦ by
-    simp [restrict_isBetween, h, hne.symm, h.edge_mem]⟩
+    simp [restrict_inc₂, h, hne.symm, h.edge_mem]⟩
 
 -- lemma IsLoopAt.reflAdj_iff_edgeDel_singleton (he : G.IsLoopAt e u) :
 --     (G -ₑ {e}).reflAdj u v ↔ G.reflAdj u v := by
@@ -898,7 +898,7 @@ lemma EdgeDel_singleton_isBetween_iff_isBetween_of_ne {e' : β} (hne : e ≠ e')
 --         exact reflAdj.refl hbtw.vx_mem_left
 --       · apply Adj.reflAdj
 --         use e'
---         rwa [EdgeDel_singleton_isBetween_iff_isBetween_of_ne h']
+--         rwa [EdgeDel_singleton_inc₂_iff_inc₂_of_ne h']
 --     · exact reflAdj.of_vxMem hu
 
 -- lemma IsLoopAt.connected_iff_edgeDel_singleton (he : G.IsLoopAt e u) :
@@ -1025,9 +1025,9 @@ theorem exists_subgraph_of_le (hle : G₁ ≤ G₂) : G₁ = G₂{G₁.E}[G₁.V
       mem_setOf_eq, iff_def, and_true, forall_const, implies_true]
     rintro he
     use edge_subset_of_le hle he
-    obtain ⟨x, y, hBtw⟩ := exist_IsBetween_of_mem (edge_subset_of_le hle he)
+    obtain ⟨x, y, hBtw⟩ := exist_inc₂_of_mem (edge_subset_of_le hle he)
     rw [forall_inc_iff hBtw]
-    rw [← IsBetween_iff_IsBetween_of_edge_mem_le hle he] at hBtw
+    rw [← inc₂_iff_inc₂_of_edge_mem_le hle he] at hBtw
     exact ⟨hBtw.vx_mem_left, hBtw.vx_mem_right⟩
   · intro e v
     simp +contextual only [induce_inc_iff, restrict_inc, and_imp, iff_def, forall_const]
@@ -1303,7 +1303,7 @@ lemma leftSet_Sep_rightSet (h : G.IsVxSetSeparator V S T) :
   rw [subset_compl_iff_disjoint_left, subset_compl_iff_disjoint_left]
   exact ⟨h.leftSet_rightSet_disjoint, h.rightSet_V_disjoint.symm⟩
 
-lemma mem_of_isBetween_leftSet (hbtw : G.IsBetween e u v) (hu : u ∈ h.leftSet) :
+lemma mem_of_inc₂_leftSet (hbtw : G.Inc₂ e u v) (hu : u ∈ h.leftSet) :
     v ∈ h.leftSet ∪ V := by
   obtain ⟨s, hs, hconn⟩ := hu
   by_contra! hvV
@@ -1312,7 +1312,7 @@ lemma mem_of_isBetween_leftSet (hbtw : G.IsBetween e u v) (hu : u ∈ h.leftSet)
   exact hnconn s hs
   <| (hbtw.induce_of_mem hconn.mem_left ⟨hbtw.vx_mem_right, hvV⟩).connected.symm.trans hconn
 
-lemma mem_of_isBetween_rightSet (hbtw : G.IsBetween e u v) (hv : v ∈ h.rightSet) :
+lemma mem_of_inc₂_rightSet (hbtw : G.Inc₂ e u v) (hv : v ∈ h.rightSet) :
     u ∈ h.rightSet ∪ V := by
   obtain ⟨t, ht, hconn⟩ := hv
   by_contra! huV

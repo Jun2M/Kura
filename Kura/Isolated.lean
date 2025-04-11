@@ -21,7 +21,7 @@ lemma not_inc_of_E_empty (h : G.E = ∅) : ¬ G.Inc e v := by
   simp only [mem_empty_iff_false] at this
 
 @[simp]
-lemma not_isBetween_of_E_empty (h : G.E = ∅) : ¬ G.IsBetween e x y := by
+lemma not_inc₂_of_E_empty (h : G.E = ∅) : ¬ G.Inc₂ e x y := by
   contrapose! h
   use e, h.edge_mem
 
@@ -76,14 +76,14 @@ end edge_empty
 section edge_subsingleton
 
 @[simp]
-lemma Adj.iff_IsBetween_of_E_singleton (h : G.E = {e}) : G.Adj x y ↔ G.IsBetween e x y := by
+lemma Adj.iff_inc₂_of_E_singleton (h : G.E = {e}) : G.Adj x y ↔ G.Inc₂ e x y := by
   constructor
   · rintro ⟨e, hbtw⟩
     exact (h ▸ hbtw.edge_mem) ▸ hbtw
   · exact fun h => ⟨e, h⟩
 
 @[simp]
-lemma Adj.iff_IsBetween_of_E_subsingleton (h : G.E ⊆ {e}) : G.Adj x y ↔ G.IsBetween e x y := by
+lemma Adj.iff_inc₂_of_E_subsingleton (h : G.E ⊆ {e}) : G.Adj x y ↔ G.Inc₂ e x y := by
   constructor
   · rintro ⟨e, hbtw⟩
     exact (h hbtw.edge_mem) ▸ hbtw
@@ -99,14 +99,14 @@ lemma connected_iff_reflAdj_of_E_singleton (h : G.E = {e}) :
     rename_i x y
     by_cases hxy : x = y
     · exact hxy ▸ ih
-    · rw [reflAdj.Adj_iff_ne hxy, Adj.iff_IsBetween_of_E_singleton h] at hradj
+    · rw [reflAdj.Adj_iff_ne hxy, Adj.iff_inc₂_of_E_singleton h] at hradj
       by_cases huy : u = y
       · exact huy ▸ reflAdj.refl ih.mem_left
       · by_cases hux : u = x
         · simp [huy, h, hradj, hux]
         · absurd huy
-          rwa [reflAdj.Adj_iff_ne hux, Adj.iff_IsBetween_of_E_singleton h, IsBetween.comm,
-            hradj.IsBetween_iff_eq_right, eq_comm] at ih
+          rwa [reflAdj.Adj_iff_ne hux, Adj.iff_inc₂_of_E_singleton h, Inc₂.comm,
+            hradj.inc₂_iff_eq_right, eq_comm] at ih
 
 @[simp]
 lemma connected_iff_reflAdj_of_E_subsingleton (h : G.E ⊆ {e}) :
@@ -133,10 +133,10 @@ lemma not_adj_right (hisol : G.Isolated u) : ¬ G.Adj v u := by
   rw [Adj.comm]
   exact hisol.not_adj_left
 
-lemma not_isBetween_left (hisol : G.Isolated u) : ¬ G.IsBetween e u v :=
+lemma not_inc₂_left (hisol : G.Isolated u) : ¬ G.Inc₂ e u v :=
   (hisol e ·.inc_left)
 
-lemma not_isBetween_right (hisol : G.Isolated u) : ¬ G.IsBetween e v u :=
+lemma not_inc₂_right (hisol : G.Isolated u) : ¬ G.Inc₂ e v u :=
   (hisol e ·.inc_right)
 
 lemma not_inc_of_E_empty (hE : G.E = ∅) : G.Isolated u := by

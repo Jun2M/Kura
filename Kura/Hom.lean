@@ -19,7 +19,7 @@ instance : CoeFun (HomSys α β α' β') fun (_ : HomSys α β α' β') ↦ α �
   coe v := v.toFun
 
 -- structure HomSys.IsLawful (G : Graph α β) (f : HomSys α β γ δ) : Prop where
---   forall_foo : ∀ e x y, G.IsBetween e x y →
+--   forall_foo : ∀ e x y, G.Inc₂ e x y →
 
 def map (G : Graph α β) (f : HomSys α β α' β') : Graph α' β' where
   V := f '' G.V
@@ -42,7 +42,7 @@ def HomSys.comp (g : HomSys α β γ δ) (f : HomSys γ δ ε ζ) : HomSys α β
   edgeFun := f.edgeFun ∘ g.edgeFun
 
 def HomSys.IsHomOn (f : HomSys α β γ δ) (G₁ : Graph α β) (G₂ : Graph γ δ) : Prop :=
-  ∀ ⦃e x y⦄, G₁.IsBetween e x y → G₂.IsBetween (f.edgeFun e) (f x) (f y)
+  ∀ ⦃e x y⦄, G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)
 
 def HasHom (G₁ : Graph α β) (G₂ : Graph γ δ) := ∃ f : HomSys α β γ δ, f.IsHomOn G₁ G₂
 

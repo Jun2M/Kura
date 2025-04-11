@@ -44,7 +44,7 @@ lemma not_isVxSetSeparator_iff :
     ¬ G.IsVxSetSeparator X S T ↔ ∃ P, (G - X).IsPathFrom S T P := sorry
 
 lemma foo1 (h : G.SetConnected S T) (hsep : G.IsEdgeSetSeparator S T F) :
-    ∃ e x y, G.IsBetween e x y ∧ e ∈ F ∧
+    ∃ e x y, G.Inc₂ e x y ∧ e ∈ F ∧
       (G -ₑ {e}).SetConnected S {x} ∧ (G -ₑ {e}).SetConnected {y} T := sorry
 
 -- lemma foo1 (G : Graph α β) (S T : Set α) (F : Set β) (hST : (G.edgeDel F).Connected S T) : sorry
@@ -105,8 +105,8 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
   obtain ⟨w₁, w₂, hw12, hnin⟩ := Walk.eq_append_cons_of_edge_mem heP
   let x := w₁.finish
   let y := w₂.start
-  have hxy : G[G.V \ U].IsBetween e x y := (hw12 ▸ hpVdU).append_right_validOn.1
-  have hxney : x ≠ y := ne_of_isBetween_edge_mem hpVdU hxy hpe
+  have hxy : G[G.V \ U].Inc₂ e x y := (hw12 ▸ hpVdU).append_right_validOn.1
+  have hxney : x ≠ y := ne_of_inc₂_edge_mem hpVdU hxy hpe
 
   let Ge := (G - U){G.E \ {e}}
 
@@ -260,8 +260,8 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
     rintro p (hp | rfl)
     · refine (PathEnsemble.nil_validOn p hp).le (induce_le_induce (le_refl _) ?_)
       exact (Set.subset_insert _ _).trans (subset_insert _ _)
-    · refine IsBetween.path_validOn ?_ hxney
-      simp only [induce_isBetween_iff, hxy.le (induce_le _ diff_subset), Set.mem_insert_iff,
+    · refine Inc₂.path_validOn ?_ hxney
+      simp only [induce_inc₂_iff, hxy.le (induce_le _ diff_subset), Set.mem_insert_iff,
         true_or, or_true, and_self, x]
 
   /- Now that I have two set of path ensembles, each corresponding to a unique element in

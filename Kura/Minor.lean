@@ -182,18 +182,23 @@ lemma Inc {x : α'} : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ 
   · rintro ⟨v, rfl, hinc, hnin⟩
     use ⟨v, rfl, hinc⟩, hinc.edge_mem, hnin
 
-lemma IsBetween_of_IsBetween (hbtw : G.IsBetween e x y) (hnin : e ∉ C) : (G /[φ] C).IsBetween e (φ x) (φ y) := by
-  simp only [Contract, restrict_isBetween, vxMap.IsBetween, mem_diff, hbtw.edge_mem, hnin,
+lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e x y) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ x) (φ y) := by
+  simp only [Contract, restrict_inc₂, vxMap.Inc₂, mem_diff, hbtw.edge_mem, hnin,
     not_false_eq_true, and_self, and_true]
   use x, rfl, y
 
 @[simp]
-lemma IsBetween {x' y' : α'} : (G /[φ] C).IsBetween e x' y' ↔ ∃ x, φ x = x' ∧ ∃ y, φ y = y' ∧
-    G.IsBetween e x y ∧ e ∉ C:= by
-  simp +contextual only [Contract, restrict_isBetween, vxMap.IsBetween, mem_diff, iff_def,
+lemma Inc₂ {x' y' : α'} : (G /[φ] C).Inc₂ e x' y' ↔ ∃ x, φ x = x' ∧ ∃ y, φ y = y' ∧
+    G.Inc₂ e x y ∧ e ∉ C:= by
+  simp +contextual only [Contract, restrict_inc₂, vxMap.Inc₂, mem_diff, iff_def,
     not_false_eq_true, and_true, implies_true, forall_exists_index, and_imp, true_and]
   rintro x rfl y rfl hbtw hnin
   exact ⟨⟨x, rfl, y, rfl, hbtw⟩, hbtw.edge_mem⟩
+
+lemma inc₂ (φ : α → α') (he : e ∉ C) (hbtw : G.Inc₂ e u v) :
+    (G /[φ] C).Inc₂ e (φ u) (φ v) := by
+  rw [Contract, restrict_inc₂]
+  exact ⟨hbtw.vxMap_of_inc₂ φ, hbtw.edge_mem, he⟩
 
 @[simp]
 lemma contract_eq_contract_iff :
@@ -331,10 +336,10 @@ end Contract
 --       obtain ⟨he, rfl⟩ := he'
 --       simpa [restrict_inc]
 
-def IsBetween.contractFun (_hexy : G.IsBetween e x y) [DecidableEq α] : α → α :=
+def Inc₂.contractFun (_hexy : G.Inc₂ e x y) [DecidableEq α] : α → α :=
   fun u ↦ if u = y then x else u
 
-lemma IsBetween.contractFun_validOn (hexy : G.IsBetween e x y) [DecidableEq α] :
+lemma Inc₂.contractFun_validOn (hexy : G.Inc₂ e x y) [DecidableEq α] :
     Contract.ValidOn G hexy.contractFun {e} := by
   rintro a b ha hb
   have hsub := G.restrict_E_subset_singleton e
@@ -346,41 +351,41 @@ lemma IsBetween.contractFun_validOn (hexy : G.IsBetween e x y) [DecidableEq α] 
     exact reflAdj.of_vxMem hb
   · subst hainc
     rw [connected_iff_reflAdj_of_E_subsingleton hsub, reflAdj.Adj_iff_ne,
-      Adj.iff_IsBetween_of_E_subsingleton hsub,
-      IsBetween_iff_IsBetween_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
-      hexy.symm.IsBetween_iff_eq_right]
+      Adj.iff_inc₂_of_E_subsingleton hsub,
+      inc₂_iff_inc₂_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
+      hexy.symm.inc₂_iff_eq_right]
     exact fun a_1 ↦ hbinc a_1.symm
   · subst hbinc
     rw [connected_iff_reflAdj_of_E_subsingleton hsub, reflAdj.Adj_iff_ne,
-      Adj.iff_IsBetween_of_E_subsingleton hsub,
-      IsBetween_iff_IsBetween_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
-      hexy.IsBetween_iff_eq_left]
+      Adj.iff_inc₂_of_E_subsingleton hsub,
+      inc₂_iff_inc₂_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
+      hexy.inc₂_iff_eq_left]
     exact fun a_1 ↦ hainc a_1
   · rw [connected_iff_reflAdj_of_E_subsingleton hsub]
     have hnadj : ¬ G{{e}}.Adj a b := by
       rintro ⟨e', hbtw⟩
-      simp only [restrict_isBetween, mem_singleton_iff] at hbtw
+      simp only [restrict_inc₂, mem_singleton_iff] at hbtw
       obtain ⟨hbtw, rfl⟩ := hbtw
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_or_eq_of_IsBetween hbtw
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_or_eq_of_inc₂ hbtw
       · exact hbinc rfl
       · exact hainc rfl
     simp [hnadj, ha]
 
-lemma IsBetween.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.IsBetween e x y)
+lemma Inc₂.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.Inc₂ e x y)
     (h : ¬ G.Inc e u) : hexy.contractFun u = u := by
   simp only [contractFun, ite_eq_right_iff]
   rintro rfl
   exact (h hexy.inc_right).elim
 
 @[simp]
-lemma IsBetween.contractFun_eq_self_iff [DecidableEq α] (hexy : G.IsBetween e x y) (hxy : x ≠ y) :
+lemma Inc₂.contractFun_eq_self_iff [DecidableEq α] (hexy : G.Inc₂ e x y) (hxy : x ≠ y) :
     hexy.contractFun u = u ↔ u ≠ y := by
-  simp +contextual [IsBetween.contractFun, hxy]
+  simp +contextual [Inc₂.contractFun, hxy]
 
 @[simp]
-lemma IsBetween.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsBetween e x y) :
+lemma Inc₂.vx_mem_contract_iff [DecidableEq α] (hexy : G.Inc₂ e x y) :
     u ∈ (G /[hexy.contractFun] {e}).V ↔ u ∈ G.V \ {y} ∪ {x} := by
-  simp +contextual only [Contract.V, IsBetween.contractFun, mem_image, union_singleton,
+  simp +contextual only [Contract.V, Inc₂.contractFun, mem_image, union_singleton,
     mem_insert_iff, mem_diff, mem_singleton_iff, iff_def, forall_exists_index, and_imp]
   constructor
   · rintro v hv rfl
@@ -398,36 +403,18 @@ instance instFinite [h : G.Finite] : (G /[φ] C).Finite where
     apply Set.Finite.subset (h.edge_fin)
     exact E_subset
 
-lemma isBetween (φ : α → α') (he : e ∉ C) (hbtw : G.IsBetween e u v) :
-    (G /[φ] C).IsBetween e (φ u) (φ v) := by
-  rw [Contract, restrict_isBetween]
-  exact ⟨hbtw.vxMap_of_isBetween φ, hbtw.edge_mem, he⟩
-
-@[simp]
-lemma isBetween_iff (φ : α → α') :
-    (G /[φ] C).IsBetween e x y ↔ ∃ u v, G.IsBetween e u v ∧ φ u = x ∧ φ v = y ∧ e ∉ C := by
-  constructor
-  · rintro hbtwxy
-    obtain ⟨_H1, He, HeC⟩ := hbtwxy.edge_mem
-    obtain ⟨a, b, hbtwab⟩ := G.exist_IsBetween_of_mem He
-    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (isBetween φ HeC hbtwab).eq_or_eq_of_IsBetween hbtwxy
-    · use a, b, hbtwab, rfl, rfl, HeC
-    · use b, a, hbtwab.symm, rfl, rfl, HeC
-  · rintro ⟨u, v, hbtw, rfl, rfl, he⟩
-    exact isBetween φ he hbtw
-
 lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidOn G φ C) : (G /[φ] C).reflAdj (φ u) (φ v) := by
   obtain ⟨e', hbtw'⟩ | ⟨rfl, huv⟩ := hbtw
   · by_cases he : e' ∈ C
     · have : G{C}.Connected u v := by
-        apply IsBetween.connected
-        rw [restrict_isBetween]
+        apply Inc₂.connected
+        rw [restrict_inc₂]
         exact ⟨hbtw', he⟩
       rw [← hVd hbtw'.vx_mem_left hbtw'.vx_mem_right] at this
       rw [this]; clear this
       refine reflAdj.of_vxMem ?_
       use v, hbtw'.vx_mem_right
-    · exact (isBetween φ he hbtw').reflAdj
+    · exact (inc₂ φ he hbtw').reflAdj
   · exact reflAdj.of_vxMem (by use u)
 
 lemma connected_of_map_reflAdj (hVd : ValidOn G φ C) (hradj : (G /[φ] C).reflAdj (φ u) (φ v))
@@ -435,8 +422,8 @@ lemma connected_of_map_reflAdj (hVd : ValidOn G φ C) (hradj : (G /[φ] C).reflA
   have hle := G.restrict_le C
   obtain ⟨e, hbtw⟩ | ⟨heq, hmem⟩ := hradj
   · obtain ⟨he', he, heC⟩ := hbtw.edge_mem; clear he'
-    obtain ⟨a, b, hbtwG⟩ := G.exist_IsBetween_of_mem he
-    have heqeq := (isBetween φ heC hbtwG).eq_or_eq_of_IsBetween hbtw
+    obtain ⟨a, b, hbtwG⟩ := G.exist_inc₂_of_mem he
+    have heqeq := (inc₂ φ heC hbtwG).eq_or_eq_of_inc₂ hbtw
     wlog heq : φ a = φ u ∧ φ b = φ v
     · simp only [heq, false_or] at heqeq
       rw [and_comm] at heqeq

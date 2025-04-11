@@ -31,7 +31,7 @@ def finish : Walk α β → α
 def ValidOn (w : Walk α β) (G : Graph α β) : Prop :=
   match w with
   | nil x => x ∈ G.V
-  | cons x e w => G.IsBetween e x w.start ∧ w.ValidOn G
+  | cons x e w => G.Inc₂ e x w.start ∧ w.ValidOn G
 
 def vx : Walk α β → List α
 | nil x => [x]
@@ -148,10 +148,10 @@ def endIf [DecidableEq α] {P : α → Prop} [DecidablePred P] (w : Walk α β) 
 
 @[simp] lemma cons_finish : (cons x e w).finish = w.finish := rfl
 
-@[simp] lemma cons_validOn (hw : w.ValidOn G) (he : G.IsBetween e x w.start) :
+@[simp] lemma cons_validOn (hw : w.ValidOn G) (he : G.Inc₂ e x w.start) :
   (cons x e w).ValidOn G := ⟨he, hw⟩
 
-@[simp] lemma cons_validOn_iff : (cons x e w).ValidOn G ↔ G.IsBetween e x w.start ∧ w.ValidOn G :=
+@[simp] lemma cons_validOn_iff : (cons x e w).ValidOn G ↔ G.Inc₂ e x w.start ∧ w.ValidOn G :=
   ⟨fun h => h, fun h => h⟩
 
 lemma ValidOn.of_cons (hw : (cons x e w).ValidOn G) : w.ValidOn G := by
@@ -454,7 +454,7 @@ lemma ValidOn.finish_eq_start (hw₁ : w₁.Nonempty) (hVd₁ : w₁.ValidOn G) 
       obtain ⟨y, rfl⟩ := hNonempty
       simp_all only [Nonempty.not_nil, nil_finish, IsEmpty.forall_iff, nil_start, nil_validOn_iff,
         nil_append]
-      exact hVd₁.1.eq_of_IsBetween hVd.1
+      exact hVd₁.1.eq_of_inc₂ hVd.1
 
 /- Properties of IsPrefix -/
 namespace IsPrefix
@@ -494,22 +494,22 @@ open Walk
 
 variable {G H : Graph α β} {u v : α} {e : β} {w : Walk α β}
 
-def IsBetween.walk (_h : G.IsBetween e u v) : Walk α β := cons u e (nil v)
+def Inc₂.walk (_h : G.Inc₂ e u v) : Walk α β := cons u e (nil v)
 
-lemma IsBetween.walk_validOn (h : G.IsBetween e u v) : h.walk.ValidOn G := by
+lemma Inc₂.walk_validOn (h : G.Inc₂ e u v) : h.walk.ValidOn G := by
   simp only [walk, ValidOn, h.vx_mem_right, nil_start, h, cons_validOn]
 
-@[simp] lemma IsBetween.Walk.start (h : G.IsBetween e u v): h.walk.start = u := rfl
+@[simp] lemma Inc₂.Walk.start (h : G.Inc₂ e u v): h.walk.start = u := rfl
 
-@[simp] lemma IsBetween.Walk.finish (h : G.IsBetween e u v): h.walk.finish = v := rfl
+@[simp] lemma Inc₂.Walk.finish (h : G.Inc₂ e u v): h.walk.finish = v := rfl
 
-@[simp] lemma IsBetween.Walk.vx (h : G.IsBetween e u v): h.walk.vx = [u, v] := rfl
+@[simp] lemma Inc₂.Walk.vx (h : G.Inc₂ e u v): h.walk.vx = [u, v] := rfl
 
-@[simp] lemma IsBetween.Walk.edge (h : G.IsBetween e u v): h.walk.edge = [e] := rfl
+@[simp] lemma Inc₂.Walk.edge (h : G.Inc₂ e u v): h.walk.edge = [e] := rfl
 
-@[simp] lemma IsBetween.Walk.length (h : G.IsBetween e u v): h.walk.length = 1 := rfl
+@[simp] lemma Inc₂.Walk.length (h : G.Inc₂ e u v): h.walk.length = 1 := rfl
 
-lemma IsBetween.mem_left_of_edge_mem_walk (h : G.IsBetween e u v) (he : e ∈ w.edge)
+lemma Inc₂.mem_left_of_edge_mem_walk (h : G.Inc₂ e u v) (he : e ∈ w.edge)
     (hVd : w.ValidOn G) : u ∈ w.vx := by
   induction w with
   | nil x => simp at he
@@ -517,7 +517,7 @@ lemma IsBetween.mem_left_of_edge_mem_walk (h : G.IsBetween e u v) (he : e ∈ w.
     simp only [cons_edge, mem_cons, cons_vx] at he ⊢
     obtain rfl | he' := he
     · obtain ⟨hbtw, hVd⟩ := hVd
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_or_eq_of_IsBetween h
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_or_eq_of_inc₂ h
       · left
         rfl
       · right
@@ -525,7 +525,7 @@ lemma IsBetween.mem_left_of_edge_mem_walk (h : G.IsBetween e u v) (he : e ∈ w.
     · right
       exact ih he' hVd.2
 
-lemma IsBetween.mem_right_of_edge_mem_walk (h : G.IsBetween e u v) (he : e ∈ w.edge)
+lemma Inc₂.mem_right_of_edge_mem_walk (h : G.Inc₂ e u v) (he : e ∈ w.edge)
     (hVd : w.ValidOn G) : v ∈ w.vx := h.symm.mem_left_of_edge_mem_walk he hVd
 
 /-- Given a graph adjacency, we can create a walk of length 1 -/
@@ -533,7 +533,7 @@ lemma Adj.exist_walk (h : G.Adj u v) : ∃ (W : Walk α β), W.ValidOn G ∧ W.l
     W.finish = v := by
   obtain ⟨e, he⟩ := h
   use he.walk, he.walk_validOn
-  simp only [IsBetween.Walk.length, IsBetween.Walk.start, IsBetween.Walk.finish, and_self]
+  simp only [Inc₂.Walk.length, Inc₂.Walk.start, Inc₂.Walk.finish, and_self]
 
 /-- Given a reflexive adjacency, we can create a walk of length at most 1 -/
 lemma reflAdj.exist_walk (h : G.reflAdj u v) : ∃ (W : Walk α β), W.ValidOn G ∧ W.length ≤ 1 ∧
@@ -796,7 +796,7 @@ lemma ValidOn.induce {U : Set α} (hVd : w.ValidOn G) (hU : ∀ x ∈ w.vx, x �
     simp only [cons_vx, mem_cons, forall_eq_or_imp] at hU
     obtain ⟨hUx, hUw⟩ := hU
     refine ⟨?_, ih hVd hUw⟩
-    simp only [induce_isBetween_iff, hbtw, true_and, hUx]
+    simp only [induce_inc₂_iff, hbtw, true_and, hUx]
     exact hUw _ start_vx_mem
 
 lemma ValidOn.restrict {S : Set β} (hVd : w.ValidOn G) (hS : ∀ e ∈ w.edge, e ∈ S) :
@@ -812,7 +812,7 @@ lemma ValidOn.restrict {S : Set β} (hVd : w.ValidOn G) (hS : ∀ e ∈ w.edge, 
     have he : e ∈ S := by
       apply hS
       simp only [cons_edge, mem_cons, true_or]
-    simp only [ih, restrict_isBetween, hbtw, he, and_self, cons_validOn]
+    simp only [ih, restrict_inc₂, hbtw, he, and_self, cons_validOn]
 
 lemma ValidOn.subgraph {U : Set α} {S : Set β} (hVd : w.ValidOn G) (hU : ∀ x ∈ w.vx, x ∈ U)
     (hS : ∀ e ∈ w.edge, e ∈ S) : w.ValidOn (G{S}[U]) := ValidOn.induce (ValidOn.restrict hVd hS) hU
@@ -827,9 +827,9 @@ end Walk
 --     have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) :=
 --       ValidOn.restrict _ _ h (by simp)
 --     simp only [cons_start, cons_finish] at hpx hpy
---     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_isBetween, IsBetween, mem_setOf_eq,
+--     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
 --       true_or, and_true] at hw
---     simp only [cons_validOn_iff, IsBetween] at h
+--     simp only [cons_validOn_iff, Inc₂] at h
 --     obtain ⟨H, _hVdW⟩ := hw
 --     choose z hrfl a ha hbtw he using H
 --     subst hrfl
@@ -853,9 +853,9 @@ end Walk
 --       apply ValidOn.restrict _ _ h ?_
 --       simp
 --     simp only [cons_start, cons_finish] at hpx hpy
---     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_isBetween, IsBetween, mem_setOf_eq,
+--     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
 --       true_or, and_true] at hw
---     simp only [cons_validOn_iff, IsBetween] at h
+--     simp only [cons_validOn_iff, Inc₂] at h
 --     obtain ⟨H, _hVdW⟩ := hw
 --     choose z hrfl a ha hbtw he using H
 --     subst hrfl
@@ -876,9 +876,9 @@ end Walk
 --     have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) :=
 --       ValidOn.restrict _ _ h (by simp)
 --     simp only [cons_start, cons_finish] at hpx hpy
---     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_isBetween, IsBetween, mem_setOf_eq,
+--     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
 --       true_or, and_true] at hw
---     simp only [cons_validOn_iff, IsBetween] at h
+--     simp only [cons_validOn_iff, Inc₂] at h
 --     obtain ⟨H, _hVdW⟩ := hw
 --     choose z hrfl a ha hbtw he using H
 --     subst hrfl
@@ -911,9 +911,9 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
       apply ValidOn.restrict h ?_
       simp
     simp only [cons_start, cons_finish] at hpx hpy
-    simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_isBetween, IsBetween, mem_setOf_eq,
+    simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
       true_or, and_true] at hw
-    simp only [cons_validOn_iff, IsBetween] at h
+    simp only [cons_validOn_iff, Inc₂] at h
     obtain ⟨⟨z, rfl, a, ha, hbtw, he⟩, hVdW⟩ := hw
     obtain ⟨_B, hVdWp⟩ := h
     rw [hVd hx hbtw.vx_mem_left] at hpx
@@ -943,8 +943,8 @@ lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} 
     by_cases he : e ∈ C
     · have : p u = w'.start := by
         rw [hst, hVd hbtw.vx_mem_left hbtw.vx_mem_right]
-        apply IsBetween.connected
-        rw [restrict_isBetween]
+        apply Inc₂.connected
+        rw [restrict_inc₂]
         exact ⟨hbtw, he⟩
       use w', hw'Vd, this.symm, hfin
       simp only [cons_edge, mem_cons, setOf_subset_setOf]
@@ -954,7 +954,7 @@ lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} 
         rintro f hfw'
         right
         exact hsub hfw'
-      · simp only [hw'Vd, cons_validOn_iff, IsBetween, and_true]
+      · simp only [hw'Vd, cons_validOn_iff, Inc₂, and_true]
         use u, rfl, W.start, hst.symm, hbtw
 
 namespace Walk
@@ -1399,8 +1399,8 @@ lemma endIf_dropLast_mem_vx {w : Walk α β} (h : ∃ u ∈ w.vx, P u) (hNonempt
             obtain ⟨a, ha⟩ := hnonempty
             simp_all
 
-lemma endIf_exists_isBetween_last {w : Walk α β} (h : ∃ u ∈ w.vx, P u) (hVd : w.ValidOn G)
-    (hNonempty : (w.endIf h).Nonempty) : ∃ v ∈ (w.endIf h).vx, ¬ P v ∧ ∃ e, G.IsBetween e v (w.endIf h).finish := by
+lemma endIf_exists_inc₂_last {w : Walk α β} (h : ∃ u ∈ w.vx, P u) (hVd : w.ValidOn G)
+    (hNonempty : (w.endIf h).Nonempty) : ∃ v ∈ (w.endIf h).vx, ¬ P v ∧ ∃ e, G.Inc₂ e v (w.endIf h).finish := by
   match w with
   | .nil x => simp_all only [endIf_nil, Nonempty.not_nil]
   | .cons x e (nil y) =>
@@ -1431,7 +1431,7 @@ lemma endIf_exists_isBetween_last {w : Walk α β} (h : ∃ u ∈ w.vx, P u) (hV
           simpa only [cons_vx, mem_cons, exists_eq_or_imp, hPx, false_or] using h
         have hNonempty' : (w'.endIf h').Nonempty := by
           simp only [endIf_cons, hPy, ↓reduceDIte, Nonempty.cons_true, w']
-        obtain ⟨a, ha, hh⟩ := endIf_exists_isBetween_last (w := w') h' hVd.2 hNonempty'
+        obtain ⟨a, ha, hh⟩ := endIf_exists_inc₂_last (w := w') h' hVd.2 hNonempty'
         refine ⟨a, ?_, hh⟩
         rw [mem_cons]
         right
@@ -1495,7 +1495,7 @@ lemma nil_inj : (nil x : Path α β) = nil y ↔ x = y := by
 end Path
 
 /-- Create a path from a single edge between two vertices -/
-def IsBetween.path (hbtw : G.IsBetween e u v) (hne : u ≠ v) : Path α β := ⟨hbtw.walk, by simp [hne]⟩
+def Inc₂.path (hbtw : G.Inc₂ e u v) (hne : u ≠ v) : Path α β := ⟨hbtw.walk, by simp [hne]⟩
 
 namespace Path
 /-- Create the reverse of a path -/
@@ -1592,26 +1592,26 @@ lemma append_validOn {p q : Path α β} (heq : p.val.finish = q.val.start)
 
 lemma edge_not_isLoop {p : Path α β} (he : e ∈ p.val.edge) (hVd : p.val.ValidOn G) : ¬ G.IsLoopAt e x := by
   intro hloop
-  rw [IsLoopAt_iff_IsBetween] at hloop
+  rw [IsLoopAt_iff_inc₂] at hloop
   obtain ⟨w₁, w₂, hw12, hnin⟩ := eq_append_cons_of_edge_mem he
-  have hbtw' : G.IsBetween e w₁.finish w₂.start := by
+  have hbtw' : G.Inc₂ e w₁.finish w₂.start := by
     simp only [ValidOn, hw12] at hVd
     obtain ⟨hbtw, H2⟩ := hVd.append_right_validOn
     exact hbtw
   have hNodup := hw12 ▸ p.prop
   simp only [Walk.append_vx, cons_vx] at hNodup
   have := List.Nodup.of_append_right hNodup
-  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hloop.eq_or_eq_of_IsBetween hbtw'
+  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hloop.eq_or_eq_of_inc₂ hbtw'
   · rw [← w₂.vx.head_cons_tail vx_ne_nil, heq, start_eq_vx_head] at this
     simp only [head_cons_tail, nodup_cons, head_mem, not_true_eq_false, false_and] at this
   · rw [← w₂.vx.head_cons_tail vx_ne_nil, ← heq, start_eq_vx_head] at this
     simp only [head_cons_tail, nodup_cons, head_mem, not_true_eq_false, false_and] at this
 
-lemma ne_of_isBetween_edge_mem (hVd : p.val.ValidOn G) (hbtw : G.IsBetween e u v)
+lemma ne_of_inc₂_edge_mem (hVd : p.val.ValidOn G) (hbtw : G.Inc₂ e u v)
     (he : e ∈ p.val.edge) : u ≠ v := by
   rintro huv
   refine edge_not_isLoop (x := v) he hVd ?_
-  rw [IsLoopAt_iff_IsBetween]
+  rw [IsLoopAt_iff_inc₂]
   exact huv ▸ hbtw
 
 @[simp]
@@ -1641,32 +1641,32 @@ lemma start_ne_finish_iff : p.val.start ≠ p.val.finish ↔ p.val.Nonempty :=
 end Path
 
 @[simp]
-lemma IsBetween.path_start (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.start = u := by simp only [path, Walk.start]
+lemma Inc₂.path_start (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.start = u := by simp only [path, Walk.start]
 
 @[simp]
-lemma IsBetween.path_finish (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.finish = v := by simp only [path, Walk.finish]
+lemma Inc₂.path_finish (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.finish = v := by simp only [path, Walk.finish]
 
 @[simp]
-lemma IsBetween.path_length (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.length = 1 := by simp only [path, Walk.length]
+lemma Inc₂.path_length (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.length = 1 := by simp only [path, Walk.length]
 
 @[simp]
-lemma IsBetween.path_vx (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.vx = [u, v] := by simp only [path, Walk.vx]
+lemma Inc₂.path_vx (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.vx = [u, v] := by simp only [path, Walk.vx]
 
 @[simp]
-lemma IsBetween.path_edge (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.edge = [e] := by simp only [path, Walk.edge]
+lemma Inc₂.path_edge (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.edge = [e] := by simp only [path, Walk.edge]
 
 @[simp]
-lemma IsBetween.path_validOn (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.ValidOn G := walk_validOn hbtw
+lemma Inc₂.path_validOn (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.ValidOn G := walk_validOn hbtw
 
 @[simp]
-lemma IsBetween.path_validOn' (hbtw : G.IsBetween e u v) (hne : u ≠ v) :
-    (IsBetween.path hbtw hne).val.ValidOn (G[{u, v}]) := by
+lemma Inc₂.path_validOn' (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
+    (Inc₂.path hbtw hne).val.ValidOn (G[{u, v}]) := by
   refine (path_validOn hbtw hne).induce ?_
   rintro x hx
   simpa only [Set.mem_insert_iff, mem_singleton_iff, path_vx, mem_cons, not_mem_nil, or_false] using
