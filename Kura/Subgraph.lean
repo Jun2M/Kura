@@ -217,6 +217,9 @@ noncomputable instance instHSub : HSub (Graph α β) (Set α) (Graph α β) wher
   hSub := vxDel
 
 @[simp]
+lemma vxDel_notation : G[G.V \ U] = G - U := rfl
+
+@[simp]
 lemma induce_V : (G[U]).V = U := rfl
 
 @[simp]
@@ -239,7 +242,7 @@ lemma induce_isBetween_iff : (G[U]).IsBetween e x y ↔ G.IsBetween e x y ∧ x 
 
 @[simp]
 lemma vxDel_isBetween_iff : (G - U).IsBetween e x y ↔ G.IsBetween e x y ∧ x ∉ U ∧ y ∉ U := by
-  simp +contextual only [instHSub, vxDel, induce_isBetween_iff, mem_diff, iff_def,
+  simp +contextual only [← vxDel_notation, induce_isBetween_iff, mem_diff, iff_def,
     not_false_eq_true, and_self, implies_true, and_true, true_and, and_imp]
   rintro hbtw hx hy
   exact ⟨hbtw.vx_mem_left, hbtw.vx_mem_right⟩
@@ -272,7 +275,7 @@ lemma induce_inc_iff : (G[U]).Inc e v ↔ G.Inc e v ∧ ∀ (x : α), G.Inc e x 
 
 @[simp]
 lemma vxDel_inc_iff : (G - U).Inc e v ↔ G.Inc e v ∧ ∀ (x : α), G.Inc e x → x ∉ U := by
-  simp +contextual only [instHSub, vxDel, induce_inc_iff, mem_diff, iff_def, not_false_eq_true,
+  simp +contextual only [← vxDel_notation, induce_inc_iff, mem_diff, iff_def, not_false_eq_true,
     implies_true, and_self, and_true, true_and, and_imp]
   rintro hinc hnin x hincx
   exact hincx.vx_mem
@@ -300,7 +303,7 @@ lemma induce_isLoopAt_iff : (G[U]).IsLoopAt e x ↔ G.IsLoopAt e x ∧ ∀ (y : 
 
 @[simp]
 lemma vxDel_isLoopAt_iff : (G - U).IsLoopAt e x ↔ G.IsLoopAt e x ∧ ∀ (y : α), G.Inc e y → y ∉ U := by
-  simp only [instHSub, vxDel]
+  simp only [← vxDel_notation]
   simp +contextual only [induce_isLoopAt_iff, mem_diff, iff_def, not_false_eq_true, implies_true,
     and_self, and_true, true_and, and_imp]
   rintro hloop hmem x hinc
@@ -333,7 +336,7 @@ theorem induce_le_induce (hle : G₁ ≤ G₂) (hsu : U ⊆ V) : G₁[U] ≤ G�
       exact And.imp_left (fun a ↦ hinc) he₁U
 
 theorem vxDel_le_vxDel (hle : G₁ ≤ G₂) (hsu : U ⊆ V) : G₁ - V ≤ G₂ - U := by
-  simp only [instHSub, vxDel]
+  rw [← vxDel_notation]
   exact induce_le_induce hle <| diff_subset_diff hle.1 hsu
 
 @[simp]
@@ -395,7 +398,7 @@ theorem induce_eq_self_iff : G[U] = G ↔ U = G.V := by
 
 @[simp]
 theorem vxDel_eq_self_iff : G - U = G ↔ Disjoint U G.V := by
-  simp only [instHSub, vxDel, induce_eq_self_iff, sdiff_eq_left, disjoint_comm]
+  simp only [← vxDel_notation, induce_eq_self_iff, sdiff_eq_left, disjoint_comm]
 
 @[simp]
 lemma induce_V_eq_self  : G[G.V] = G := induce_eq_self_iff.mpr rfl
@@ -411,7 +414,7 @@ lemma induce_empty_eq_bot : G[∅] = ⊥ := by
 
 @[simp]
 lemma vxDel_V_eq_bot : G - G.V = ⊥ := by
-  simp only [instHSub, vxDel, sdiff_self, bot_eq_empty, induce_empty_eq_bot, instOrderBotGraph]
+  simp only [← vxDel_notation, sdiff_self, bot_eq_empty, induce_empty_eq_bot, instOrderBotGraph]
 
 @[simp]
 lemma induce_mono (G : Graph α β) (hsu : U ⊆ V) : G[U] ≤ G[V] := by
@@ -928,9 +931,18 @@ lemma induce_induce_eq_induce_restrict (U V : Set α) : G[U][V] = G{{e | ∀ (x 
   rw [restrict_eq_restrict_iff]
   simp
 
-lemma induce_induce_eq_induce_left (U V : Set α) (h : U = V) : G[U][V] = G[U] := by
-  subst V
-  rw [induce_idem]
+lemma induce_induce_eq_induce_left_iff (U V : Set α) : G[U][V] = G[U] ↔ U = V := by
+  constructor
+  · rintro h
+    apply_fun (·.V) at h
+    exact h.symm
+  · rintro h
+    subst V
+    rw [induce_idem]
+
+lemma vxDel_vxDel_eq_vxDel_left_iff (U V : Set α) : (G - U) - V = G - U ↔ G.V ∩ V ⊆ U := by
+  simp only [vxDel_eq_self_iff, vxDel_V, subset_inter_iff, inter_subset_left, true_and]
+  rw [← Set.subset_compl_iff_disjoint_left, Set.diff_subset_iff, Set.subset_union_compl_iff_inter_subset]
 
 lemma induce_induce_eq_induce_right (U V : Set α) (h : G.V ∩ V ⊆ U) : G[U][V] = G[V] := by
   apply ext_inc
@@ -945,6 +957,18 @@ lemma induce_induce_eq_induce_right (U V : Set α) (h : G.V ∩ V ⊆ U) : G[U][
       mem_setOf_eq, and_imp, iff_def, implies_true, and_self, true_and, and_true]
     rintro hxinc hincV y hyinc
     exact h ⟨hyinc.vx_mem, hincV y hyinc⟩
+
+lemma vxDel_vxDel_eq_vxDel_union (U V : Set α) : G - U - V = G - (U ∪ V) := by
+  change (G[G.V \ U])[(G.V \ U) \ V] = G[G.V \ (U ∪ V)]
+  rw [diff_diff]
+  apply induce_induce_eq_induce_right
+  tauto_set
+
+lemma vxDel_comm (U V : Set α) : G - U - V = G - V - U := by
+  rw [vxDel_vxDel_eq_vxDel_union, vxDel_vxDel_eq_vxDel_union, union_comm]
+
+lemma vxDel_induce_eq_induce_vxDel (U V : Set α) : (G - U)[V] = G{(G - U).E}[V] := by
+  rw [← vxDel_notation, induce_induce_eq_induce_restrict']
 
 /-- G{R}[U] is the prefered notation for explicit subgraph over G[U]{R} -/
 lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) : G[U]{R} = G{R}[U] := by
@@ -962,6 +986,11 @@ lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) : G[U]{R} = G
 theorem induce_restrict_eq_subgraph (U : Set α) (R : Set β) :
     G[U]{R} = G{R}[U] := G.induce_restrict_eq_restrict_induce U R
 
+lemma vxDel_restrict_eq_restrict_vxDel (U : Set α) (R : Set β) :
+    (G - U){R} = G{R} - U := by
+  simp only [← vxDel_notation, restrict_V]
+  rw [induce_restrict_eq_subgraph]
+
 lemma subgraph_eq_induce (h : {e | e ∈ G.E ∧ ∀ (x : α), G.Inc e x → x ∈ U} ⊆ R) : G{R}[U] = G[U] := by
   apply ext_inc
   · rfl
@@ -975,6 +1004,14 @@ lemma subgraph_eq_induce (h : {e | e ∈ G.E ∧ ∀ (x : α), G.Inc e x → x �
     true_and, and_true]
     rintro hinc hU
     exact h ⟨hinc.edge_mem, hU⟩
+
+@[simp]
+lemma induce_vxDel_eq_induce (U V : Set α) : G[U] - V = G[U \ V] := by
+  rw [← vxDel_notation]
+  simp
+  apply subgraph_eq_induce
+  intro e
+  simp +contextual only [mem_diff, mem_setOf_eq, implies_true]
 
 lemma subgraph_le (G : Graph α β) (R : Set β) {U : Set α} (hU : U ⊆ G.V) : G{R}[U] ≤ G :=
   (Graph.induce_le _ (by exact hU : U ⊆ G{R}.V)).trans (G.restrict_le R)
@@ -1062,16 +1099,16 @@ lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u
 --   · sorry
 
 def IsVxSetSeparator (G : Graph α β) (V S T: Set α) : Prop :=
-  ∀ s ∈ S, ∀ t ∈ T, ¬ (G[G.V \ V]).Connected s t
+  ∀ s ∈ S, ∀ t ∈ T, ¬ (G - V).Connected s t
 
 namespace IsVxSetSeparator
 variable {U V S S' T T' : Set α} (h : G.IsVxSetSeparator V S T)
 
 def leftSet (h : G.IsVxSetSeparator V S T) : Set α :=
-  {v | ∃ s ∈ S, G[G.V \ V].Connected v s}
+  {v | ∃ s ∈ S, (G - V).Connected v s}
 
 def rightSet (h : G.IsVxSetSeparator V S T) : Set α :=
-  {v | ∃ t ∈ T, G[G.V \ V].Connected v t}
+  {v | ∃ t ∈ T, (G - V).Connected v t}
 
 @[simp]
 lemma le (h : G₂.IsVxSetSeparator V S T) (hle : G₁ ≤ G₂) : G₁.IsVxSetSeparator V S T := by
@@ -1104,7 +1141,7 @@ lemma subset_target (h : G.IsVxSetSeparator V S T') (hT : T ⊆ T') : G.IsVxSetS
 @[simp]
 lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ (∀ s ∈ S, ∀ t ∈ T, ¬ G.Connected s t) := by
   unfold IsVxSetSeparator
-  simp only [diff_empty, induce_V_eq_self]
+  simp only [vxDel_empty_eq_self]
 
 @[simp]
 lemma empty_source : G.IsVxSetSeparator V ∅ T := by
@@ -1119,32 +1156,31 @@ lemma empty_target : G.IsVxSetSeparator V S ∅ := by
 @[simp]
 lemma univ : G.IsVxSetSeparator univ S T := by
   rintro s hs t ht hconn
-  simp only [diff_univ, induce_empty_eq_bot, instOrderBotGraph, Edgeless.V, mem_empty_iff_false,
-    not_false_eq_true, not_connected_of_not_mem] at hconn
+  simp only [vxDel_V, diff_univ, mem_empty_iff_false, not_false_eq_true,
+    not_connected_of_not_mem] at hconn
 
 @[simp]
 lemma supp : G.IsVxSetSeparator G.V S T := by
   rintro s hs t ht hconn
-  simp only [sdiff_self, bot_eq_empty, induce_empty_eq_bot, instOrderBotGraph, Edgeless.V,
-    mem_empty_iff_false, not_false_eq_true, not_connected_of_not_mem] at hconn
+  simp only [vxDel_V_eq_bot, instOrderBotGraph, Edgeless.V, mem_empty_iff_false, not_false_eq_true,
+    not_connected_of_not_mem] at hconn
 
 @[simp]
 lemma source_subset (hSU : S ⊆ V) : G.IsVxSetSeparator V S T := by
   rintro s hs t ht hconn
   have := hconn.mem_left
-  simp only [induce_V, mem_diff, hSU hs, not_true_eq_false, and_false] at this
+  simp only [vxDel_V, mem_diff, hSU hs, not_true_eq_false, and_false] at this
 
 @[simp]
 lemma target_subset (hTV : T ⊆ V) : G.IsVxSetSeparator V S T := by
   rintro s hs t ht hconn
   have := hconn.mem_right
-  simp only [induce_V, mem_diff, hTV ht, not_true_eq_false, and_false] at this
+  simp only [vxDel_V, mem_diff, hTV ht, not_true_eq_false, and_false] at this
 
 @[simp]
-lemma induce : G[G.V \ U].IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (U ∪ V) S T := by
+lemma induce : (G - U).IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (U ∪ V) S T := by
   unfold IsVxSetSeparator
-  rw [induce_induce_eq_induce_right, induce_V, diff_diff]
-  exact inter_subset_right.trans diff_subset
+  rw [vxDel_vxDel_eq_vxDel_union]
 
 lemma iff_left_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) T := by
   constructor <;> rintro h s hs t ht hconn
@@ -1173,7 +1209,7 @@ lemma iff_right_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T \ 
 lemma source_inter_target_subset (h : G.IsVxSetSeparator V S T) : G.V ∩ S ∩ T ⊆ V := by
   rintro x hx
   specialize h x hx.1.2 x hx.2
-  simpa only [Connected.refl_iff, induce_V, mem_diff, hx.1.1, true_and, not_not] using h
+  simpa only [Connected.refl_iff, vxDel_V, mem_diff, hx.1.1, true_and, not_not] using h
 
 lemma leftSet_subset (h : G.IsVxSetSeparator V S T) : h.leftSet ⊆ G.V \ V :=
   fun _v ⟨_s, _hs, hconn⟩ ↦ hconn.mem_left

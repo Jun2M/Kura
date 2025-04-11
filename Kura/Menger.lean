@@ -63,52 +63,54 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
   have hxy : G[G.V \ U].IsBetween e x y := (hw12 ▸ hpVdU).append_right_validOn.1
   have hxney : x ≠ y := ne_of_isBetween_edge_mem hpVdU hxy hpe
 
-  let Ge := G[G.V \ U]{G.E \ {e}}
+  let Ge := (G - U){G.E \ {e}}
 
   have hGeleGU : Ge ≤ G[G.V \ U] := restrict_le _ _
-  have hGxleGU : G[(G.V \ U) \ {x}] ≤ G[G.V \ U] := by
-    rw [← induce_induce_eq_induce_right (G.V \ U) _ (by tauto_set)]
-    exact induce_le _ diff_subset
-  have hGyleGU : G[G.V \ (U ∪ {y})] ≤ G[G.V \ U] := by
-    rw [← induce_induce_eq_induce_right (G.V \ U), ← diff_diff]
-    exact induce_le _ diff_subset
-    tauto_set
-  have hGeleG : Ge ≤ G := sorry
-  -- (induce_le (G{G.E \ {e}}) diff_subset).trans (restrict_le G _)
+  have hGxleGU : G - (U ∪ {x}) ≤ G - U := by
+    rw [← vxDel_vxDel_eq_vxDel_union]
+    exact vxDel_le (G - U)
+  have hGyleGU : G - (U ∪ {y}) ≤ G - U := by
+    rw [← vxDel_vxDel_eq_vxDel_union]
+    exact vxDel_le (G - U)
+  have hGeleG : Ge ≤ G := (restrict_le _ _).trans (vxDel_le _)
   -- Golf this somehow?
-  have hGxleGe : G[(G.V \ U) \ {x}] ≤ Ge := by
+  have hGxleGe : (G - (U ∪ {x})) ≤ Ge := by
     rw [le_iff_of_mutual_le hGxleGU hGeleGU]
-    use diff_subset, fun e ↦ ?_
-    simp +contextual only [union_singleton, induce_E, mem_diff, Set.mem_insert_iff, not_or,
-      Set.mem_inter_iff, mem_setOf_eq, restrict_E, restrict_inc, mem_singleton_iff, and_imp,
-      true_and, not_false_eq_true, and_self, implies_true, imp_self, and_true, x, Ge]
+    use ?_, fun e ↦ ?_
+    · rw [← vxDel_vxDel_eq_vxDel_union]
+      simp only [vxDel_V, restrict_V, diff_singleton_subset_iff, Set.subset_insert, Ge, x]
+    simp +contextual only [union_singleton, vxDel_E, mem_diff, Set.mem_insert_iff, not_or,
+      Set.mem_inter_iff, mem_setOf_eq, restrict_E, not_false_eq_true, and_self, implies_true,
+      mem_singleton_iff, true_and, and_imp, x, Ge]
     rintro he hinc rfl
-    exact (hinc x (hxy.inc_left.le <| induce_le G Set.diff_subset)).2 rfl
-  have hGyleGe : G[G.V \ (U ∪ {y})] ≤ Ge := by
-    rw [le_iff_of_mutual_le (induce_le G diff_subset) hGeleG]
-    use diff_diff ▸ Set.diff_subset, fun e ↦ ?_
-    simp +contextual only [union_singleton, induce_E, mem_diff, Set.mem_insert_iff, not_or,
-      Set.mem_inter_iff, mem_setOf_eq, restrict_E, restrict_inc, mem_singleton_iff, and_imp,
-      true_and, not_false_eq_true, and_self, implies_true, imp_self, and_true, Ge, x]
+    exact (hinc x (hxy.inc_left.le <| induce_le G Set.diff_subset)).2.1 rfl
+  have hGyleGe : (G - (U ∪ {y})) ≤ Ge := by
+    rw [le_iff_of_mutual_le hGyleGU hGeleGU]
+    use ?_, fun e ↦ ?_
+    · rw [← vxDel_vxDel_eq_vxDel_union]
+      simp only [vxDel_V, restrict_V, diff_singleton_subset_iff, Set.subset_insert, Ge, x]
+    simp +contextual only [union_singleton, vxDel_E, mem_diff, Set.mem_insert_iff, not_or,
+      Set.mem_inter_iff, mem_setOf_eq, restrict_E, not_false_eq_true, and_self, implies_true,
+      mem_singleton_iff, true_and, and_imp, Ge, x, y]
     rintro he hinc rfl
     exact (hinc y (hxy.inc_right.le <| induce_le G Set.diff_subset)).2.1 rfl
 
-  -- have hUxconn : Gx.Connected y p.val.finish := by
-  --   have hw₂finish : w₂.finish = p.val.finish := by
-  --     simp only [hw12, Walk.append_finish, Walk.cons_finish]
-  --   refine hw₂finish ▸ w₂.connected_of_validOn ?_
-  --   obtain ⟨hbtw, h2VdU⟩ := (hw12 ▸ hpVdU).append_right_validOn
-  --   have h2Vd := h2VdU.le (induce_le G Set.diff_subset)
-  --   refine h2Vd.induce fun z hz2 ↦ ⟨h2Vd.mem_of_mem_vx hz2, ?_⟩
-  --   simp only [union_singleton, Set.mem_insert_iff, (h2VdU.mem_of_mem_vx hz2).2, or_false, x]
-  --   rintro rfl
-  --   have := hw12 ▸ p.prop
-  --   simp only [Walk.append_vx, Walk.cons_vx] at this
-  --   exact List.not_nodup_cons_of_mem hz2 <| List.Nodup.of_append_right this
+  have hUxconn : (G - (U ∪ {x})).Connected y p.val.finish := by
+    have hw₂finish : w₂.finish = p.val.finish := by
+      simp only [hw12, Walk.append_finish, Walk.cons_finish]
+    refine hw₂finish ▸ w₂.connected_of_validOn ?_
+    obtain ⟨hbtw, h2VdU⟩ := (hw12 ▸ hpVdU).append_right_validOn
+    have h2Vd := h2VdU.le (induce_le G Set.diff_subset)
+    refine h2Vd.induce fun z hz2 ↦ ⟨h2Vd.mem_of_mem_vx hz2, ?_⟩
+    simp only [union_singleton, Set.mem_insert_iff, (h2VdU.mem_of_mem_vx hz2).2, or_false, x]
+    rintro rfl
+    have := hw12 ▸ p.prop
+    simp only [Walk.append_vx, Walk.cons_vx] at this
+    exact List.not_nodup_cons_of_mem hz2 <| List.Nodup.of_append_right this
   have hUxFin : (U ∪ {x}).Finite := hUFin.union (finite_singleton x)
   have hUxSep : G.IsVxSetSeparator (U ∪ {x}) S T := by
     rintro a ha b hb hconn
-    exact hUsep a ha b hb (hconn.le hGxleGe)
+    exact hUsep a ha b hb (hconn.le (vxDel_restrict_eq_restrict_vxDel _ _ ▸ hGxleGe))
   have hUxncard : (U ∪ {x}).ncard = k := by
     specialize hsep (U ∪ {x}) hUxFin hUxSep
     have : (U ∪ {x}).ncard ≤ U.ncard + 1 := by
@@ -119,37 +121,37 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     rintro hxU
     simp only [union_singleton, hxU, insert_eq_of_mem] at hUxncard
     omega
-  -- have hUyconn : Gy.Connected p.val.start x := by
-  --   have hw₁start : w₁.start = p.val.start := by
-  --     simp only [hw12, Walk.cons_start, Walk.append_start_of_eq]
-  --   refine hw₁start ▸ w₁.connected_of_validOn ?_
-  --   rw [hw12] at hpVdU
-  --   by_cases h : w₁.Nonempty
-  --   · have := hpVdU.append_left_validOn (by simp) h
-  --     have h1Vd := this.le (induce_le G Set.diff_subset)
-  --     refine Walk.ValidOn.induce h1Vd ?_
-  --     rintro z hz2
-  --     refine ⟨h1Vd.mem_of_mem_vx hz2, ?_⟩
-  --     simp only [union_singleton, Set.mem_insert_iff, (this.mem_of_mem_vx hz2).2, or_false]
-  --     rintro rfl
-  --     have := p.prop
-  --     rw [hw12] at this
-  --     simp only [Walk.append_vx, Walk.cons_vx] at this
-  --     rw [List.append_cons, Walk.finish_eq_vx_getLast, List.dropLast_concat_getLast Walk.vx_ne_nil] at this
-  --     exact List.disjoint_of_nodup_append this hz2 Walk.start_vx_mem
-  --   · simp only [Walk.Nonempty.not_iff] at h
-  --     obtain ⟨u, rfl⟩ := h
-  --     simp only [Walk.nil_validOn_iff, induce_V, mem_diff]
-  --     have : x = u := by
-  --       unfold x
-  --       rfl
-  --     rw [this] at hxU hxney hxy
-  --     refine ⟨diff_subset hxy.vx_mem_left, ?_⟩
-  --     simp only [union_singleton, Set.mem_insert_iff, hxney, hxU, or_self, not_false_eq_true]
+  have hUyconn : (G - (U ∪ {y})).Connected p.val.start x := by
+    have hw₁start : w₁.start = p.val.start := by
+      simp only [hw12, Walk.cons_start, Walk.append_start_of_eq]
+    refine hw₁start ▸ w₁.connected_of_validOn ?_
+    rw [hw12] at hpVdU
+    by_cases h : w₁.Nonempty
+    · have := hpVdU.append_left_validOn (by simp) h
+      have h1Vd := this.le (induce_le G Set.diff_subset)
+      refine Walk.ValidOn.induce h1Vd ?_
+      rintro z hz2
+      refine ⟨h1Vd.mem_of_mem_vx hz2, ?_⟩
+      simp only [union_singleton, Set.mem_insert_iff, (this.mem_of_mem_vx hz2).2, or_false]
+      rintro rfl
+      have := p.prop
+      rw [hw12] at this
+      simp only [Walk.append_vx, Walk.cons_vx] at this
+      rw [List.append_cons, Walk.finish_eq_vx_getLast, List.dropLast_concat_getLast Walk.vx_ne_nil] at this
+      exact List.disjoint_of_nodup_append this hz2 Walk.start_vx_mem
+    · simp only [Walk.Nonempty.not_iff] at h
+      obtain ⟨u, rfl⟩ := h
+      simp only [Walk.nil_validOn_iff, induce_V, mem_diff]
+      have : x = u := by
+        unfold x
+        rfl
+      rw [this] at hxU hxney hxy
+      refine ⟨diff_subset hxy.vx_mem_left, ?_⟩
+      simp only [union_singleton, Set.mem_insert_iff, hxney, hxU, or_self, not_false_eq_true]
   have hUyFin : (U ∪ {y}).Finite := hUFin.union (finite_singleton y)
   have hUySep : G.IsVxSetSeparator (U ∪ {y}) S T := by
     rintro a ha b hb hconn
-    exact hUsep a ha b hb (hconn.le hGyleGe)
+    exact hUsep a ha b hb (hconn.le (vxDel_restrict_eq_restrict_vxDel _ _ ▸ hGyleGe))
   have hUyncard : (U ∪ {y}).ncard = k := by
     specialize hsep (U ∪ {y}) hUyFin hUySep
     have : (U ∪ {y}).ncard ≤ U.ncard + 1 := by
@@ -170,8 +172,9 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     specialize hsep ((U ∪ {x}) \ {u}) (Finite.diff hUxFin) ?_
     · rintro a ha b hb hconn
       refine hUxSep a ha b hb ?_
-      convert hconn using 2
-      rw [Set.diff_diff_right, eq_comm, Set.union_eq_left, Set.inter_singleton_eq_empty.mpr huv]
+      convert hconn using 1
+      rw [vxDel_eq_vxDel_iff, Set.diff_diff_right, eq_comm, Set.union_eq_left,
+        Set.inter_singleton_eq_empty.mpr huv]
       exact empty_subset (G.V \ (U ∪ {x}))
     omega
   have hUx : (U ∪ {x}) ⊆ G.V := by
@@ -183,12 +186,10 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
   let R : Set α := hUySep.rightSet
   have hLy : y ∉ L := by
     rintro ⟨s, hs, hconn⟩
-    sorry
-    -- exact hUxSep s hs p.val.finish ht <| hconn.symm.trans hUxconn
+    exact hUxSep s hs p.val.finish ht <| hconn.symm.trans hUxconn
   have hRx : x ∉ R := by
     rintro ⟨t, ht, hconn⟩
-    sorry
-    -- exact hUySep p.val.start hs t ht <| hUyconn.trans hconn
+    exact hUySep p.val.start hs t ht <| hUyconn.trans hconn
 
   have hLV : L ⊆ G.V := by
     rintro l ⟨s, hs, hconn⟩
@@ -244,7 +245,7 @@ theorem Menger_VxSet {α β : Type*} [DecidableEq α] (G : Graph α β) [hfin : 
     exact empty_subset (U ∪ {x})
   have heq1 : Psx.FinishSet = PU.StartSet := hPsxFinishSet.trans hPUStartSet.symm
   have hsu2 : (Psx.append PU hsu1 heq1).VxSet ∩ Psy.VxSet ⊆ (Psx.append PU hsu1 heq1).FinishSet := by
-
+    
     sorry
   have heq2 : (Psx.append PU hsu1 heq1).FinishSet = Psy.StartSet := by
     sorry

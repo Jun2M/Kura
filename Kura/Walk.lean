@@ -139,6 +139,9 @@ def endIf [DecidableEq α] {P : α → Prop} [DecidablePred P] (w : Walk α β) 
   rintro x y h
   rwa [nil.injEq] at h
 
+-- @[simp] lemma nil_inj : (nil x : Walk α β) = nil y ↔ x = y := by
+--   rw [nil.injEq]
+
 @[simp] lemma cons_edge : (cons x e w).edge = e :: w.edge := rfl
 
 @[simp] lemma cons_start : (cons x e w).start = x := rfl
@@ -151,24 +154,13 @@ def endIf [DecidableEq α] {P : α → Prop} [DecidablePred P] (w : Walk α β) 
 @[simp] lemma cons_validOn_iff : (cons x e w).ValidOn G ↔ G.IsBetween e x w.start ∧ w.ValidOn G :=
   ⟨fun h => h, fun h => h⟩
 
-lemma Nonempty.exists_cons : w.Nonempty → ∃ x e w', w = cons x e w' := by
-  induction w with
-  | nil x => simp only [Nonempty, reduceCtorEq, exists_false, imp_self]
-  | cons x e w ih => simp only [cons.injEq, exists_and_left, exists_eq', and_true, implies_true]
+lemma ValidOn.of_cons (hw : (cons x e w).ValidOn G) : w.ValidOn G := by
+  rw [cons_validOn_iff] at hw
+  exact hw.2
 
-@[simp]
-lemma Nonempty.not_nil : ¬ (nil x : Walk α β).Nonempty := by
-  simp only [Nonempty, not_false_eq_true]
-
-@[simp]
-lemma Nonempty.cons_true : (cons x e w).Nonempty := by
-  simp only [Nonempty]
-
-@[simp]
-lemma Nonempty.not_iff : ¬ w.Nonempty ↔ ∃ x, w = nil x := by
-  match w with
-  | nil x => simp only [not_nil, not_false_eq_true, nil.injEq, exists_eq']
-  | cons x e w => simp only [Nonempty, not_true_eq_false, reduceCtorEq, exists_false]
+lemma cons_vx_nodup (h : (cons x e w).vx.Nodup) : w.vx.Nodup := by
+  simp only [cons_vx, nodup_cons] at h
+  exact h.2
 
 lemma vx_ne_nil : w.vx ≠ [] := by
   match w with
@@ -240,6 +232,62 @@ lemma ValidOn.mem_of_mem_edge {w : Walk α β} (h : w.ValidOn G) (hmem : e ∈ w
     obtain rfl | h : e = e' ∨ e ∈ w.edge := by simpa using hmem
     · exact hbtw.edge_mem
     · exact hVd.mem_of_mem_edge h
+
+
+lemma Nonempty.exists_cons : w.Nonempty → ∃ x e w', w = cons x e w' := by
+  induction w with
+  | nil x => simp only [Nonempty, reduceCtorEq, exists_false, imp_self]
+  | cons x e w ih => simp only [cons.injEq, exists_and_left, exists_eq', and_true, implies_true]
+
+lemma Nonempty.iff_exists_cons : w.Nonempty ↔ ∃ x e w', w = cons x e w' := by
+  constructor
+  · apply Nonempty.exists_cons
+  · rintro ⟨x, e, w', rfl⟩
+    simp only [Nonempty, cons.injEq, exists_and_left, exists_eq', and_true, implies_true]
+
+@[simp]
+lemma Nonempty.not_nil : ¬ (nil x : Walk α β).Nonempty := by
+  simp only [Nonempty, not_false_eq_true]
+
+@[simp]
+lemma Nonempty.cons_true : (cons x e w).Nonempty := by
+  simp only [Nonempty]
+
+@[simp]
+lemma Nonempty.not_iff : ¬ w.Nonempty ↔ ∃ x, w = nil x := by
+  match w with
+  | nil x => simp only [not_nil, not_false_eq_true, nil.injEq, exists_eq']
+  | cons x e w => simp only [Nonempty, not_true_eq_false, reduceCtorEq, exists_false]
+
+@[simp]
+lemma Nonempty.iff_length_pos : 0 < w.length ↔ w.Nonempty := by
+  constructor
+  · rintro hlen
+    by_contra! h
+    simp only [not_iff] at h
+    obtain ⟨x, rfl⟩ := h
+    simp at hlen
+  · rw [Nonempty.iff_exists_cons]
+    rintro ⟨x, e, w, rfl⟩
+    simp only [cons_length, lt_add_iff_pos_left, add_pos_iff, lt_one_iff, pos_of_gt, or_true]
+
+lemma start_eq_finish_of_not_nonempty (h : ¬ w.Nonempty) : w.start = w.finish := by
+  match w with
+  | nil x => simp only [nil_start, nil_finish]
+  | cons x e w => simp only [Nonempty.cons_true, not_true_eq_false] at h
+
+@[simp]
+lemma start_eq_finish_iff (hnodup : w.vx.Nodup) : w.start = w.finish ↔ ¬ w.Nonempty := by
+  match w with
+  | .nil x => simp only [nil_start, nil_finish, Nonempty.not_nil, not_false_eq_true]
+  | .cons x e w =>
+    simp only [cons_vx, nodup_cons, cons_start, cons_finish, Nonempty.cons_true, not_true_eq_false,
+      iff_false, ne_eq] at hnodup ⊢
+    exact fun h => hnodup.1 (h ▸ finish_vx_mem)
+
+@[simp]
+lemma start_ne_finish_iff (hnodup : w.vx.Nodup) : w.start ≠ w.finish ↔ w.Nonempty :=
+  (start_eq_finish_iff hnodup).not_left
 
 /- Properties of append operation -/
 @[simp]
@@ -317,6 +365,49 @@ lemma append_finish :
   | nil x => simp only [nil_append]
   | cons x e w ih => simp only [cons_append, cons_finish, ih]
 
+lemma append_assoc (w1 w2 w3 : Walk α β) : (w1 ++ w2) ++ w3 = w1 ++ (w2 ++ w3) := by
+  induction w1 with
+  | nil x => simp only [nil_append]
+  | cons x e w ih => simp only [cons_append, ih]
+
+lemma append_right_injective : Injective (w ++ ·) := by
+  rintro w₁ w₂ h
+  induction w with
+  | nil x => simpa only [nil_append] using h
+  | cons x e w ih =>
+    simp only [cons_append, cons.injEq, true_and] at h
+    exact ih h
+
+@[simp]
+lemma append_right_inj : w ++ w₁ = w ++ w₂ ↔ w₁ = w₂ := by
+  constructor
+  · apply append_right_injective
+  · rintro rfl
+    rfl
+
+@[simp]
+lemma append_right_eq_self : w ++ w₁ = w ↔ w₁ = nil w.finish := by
+  induction w with
+  | nil x => simp only [nil_append, nil_finish]
+  | cons x e w ih => simpa only [cons_append, cons.injEq, true_and, cons_finish]
+
+@[simp]
+lemma append_left_eq_self : w₁ ++ w = w ↔ ¬ w₁.Nonempty := by
+  induction w₁ with
+  | nil x => simp only [nil_append, Nonempty.not_nil, not_false_eq_true]
+  | cons x e w ih =>
+    simp only [cons_append, Nonempty.cons_true, not_true_eq_false, iff_false]
+    intro hcons
+    apply_fun length at hcons
+    simp only [cons_length, append_length] at hcons
+    omega
+
+@[simp]
+lemma append_eq_nil_iff : w₁ ++ w₂ = nil x ↔ (∃ y, w₁ = nil y) ∧ w₂ = nil x := by
+  induction w₁ with
+  | nil y => simp only [nil_append, nil.injEq, exists_eq', true_and]
+  | cons y e w ih => simp only [cons_append, reduceCtorEq, exists_false, false_and]
+
 lemma append_validOn (h : w₁.finish = w₂.start) (h₁ : w₁.ValidOn G) (h₂ : w₂.ValidOn G) :
   (w₁ ++ w₂).ValidOn G := by
   induction w₁ with
@@ -368,13 +459,35 @@ lemma ValidOn.finish_eq_start (hw₁ : w₁.Nonempty) (hVd₁ : w₁.ValidOn G) 
 /- Properties of IsPrefix -/
 namespace IsPrefix
 
-lemma refl : w.IsPrefix w := ⟨nil w.finish, by simp [append_nil rfl]⟩
+instance instIsPrefixPreorder: IsPreorder (Walk α β) IsPrefix where
+  refl w := ⟨nil w.finish, by simp [append_nil rfl]⟩
+  trans w1 w2 w3 h12 h23 := by
+    obtain ⟨w12, hw12⟩ := h12
+    obtain ⟨w23, hw23⟩ := h23
+    use w23 ++ w12
+    rw [← append_assoc, ← hw23, ← hw12]
 
 end IsPrefix
 
+namespace IsSuffix
 
+instance instIsSuffixPartialOrder: IsPartialOrder (Walk α β) IsSuffix where
+  refl w := ⟨nil w.start, by simp [append_nil rfl]⟩
+  trans w1 w2 w3 h12 h23 := by
+    obtain ⟨w12, hw12⟩ := h12
+    obtain ⟨w23, hw23⟩ := h23
+    use w12 ++ w23
+    rw [append_assoc, ← hw23, ← hw12]
+  antisymm w1 w2 h12 h21 := by
+    obtain ⟨w21, hw21⟩ := h21
+    obtain ⟨w12, hw12⟩ := h12
+    have := hw12 ▸ hw21 ▸ hw12
+    rw [append_right_inj, ← append_assoc, eq_comm, append_left_eq_self] at this
+    simp only [Nonempty.not_iff, append_eq_nil_iff, exists_and_left] at this
+    obtain ⟨⟨y, rfl⟩, x, rfl⟩ := this
+    simpa using hw12
 
-
+end IsSuffix
 end Walk
 
 open Walk
@@ -1392,6 +1505,11 @@ def reverse (p : Path α β) : Path α β := ⟨p.val.reverse, by simp [p.prop]�
 lemma ValidOn.le {p : Path α β} (h : p.val.ValidOn G) (hle : G ≤ H) : p.val.ValidOn H :=
   Walk.ValidOn.le h hle
 
+lemma of_cons {p : Path α β} (h : p.val = Walk.cons x e w) : w.vx.Nodup := by
+  have := h ▸ p.prop
+  rw [cons_vx, nodup_cons] at this
+  exact this.2
+
 lemma of_prefix {p : Path α β} (h : p.val = w1.append w2)
     (heq : w1.finish = w2.start) : w1.vx.Nodup := by
   have : (w1.append w2).vx = _ ++ _ := append_vx' heq
@@ -1512,6 +1630,15 @@ lemma finish_not_mem_vx_dropLast {p : Path α β} : p.val.finish ∉ p.val.vx.dr
     List.nodup_concat] at this
   exact this.2 (finish_eq_vx_getLast ▸ hmem)
 
+@[simp]
+lemma start_eq_finish_iff : p.val.start = p.val.finish ↔ ¬ p.val.Nonempty := by
+  obtain ⟨w, hw⟩ := p
+  simp only [start_eq_finish_iff hw, Nonempty.not_iff]
+
+@[simp]
+lemma start_ne_finish_iff : p.val.start ≠ p.val.finish ↔ p.val.Nonempty :=
+  start_eq_finish_iff.not_left
+
 end Path
 
 @[simp]
@@ -1568,43 +1695,68 @@ section IsVxSetSeparator
 namespace IsVxSetSeparator
 variable {U V S T : Set α}
 
-lemma path_inter (hUsep : G.IsVxSetSeparator U S T) (hVd : p.val.ValidOn G)
+lemma path_inter {p : Path α β} (hUsep : G.IsVxSetSeparator U S T) (hVd : p.val.ValidOn G)
     (hS : p.val.start ∈ S) (hT : p.val.finish ∈ T) : ∃ x ∈ p.val.vx, x ∈ U := by
   by_contra! hx
-  have hVdU : p.val.ValidOn (G[G.V \ U]) := by
+  have hVdU : p.val.ValidOn (G - U) := by
     refine ValidOn.induce hVd ?_
     rintro x hxp
     exact ⟨hVd.mem_of_mem_vx hxp, hx x hxp⟩
   exact hUsep p.val.start hS p.val.finish hT <| Walk.connected_of_validOn hVdU
 
 omit [DecidableEq α] in
-lemma walk_validOn_left (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidOn (G[G.V \ U]))
+lemma walk_validOn_left (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidOn (G - U))
     (hLeft : ∃ x ∈ w.vx, x ∈ hUsep.leftSet) : w.ValidOn (G[hUsep.leftSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hLeft
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (w.connected_of_validOn_of_mem hVd hxp hy).trans hys
 
--- omit [DecidableEq α] in
--- lemma walk_validOn_leftHalf (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidOn G)
---     (hFinish : w.finish ∈ U) (hLeft : ∃ x ∈ w.vx, x ∈ hUsep.leftSet) :
---     w.ValidOn (G[hUsep.leftSet ∪ U]) := by
---   obtain ⟨y, hy, s, hs, hys⟩ := hLeft
-
---   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
---   use s, hs, (w.connected_of_validOn_of_mem hVd hxp hy).trans hys
-
 omit [DecidableEq α] in
-lemma walk_validOn_right (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidOn (G[G.V \ U]))
+lemma walk_validOn_right (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidOn (G - U))
     (hT : ∃ x ∈ w.vx, x ∈ hUsep.rightSet) :
     w.ValidOn (G[hUsep.rightSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hT
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (w.connected_of_validOn_of_mem hVd hxp hy).trans hys
 
+lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hNodup : w.vx.Nodup) (hVd : w.ValidOn G)
+    (hUsep : G.IsVxSetSeparator {w.finish} S T) (hS : w.start ∈ hUsep.leftSet) (hx : x ∈ w.vx) :
+    x ∈ hUsep.leftSet ∪ {w.finish} := by
+  obtain (h | h) := em (w.Nonempty) |>.symm
+  · right
+    rw [Nonempty.not_iff] at h
+    obtain ⟨y, hy⟩ := h
+    simpa only [hy, nil_finish, mem_singleton_iff, nil_vx, mem_cons, not_mem_nil, or_false] using hx
+  rw [Nonempty.iff_exists_cons] at h
+  obtain ⟨y, e, w', rfl⟩ := h
+  simp only [cons_vx, mem_cons] at hx
+  obtain (rfl | hx) := hx
+  · left
+    simpa only [cons_finish, cons_start] using hS
+  · unfold leftSet
+    simp only [cons_finish] at hUsep ⊢
+    change x ∈ hUsep.leftSet ∪ {w'.finish}
+    by_cases hw' : w'.start = w'.finish
+    · simp [cons_vx_nodup hNodup] at hw'
+      obtain ⟨y, rfl⟩ := hw'
+      right
+      simpa using hx
+    · apply (path_in_leftHalf_of_finishSep (w := w') (cons_vx_nodup hNodup) hVd.of_cons hUsep · hx)
+      simp only [cons_finish, cons_start] at hS
+      obtain ⟨s, hs, hys⟩ := hS
+      use s, hs, Connected.trans ?_ hys
+      refine (hVd.1.induce_of_mem hys.mem_left ?_).connected.symm
+      refine ⟨hVd.2.mem_of_mem_vx start_vx_mem, hw'⟩
+
+lemma path_validOn_leftHalf_of_finishSep (hUsep : G.IsVxSetSeparator {p.val.finish} S T)
+    (hVd : p.val.ValidOn G) (hS : p.val.start ∈ hUsep.leftSet) :
+    p.val.ValidOn (G[hUsep.leftSet ∪ {p.val.finish}]) :=
+  hVd.induce <| fun _ => path_in_leftHalf_of_finishSep (w := p.val) p.prop hVd hUsep hS
+
 instance IsPreorder : IsPreorder (Set α) (IsVxSetSeparator G · S ·) where
   refl A s hs a ha hconn := by
     have := hconn.mem_right
-    simp only [induce_V, mem_diff, ha, not_true_eq_false, and_false] at this
+    simp only [vxDel_V, mem_diff, ha, not_true_eq_false, and_false] at this
   trans A B C hAB hBC s hs c hc hconn := by
     rw [Connected.iff_path] at hconn
     obtain ⟨p, hpVd, rfl, rfl⟩ := hconn
@@ -1621,7 +1773,7 @@ lemma crossingWalk_intersect (hVsep : G.IsVxSetSeparator V S T) [DecidablePred (
   obtain (hV | ⟨t, ht, hconnFinish⟩) := hwfinish.symm <;> clear hwfinish
   · use w.finish, finish_vx_mem
   by_contra! hw
-  have hVd : w.ValidOn (G[G.V \ V]) :=
+  have hVd : w.ValidOn (G - V) :=
     hwVd.induce fun x hx ↦ ⟨hwVd.mem_of_mem_vx hx, hw x hx⟩
   exact hVsep s hs t ht <| hconnStart.symm.trans (w.connected_of_validOn hVd) |>.trans hconnFinish
 
@@ -1651,7 +1803,7 @@ lemma crossingWalk_endIf_validOn (hVsep : G.IsVxSetSeparator V S T) [DecidablePr
   · right
     exact endIf_finish h
   · have := dropLast_validOn (endIf_validOn h hwVd)
-    have : Walk.ValidOn _ (G[G.V \ V]):= this.induce fun x hx ↦
+    have : Walk.ValidOn _ (G - V):= this.induce fun x hx ↦
       ⟨this.mem_of_mem_vx hx, endIf_dropLast_mem_vx h hnonempty hx⟩
     simp only [endIf_nonempty_iff] at hnonempty
     simp only [mem_union, hnonempty, or_false] at hwstart
@@ -1688,7 +1840,7 @@ lemma leftSetV_iff (h : G.IsVxSetSeparator V S T) (hV : V ⊆ G.V) (U : Set α) 
     have := h.crossingWalk_endIf_validOn hwVdG hwstart hwfinish
     let w' := w.endIf (P := (· ∈ V)) hw'
     apply hUsep w'.start (by rwa [Walk.endIf_start]) w'.finish (Walk.endIf_finish hw')
-    rw [induce_induce_eq_induce_right _ _ (Set.inter_subset_right.trans ?_), induce_V]
+    rw [← vxDel_notation, induce_induce_eq_induce_right _ _ (Set.inter_subset_right.trans ?_), induce_V]
     apply w'.connected_of_validOn
     apply (Walk.endIf_validOn hw' hwVdG).induce
     rintro x hx
@@ -1726,7 +1878,7 @@ lemma conn_sep_iff_conn_left (hVsep : G.IsVxSetSeparator V S T) (hu : u ∈ hVse
         right
         exact endIf_finish hw'
       · have hw'dVdG : w'.dropLast.ValidOn G := dropLast_validOn hw'VdG
-        have hw'dvdGV : w'.dropLast.ValidOn (G[G.V \ V]) := by
+        have hw'dvdGV : w'.dropLast.ValidOn (G - V) := by
           refine ValidOn.induce hw'dVdG ?_
           rintro z hz
           exact ⟨hw'dVdG.mem_of_mem_vx hz, endIf_dropLast_mem_vx hw' hNonempty hz⟩
@@ -1924,17 +2076,6 @@ lemma byStart_of_start (hp : p ∈ Ps.Paths) : Ps.byStart p.val.start (start_mem
 lemma byFinish_of_finish (hp : p ∈ Ps.Paths) : Ps.byFinish p.val.finish (finish_mem_FinishSet hp) = p :=
   ((Ps.unique_path_finish p.val.finish (finish_mem_FinishSet hp)).choose_spec.2 p ⟨hp, rfl⟩).symm
 
-lemma vx_dropLast_subset_leftSet_of_FinishSetSep (hsep : G.IsVxSetSeparator Ps.FinishSet Ps.StartSet T)
-    (p : Path α β) (hp : p ∈ Ps.Paths) (hx : x ∈ p.val.vx.dropLast) : x ∈ hsep.leftSet := by
-
-  sorry
-
-lemma VxSet_subset_leftSet_of_FinishSetSep (hsep : G.IsVxSetSeparator Ps.FinishSet Ps.StartSet T) :
-  Ps.VxSet ⊆ hsep.leftSet ∪ Ps.FinishSet := by
-  rintro x ⟨p, hp, hx⟩
-
-  sorry
-
 lemma append_aux {Ps₁ Ps₂ : PathEnsemble α β} (hsu : Ps₁.VxSet ∩ Ps₂.VxSet ⊆ Ps₁.FinishSet)
     (hu : u ∈ Ps₁.FinishSet) (hv : v ∈ Ps₂.StartSet)
     (hx1 : x ∈ (Ps₁.byFinish u hu).val.vx.dropLast) (hx2 : x ∈ (Ps₂.byStart v hv).val.vx) :
@@ -2054,6 +2195,24 @@ lemma VxSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.VxSet ⊆ G.V := by
   rintro x ⟨p, hp, hx⟩
   exact (hVd p hp).mem_of_mem_vx hx
 
+lemma startSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.StartSet ⊆ G.V :=
+  startSet_subset_VxSet.trans (VxSet_subset_of_validOn hVd)
+
+lemma finishSet_subset_of_validOn (hVd : Ps.ValidOn G) : Ps.FinishSet ⊆ G.V :=
+  finishSet_subset_VxSet.trans (VxSet_subset_of_validOn hVd)
+
+lemma mem_startSet_finishSet (hstart : x ∈ Ps.StartSet) (hfinish : x ∈ Ps.FinishSet) :
+  ∃ p ∈ Ps.Paths, p = Path.nil x := by
+  obtain ⟨q, hq, rfl⟩ := hfinish
+  obtain ⟨p, hp, heq⟩ := hstart
+  beta_reduce at heq
+  obtain rfl := Ps.Disj p.val.start p q hp hq start_vx_mem (heq ▸ finish_vx_mem)
+  simp only [start_eq_finish_iff, Nonempty.not_iff] at heq
+  obtain ⟨x, hpnil⟩ := heq
+  use p, hp
+  rw [Subtype.ext_iff, hpnil]
+  simp only [Path.nil, hpnil, nil_finish]
+
 lemma StartSet_ncard : Ps.StartSet.ncard = Ps.Paths.ncard := by
   rw [eq_comm]
   apply Set.ncard_congr (fun p hp ↦ p.val.start)
@@ -2123,6 +2282,49 @@ lemma insert_VxSet (h : ∀ v ∈ p.val.vx, v ∉ Ps.VxSet) :
   simp +contextual only [VxSet, insert, union_singleton, Set.mem_insert_iff, exists_eq_or_imp,
     mem_setOf_eq, mem_union]
 
+lemma vx_dropLast_disjoint_FinishSet (p : Path α β) (hp : p ∈ Ps.Paths) :
+    ∀ x ∈ p.val.vx.dropLast, x ∉ Ps.FinishSet := by
+  rintro x hx ⟨q, hq, rfl⟩
+  obtain rfl := Ps.Disj q.val.finish q p hq hp finish_vx_mem (List.mem_of_mem_dropLast hx)
+  exact finish_not_mem_vx_dropLast hx
+
+lemma vx_tail_disjoint_StartSet (p : Path α β) (hp : p ∈ Ps.Paths) :
+    ∀ x ∈ p.val.vx.tail, x ∉ Ps.StartSet := by
+  rintro x hx ⟨q, hq, rfl⟩
+  obtain rfl := Ps.Disj q.val.start q p hq hp start_vx_mem (List.mem_of_mem_tail hx)
+  exact start_not_mem_vx_tail hx
+
+lemma validOn_induce_diff (hVd : Ps.ValidOn G) (hp : p ∈ Ps.Paths) :
+    p.val.ValidOn (G - {x | ∃ p ∈ Ps.Paths \ {p}, x ∈ p.val.vx}) := by
+  refine (hVd p hp).induce ?_
+  rintro x hx
+  refine ⟨(hVd p hp).mem_of_mem_vx hx, ?_⟩
+  rintro ⟨q, hq, hxq⟩
+  obtain rfl := Ps.Disj x q p hq.1 hp hxq hx
+  simp only [mem_diff, mem_singleton_iff, not_true_eq_false, and_false] at hq
+
+lemma finishSep_of_finishSetSep (hsep : G.IsVxSetSeparator Ps.FinishSet Ps.StartSet T)
+    (hp : p ∈ Ps.Paths) (hVd : p.val.ValidOn G) :
+    (G - {x | ∃ p ∈ Ps.Paths \ {p}, x ∈ p.val.vx}).IsVxSetSeparator {p.val.finish} Ps.StartSet T := by
+
+  sorry
+
+lemma vx_subset_leftHalf_of_FinishSetSep (hsep : G.IsVxSetSeparator Ps.FinishSet Ps.StartSet T)
+    (hVd : Ps.ValidOn G) (p : Path α β) (hp : p ∈ Ps.Paths) {x : α} (hx : x ∈ p.val.vx) :
+    x ∈ hsep.leftSet ∪ Ps.FinishSet := by
+  sorry
+
+
+lemma vx_dropLast_subset_leftSet_of_FinishSetSep (hsep : G.IsVxSetSeparator Ps.FinishSet Ps.StartSet T)
+    (p : Path α β) (hp : p ∈ Ps.Paths) (hx : x ∈ p.val.vx.dropLast) : x ∈ hsep.leftSet := by
+
+  sorry
+
+lemma VxSet_subset_leftSet_of_FinishSetSep (hsep : G.IsVxSetSeparator Ps.FinishSet Ps.StartSet T) :
+  Ps.VxSet ⊆ hsep.leftSet ∪ Ps.FinishSet := by
+  rintro x ⟨p, hp, hx⟩
+
+  sorry
 
 variable {Ps₁ Ps₂ : PathEnsemble α β}
 
