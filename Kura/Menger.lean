@@ -1,4 +1,4 @@
-import Kura.PathEnsemble
+import Kura.Walk.PathEnsemble
 import Mathlib.Data.Set.Disjoint
 import Mathlib.Tactic.TautoSet
 
@@ -7,34 +7,6 @@ variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {X
   {F F' : Set β} {W P Q : Graph.Walk α β}
 
 namespace Graph
-
-def SetConnected (G : Graph α β) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.Connected s t
-
-def IsEdgeSetSeparator (G : Graph α β) (S T : Set α) (F : Set β) :=
-  ¬ (G.edgeDel F).SetConnected S T
-
-lemma IsEdgeSetSeparator.mono (h : G.IsEdgeSetSeparator S T F) (h_subset : F ⊆ F') :
-    G.IsEdgeSetSeparator S T F' := sorry
-
-@[mk_iff]
-structure IsWalkFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
-  validOn : W.ValidOn G
-  start_mem : W.start ∈ S
-  finish_mem : W.finish ∈ T
-
-@[mk_iff]
-structure IsPath (G : Graph α β) (W : Walk α β) : Prop where
-  validOn : W.ValidOn G
-  nodup : W.vx.Nodup
-
-@[mk_iff]
-structure IsPathFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
-  validOn : W.ValidOn G
-  nodup : W.vx.Nodup
-  start_mem : W.start ∈ S
-  finish_mem : W.finish ∈ T
-
-lemma IsPathFrom.isWalkFrom (h : G.IsPathFrom S T P) : G.IsWalkFrom S T P := sorry
 
 -- can be iff.
 lemma IsEdgeSetSeparator.nonempty_inter (h : G.IsEdgeSetSeparator S T F)

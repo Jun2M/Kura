@@ -1,4 +1,4 @@
-import Kura.Walk
+import Kura.Walk.Walk
 
 open Set Function List Nat
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β}

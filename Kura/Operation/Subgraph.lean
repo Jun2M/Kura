@@ -52,13 +52,13 @@ lemma incFun_eq_incFun_of_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) : G₁.in
 lemma Inc.le (hinc : G₁.Inc e x) (hle : G₁ ≤ G₂) : G₂.Inc e x := by
   rwa [← Inc_iff_Inc_of_le hle hinc.edge_mem]
 
-lemma IsLoop_iff_IsLoop_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
+lemma IsLoopAt_iff_IsLoopAt_of_edge_mem_le (hle : G₁ ≤ G₂) (he : e ∈ G₁.E) :
     G₁.IsLoopAt e x ↔ G₂.IsLoopAt e x := by
   unfold IsLoopAt
   rw [incFun_eq_incFun_of_le hle he]
 
 lemma IsLoop.le (hisLoopAt : G₁.IsLoopAt e x) (hle : G₁ ≤ G₂) : G₂.IsLoopAt e x := by
-  rwa [← IsLoop_iff_IsLoop_of_edge_mem_le hle hisLoopAt.edge_mem]
+  rwa [← IsLoopAt_iff_IsLoopAt_of_edge_mem_le hle hisLoopAt.edge_mem]
 
 lemma le_iff_inc : G₁ ≤ G₂ ↔ G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧ ∀ e ∈ G₁.E, ∀ v,
   G₁.Inc e v ↔ G₂.Inc e v := by
@@ -616,7 +616,7 @@ notation G "{" S "}" => Graph.restrict G S
 @[simp]
 noncomputable abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
-infix:70 " -ₑ " => Graph.edgeDel
+scoped infix:70 " \\ " => Graph.edgeDel
 
 variable {G H : Graph α β} {S S' R R'  : Set β}
 
@@ -624,13 +624,13 @@ variable {G H : Graph α β} {S S' R R'  : Set β}
 theorem restrict_V : (G{R}).V = G.V := rfl
 
 @[simp]
-theorem edgeDel_V : (G -ₑ R).V = G.V := rfl
+theorem edgeDel_V : (G \ R).V = G.V := rfl
 
 @[simp]
 theorem restrict_E : (G{R}).E = G.E ∩ R := rfl
 
 @[simp]
-theorem edgeDel_E : (G -ₑ R).E = G.E \ R := by
+theorem edgeDel_E : (G \ R).E = G.E \ R := by
   simp only [edgeDel, restrict_E, inter_eq_right, diff_subset]
 
 @[simp]
@@ -640,7 +640,7 @@ theorem restrict_inc : (G{R}).Inc e v ↔ G.Inc e v ∧ e ∈ R := by
   split_ifs with he <;> simp [he]
 
 @[simp]
-theorem edgeDel_inc : (G -ₑ R).Inc e v ↔ G.Inc e v ∧ e ∉ R := by
+theorem edgeDel_inc : (G \ R).Inc e v ↔ G.Inc e v ∧ e ∉ R := by
   simp only [edgeDel, restrict_inc, mem_diff, and_congr_right_iff, and_iff_right_iff_imp]
   exact fun h _ ↦ h.edge_mem
 
@@ -651,7 +651,7 @@ lemma restrict_le (G : Graph α β) (R : Set β) : G{R} ≤ G := by
   tauto
 
 @[simp]
-lemma edgeDel_le (G : Graph α β) (R : Set β) : (G -ₑ R) ≤ G := by
+lemma edgeDel_le (G : Graph α β) (R : Set β) : (G \ R) ≤ G := by
   simp only [edgeDel, restrict_le]
 
 @[simp]
@@ -665,7 +665,7 @@ lemma restrict_inc₂ : (G{R}).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∈ R := by
     simp only [restrict_E, mem_inter_iff, hbtw.edge_mem, he, and_self]
 
 @[simp]
-lemma edgeDel_inc₂ : (G -ₑ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
+lemma edgeDel_inc₂ : (G \ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
   simp [edgeDel, restrict_inc₂]
   exact fun h _ ↦ h.edge_mem
 
@@ -675,7 +675,7 @@ lemma mem_restrict_E_iff : e ∈ (G{R}).E ↔ e ∈ G.E ∧ e ∈ R := by
   simp only [restrict_E, mem_inter_iff]
 
 @[simp]
-lemma mem_edgeDel_E_iff : e ∈ (G -ₑ R).E ↔ e ∈ G.E ∧ e ∉ R := by
+lemma mem_edgeDel_E_iff : e ∈ (G \ R).E ↔ e ∈ G.E ∧ e ∉ R := by
   simp only [edgeDel_E, mem_diff]
 
 lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) (hSR : S ⊆ R) : G₁{S} ≤ G₂{R} := by
@@ -692,7 +692,7 @@ lemma restrict_le_restrict_of_le (hle : G₁ ≤ G₂) (hSR : S ⊆ R) : G₁{S}
     · exact incFun_eq_incFun_of_le hle he1
     · exact False.elim (heR (hSR heS))
 
-lemma edgeDel_le_edgeDel_of_le (hle : G₁ ≤ G₂) (hSR : S ⊆ R) : G₁ -ₑ R ≤ G₂ -ₑ S :=
+lemma edgeDel_le_edgeDel_of_le (hle : G₁ ≤ G₂) (hSR : S ⊆ R) : G₁ \ R ≤ G₂ \ S :=
   restrict_le_restrict_of_le hle <| diff_subset_diff (edge_subset_of_le hle) hSR
 
 @[simp]
@@ -709,7 +709,7 @@ lemma restrict_le_restrict_iff (G : Graph α β) (R S : Set β) :
 
 @[simp]
 lemma edgeDel_le_edgeDel_iff (G : Graph α β) (R S : Set β) :
-    G -ₑ R ≤ G -ₑ S ↔ G.E \ R ⊆ G.E \ S := by
+    G \ R ≤ G \ S ↔ G.E \ R ⊆ G.E \ S := by
   rw [restrict_le_restrict_iff, inter_eq_right.mpr diff_subset, inter_eq_right.mpr diff_subset]
 
 @[simp]
@@ -719,7 +719,7 @@ lemma restrict_eq_restrict_iff (G : Graph α β) (R S : Set β) :
 
 @[simp]
 lemma edgeDel_eq_edgeDel_iff (G : Graph α β) (R S : Set β) :
-    G -ₑ R = G -ₑ S ↔ G.E \ R = G.E \ S := by
+    G \ R = G \ S ↔ G.E \ R = G.E \ S := by
   rw [le_antisymm_iff, subset_antisymm_iff, edgeDel_le_edgeDel_iff, edgeDel_le_edgeDel_iff]
 
 @[simp]
@@ -735,7 +735,7 @@ lemma restrict_eq_self_iff (G : Graph α β) (R : Set β) : G{R} = G ↔ G.E ⊆
       exact h hinc.edge_mem
 
 @[simp]
-lemma edgeDel_eq_self_iff (G : Graph α β) (R : Set β) : G -ₑ R = G ↔ Disjoint G.E R := by
+lemma edgeDel_eq_self_iff (G : Graph α β) (R : Set β) : G \ R = G ↔ Disjoint G.E R := by
   rw [restrict_eq_self_iff, ← Set.subset_compl_iff_disjoint_right, diff_eq_compl_inter]
   simp only [subset_inter_iff, subset_refl, and_true]
 
@@ -745,7 +745,7 @@ lemma restrict_univ_eq_self : G{Set.univ} = G := by
   exact subset_univ _
 
 @[simp]
-lemma edgeDel_univ_eq_self : G -ₑ Set.univ = Edgeless G.V β := by
+lemma edgeDel_univ_eq_self : G \ Set.univ = Edgeless G.V β := by
   apply eq_Edgeless_of_E_empty
   simp only [edgeDel, diff_univ, restrict_E, inter_empty]
 
@@ -754,7 +754,7 @@ lemma restrict_E_eq_self : G{G.E} = G := by
   rw [restrict_eq_self_iff]
 
 @[simp]
-lemma edgeDel_E_eq_self : G -ₑ G.E = Edgeless G.V β := by
+lemma edgeDel_E_eq_self : G \ G.E = Edgeless G.V β := by
   apply eq_Edgeless_of_E_empty
   simp only [edgeDel, sdiff_self, bot_eq_empty, restrict_E, inter_empty]
 
@@ -770,13 +770,13 @@ lemma restrict_monotone (G : Graph α β) : Monotone (fun R ↦ G{R}) := by
 lemma restrict_mono (G : Graph α β) (R S : Set β) (h : R ⊆ S) : G{R} ≤ G{S} :=
   restrict_monotone G h
 
-lemma edgeDel_antitone (G : Graph α β) : Antitone (fun R ↦ G -ₑ R) := by
+lemma edgeDel_antitone (G : Graph α β) : Antitone (fun R ↦ G \ R) := by
   rintro R S h
   rw [edgeDel_le_edgeDel_iff]
   exact diff_subset_diff_right h
 
 @[simp]
-lemma edgeDel_anti (G : Graph α β) (R S : Set β) (h : S ⊆ R) : G -ₑ R ≤ G -ₑ S :=
+lemma edgeDel_anti (G : Graph α β) (R S : Set β) (h : S ⊆ R) : G \ R ≤ G \ S :=
   edgeDel_antitone G h
 
 @[simp]
@@ -790,7 +790,7 @@ lemma restrict_restrict_eq_restrict_inter (R S : Set β) : G{R}{S} = G{R ∩ S} 
     rw [and_assoc]
 
 @[simp]
-lemma edgeDel_edgeDel_eq_edgeDel_union (R S : Set β) : (G -ₑ R) -ₑ S = G -ₑ (R ∪ S) := by
+lemma edgeDel_edgeDel_eq_edgeDel_union (R S : Set β) : (G \ R) \ S = G \ (R ∪ S) := by
   simp only [edgeDel, restrict_E, restrict_restrict_eq_restrict_inter, restrict_eq_restrict_iff]
   tauto_set
 
@@ -800,20 +800,20 @@ lemma restrict_idem (R : Set β) : G{R}{R} = G{R} := by
   simp only [inter_self]
 
 @[simp]
-lemma edgeDel_idem (R : Set β) : (G -ₑ R) -ₑ R = G -ₑ R := by
+lemma edgeDel_idem (R : Set β) : (G \ R) \ R = G \ R := by
   convert G.edgeDel_edgeDel_eq_edgeDel_union R R
   simp only [union_self]
 
 /-- Adjacency in restricted subgraphs implies adjacency in the original graph. -/
 lemma Adj.of_Adj_restrict : (G{R}).Adj u v → G.Adj u v := (Adj.le · (restrict_le G R))
 
-lemma Adj.of_Adj_edgeDel : (G -ₑ R).Adj u v → G.Adj u v := (Adj.le · (edgeDel_le G R))
+lemma Adj.of_Adj_edgeDel : (G \ R).Adj u v → G.Adj u v := (Adj.le · (edgeDel_le G R))
 
 /-- Connectedness in a restricted subgraph implies connectedness in the original graph. -/
 lemma Connected.of_Connected_restrict : (G{R}).Connected u v → G.Connected u v :=
   (Connected.le · (restrict_le G R))
 
-lemma Connected.of_Connected_edgeDel : (G -ₑ R).Connected u v → G.Connected u v :=
+lemma Connected.of_Connected_edgeDel : (G \ R).Connected u v → G.Connected u v :=
   (Connected.le · (edgeDel_le G R))
 
 lemma reflAdj.restrict_of_le_reflAdj_restrict (hle : G₁ ≤ G₂)
@@ -861,7 +861,7 @@ instance finite_of_finite_restrict {R : Set β} [h : G.Finite] : (G{R}).Finite :
     apply Set.Finite.subset h.edge_fin
     simp only [restrict_E, inter_subset_left]
 
-instance finite_of_finite_edgeDel {R : Set β} [h : G.Finite] : (G -ₑ R).Finite :=
+instance finite_of_finite_edgeDel {R : Set β} [h : G.Finite] : (G \ R).Finite :=
   finite_of_finite_restrict
 
 @[simp]
@@ -869,7 +869,7 @@ lemma vx_ncard_le_of_restrict [hfin : G.Finite] : (G{R}).V.ncard ≤ G.V.ncard :
   Set.ncard_le_ncard (vx_subset_of_le (restrict_le G R)) hfin.vx_fin
 
 @[simp]
-lemma vx_ncard_le_of_edgeDel [hfin : G.Finite] : (G -ₑ R).V.ncard ≤ G.V.ncard :=
+lemma vx_ncard_le_of_edgeDel [hfin : G.Finite] : (G \ R).V.ncard ≤ G.V.ncard :=
   Set.ncard_le_ncard (vx_subset_of_le (edgeDel_le G R)) hfin.vx_fin
 
 @[simp]
@@ -877,14 +877,14 @@ lemma edge_ncard_le_of_restrict [hfin : G.Finite] : (G{R}).E.ncard ≤ G.E.ncard
   Set.ncard_le_ncard (edge_subset_of_le (restrict_le G R)) hfin.edge_fin
 
 @[simp]
-lemma edge_ncard_le_of_edgeDel [hfin : G.Finite] : (G -ₑ R).E.ncard ≤ G.E.ncard :=
+lemma edge_ncard_le_of_edgeDel [hfin : G.Finite] : (G \ R).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (edge_subset_of_le (edgeDel_le G R)) hfin.edge_fin
 
 @[simp]
 lemma EdgeDel_singleton_inc₂_iff_inc₂_of_ne {e' : β} (hne : e ≠ e') :
-    (G -ₑ {e}).Inc₂ e' u v ↔ G.Inc₂ e' u v := by
-  refine ⟨fun h ↦ h.le (restrict_le G _), fun h ↦ by
-    simp [restrict_inc₂, h, hne.symm, h.edge_mem]⟩
+    (G \ {e}).Inc₂ e' u v ↔ G.Inc₂ e' u v := by
+  refine ⟨fun h ↦ h.le (edgeDel_le G _), fun h ↦ by
+    simp [edgeDel_inc₂, h, hne.symm, h.edge_mem]⟩
 
 -- lemma IsLoopAt.reflAdj_iff_edgeDel_singleton (he : G.IsLoopAt e u) :
 --     (G -ₑ {e}).reflAdj u v ↔ G.reflAdj u v := by
@@ -1068,283 +1068,3 @@ lemma le_iff_of_mutual_le {G₁ G₂ G : Graph α β} (h1le : G₁ ≤ G) (h2le 
     refine ⟨h.1, h.2, ?_⟩
     rintro e he v
     rw [Inc_iff_Inc_of_le h1le he, Inc_iff_Inc_of_le h2le (h.2 he)]
-
-
-@[mk_iff]
-structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
-  not_mem_left : u ∉ S
-  not_mem_right : v ∉ S
-  not_connected : ¬ (G [G.V \ S]).Connected u v
-
-lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u u S :=
-  fun ⟨S, hS⟩ ↦ hS.not_connected <| Connected.refl <| by simp [hu, hS.not_mem_left]
-
--- lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) :
---     G.IsVxSeparator u v S ↔ (G -ᴳ e).IsVxSeparator u v S := by
---   refine ⟨fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩, fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩⟩
---   · by_cases he' : e ∈ G[G.V \ S].E
---     · rw [restrict_V, ← induce_restrict_eq_subgraph]
---       rw [← IsLoop.connected_iff_edgeDel_singleton (e := e)] at hconn
---       convert hconn using 2
---       rw [restrict_eq_restrict_iff]
---       ext e
---       simp +contextual only [induce_E, mem_diff, mem_inter_iff, mem_setOf_eq, mem_singleton_iff,
---         and_self_left, and_congr_right_iff, true_and, implies_true]
---       rwa [IsLoop_iff_IsLoop_of_edge_mem_le (induce_le G diff_subset) he']
---     · rwa [restrict_V, subgraph_eq_induce]
---       rintro e'
---       simp +contextual only [mem_diff, mem_setOf_eq, mem_singleton_iff]
---       rintro hx
---       sorry
---   · sorry
-
-def IsVxSetSeparator (G : Graph α β) (V S T : Set α) : Prop :=
-  ∀ s ∈ S, ∀ t ∈ T, ¬ (G - V).Connected s t
-
-namespace IsVxSetSeparator
-variable {U V S S' T T' : Set α} (h : G.IsVxSetSeparator V S T)
-
-def leftSet (h : G.IsVxSetSeparator V S T) : Set α :=
-  {v | ∃ s ∈ S, (G - V).Connected v s}
-
-def rightSet (h : G.IsVxSetSeparator V S T) : Set α :=
-  {v | ∃ t ∈ T, (G - V).Connected v t}
-
-lemma isVxSetSeparator_iff_inter_vxSet (G : Graph α β) {V S T : Set α} :
-    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) (T ∩ G.V) := sorry
-
-@[simp]
-lemma le (h : G₂.IsVxSetSeparator V S T) (hle : G₁ ≤ G₂) : G₁.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s hs t ht (hconn.le (induce_le_induce hle ?_))
-  exact Set.diff_subset_diff_left hle.1
-
-lemma symm (h : G.IsVxSetSeparator V S T) : G.IsVxSetSeparator V T S := by
-  rintro s hs t ht hconn
-  exact h t ht s hs hconn.symm
-
-lemma comm : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V T S := ⟨symm, symm⟩
-
-@[simp]
-lemma subset (h : G.IsVxSetSeparator U S T) (hUV : U ⊆ V) : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s hs t ht (hconn.le (induce_le_induce (le_refl _) ?_))
-  exact diff_subset_diff_right hUV
-
-@[simp]
-lemma subset_source (h : G.IsVxSetSeparator V S' T) (hS : S ⊆ S') : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s (hS hs) t ht (hconn.le (le_refl _))
-
-@[simp]
-lemma subset_target (h : G.IsVxSetSeparator V S T') (hT : T ⊆ T') : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s hs t (hT ht) (hconn.le (le_refl _))
-
-@[simp]
-lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ (∀ s ∈ S, ∀ t ∈ T, ¬ G.Connected s t) := by
-  unfold IsVxSetSeparator
-  simp only [vxDel_empty_eq_self]
-
-@[simp]
-lemma empty_source : G.IsVxSetSeparator V ∅ T := by
-  rintro s hs t ht hconn
-  rwa [mem_empty_iff_false] at hs
-
-@[simp]
-lemma empty_target : G.IsVxSetSeparator V S ∅ := by
-  rintro s hs t ht hconn
-  rwa [mem_empty_iff_false] at ht
-
-@[simp]
-lemma univ : G.IsVxSetSeparator univ S T := by
-  rintro s hs t ht hconn
-  simp only [vxDel_V, diff_univ, mem_empty_iff_false, not_false_eq_true,
-    not_connected_of_not_mem] at hconn
-
-@[simp]
-lemma supp : G.IsVxSetSeparator G.V S T := by
-  rintro s hs t ht hconn
-  simp only [vxDel_V_eq_bot, instOrderBotGraph, Edgeless.V, mem_empty_iff_false, not_false_eq_true,
-    not_connected_of_not_mem] at hconn
-
-@[simp]
-lemma source_subset (hSU : S ⊆ V) : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  have := hconn.mem_left
-  simp only [vxDel_V, mem_diff, hSU hs, not_true_eq_false, and_false] at this
-
-@[simp]
-lemma target_subset (hTV : T ⊆ V) : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  have := hconn.mem_right
-  simp only [vxDel_V, mem_diff, hTV ht, not_true_eq_false, and_false] at this
-
-@[simp]
-lemma induce : (G - U).IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (U ∪ V) S T := by
-  unfold IsVxSetSeparator
-  rw [vxDel_vxDel_eq_vxDel_union]
-
-lemma iff_left_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) T := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s (mem_of_mem_inter_left hs) t ht hconn
-  · by_cases h' : s ∈ G.V
-    · exact h s (mem_inter hs h') t ht hconn
-    · exact h' hconn.mem_left.1
-
-lemma iff_right_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T ∩ G.V) := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s hs t (mem_of_mem_inter_left ht) hconn
-  · by_cases h' : t ∈ G.V
-    · exact h s hs t (mem_inter ht h') hconn
-    · exact h' hconn.mem_right.1
-
-lemma iff_left_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S \ V) T := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s (mem_of_mem_diff hs) t ht hconn
-  · exact h s ⟨hs, hconn.mem_left.2⟩ t ht hconn
-
-lemma iff_right_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T \ V) := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s hs t (mem_of_mem_diff ht) hconn
-  · exact h s hs t ⟨ht, hconn.mem_right.2⟩ hconn
-
-lemma source_inter_target_subset (h : G.IsVxSetSeparator V S T) : G.V ∩ S ∩ T ⊆ V := by
-  rintro x hx
-  specialize h x hx.1.2 x hx.2
-  simpa only [Connected.refl_iff, vxDel_V, mem_diff, hx.1.1, true_and, not_not] using h
-
-lemma leftSet_subset (h : G.IsVxSetSeparator V S T) : h.leftSet ⊆ G.V \ V :=
-  fun _v ⟨_s, _hs, hconn⟩ ↦ hconn.mem_left
-
-lemma subset_leftSet (h : G.IsVxSetSeparator V S T) (hS : S ⊆ G.V) : S ⊆ h.leftSet ∪ V := by
-  rintro s hs
-  by_cases h' : s ∈ V
-  · exact Or.inr h'
-  · left
-    use s, hs
-    exact Connected.refl ⟨hS hs, h'⟩
-
-lemma rightSet_subset (h : G.IsVxSetSeparator V S T) : h.rightSet ⊆ G.V \ V :=
-    fun _v ⟨_t, _ht, hconn⟩ ↦ hconn.mem_left
-
-lemma subset_rightSet (h : G.IsVxSetSeparator V S T) (hT : T ⊆ G.V) : T ⊆ h.rightSet ∪ V := by
-  rintro t ht
-  by_cases h' : t ∈ V
-  · exact Or.inr h'
-  · left
-    use t, ht
-    exact Connected.refl ⟨hT ht, h'⟩
-
-@[simp]
-lemma symm_leftSet (h : G.IsVxSetSeparator V S T) : h.symm.leftSet = h.rightSet := by
-  ext v
-  simp only [IsVxSetSeparator.leftSet, IsVxSetSeparator.rightSet, mem_setOf_eq, exists_eq_right]
-
-@[simp]
-lemma symm_rightSet (h : G.IsVxSetSeparator V S T) : h.symm.rightSet = h.leftSet := by
-  ext v
-  simp only [IsVxSetSeparator.leftSet, IsVxSetSeparator.rightSet, mem_setOf_eq, exists_eq_right]
-
-@[simp]
-lemma leftSet_rightSet_disjoint (h : G.IsVxSetSeparator V S T) :
-    _root_.Disjoint h.leftSet h.rightSet := by
-  rintro U hUl hUr a haU
-  obtain ⟨s, hs, hconn⟩ := hUl haU
-  obtain ⟨t, ht, hconn'⟩ := hUr haU
-  exact h s hs t ht (hconn.symm.trans hconn')
-
-@[simp]
-lemma leftSet_V_disjoint (h : G.IsVxSetSeparator V S T) : _root_.Disjoint h.leftSet V := by
-  rintro U hUl hUV a haU
-  obtain ⟨s, hs, hconn⟩ := hUl haU
-  exact hconn.mem_left.2 (hUV haU)
-
-@[simp]
-lemma rightSet_V_disjoint (h : G.IsVxSetSeparator V S T) : _root_.Disjoint h.rightSet V := by
-  rintro U hUr hUV a haU
-  obtain ⟨t, ht, hconn⟩ := hUr haU
-  exact hconn.mem_left.2 (hUV haU)
-
-@[simp]
-lemma leftSetV_inter_rightSetV (h : G.IsVxSetSeparator V S T) :
-    (h.leftSet ∪ V) ∩ (h.rightSet ∪ V) = V := by
-  ext a
-  simp +contextual only [mem_inter_iff, mem_union, iff_def, and_imp, or_true, and_self,
-    implies_true, and_true]
-  rintro (hl | hl) (hr | hr) <;> try assumption
-  have := h.leftSet_rightSet_disjoint (by simp [hl] : {a} ≤ _) (by simp [hr] : {a} ≤ _)
-  simp only [bot_eq_empty, le_eq_subset, subset_empty_iff, singleton_ne_empty] at this
-
-lemma leftSet_Sep_compl (h : G.IsVxSetSeparator V S T) :
-    G.IsVxSetSeparator V h.leftSet (h.leftSet ∪ V)ᶜ := by
-  rintro a ⟨s, hs, hconnas⟩ b hb hconn
-  refine hb ?_
-  left
-  use s, hs, hconn.symm.trans hconnas
-
-lemma rightSet_Sep_compl (h : G.IsVxSetSeparator V S T) :
-    G.IsVxSetSeparator V h.rightSet (h.rightSet ∪ V)ᶜ := by
-  rintro a ⟨t, ht, hconnat⟩ b hb hconn
-  refine hb ?_
-  left
-  use t, ht, hconn.symm.trans hconnat
-
-lemma compl_Sep_leftSet (h : G.IsVxSetSeparator V S T) :
-    G.IsVxSetSeparator V (h.leftSet ∪ V)ᶜ h.leftSet := h.leftSet_Sep_compl.symm
-
-lemma compl_Sep_rightSet (h : G.IsVxSetSeparator V S T) :
-    G.IsVxSetSeparator V (h.rightSet ∪ V)ᶜ h.rightSet := h.rightSet_Sep_compl.symm
-
-lemma leftSet_Sep_rightSet (h : G.IsVxSetSeparator V S T) :
-    G.IsVxSetSeparator V h.leftSet h.rightSet := by
-  refine h.leftSet_Sep_compl.subset_target ?_
-  simp only [compl_union, subset_inter_iff]
-  rw [subset_compl_iff_disjoint_left, subset_compl_iff_disjoint_left]
-  exact ⟨h.leftSet_rightSet_disjoint, h.rightSet_V_disjoint.symm⟩
-
-lemma mem_of_inc₂_leftSet (hbtw : G.Inc₂ e u v) (hu : u ∈ h.leftSet) :
-    v ∈ h.leftSet ∪ V := by
-  obtain ⟨s, hs, hconn⟩ := hu
-  by_contra! hvV
-  simp only [leftSet, mem_union, mem_setOf_eq, not_or, not_exists, not_and] at hvV
-  obtain ⟨hnconn, hvV⟩ := hvV
-  exact hnconn s hs
-  <| (hbtw.induce_of_mem hconn.mem_left ⟨hbtw.vx_mem_right, hvV⟩).connected.symm.trans hconn
-
-lemma mem_of_inc₂_rightSet (hbtw : G.Inc₂ e u v) (hv : v ∈ h.rightSet) :
-    u ∈ h.rightSet ∪ V := by
-  obtain ⟨t, ht, hconn⟩ := hv
-  by_contra! huV
-  simp only [rightSet, mem_union, mem_setOf_eq, not_or, not_exists, not_and] at huV
-  obtain ⟨hnconn, huV⟩ := huV
-  refine hnconn t ht <| hbtw.induce_of_mem (⟨hbtw.vx_mem_left, huV⟩ : u ∈ G.V \ V) hconn.mem_left
-  |>.connected.trans hconn
-
-/-- Given a set of edges, there is a separator that puts those edges on one side and the rest of
-the edges on the other side. -/
-def of_edges (G : Graph α β) (U : Set β) :
-    G.IsVxSetSeparator {v | (∃ e ∈ U, G.Inc e v) ∧ ∃ e' ∉ U, G.Inc e' v}
-    {v | ∃ e ∈ U, G.Inc e v} {v | ∃ e ∉ U, G.Inc e v} := by
-  rintro s ⟨e, heU, hse⟩ t ⟨f, hfU, htf⟩ hconn
-  sorry
-
-
-end IsVxSetSeparator
-
-
-def IsVxConnected (G : Graph α β) (n : ℕ) : Prop :=
-  ∀ S : Finset α, S.card < n → (G[G.V \ S]).Conn
-
-lemma IsVxConnected.one_of_conn [G.Conn] : G.IsVxConnected 1 := by
-  simpa [IsVxConnected]
-
-def IsEdgeConnected (G : Graph α β) (n : ℕ) : Prop :=
-  ∀ U : Finset β, U.card < n → (G{Uᶜ}).Conn
-
-lemma IsEdgeConnected.one_of_conn [G.Conn] : G.IsEdgeConnected 1 := by
-  rintro S hS
-  simp only [Nat.lt_one_iff, Finset.card_eq_zero] at hS
-  subst S
-  simp only [Finset.coe_empty, compl_empty, restrict_univ_eq_self]
-  assumption

@@ -1,5 +1,5 @@
-import Kura.Subgraph
-import Kura.Map
+import Kura.Operation.Subgraph
+import Kura.Operation.Map
 
 
 open Set Function

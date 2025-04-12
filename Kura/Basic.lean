@@ -659,4 +659,21 @@ lemma Connected.refl_iff : G.Connected x x ↔ x ∈ G.V := by
 class Conn (G : Graph α β) : Prop where
   all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
 
-end Connected
+
+def SetConnected (G : Graph α β) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.Connected s t
+
+namespace SetConnected
+variable {G : Graph α β} {S T U : Set α}
+
+lemma refl (h : ∃ x ∈ S, x ∈ G.V) : G.SetConnected S S := by
+  obtain ⟨x, hxS, hxV⟩ := h
+  use x, hxS, x, hxS, Connected.refl hxV
+
+lemma symm (h : G.SetConnected S T) : G.SetConnected T S := by
+  obtain ⟨s, hs, t, ht, h⟩ := h
+  exact ⟨t, ht, s, hs, h.symm⟩
+
+lemma comm : G.SetConnected S T ↔ G.SetConnected T S := ⟨SetConnected.symm, SetConnected.symm⟩
+
+
+end SetConnected
