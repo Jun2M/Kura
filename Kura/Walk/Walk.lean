@@ -21,18 +21,18 @@ def Nonempty : Walk α β → Prop
 | nil _ => False
 | cons _ _ _ => True
 
-def start : Walk α β → α
+def first : Walk α β → α
 | nil x => x
 | cons x _ _ => x
 
-def finish : Walk α β → α
+def last : Walk α β → α
 | nil x => x
-| cons _ _ w => w.finish
+| cons _ _ w => w.last
 
-def ValidOn (w : Walk α β) (G : Graph α β) : Prop :=
+def ValidIn (w : Walk α β) (G : Graph α β) : Prop :=
   match w with
   | nil x => x ∈ G.V
-  | cons x e w => G.Inc₂ e x w.start ∧ w.ValidOn G
+  | cons x e w => G.Inc₂ e x w.first ∧ w.ValidIn G
 
 def vx : Walk α β → List α
 | nil x => [x]
@@ -48,9 +48,13 @@ instance [DecidableEq α] : Decidable (x ∈ w) := by
 @[simp]
 lemma mem_notation : (x ∈ w.vx) = (x ∈ w) := rfl
 
+def vxSet : Walk α β → Set α := fun w => {x | x ∈ w}
+
 def edge : Walk α β → List β
 | nil _ => []
 | cons _ e w => e :: w.edge
+
+def edgeSet : Walk α β → Set β := fun w => {e | e ∈ w.edge}
 
 def length : Walk α β → ℕ
 | nil _ => 0
@@ -82,24 +86,24 @@ def reverse : Walk α β → Walk α β
 | nil x => nil x
 | cons x e w => w.reverse.concat e x
 
-def startAt [DecidableEq α] (w : Walk α β) (u : α) (h : u ∈ w) : Walk α β :=
+def firstAt [DecidableEq α] (w : Walk α β) (u : α) (h : u ∈ w) : Walk α β :=
   match w with
   | nil x => nil x
   | cons x e w =>
     if hin : u ∈ w
-    then startAt w u hin
+    then firstAt w u hin
     else cons x e w
 
 @[simp]
 lemma cons_length : (cons x e w).length = w.length + 1 := rfl
 
-lemma startAt_length_le [DecidableEq α] {w : Walk α β} (h : u ∈ w) : (startAt w u h).length ≤ w.length := by
+lemma firstAt_length_le [DecidableEq α] {w : Walk α β} (h : u ∈ w) : (firstAt w u h).length ≤ w.length := by
   match w with
-  | nil x => simp [startAt]
+  | nil x => simp [firstAt]
   | cons x e w =>
-    simp only [startAt, cons_length]
+    simp only [firstAt, cons_length]
     split_ifs with hin
-    · have := startAt_length_le hin
+    · have := firstAt_length_le hin
       omega
     · simp
 
@@ -108,14 +112,14 @@ def dedup [DecidableEq α] : Walk α β → Walk α β
 | cons x e w =>
   if h : x ∈ w
   then by
-    have := startAt_length_le h
-    exact (startAt w x h).dedup
+    have := firstAt_length_le h
+    exact (firstAt w x h).dedup
   else cons x e (dedup w)
 termination_by w => w.length
 
 @[simp] lemma cons_vx : (cons x e w).vx = x :: w.vx := rfl
 
-def endIf [DecidableEq α] {P : α → Prop} [DecidablePred P] (w : Walk α β) (h : ∃ u ∈ w, P u) : Walk α β :=
+def endIf {P : α → Prop} [DecidablePred P] (w : Walk α β) (h : ∃ u ∈ w, P u) : Walk α β :=
   match w with
   | nil x => nil x
   | cons x e w =>
@@ -127,9 +131,9 @@ end Walk
 
 @[mk_iff]
 structure IsWalkFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
-  validOn : W.ValidOn G
-  start_mem : W.start ∈ S
-  finish_mem : W.finish ∈ T
+  validIn : W.ValidIn G
+  first_mem : W.first ∈ S
+  last_mem : W.last ∈ T
 
 namespace Walk
 
@@ -139,12 +143,12 @@ namespace Walk
 
 @[simp] lemma nil_length : (nil x : Walk α β).length = 0 := rfl
 
-@[simp] lemma nil_start : (nil x : Walk α β).start = x := rfl
+@[simp] lemma nil_first : (nil x : Walk α β).first = x := rfl
 
-@[simp] lemma nil_finish : (nil x : Walk α β).finish = x := rfl
+@[simp] lemma nil_last : (nil x : Walk α β).last = x := rfl
 
-@[simp] lemma nil_validOn_iff : (nil x : Walk α β).ValidOn G ↔ x ∈ G.V := by
-  simp only [ValidOn]
+@[simp] lemma nil_validIn_iff : (nil x : Walk α β).ValidIn G ↔ x ∈ G.V := by
+  simp only [ValidIn]
 
 @[simp] lemma nil_injective : Injective (nil : α → Walk α β) := by
   rintro x y h
@@ -155,18 +159,18 @@ namespace Walk
 
 @[simp] lemma cons_edge : (cons x e w).edge = e :: w.edge := rfl
 
-@[simp] lemma cons_start : (cons x e w).start = x := rfl
+@[simp] lemma cons_first : (cons x e w).first = x := rfl
 
-@[simp] lemma cons_finish : (cons x e w).finish = w.finish := rfl
+@[simp] lemma cons_last : (cons x e w).last = w.last := rfl
 
-@[simp] lemma cons_validOn (hw : w.ValidOn G) (he : G.Inc₂ e x w.start) :
-  (cons x e w).ValidOn G := ⟨he, hw⟩
+@[simp] lemma cons_validIn (hw : w.ValidIn G) (he : G.Inc₂ e x w.first) :
+  (cons x e w).ValidIn G := ⟨he, hw⟩
 
-@[simp] lemma cons_validOn_iff : (cons x e w).ValidOn G ↔ G.Inc₂ e x w.start ∧ w.ValidOn G :=
+@[simp] lemma cons_validIn_iff : (cons x e w).ValidIn G ↔ G.Inc₂ e x w.first ∧ w.ValidIn G :=
   ⟨id, id⟩
 
-lemma ValidOn.of_cons (hw : (cons x e w).ValidOn G) : w.ValidOn G := by
-  rw [cons_validOn_iff] at hw
+lemma ValidIn.of_cons (hw : (cons x e w).ValidIn G) : w.ValidIn G := by
+  rw [cons_validIn_iff] at hw
   exact hw.2
 
 lemma cons_vx_nodup (h : (cons x e w).vx.Nodup) : w.vx.Nodup := by
@@ -191,33 +195,33 @@ lemma mem_edge_nil_iff : e ∈ (nil u : Walk α β).edge ↔ False := by simp
 lemma mem_edge_cons_iff : e ∈ (cons u e' w).edge ↔ e = e' ∨ e ∈ w.edge := by simp
 
 @[simp]
-lemma start_vx_mem : w.start ∈ w := by
+lemma first_vx_mem : w.first ∈ w := by
   match w with
   | nil x => simp
   | cons x e w => simp
 
-lemma start_eq_vx_head {w : Walk α β} : w.start = w.vx.head vx_ne_nil := by
+lemma first_eq_vx_head {w : Walk α β} : w.first = w.vx.head vx_ne_nil := by
   match w with
   | nil x => rfl
   | cons x e w => rfl
 
 @[simp]
-lemma finish_vx_mem {w : Walk α β} : w.finish ∈ w := by
+lemma last_vx_mem {w : Walk α β} : w.last ∈ w := by
   match w with
   | nil x => simp
   | cons x e w =>
-    simp only [cons_vx, cons_finish, mem_cons]
+    simp only [cons_vx, cons_last, mem_cons]
     right
-    exact finish_vx_mem
+    exact last_vx_mem
 
-lemma finish_eq_vx_getLast {w : Walk α β} : w.finish = w.vx.getLast vx_ne_nil := by
+lemma last_eq_vx_getLast {w : Walk α β} : w.last = w.vx.getLast vx_ne_nil := by
   match w with
   | nil x => rfl
   | cons x e w =>
-    simp only [cons_finish, cons_vx, ne_eq, vx_ne_nil, not_false_eq_true, getLast_cons]
-    apply finish_eq_vx_getLast
+    simp only [cons_last, cons_vx, ne_eq, vx_ne_nil, not_false_eq_true, getLast_cons]
+    apply last_eq_vx_getLast
 
-lemma ValidOn.mem_of_mem_vx {w : Walk α β} (h : w.ValidOn G) (hmem : x ∈ w) :
+lemma ValidIn.mem_of_mem_vx {w : Walk α β} (h : w.ValidIn G) (hmem : x ∈ w) :
     x ∈ G.V := by
   match w with
   | nil y =>
@@ -230,7 +234,7 @@ lemma ValidOn.mem_of_mem_vx {w : Walk α β} (h : w.ValidOn G) (hmem : x ∈ w) 
     · exact hbtw.vx_mem_left
     · exact hVd.mem_of_mem_vx h
 
-lemma ValidOn.mem_of_mem_edge {w : Walk α β} (h : w.ValidOn G) (hmem : e ∈ w.edge) :
+lemma ValidIn.mem_of_mem_edge {w : Walk α β} (h : w.ValidIn G) (hmem : e ∈ w.edge) :
     e ∈ G.E := by
   match w with
   | nil x => simp at hmem
@@ -277,23 +281,23 @@ lemma Nonempty.iff_length_pos : 0 < w.length ↔ w.Nonempty := by
     rintro ⟨x, e, w, rfl⟩
     simp only [cons_length, lt_add_iff_pos_left, add_pos_iff, lt_one_iff, pos_of_gt, or_true]
 
-lemma start_eq_finish_of_not_nonempty (h : ¬ w.Nonempty) : w.start = w.finish := by
+lemma first_eq_last_of_not_nonempty (h : ¬ w.Nonempty) : w.first = w.last := by
   match w with
-  | nil x => simp only [nil_start, nil_finish]
+  | nil x => simp only [nil_first, nil_last]
   | cons x e w => simp only [Nonempty.cons_true, not_true_eq_false] at h
 
 @[simp]
-lemma start_eq_finish_iff (hnodup : w.vx.Nodup) : w.start = w.finish ↔ ¬ w.Nonempty := by
+lemma first_eq_last_iff (hnodup : w.vx.Nodup) : w.first = w.last ↔ ¬ w.Nonempty := by
   match w with
-  | .nil x => simp only [nil_start, nil_finish, Nonempty.not_nil, not_false_eq_true]
+  | .nil x => simp only [nil_first, nil_last, Nonempty.not_nil, not_false_eq_true]
   | .cons x e w =>
-    simp only [cons_vx, nodup_cons, cons_start, cons_finish, Nonempty.cons_true, not_true_eq_false,
+    simp only [cons_vx, nodup_cons, cons_first, cons_last, Nonempty.cons_true, not_true_eq_false,
       iff_false, ne_eq] at hnodup ⊢
-    exact fun h => hnodup.1 (h ▸ finish_vx_mem)
+    exact fun h => hnodup.1 (h ▸ last_vx_mem)
 
 @[simp]
-lemma start_ne_finish_iff (hnodup : w.vx.Nodup) : w.start ≠ w.finish ↔ w.Nonempty :=
-  (start_eq_finish_iff hnodup).not_left
+lemma first_ne_last_iff (hnodup : w.vx.Nodup) : w.first ≠ w.last ↔ w.Nonempty :=
+  (first_eq_last_iff hnodup).not_left
 
 /- Properties of append operation -/
 @[simp]
@@ -316,15 +320,15 @@ lemma append_vx : (w₁ ++ w₂).vx = w₁.vx.dropLast ++ w₂.vx := by
     rw [List.dropLast_cons_of_ne_nil vx_ne_nil, List.cons_append]
     simpa
 
-lemma append_vx' {w₁ w₂ : Walk α β} (heq : w₁.finish = w₂.start) :
+lemma append_vx' {w₁ w₂ : Walk α β} (heq : w₁.last = w₂.first) :
     (w₁ ++ w₂).vx = w₁.vx ++ w₂.vx.tail := by
   match w₁ with
   | .nil x =>
-    simp_all only [nil_finish, append_vx, nil_vx, dropLast_single, nil_append, cons_append]
-    rw [start_eq_vx_head]
+    simp_all only [nil_last, append_vx, nil_vx, dropLast_single, nil_append, cons_append]
+    rw [first_eq_vx_head]
     exact (head_cons_tail w₂.vx vx_ne_nil).symm
   | .cons x e w =>
-    simp only [cons_finish, cons_append, cons_vx, List.cons_append, List.cons.injEq,
+    simp only [cons_last, cons_append, cons_vx, List.cons_append, List.cons.injEq,
       true_and] at heq ⊢
     exact append_vx' heq
 
@@ -343,33 +347,33 @@ lemma append_length : (w₁ ++ w₂).length = w₁.length + w₂.length := by
     omega
 
 @[simp]
-lemma append_nil (h : w.finish = x) : w ++ (nil x) = w := by
+lemma append_nil (h : w.last = x) : w ++ (nil x) = w := by
   induction w with
   | nil u => aesop
   | cons u e W ih =>
-    rw [cons_finish] at h
+    rw [cons_last] at h
     rw [cons_append, ih h]
 
 @[simp]
-lemma append_start_of_eq (h : w₁.finish = w₂.start):
-  (w₁ ++ w₂).start = w₁.start := by
+lemma append_first_of_eq (h : w₁.last = w₂.first):
+  (w₁ ++ w₂).first = w₁.first := by
   induction w₁ with
-  | nil x => simp only [nil_append, ← h, nil_finish, nil_start]
-  | cons x e w ih => simp only [cons_append, cons_start]
+  | nil x => simp only [nil_append, ← h, nil_last, nil_first]
+  | cons x e w ih => simp only [cons_append, cons_first]
 
 @[simp]
-lemma append_start_of_nonempty (h : w₁.Nonempty) :
-  (w₁ ++ w₂).start = w₁.start := by
+lemma append_first_of_nonempty (h : w₁.Nonempty) :
+  (w₁ ++ w₂).first = w₁.first := by
   induction w₁ with
   | nil x => simp only [Nonempty.not_nil] at h
-  | cons x e w ih => simp only [cons_append, cons_start]
+  | cons x e w ih => simp only [cons_append, cons_first]
 
 @[simp]
-lemma append_finish :
-  (w₁ ++ w₂).finish = w₂.finish := by
+lemma append_last :
+  (w₁ ++ w₂).last = w₂.last := by
   induction w₁ with
   | nil x => simp only [nil_append]
-  | cons x e w ih => simp only [cons_append, cons_finish, ih]
+  | cons x e w ih => simp only [cons_append, cons_last, ih]
 
 lemma append_assoc (w1 w2 w3 : Walk α β) : (w1 ++ w2) ++ w3 = w1 ++ (w2 ++ w3) := by
   induction w1 with
@@ -392,10 +396,10 @@ lemma append_right_inj : w ++ w₁ = w ++ w₂ ↔ w₁ = w₂ := by
     rfl
 
 @[simp]
-lemma append_right_eq_self : w ++ w₁ = w ↔ w₁ = nil w.finish := by
+lemma append_right_eq_self : w ++ w₁ = w ↔ w₁ = nil w.last := by
   induction w with
-  | nil x => simp only [nil_append, nil_finish]
-  | cons x e w ih => simpa only [cons_append, cons.injEq, true_and, cons_finish]
+  | nil x => simp only [nil_append, nil_last]
+  | cons x e w ih => simpa only [cons_append, cons.injEq, true_and, cons_last]
 
 @[simp]
 lemma append_left_eq_self : w₁ ++ w = w ↔ ¬ w₁.Nonempty := by
@@ -414,51 +418,51 @@ lemma append_eq_nil_iff : w₁ ++ w₂ = nil x ↔ (∃ y, w₁ = nil y) ∧ w�
   | nil y => simp only [nil_append, nil.injEq, exists_eq', true_and]
   | cons y e w ih => simp only [cons_append, reduceCtorEq, exists_false, false_and]
 
-lemma append_validOn (h : w₁.finish = w₂.start) (h₁ : w₁.ValidOn G) (h₂ : w₂.ValidOn G) :
-  (w₁ ++ w₂).ValidOn G := by
+lemma append_validIn (h : w₁.last = w₂.first) (h₁ : w₁.ValidIn G) (h₂ : w₂.ValidIn G) :
+  (w₁ ++ w₂).ValidIn G := by
   induction w₁ with
   | nil x => simpa
   | cons x e w₁ ih =>
-    simp only [cons_finish] at h
+    simp only [cons_last] at h
     refine ⟨?_, by simp [ih h h₁.2]⟩
     convert h₁.1 using 1
-    exact append_start_of_eq h
+    exact append_first_of_eq h
 
-lemma ValidOn.append_left_validOn (h : w₁.finish = w₂.start) (hw₁ : w₁.Nonempty)
-    (hVd : (w₁ ++ w₂).ValidOn G) : w₁.ValidOn G := by
+lemma ValidIn.append_left_validIn (h : w₁.last = w₂.first) (hw₁ : w₁.Nonempty)
+    (hVd : (w₁ ++ w₂).ValidIn G) : w₁.ValidIn G := by
   induction w₁ with
   | nil x => simp only [Nonempty.not_nil] at hw₁
   | cons x e w ih =>
-    simp only [cons_append, cons_validOn_iff] at hVd
+    simp only [cons_append, cons_validIn_iff] at hVd
     by_cases hNonempty : w.Nonempty
     · refine ⟨?_, ih h hNonempty hVd.2⟩
       convert hVd.1 using 1
-      simp only [hNonempty, append_start_of_nonempty]
+      simp only [hNonempty, append_first_of_nonempty]
     · simp only [Nonempty.not_iff] at hNonempty
       obtain ⟨y, rfl⟩ := hNonempty
-      simp only [cons_finish, nil_finish, nil_append, cons_validOn_iff, nil_start,
-        nil_validOn_iff] at h hVd ⊢
+      simp only [cons_last, nil_last, nil_append, cons_validIn_iff, nil_first,
+        nil_validIn_iff] at h hVd ⊢
       subst y
-      refine ⟨hVd.1, hVd.2.mem_of_mem_vx start_vx_mem⟩
+      refine ⟨hVd.1, hVd.2.mem_of_mem_vx first_vx_mem⟩
 
-lemma ValidOn.append_right_validOn (hVd : (w₁ ++ w₂).ValidOn G) : w₂.ValidOn G := by
+lemma ValidIn.append_right_validIn (hVd : (w₁ ++ w₂).ValidIn G) : w₂.ValidIn G := by
   induction w₁ with
   | nil x => simpa only [nil_append] using hVd
   | cons x e w ih =>
-    simp only [cons_append, cons_validOn_iff] at hVd
+    simp only [cons_append, cons_validIn_iff] at hVd
     exact ih hVd.2
 
-lemma ValidOn.finish_eq_start (hw₁ : w₁.Nonempty) (hVd₁ : w₁.ValidOn G) (hVd : (w₁ ++ w₂).ValidOn G) :
-  w₁.finish = w₂.start := by
+lemma ValidIn.last_eq_first (hw₁ : w₁.Nonempty) (hVd₁ : w₁.ValidIn G) (hVd : (w₁ ++ w₂).ValidIn G) :
+  w₁.last = w₂.first := by
   induction w₁ with
   | nil x => simp only [Nonempty.not_nil] at hw₁
   | cons x e w ih =>
-    simp_all only [Nonempty.cons_true, cons_append, cons_validOn_iff, cons_finish, forall_const]
+    simp_all only [Nonempty.cons_true, cons_append, cons_validIn_iff, cons_last, forall_const]
     by_cases hNonempty : w.Nonempty
-    · simp_all only [forall_const, append_start_of_eq, true_and]
+    · simp_all only [forall_const, append_first_of_eq, true_and]
     · simp only [Nonempty.not_iff] at hNonempty
       obtain ⟨y, rfl⟩ := hNonempty
-      simp_all only [Nonempty.not_nil, nil_finish, IsEmpty.forall_iff, nil_start, nil_validOn_iff,
+      simp_all only [Nonempty.not_nil, nil_last, IsEmpty.forall_iff, nil_first, nil_validIn_iff,
         nil_append]
       exact hVd₁.1.eq_of_inc₂ hVd.1
 
@@ -466,7 +470,7 @@ lemma ValidOn.finish_eq_start (hw₁ : w₁.Nonempty) (hVd₁ : w₁.ValidOn G) 
 namespace IsPrefix
 
 instance instIsPrefixPreorder: IsPreorder (Walk α β) IsPrefix where
-  refl w := ⟨nil w.finish, by simp [append_nil rfl]⟩
+  refl w := ⟨nil w.last, by simp [append_nil rfl]⟩
   trans w1 w2 w3 h12 h23 := by
     obtain ⟨w12, hw12⟩ := h12
     obtain ⟨w23, hw23⟩ := h23
@@ -478,7 +482,7 @@ end IsPrefix
 namespace IsSuffix
 
 instance instIsSuffixPartialOrder: IsPartialOrder (Walk α β) IsSuffix where
-  refl w := ⟨nil w.start, by simp [append_nil rfl]⟩
+  refl w := ⟨nil w.first, by simp [append_nil rfl]⟩
   trans w1 w2 w3 h12 h23 := by
     obtain ⟨w12, hw12⟩ := h12
     obtain ⟨w23, hw23⟩ := h23
@@ -502,12 +506,12 @@ variable {G H : Graph α β} {u v : α} {e : β} {w : Walk α β}
 
 def Inc₂.walk (_h : G.Inc₂ e u v) : Walk α β := cons u e (nil v)
 
-lemma Inc₂.walk_validOn (h : G.Inc₂ e u v) : h.walk.ValidOn G := by
-  simp only [walk, ValidOn, h.vx_mem_right, nil_start, h, cons_validOn]
+lemma Inc₂.walk_validIn (h : G.Inc₂ e u v) : h.walk.ValidIn G := by
+  simp only [walk, ValidIn, h.vx_mem_right, nil_first, h, cons_validIn]
 
-@[simp] lemma Inc₂.Walk.start (h : G.Inc₂ e u v): h.walk.start = u := rfl
+@[simp] lemma Inc₂.Walk.first (h : G.Inc₂ e u v): h.walk.first = u := rfl
 
-@[simp] lemma Inc₂.Walk.finish (h : G.Inc₂ e u v): h.walk.finish = v := rfl
+@[simp] lemma Inc₂.Walk.last (h : G.Inc₂ e u v): h.walk.last = v := rfl
 
 @[simp] lemma Inc₂.Walk.vx (h : G.Inc₂ e u v): h.walk.vx = [u, v] := rfl
 
@@ -519,7 +523,7 @@ lemma Inc₂.walk_validOn (h : G.Inc₂ e u v) : h.walk.ValidOn G := by
   simp [walk]
 
 lemma Inc₂.mem_left_of_edge_mem_walk (h : G.Inc₂ e u v) (he : e ∈ w.edge)
-    (hVd : w.ValidOn G) : u ∈ w := by
+    (hVd : w.ValidIn G) : u ∈ w := by
   induction w with
   | nil x => simp at he
   | cons x e' w ih =>
@@ -529,79 +533,79 @@ lemma Inc₂.mem_left_of_edge_mem_walk (h : G.Inc₂ e u v) (he : e ∈ w.edge)
       obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_or_eq_of_inc₂ h
       · left
       · right
-        exact start_vx_mem
+        exact first_vx_mem
     · right
       exact ih he' hVd.2
 
 lemma Inc₂.mem_right_of_edge_mem_walk (h : G.Inc₂ e u v) (he : e ∈ w.edge)
-    (hVd : w.ValidOn G) : v ∈ w := h.symm.mem_left_of_edge_mem_walk he hVd
+    (hVd : w.ValidIn G) : v ∈ w := h.symm.mem_left_of_edge_mem_walk he hVd
 
 /-- Given a graph adjacency, we can create a walk of length 1 -/
-lemma Adj.exist_walk (h : G.Adj u v) : ∃ (W : Walk α β), W.ValidOn G ∧ W.length = 1 ∧ W.start = u ∧
-    W.finish = v := by
+lemma Adj.exist_walk (h : G.Adj u v) : ∃ (W : Walk α β), W.ValidIn G ∧ W.length = 1 ∧ W.first = u ∧
+    W.last = v := by
   obtain ⟨e, he⟩ := h
-  use he.walk, he.walk_validOn
-  simp only [Inc₂.Walk.length, Inc₂.Walk.start, Inc₂.Walk.finish, and_self]
+  use he.walk, he.walk_validIn
+  simp only [Inc₂.Walk.length, Inc₂.Walk.first, Inc₂.Walk.last, and_self]
 
 /-- Given a reflexive adjacency, we can create a walk of length at most 1 -/
-lemma reflAdj.exist_walk (h : G.reflAdj u v) : ∃ (W : Walk α β), W.ValidOn G ∧ W.length ≤ 1 ∧
-    W.start = u ∧ W.finish = v := by
+lemma reflAdj.exist_walk (h : G.reflAdj u v) : ∃ (W : Walk α β), W.ValidIn G ∧ W.length ≤ 1 ∧
+    W.first = u ∧ W.last = v := by
   obtain hadj | ⟨rfl, hx⟩ := h
-  · obtain ⟨W, hW, hlength, hstart, hfinish⟩ := hadj.exist_walk
+  · obtain ⟨W, hW, hlength, hfirst, hlast⟩ := hadj.exist_walk
     use W, hW
-    simp only [hlength, le_refl, hstart, hfinish, and_self]
+    simp only [hlength, le_refl, hfirst, hlast, and_self]
   · use nil u
     constructor
     · simp [hx]
     · simp
 
-lemma Connected.exist_walk (h : G.Connected u v) : ∃ (W : Walk α β), W.ValidOn G ∧
-    W.start = u ∧ W.finish = v := by
+lemma Connected.exist_walk (h : G.Connected u v) : ∃ (W : Walk α β), W.ValidIn G ∧
+    W.first = u ∧ W.last = v := by
   induction h with
   | single hradj =>
-    obtain ⟨W, hW, hlength, hstart, hfinish⟩ := hradj.exist_walk
+    obtain ⟨W, hW, hlength, hfirst, hlast⟩ := hradj.exist_walk
     use W
   | tail hconn hradj ih =>
     expose_names
-    obtain ⟨W, hW, hstart, hfinish⟩ := ih
-    obtain ⟨W', hW', hlength, hstart', hfinish'⟩ := hradj.exist_walk
+    obtain ⟨W, hW, hfirst, hlast⟩ := ih
+    obtain ⟨W', hW', hlength, hfirst', hlast'⟩ := hradj.exist_walk
     subst b c u
-    use W ++ W', append_validOn hstart'.symm hW hW'
-    simp only [hstart', append_start_of_eq, append_finish, and_self]
+    use W ++ W', append_validIn hfirst'.symm hW hW'
+    simp only [hfirst', append_first_of_eq, append_last, and_self]
 
-lemma Walk.connected_of_validOn (h : w.ValidOn G) : G.Connected w.start w.finish := by
+lemma Walk.connected_of_validIn (h : w.ValidIn G) : G.Connected w.first w.last := by
   induction w with
-  | nil x => simpa only [nil_start, nil_finish, Connected.refl_iff]
+  | nil x => simpa only [nil_first, nil_last, Connected.refl_iff]
   | cons x e w ih =>
     obtain ⟨H1, H2⟩ := h
-    simp only [cons_start, cons_finish]
+    simp only [cons_first, cons_last]
     exact H1.connected.trans (ih H2)
 
-lemma Walk.connected_of_validOn_of_mem' (h : w.ValidOn G) (hx : u ∈ w) :
-    G.Connected u w.finish := by
+lemma Walk.connected_of_validIn_of_mem' (h : w.ValidIn G) (hx : u ∈ w) :
+    G.Connected u w.last := by
   induction w generalizing u with
   | nil x =>
     rw [mem_vx_nil_iff] at hx
     subst u
-    simp only [nil_finish, Connected.refl_iff]
+    simp only [nil_last, Connected.refl_iff]
     exact h
   | cons x e w ih =>
     rw [mem_vx_cons_iff] at hx
     obtain rfl | hx := hx
-    · exact Connected.trans h.1.connected (ih h.2 (start_vx_mem))
+    · exact Connected.trans h.1.connected (ih h.2 (first_vx_mem))
     · exact ih h.2 hx
 
-lemma Walk.connected_of_validOn_of_mem (h : w.ValidOn G) (hx : x ∈ w) (hy : y ∈ w) :
+lemma Walk.connected_of_validIn_of_mem (h : w.ValidIn G) (hx : x ∈ w) (hy : y ∈ w) :
     G.Connected x y := by
-  have hx' := Walk.connected_of_validOn_of_mem' h hx
-  have hy' := Walk.connected_of_validOn_of_mem' h hy
+  have hx' := Walk.connected_of_validIn_of_mem' h hx
+  have hy' := Walk.connected_of_validIn_of_mem' h hy
   exact Connected.trans hx' hy'.symm
 
-theorem Connected.iff_walk : G.Connected u v ↔ ∃ w : Walk α β, w.ValidOn G ∧ w.start = u ∧ w.finish = v := by
+theorem Connected.iff_walk : G.Connected u v ↔ ∃ w : Walk α β, w.ValidIn G ∧ w.first = u ∧ w.last = v := by
   constructor
   · exact fun a ↦ exist_walk a
   · rintro ⟨w, h1, rfl, rfl⟩
-    exact connected_of_validOn h1
+    exact connected_of_validIn h1
 
 
 namespace Walk
@@ -618,7 +622,7 @@ lemma dropLast_cons_cons :
   (cons x e (cons y e' w) : Walk α β).dropLast = cons x e ((cons y e' w).dropLast) := rfl
 
 @[simp]
-lemma dropLast_start {w : Walk α β} (h : w.Nonempty) : (w.dropLast).start = w.start := by
+lemma dropLast_first {w : Walk α β} (h : w.Nonempty) : (w.dropLast).first = w.first := by
   match w with
   | .nil x => simp at h
   | .cons x e (.nil y) => simp
@@ -643,21 +647,21 @@ lemma dropLast_edge {w : Walk α β} (h : w.Nonempty) : (w.dropLast).edge = w.ed
     simp only [dropLast, cons_edge, dropLast_cons₂, List.cons.injEq, true_and]
     exact dropLast_edge (by simp)
 
-lemma dropLast_validOn {w : Walk α β} (hVd : w.ValidOn G) :
-    (w.dropLast).ValidOn G := by
+lemma dropLast_validIn {w : Walk α β} (hVd : w.ValidIn G) :
+    (w.dropLast).ValidIn G := by
   match w with
   | .nil x => simp only [dropLast, hVd]
   | .cons x e (.nil y) =>
-    simp only [cons_validOn_iff, nil_start, nil_validOn_iff] at hVd
+    simp only [cons_validIn_iff, nil_first, nil_validIn_iff] at hVd
     exact hVd.1.vx_mem_left
   | .cons x e (cons y e' w) =>
-    rw [dropLast, cons_validOn_iff, dropLast_start (by simp)]
-    rw [cons_validOn_iff] at hVd
+    rw [dropLast, cons_validIn_iff, dropLast_first (by simp)]
+    rw [cons_validIn_iff] at hVd
     refine ⟨hVd.1, ?_⟩
-    exact dropLast_validOn hVd.2
+    exact dropLast_validIn hVd.2
 
-lemma mem_dropLast_or_finish_of_mem {w : Walk α β} (hu : u ∈ w) :
-    u ∈ w.dropLast ∨ u = w.finish := by
+lemma mem_dropLast_or_last_of_mem {w : Walk α β} (hu : u ∈ w) :
+    u ∈ w.dropLast ∨ u = w.last := by
   match w with
   | .nil x => simpa using hu
   | .cons x e (.nil y) =>
@@ -667,13 +671,13 @@ lemma mem_dropLast_or_finish_of_mem {w : Walk α β} (hu : u ∈ w) :
     simp only [mem_vx_cons_iff] at hu
     obtain rfl | rfl | hu := hu
     · simp
-    · simp only [dropLast_cons_cons, mem_vx_cons_iff, cons_finish]
-      have := mem_dropLast_or_finish_of_mem (by simp : u ∈ (cons u e' w))
-      rw [cons_finish] at this
+    · simp only [dropLast_cons_cons, mem_vx_cons_iff, cons_last]
+      have := mem_dropLast_or_last_of_mem (by simp : u ∈ (cons u e' w))
+      rw [cons_last] at this
       tauto
-    · simp only [dropLast_cons_cons, mem_vx_cons_iff, cons_finish]
-      have := mem_dropLast_or_finish_of_mem (by simp [hu] : u ∈ (cons y e' w))
-      rw [cons_finish] at this
+    · simp only [dropLast_cons_cons, mem_vx_cons_iff, cons_last]
+      have := mem_dropLast_or_last_of_mem (by simp [hu] : u ∈ (cons y e' w))
+      rw [cons_last] at this
       tauto
 
 lemma mem_of_mem_dropLast {w : Walk α β} (h : u ∈ w.dropLast.vx) : u ∈ w := by
@@ -690,12 +694,12 @@ lemma mem_of_mem_dropLast {w : Walk α β} (h : u ∈ w.dropLast.vx) : u ∈ w :
       right
       simpa only [cons_vx, mem_cons] using this
 
-lemma mem_dropLast_or_finish_of_mem_iff :
-    u ∈ w.dropLast ∨ u = w.finish ↔ u ∈ w := by
-  refine ⟨?_, mem_dropLast_or_finish_of_mem⟩
+lemma mem_dropLast_or_last_of_mem_iff :
+    u ∈ w.dropLast ∨ u = w.last ↔ u ∈ w := by
+  refine ⟨?_, mem_dropLast_or_last_of_mem⟩
   rintro (h | rfl)
   · exact mem_of_mem_dropLast h
-  · exact finish_vx_mem
+  · exact last_vx_mem
 
 /-- Properties of concat operation -/
 @[simp]
@@ -738,7 +742,7 @@ lemma reverse_length {w : Walk α β} : (reverse w).length = w.length := by
 
 
 lemma eq_append_of_vx_mem {w : Walk α β} {u : α} (hmem : u ∈ w) :
-    ∃ w₁ w₂ : Walk α β, w = w₁ ++ w₂ ∧ w₁.finish = u ∧ w₂.start = u := by
+    ∃ w₁ w₂ : Walk α β, w = w₁ ++ w₂ ∧ w₁.last = u ∧ w₂.first = u := by
   induction w with
   | nil x =>
     rw [mem_vx_nil_iff] at hmem
@@ -748,12 +752,12 @@ lemma eq_append_of_vx_mem {w : Walk α β} {u : α} (hmem : u ∈ w) :
     rw [mem_vx_cons_iff] at hmem
     obtain rfl | h := hmem
     · exact ⟨nil u, cons u e w, rfl, rfl, rfl⟩
-    · obtain ⟨w₁, w₂, rfl, hfin, hstart⟩ := ih h
+    · obtain ⟨w₁, w₂, rfl, hfin, hfirst⟩ := ih h
       use cons x e w₁, w₂
-      simp only [cons_append, cons_finish, hfin, hstart, and_self]
+      simp only [cons_append, cons_last, hfin, hfirst, and_self]
 
 lemma eq_append_cons_of_edge_mem {w : Walk α β} {e : β} (he : e ∈ w.edge) :
-    ∃ w₁ w₂ : Walk α β, w = w₁ ++ cons w₁.finish e w₂ ∧ e ∉ w₁.edge := by
+    ∃ w₁ w₂ : Walk α β, w = w₁ ++ cons w₁.last e w₂ ∧ e ∉ w₁.edge := by
   induction w with
   | nil x => simp only [nil_edge, not_mem_nil] at he
   | cons x e' w ih =>
@@ -764,33 +768,33 @@ lemma eq_append_cons_of_edge_mem {w : Walk α β} {e : β} (he : e ∈ w.edge) :
       · subst e'
         use nil x, w, rfl, by simp only [nil_edge, not_mem_nil, not_false_eq_true]
       · obtain ⟨w₁, w₂, rfl, hnin⟩ := ih he'
-        use cons x e' w₁, w₂, by simp only [cons_finish, cons_append]
+        use cons x e' w₁, w₂, by simp only [cons_last, cons_append]
         simp only [cons_edge, mem_cons, h, hnin, or_self, not_false_eq_true]
 
 /-- A subgraph inherits all valid walks -/
-lemma ValidOn.le {w : Walk α β} (h : w.ValidOn G) (hle : G ≤ H) : w.ValidOn H := by
+lemma ValidIn.le {w : Walk α β} (h : w.ValidIn G) (hle : G ≤ H) : w.ValidIn H := by
   match w with
   | nil x => exact vx_subset_of_le hle h
   | cons x e w =>
     obtain ⟨hbtw, hVd⟩ := h
     exact ⟨hbtw.le hle, hVd.le hle⟩
 
-lemma ValidOn.eq_nil_of_mem_isolated {w : Walk α β} {x : α} (hisol : G.Isolated x) (hmem : x ∈ w)
-    (h : w.ValidOn G) : w = nil x := by
+lemma ValidIn.eq_nil_of_mem_isolated {w : Walk α β} {x : α} (hisol : G.Isolated x) (hmem : x ∈ w)
+    (h : w.ValidIn G) : w = nil x := by
   match w with
-  | nil y => simp_all only [mem_vx_nil_iff, nil_validOn_iff]
+  | nil y => simp_all only [mem_vx_nil_iff, nil_validIn_iff]
   | cons y e w =>
     exfalso
     obtain ⟨hbtw, hVd⟩ := h
     rw [mem_vx_cons_iff] at hmem
     obtain rfl | h := hmem
     · exact hisol e hbtw.inc_left
-    · have := ValidOn.eq_nil_of_mem_isolated hisol h hVd
+    · have := ValidIn.eq_nil_of_mem_isolated hisol h hVd
       subst w
-      rw [nil_start] at hbtw
+      rw [nil_first] at hbtw
       exact hisol e hbtw.inc_right
 
-lemma ValidOn.induce {U : Set α} (hVd : w.ValidOn G) (hU : ∀ x ∈ w, x ∈ U) : w.ValidOn (G[U]) := by
+lemma ValidIn.induce {U : Set α} (hVd : w.ValidIn G) (hU : ∀ x ∈ w, x ∈ U) : w.ValidIn (G[U]) := by
   induction w with
   | nil x => simp [hU]
   | cons x e w ih =>
@@ -799,10 +803,10 @@ lemma ValidOn.induce {U : Set α} (hVd : w.ValidOn G) (hU : ∀ x ∈ w, x ∈ U
     obtain ⟨hUx, hUw⟩ := hU
     refine ⟨?_, ih hVd hUw⟩
     simp only [induce_inc₂_iff, hbtw, true_and, hUx]
-    exact hUw _ start_vx_mem
+    exact hUw _ first_vx_mem
 
-lemma ValidOn.restrict {S : Set β} (hVd : w.ValidOn G) (hS : ∀ e ∈ w.edge, e ∈ S) :
-    w.ValidOn (G{S}) := by
+lemma ValidIn.restrict {S : Set β} (hVd : w.ValidIn G) (hS : ∀ e ∈ w.edge, e ∈ S) :
+    w.ValidIn (G{S}) := by
   induction w with
   | nil x => exact hVd
   | cons x e w ih =>
@@ -814,90 +818,90 @@ lemma ValidOn.restrict {S : Set β} (hVd : w.ValidOn G) (hS : ∀ e ∈ w.edge, 
     have he : e ∈ S := by
       apply hS
       simp only [cons_edge, mem_cons, true_or]
-    simp only [ih, restrict_inc₂, hbtw, he, and_self, cons_validOn]
+    simp only [ih, restrict_inc₂, hbtw, he, and_self, cons_validIn]
 
-lemma ValidOn.subgraph {U : Set α} {S : Set β} (hVd : w.ValidOn G) (hU : ∀ x ∈ w, x ∈ U)
-    (hS : ∀ e ∈ w.edge, e ∈ S) : w.ValidOn (G{S}[U]) := ValidOn.induce (ValidOn.restrict hVd hS) hU
+lemma ValidIn.subgraph {U : Set α} {S : Set β} (hVd : w.ValidIn G) (hU : ∀ x ∈ w, x ∈ U)
+    (hS : ∀ e ∈ w.edge, e ∈ S) : w.ValidIn (G{S}[U]) := ValidIn.induce (ValidIn.restrict hVd hS) hU
 
 end Walk
 -- noncomputable def Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
---     (hVd : ValidOn G p C) (h : w.ValidOn (G /[p] C)) {x y : α} (hx : x ∈ G.V) (hy : y ∈ G.V)
---     (hpx : p x = w.start) (hpy : p y = w.finish) : Walk α β :=
+--     (hVd : ValidIn G p C) (h : w.ValidIn (G /[p] C)) {x y : α} (hx : x ∈ G.V) (hy : y ∈ G.V)
+--     (hpx : p x = w.first) (hpy : p y = w.last) : Walk α β :=
 --   match w with
 --   | .nil u => ((hVd hx hy).mp <| hpx.trans hpy.symm).symm.exist_walk.choose
 --   | .cons u e W => by
---     have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) :=
---       ValidOn.restrict _ _ h (by simp)
---     simp only [cons_start, cons_finish] at hpx hpy
---     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
+--     have hw : (Walk.cons u e W).ValidIn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) :=
+--       ValidIn.restrict _ _ h (by simp)
+--     simp only [cons_first, cons_last] at hpx hpy
+--     simp only [cons_edge, mem_cons, cons_validIn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
 --       true_or, and_true] at hw
---     simp only [cons_validOn_iff, Inc₂] at h
+--     simp only [cons_validIn_iff, Inc₂] at h
 --     obtain ⟨H, _hVdW⟩ := hw
 --     choose z hrfl a ha hbtw he using H
 --     subst hrfl
 --     rw [hVd hx hbtw.vx_mem_left] at hpx
 --     let w' := hpx.exist_walk.choose
---     exact w'.append (Walk.cons w'.finish e <| walk hVd h.2 hbtw.vx_mem_right hy ha hpy)
+--     exact w'.append (Walk.cons w'.last e <| walk hVd h.2 hbtw.vx_mem_right hy ha hpy)
 
 -- noncomputable def Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
---     (hVd : ValidOn G p C) (h : w.ValidOn (G /[p] C)) :
---     ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.start → p y = w.finish → Walk α β := by
+--     (hVd : ValidIn G p C) (h : w.ValidIn (G /[p] C)) :
+--     ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.first → p y = w.last → Walk α β := by
 --   induction w with
 --   | nil u =>
 --     rintro x hx y hy hpx hpy
---     simp only [nil_start, nil_finish] at hpx hpy
+--     simp only [nil_first, nil_last] at hpx hpy
 --     subst u
 --     rw [hVd hy hx] at hpy
 --     exact hpy.symm.exist_walk.choose
 --   | cons u e W ih =>
 --     rintro x hx y hy hpx hpy
---     have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) := by
---       apply ValidOn.restrict _ _ h ?_
+--     have hw : (Walk.cons u e W).ValidIn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) := by
+--       apply ValidIn.restrict _ _ h ?_
 --       simp
---     simp only [cons_start, cons_finish] at hpx hpy
---     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
+--     simp only [cons_first, cons_last] at hpx hpy
+--     simp only [cons_edge, mem_cons, cons_validIn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
 --       true_or, and_true] at hw
---     simp only [cons_validOn_iff, Inc₂] at h
+--     simp only [cons_validIn_iff, Inc₂] at h
 --     obtain ⟨H, _hVdW⟩ := hw
 --     choose z hrfl a ha hbtw he using H
 --     subst hrfl
 --     rw [hVd hx hbtw.vx_mem_left] at hpx
 --     let w' := hpx.exist_walk.choose
---     exact w'.append (Walk.cons w'.finish e <| ih h.2 a hbtw.vx_mem_right y hy ha hpy)
+--     exact w'.append (Walk.cons w'.last e <| ih h.2 a hbtw.vx_mem_right y hy ha hpy)
 
--- lemma Contract.walk_validOn {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
---     (hVd : ValidOn G p C) (h : w.ValidOn (G /[p] C)) (hx : x ∈ G.V) (hy : y ∈ G.V)
---     (hpx : p x = w.start) (hpy : p y = w.finish) :
---     (Contract.walk hVd h hx hy hpx hpy).ValidOn G := by
+-- lemma Contract.walk_validIn {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
+--     (hVd : ValidIn G p C) (h : w.ValidIn (G /[p] C)) (hx : x ∈ G.V) (hy : y ∈ G.V)
+--     (hpx : p x = w.first) (hpy : p y = w.last) :
+--     (Contract.walk hVd h hx hy hpx hpy).ValidIn G := by
 --   match w with
 --   | .nil u =>
 --     unfold Contract.walk
 --     obtain ⟨H1, H2, H3⟩ := ((hVd hx hy).mp <| hpx.trans hpy.symm).symm.exist_walk.choose_spec
 --     exact H1.le (restrict_le _ _)
 --   | .cons u e W =>
---     have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) :=
---       ValidOn.restrict _ _ h (by simp)
---     simp only [cons_start, cons_finish] at hpx hpy
---     simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
+--     have hw : (Walk.cons u e W).ValidIn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) :=
+--       ValidIn.restrict _ _ h (by simp)
+--     simp only [cons_first, cons_last] at hpx hpy
+--     simp only [cons_edge, mem_cons, cons_validIn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
 --       true_or, and_true] at hw
---     simp only [cons_validOn_iff, Inc₂] at h
+--     simp only [cons_validIn_iff, Inc₂] at h
 --     obtain ⟨H, _hVdW⟩ := hw
 --     choose z hrfl a ha hbtw he using H
 --     subst hrfl
 --     rw [hVd hx hbtw.vx_mem_left] at hpx
 --     let w' := hpx.exist_walk.choose
 --     unfold Contract.walk
---     -- change (w'.append (Walk.cons w'.finish e <| walk hVd h.2 hbtw.vx_mem_right hy ha hpy)).ValidOn G
+--     -- change (w'.append (Walk.cons w'.last e <| walk hVd h.2 hbtw.vx_mem_right hy ha hpy)).ValidIn G
 --     sorry
 
-lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β} (hVd : ValidOn G p C)
-    (h : w.ValidOn (G /[p] C)) : ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.start → p y = w.finish →
-    ∃ w' : Walk α β, w'.ValidOn G ∧ w'.start = x ∧ w'.finish = y ∧
+lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β} (hVd : ValidIn G p C)
+    (h : w.ValidIn (G /[p] C)) : ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.first → p y = w.last →
+    ∃ w' : Walk α β, w'.ValidIn G ∧ w'.first = x ∧ w'.last = y ∧
     {e | e ∈ w'.edge} ⊆ {e | e ∈ w.edge ∨ e ∈ C} := by
   induction w with
   | nil u =>
     rintro x hx y hy hpx hpy
-    simp only [nil_start, nil_finish] at hpx hpy
+    simp only [nil_first, nil_last] at hpx hpy
     subst u
     rw [hVd hy hx] at hpy
     obtain ⟨w, hwVd, rfl, rfl⟩ := hpy.symm.exist_walk
@@ -909,19 +913,19 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
     · exact hwVd.le (restrict_le _ _)
   | cons u e W ih =>
     rintro x hx y hy hpx hpy
-    have hw : (Walk.cons u e W).ValidOn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) := by
-      apply ValidOn.restrict h ?_
+    have hw : (Walk.cons u e W).ValidIn ((G /[p] C){{e | e ∈ (Walk.cons u e W).edge}}) := by
+      apply ValidIn.restrict h ?_
       simp
-    simp only [cons_start, cons_finish] at hpx hpy
-    simp only [cons_edge, mem_cons, cons_validOn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
+    simp only [cons_first, cons_last] at hpx hpy
+    simp only [cons_edge, mem_cons, cons_validIn_iff, restrict_inc₂, Inc₂, mem_setOf_eq,
       true_or, and_true] at hw
-    simp only [cons_validOn_iff, Inc₂] at h
+    simp only [cons_validIn_iff, Inc₂] at h
     obtain ⟨⟨z, rfl, a, ha, hbtw, he⟩, hVdW⟩ := hw
     obtain ⟨_B, hVdWp⟩ := h
     rw [hVd hx hbtw.vx_mem_left] at hpx
     obtain ⟨w, hVdw, rfl, rfl, hsu⟩ := ih hVdWp a hbtw.vx_mem_right y hy ha hpy
     obtain ⟨w', hw'Vd, rfl, rfl⟩ := hpx.exist_walk
-    use w' ++ (cons w'.finish e w), ?_, by simp, by simp
+    use w' ++ (cons w'.last e w), ?_, by simp, by simp
     · simp +contextual only [append_edge, cons_edge, mem_append, mem_cons, setOf_subset_setOf]
       rintro f (hfw' | rfl | hfw)
       · right
@@ -929,12 +933,12 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
         exact Set.mem_of_mem_inter_right this
       · tauto
       · obtain (h1 | h2) := hsu hfw <;> tauto
-    · refine append_validOn (by simp) (hw'Vd.le (restrict_le _ _)) ?_
+    · refine append_validIn (by simp) (hw'Vd.le (restrict_le _ _)) ?_
       simp [hVdw, hbtw]
 
 lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} {C : Set β}
-    (hVd : ValidOn G p C) (h : w.ValidOn G) : ∃ w' : Walk α' β, w'.ValidOn (G /[p] C) ∧
-    w'.start = p w.start ∧ w'.finish = p w.finish ∧ {e | e ∈ w'.edge} ⊆ {e | e ∈ w.edge} := by
+    (hVd : ValidIn G p C) (h : w.ValidIn G) : ∃ w' : Walk α' β, w'.ValidIn (G /[p] C) ∧
+    w'.first = p w.first ∧ w'.last = p w.last ∧ {e | e ∈ w'.edge} ⊆ {e | e ∈ w.edge} := by
   induction w with
   | nil u =>
     use nil (p u), ?_, rfl, rfl, by simp
@@ -943,7 +947,7 @@ lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} 
     obtain ⟨hbtw, hVdW⟩ := h
     obtain ⟨w', hw'Vd, hst, hfin, hsub⟩ := ih hVdW
     by_cases he : e ∈ C
-    · have : p u = w'.start := by
+    · have : p u = w'.first := by
         rw [hst, hVd hbtw.vx_mem_left hbtw.vx_mem_right]
         apply Inc₂.connected
         rw [restrict_inc₂]
@@ -956,52 +960,52 @@ lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} 
         rintro f hfw'
         right
         exact hsub hfw'
-      · simp only [hw'Vd, cons_validOn_iff, Inc₂, and_true]
-        use u, rfl, W.start, hst.symm, hbtw
+      · simp only [hw'Vd, cons_validIn_iff, Inc₂, and_true]
+        use u, rfl, W.first, hst.symm, hbtw
 
 namespace Walk
 variable [DecidableEq α]
 
 @[simp]
-lemma startAt_nil (hx : x ∈ (nil u : Walk α β).vx) : (nil u).startAt x hx = nil x := by
+lemma firstAt_nil (hx : x ∈ (nil u : Walk α β).vx) : (nil u).firstAt x hx = nil x := by
   simp only [nil_vx, mem_cons, not_mem_nil, or_false] at hx
   subst u
   rfl
 
 @[simp]
-lemma startAt_start (hx : x ∈ w) : (w.startAt x hx).start = x := by
+lemma firstAt_first (hx : x ∈ w) : (w.firstAt x hx).first = x := by
   induction w with
   | nil u =>
     simp only [mem_vx_nil_iff] at hx
     exact hx.symm
   | cons u e W ih =>
     simp only [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte]
       exact ih h
-    · simp only [mem_notation, h, or_false, ↓reduceDIte, cons_start] at hx ⊢
+    · simp only [mem_notation, h, or_false, ↓reduceDIte, cons_first] at hx ⊢
       exact hx.symm
 
 @[simp]
-lemma startAt_finish (hx : x ∈ w): (w.startAt x hx).finish = w.finish := by
+lemma firstAt_last (hx : x ∈ w): (w.firstAt x hx).last = w.last := by
   induction w with
   | nil u => rfl
   | cons u e W ih =>
     simp only [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
-    · simp only [h, ↓reduceDIte, cons_finish]
+    · simp only [h, ↓reduceDIte, cons_last]
       exact ih h
     · simp [h]
 
 @[simp]
-lemma startAt_length (hx : x ∈ w) : (w.startAt x hx).length ≤ w.length := by
+lemma firstAt_length (hx : x ∈ w) : (w.firstAt x hx).length ≤ w.length := by
   induction w with
-  | nil u => simp only [startAt_nil, nil_length, le_refl]
+  | nil u => simp only [firstAt_nil, nil_length, le_refl]
   | cons u e W ih =>
     simp only [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte, cons_length]
       have := ih h
@@ -1009,39 +1013,39 @@ lemma startAt_length (hx : x ∈ w) : (w.startAt x hx).length ≤ w.length := by
     · simp [h]
 
 @[simp]
-lemma startAt_sizeOf_le (hx : x ∈ w) : sizeOf (w.startAt x hx) ≤ sizeOf w := by
+lemma firstAt_sizeOf_le (hx : x ∈ w) : sizeOf (w.firstAt x hx) ≤ sizeOf w := by
   induction w with
-  | nil u => simp only [startAt_nil, nil.sizeOf_spec, sizeOf_default, add_zero, le_refl]
+  | nil u => simp only [firstAt_nil, nil.sizeOf_spec, sizeOf_default, add_zero, le_refl]
   | cons u e W ih =>
     rw [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte, cons.sizeOf_spec, sizeOf_default, add_zero]
       have := ih h
       omega
     · simp [h]
 
-lemma startAt_validOn (hx : x ∈ w) (hVd : w.ValidOn G) : (w.startAt x hx).ValidOn G := by
+lemma firstAt_validIn (hx : x ∈ w) (hVd : w.ValidIn G) : (w.firstAt x hx).ValidIn G := by
   induction w with
-  | nil u => simpa [startAt]
+  | nil u => simpa [firstAt]
   | cons u e W ih =>
     rw [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte]
       exact ih h hVd.2
     · simpa [h]
 
-lemma startAt_vx_count (hx : x ∈ w) : (w.startAt x hx).vx.count x = 1 := by
+lemma firstAt_vx_count (hx : x ∈ w) : (w.firstAt x hx).vx.count x = 1 := by
   induction w with
   | nil u =>
     rw [mem_vx_nil_iff] at hx
     subst u
-    unfold startAt
+    unfold firstAt
     simp
   | cons u e W ih =>
     rw [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte]
       exact ih h
@@ -1050,7 +1054,7 @@ lemma startAt_vx_count (hx : x ∈ w) : (w.startAt x hx).vx.count x = 1 := by
       simp only [count_cons_self, add_eq_right]
       exact count_eq_zero.mpr h
 
-lemma startAt_isSuffix (hx : x ∈ w) : ∃ w' : Walk α β, w' ++ (w.startAt x hx) = w := by
+lemma firstAt_isSuffix (hx : x ∈ w) : ∃ w' : Walk α β, w' ++ (w.firstAt x hx) = w := by
   induction w generalizing x with
   | nil u =>
     rw [mem_vx_nil_iff] at hx
@@ -1059,7 +1063,7 @@ lemma startAt_isSuffix (hx : x ∈ w) : ∃ w' : Walk α β, w' ++ (w.startAt x 
     rfl
   | cons u e W ih =>
     rw [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte]
       obtain ⟨w', hw'⟩ := ih h
@@ -1069,30 +1073,30 @@ lemma startAt_isSuffix (hx : x ∈ w) : ∃ w' : Walk α β, w' ++ (w.startAt x 
       subst u
       use nil x, x
 
-lemma startAt_vx_sublist (hx : x ∈ w) : (w.startAt x hx).vx ⊆ w.vx := by
+lemma firstAt_vx_sublist (hx : x ∈ w) : (w.firstAt x hx).vx ⊆ w.vx := by
   induction w with
   | nil u =>
     rw [mem_vx_nil_iff] at hx
     subst u
-    simp only [startAt_nil, nil_vx, List.Subset.refl]
+    simp only [firstAt_nil, nil_vx, List.Subset.refl]
   | cons u e W ih =>
     rw [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte, cons_vx]
       refine (ih h).trans ?_
       simp only [List.Subset.refl, subset_cons_of_subset]
     · simp [h]
 
-lemma startAt_edge_sublist (hx : x ∈ w) : (w.startAt x hx).edge ⊆ w.edge := by
+lemma firstAt_edge_sublist (hx : x ∈ w) : (w.firstAt x hx).edge ⊆ w.edge := by
   induction w with
   | nil u =>
     rw [mem_vx_nil_iff] at hx
     subst u
-    simp only [startAt_nil, nil_edge, List.Subset.refl]
+    simp only [firstAt_nil, nil_edge, List.Subset.refl]
   | cons u e W ih =>
     rw [mem_vx_cons_iff] at hx
-    unfold startAt
+    unfold firstAt
     by_cases h : x ∈ W
     · simp only [h, ↓reduceDIte, cons_edge]
       refine (ih h).trans ?_
@@ -1100,7 +1104,7 @@ lemma startAt_edge_sublist (hx : x ∈ w) : (w.startAt x hx).edge ⊆ w.edge := 
     · simp [h]
 
 @[simp]
-lemma dedup_start (w : Walk α β) : w.dedup.start = w.start := by
+lemma dedup_first (w : Walk α β) : w.dedup.first = w.first := by
   match w with
   | .nil u =>
     unfold dedup
@@ -1108,11 +1112,11 @@ lemma dedup_start (w : Walk α β) : w.dedup.start = w.start := by
   | .cons u e W =>
     unfold dedup
     split_ifs with h
-    · rw [cons_start, dedup_start (W.startAt u h), startAt_start]
+    · rw [cons_first, dedup_first (W.firstAt u h), firstAt_first]
     · rfl
 
 @[simp]
-lemma dedup_finish (w : Walk α β) : w.dedup.finish = w.finish := by
+lemma dedup_last (w : Walk α β) : w.dedup.last = w.last := by
   match w with
   | .nil u =>
     unfold dedup
@@ -1120,9 +1124,9 @@ lemma dedup_finish (w : Walk α β) : w.dedup.finish = w.finish := by
   | .cons u e W =>
     unfold dedup
     split_ifs with h
-    · rw [cons_finish, dedup_finish (W.startAt u h), startAt_finish]
-    · simp only [cons_finish]
-      exact dedup_finish W
+    · rw [cons_last, dedup_last (W.firstAt u h), firstAt_last]
+    · simp only [cons_last]
+      exact dedup_last W
 
 lemma dedup_length (w : Walk α β) : w.dedup.length ≤ w.length := by
   match w with
@@ -1133,8 +1137,8 @@ lemma dedup_length (w : Walk α β) : w.dedup.length ≤ w.length := by
     unfold dedup
     split_ifs with h
     · simp only [cons_length, ge_iff_le]
-      have := dedup_length (W.startAt u h)
-      have := startAt_length_le h
+      have := dedup_length (W.firstAt u h)
+      have := firstAt_length_le h
       omega
     · simp only [cons_length, add_le_add_iff_right, ge_iff_le]
       exact dedup_length W
@@ -1148,13 +1152,13 @@ lemma dedup_sizeOf_le (w : Walk α β) : sizeOf w.dedup ≤ sizeOf w := by
     unfold dedup
     split_ifs with h
     · simp only [cons.sizeOf_spec, sizeOf_default, add_zero]
-      have := dedup_sizeOf_le (W.startAt u h)
-      have := startAt_sizeOf_le h
+      have := dedup_sizeOf_le (W.firstAt u h)
+      have := firstAt_sizeOf_le h
       omega
     · simp only [cons.sizeOf_spec, sizeOf_default, add_zero, add_le_add_iff_left, ge_iff_le]
       exact dedup_sizeOf_le W
 
-lemma dedup_validOn {w : Walk α β} (hVd : w.ValidOn G) : w.dedup.ValidOn G := by
+lemma dedup_validIn {w : Walk α β} (hVd : w.ValidIn G) : w.dedup.ValidIn G := by
   match w with
   | .nil u =>
     unfold dedup
@@ -1163,10 +1167,10 @@ lemma dedup_validOn {w : Walk α β} (hVd : w.ValidOn G) : w.dedup.ValidOn G := 
     unfold dedup
     split_ifs with h
     · simp only [h, ↓reduceDIte]
-      exact dedup_validOn (startAt_validOn h hVd.2)
-    · simp only [dedup_validOn hVd.2, cons_validOn_iff, and_true]
+      exact dedup_validIn (firstAt_validIn h hVd.2)
+    · simp only [dedup_validIn hVd.2, cons_validIn_iff, and_true]
       convert hVd.1 using 1
-      exact dedup_start W
+      exact dedup_first W
 
 lemma dedup_vx_sublist {w : Walk α β} {x : α} (hx : x ∈ w.dedup.vx) : x ∈ w := by
   match w with
@@ -1177,7 +1181,7 @@ lemma dedup_vx_sublist {w : Walk α β} {x : α} (hx : x ∈ w.dedup.vx) : x ∈
     unfold dedup at hx
     split_ifs at hx with h
     · simp only at hx
-      exact mem_of_mem_tail <| startAt_vx_sublist h <| dedup_vx_sublist hx
+      exact mem_of_mem_tail <| firstAt_vx_sublist h <| dedup_vx_sublist hx
     · simp only [cons_vx, mem_cons, mem_notation, mem_vx_cons_iff] at hx ⊢
       exact hx.imp (·) dedup_vx_sublist
 
@@ -1190,8 +1194,8 @@ lemma dedup_edge_sublist (w : Walk α β) : w.dedup.edge ⊆ w.edge := by
     unfold dedup
     split_ifs with h
     · rw [cons_edge]
-      refine (dedup_edge_sublist (W.startAt u h)).trans ?_
-      refine (startAt_edge_sublist h).trans ?_
+      refine (dedup_edge_sublist (W.firstAt u h)).trans ?_
+      refine (firstAt_edge_sublist h).trans ?_
       simp only [List.Subset.refl, subset_cons_of_subset]
     · simp only [cons_edge, cons_subset, mem_cons, true_or, true_and]
       refine (dedup_edge_sublist W).trans ?_
@@ -1206,12 +1210,12 @@ lemma dedup_vx_nodup (w : Walk α β) : w.dedup.vx.Nodup := by
     unfold dedup
     split_ifs with h
     · simp only [h, ↓reduceDIte]
-      exact dedup_vx_nodup (W.startAt u h)
+      exact dedup_vx_nodup (W.firstAt u h)
     · simp only [cons_vx, nodup_cons, dedup_vx_nodup W, and_true]
       contrapose! h
       exact dedup_vx_sublist h
 
-lemma dedup_edge_nodup {w : Walk α β} (hVd : w.ValidOn G) : w.dedup.edge.Nodup := by
+lemma dedup_edge_nodup {w : Walk α β} (hVd : w.ValidIn G) : w.dedup.edge.Nodup := by
   match w with
   | .nil u =>
     unfold dedup
@@ -1220,24 +1224,24 @@ lemma dedup_edge_nodup {w : Walk α β} (hVd : w.ValidOn G) : w.dedup.edge.Nodup
     unfold dedup
     split_ifs with h
     · simp only [h, ↓reduceDIte]
-      exact dedup_edge_nodup (startAt_validOn h hVd.2)
+      exact dedup_edge_nodup (firstAt_validIn h hVd.2)
     · simp only [cons_edge, nodup_cons, dedup_edge_nodup hVd.2, and_true]
       obtain ⟨hne, hVd⟩ := hVd
       rintro he
       exact h <| hne.mem_left_of_edge_mem_walk (dedup_edge_sublist W he) hVd
 
-variable {P : α → Prop} [DecidablePred P]
-
 /- Properties of `endIf` -/
+variable {P : α → Prop} [DecidablePred P]
+omit [DecidableEq α]
 
 @[simp]
 lemma endIf_nil (h : ∃ u ∈ nil x, P u) : (nil x : Walk α β).endIf h = nil x := rfl
 
-lemma endIf_eq_nil (h : ∃ u ∈ w, P u) (hP : P w.start) :
-    w.endIf h = nil w.start := by
+lemma endIf_eq_nil (h : ∃ u ∈ w, P u) (hP : P w.first) :
+    w.endIf h = nil w.first := by
   match w with
   | .nil u => rfl
-  | .cons u e w' => simpa only [endIf, cons_start, dite_eq_left_iff, reduceCtorEq, imp_false,
+  | .cons u e w' => simpa only [endIf, cons_first, dite_eq_left_iff, reduceCtorEq, imp_false,
     not_not] using hP
 
   @[simp]
@@ -1250,37 +1254,37 @@ lemma endIf_cons (h : ∃ u ∈ cons x e w, P u) :
   | .cons u e' w' => rfl
 
 @[simp]
-lemma endIf_start (h : ∃ u ∈ w, P u) : (w.endIf h).start = w.start := by
+lemma endIf_first (h : ∃ u ∈ w, P u) : (w.endIf h).first = w.first := by
   match w with
-  | .nil x => simp only [endIf, nil_start]
+  | .nil x => simp only [endIf, nil_first]
   | .cons x e w =>
-    simp only [endIf, cons_start]
+    simp only [endIf, cons_first]
     split_ifs <;> rfl
 
 @[simp]
-lemma endIf_finish {w : Walk α β} (h : ∃ u ∈ w, P u) : P (w.endIf h).finish := by
+lemma endIf_last {w : Walk α β} (h : ∃ u ∈ w, P u) : P (w.endIf h).last := by
   match w with
   | .nil x => simpa using h
   | .cons x e w =>
     rw [endIf]
     split_ifs with hPx
-    · simpa only [nil_finish]
-    · simp only [mem_vx_cons_iff, exists_eq_or_imp, hPx, false_or, cons_finish] at h ⊢
-      exact endIf_finish h
+    · simpa only [nil_last]
+    · simp only [mem_vx_cons_iff, exists_eq_or_imp, hPx, false_or, cons_last] at h ⊢
+      exact endIf_last h
 
 @[simp]
-lemma endIf_eq_nil_iff (h : ∃ u ∈ w, P u) : w.endIf h = nil w.start ↔ P w.start :=
-  ⟨fun heq ↦ by simpa only [heq, nil_finish] using endIf_finish h, fun a ↦ endIf_eq_nil h a⟩
+lemma endIf_eq_nil_iff (h : ∃ u ∈ w, P u) : w.endIf h = nil w.first ↔ P w.first :=
+  ⟨fun heq ↦ by simpa only [heq, nil_last] using endIf_last h, fun a ↦ endIf_eq_nil h a⟩
 
 @[simp]
-lemma endIf_nonempty_iff (h : ∃ u ∈ w, P u) : (w.endIf h).Nonempty ↔ ¬ P w.start := by
+lemma endIf_nonempty_iff (h : ∃ u ∈ w, P u) : (w.endIf h).Nonempty ↔ ¬ P w.first := by
   rw [iff_not_comm]
   convert (endIf_eq_nil_iff h).symm
   simp only [Nonempty.not_iff, endIf_eq_nil_iff]
   constructor <;> rintro h'
   · obtain ⟨x, hx⟩ := h'
-    simpa [hx, ← hx ▸ endIf_start h] using endIf_finish h
-  · use w.start
+    simpa [hx, ← hx ▸ endIf_first h] using endIf_last h
+  · use w.first
     simp only [endIf_eq_nil_iff, h']
 
 @[simp]
@@ -1307,21 +1311,21 @@ lemma endIf_sizeOf_le {w : Walk α β} (h : ∃ u ∈ w, P u) :
     · simp only [cons.sizeOf_spec, sizeOf_default, add_zero, add_le_add_iff_left]
       apply endIf_sizeOf_le
 
-lemma endIf_validOn {w : Walk α β} (h : ∃ u ∈ w, P u) (hVd : w.ValidOn G) :
-    (w.endIf h).ValidOn G := by
+lemma endIf_validIn {w : Walk α β} (h : ∃ u ∈ w, P u) (hVd : w.ValidIn G) :
+    (w.endIf h).ValidIn G := by
   match w with
-  | .nil x => simpa only [endIf, nil_validOn_iff]
+  | .nil x => simpa only [endIf, nil_validIn_iff]
   | .cons x e w =>
     simp only [endIf]
     split_ifs with hPx
-    · rw [nil_validOn_iff]
-      simp only [cons_validOn_iff] at hVd
+    · rw [nil_validIn_iff]
+      simp only [cons_validIn_iff] at hVd
       exact hVd.1.vx_mem_left
-    · rw [cons_validOn_iff] at hVd ⊢
-      refine ⟨?_, endIf_validOn _ hVd.2⟩
+    · rw [cons_validIn_iff] at hVd ⊢
+      refine ⟨?_, endIf_validIn _ hVd.2⟩
       convert hVd.1 using 1
       simp only [mem_vx_cons_iff, exists_eq_or_imp, hPx, false_or] at h
-      exact endIf_start h
+      exact endIf_first h
 
 lemma endIf_vx_sublist {w : Walk α β} (h : ∃ u ∈ w, P u) :
     (w.endIf h).vx ⊆ w.vx := by
@@ -1337,16 +1341,16 @@ lemma endIf_vx_sublist {w : Walk α β} (h : ∃ u ∈ w, P u) :
       apply endIf_vx_sublist
 
 lemma endIf_mem_vx {w : Walk α β} (h : ∃ u ∈ w, P u) (hv : v ∈ (w.endIf h).vx):
-    ¬ P v ∨ v = (w.endIf h).finish := by
+    ¬ P v ∨ v = (w.endIf h).last := by
   match w with
-  | .nil x => simp_all only [endIf_nil, nil_vx, mem_cons, not_mem_nil, or_false, nil_finish,
+  | .nil x => simp_all only [endIf_nil, nil_vx, mem_cons, not_mem_nil, or_false, nil_last,
     or_true]
   | .cons x e w =>
     rw [endIf_cons]
     split_ifs with hPx
     · simp_all only [endIf_cons, dite_true, nil_vx, mem_cons, not_mem_nil, or_false,
-      not_true_eq_false, nil_finish, or_true]
-    · simp_all only [endIf_cons, dite_false, cons_vx, mem_cons, cons_finish]
+      not_true_eq_false, nil_last, or_true]
+    · simp_all only [endIf_cons, dite_false, cons_vx, mem_cons, cons_last]
       obtain rfl | hvmem := hv
       · exact Or.inl hPx
       · simp only [mem_vx_cons_iff, exists_eq_or_imp, hPx, false_or] at h
@@ -1384,33 +1388,33 @@ lemma endIf_dropLast_mem_vx {w : Walk α β} (h : ∃ u ∈ w, P u) (hNonempty :
             obtain ⟨a, ha⟩ := hnonempty
             simp_all
 
-lemma endIf_exists_inc₂_last {w : Walk α β} (h : ∃ u ∈ w, P u) (hVd : w.ValidOn G)
-    (hNonempty : (w.endIf h).Nonempty) : ∃ v ∈ (w.endIf h), ¬ P v ∧ ∃ e, G.Inc₂ e v (w.endIf h).finish := by
+lemma endIf_exists_inc₂_last {w : Walk α β} (h : ∃ u ∈ w, P u) (hVd : w.ValidIn G)
+    (hNonempty : (w.endIf h).Nonempty) : ∃ v ∈ (w.endIf h), ¬ P v ∧ ∃ e, G.Inc₂ e v (w.endIf h).last := by
   match w with
   | .nil x => simp_all only [endIf_nil, Nonempty.not_nil]
   | .cons x e (nil y) =>
-    simp_all only [cons_validOn_iff, nil_start, nil_validOn_iff, endIf_cons, endIf_nil, dite_eq_ite]
+    simp_all only [cons_validIn_iff, nil_first, nil_validIn_iff, endIf_cons, endIf_nil, dite_eq_ite]
     split_ifs with hPx
     · simp_all only [cons_vx, nil_vx, mem_cons, not_mem_nil, or_false, exists_eq_or_imp,
       exists_eq_left, true_or, ite_true, Nonempty.not_nil]
     · simp_all only [mem_vx_cons_iff, mem_vx_nil_iff, exists_eq_or_imp, exists_eq_left, false_or,
-      ite_false, Nonempty.cons_true, cons_finish, nil_finish, not_false_eq_true, true_and,
+      ite_false, Nonempty.cons_true, cons_last, nil_last, not_false_eq_true, true_and,
       not_true_eq_false, false_and, or_false]
       use e
       exact hVd.1
   | .cons x e (cons y e' w) =>
     unfold endIf
     split_ifs with hPx
-    · simp_all only [cons_validOn_iff, cons_start, endIf_cons, dite_true, Nonempty.not_nil]
+    · simp_all only [cons_validIn_iff, cons_first, endIf_cons, dite_true, Nonempty.not_nil]
     · by_cases hPy : P y
-      · simp_all only [cons_validOn_iff, cons_start, endIf_cons, dite_true, dite_eq_ite, ite_false,
-        Nonempty.cons_true, mem_vx_cons_iff, mem_vx_nil_iff, cons_finish, nil_finish,
+      · simp_all only [cons_validIn_iff, cons_first, endIf_cons, dite_true, dite_eq_ite, ite_false,
+        Nonempty.cons_true, mem_vx_cons_iff, mem_vx_nil_iff, cons_last, nil_last,
         exists_eq_or_imp, not_false_eq_true, true_and, exists_eq_left, not_true_eq_false, false_and,
         or_false]
         use e
         exact hVd.1
       · let w' := cons y e' w
-        rw [cons_finish]
+        rw [cons_last]
         have h' : ∃ u ∈ w'.vx, P u := by
           change ∃ u ∈ (cons x e w').vx, P u at h
           simpa only [cons_vx, mem_cons, exists_eq_or_imp, hPx, false_or] using h
@@ -1430,4 +1434,4 @@ noncomputable def dist {G : Graph α β} {u v : α} (h : G.Connected u v) : ℕ 
   exact Nat.find (by
     obtain ⟨w, hwVd, rfl, rfl⟩ := h.exist_walk
     use w.length, w, hwVd
-    : ∃ n, ∃ w : Walk α β, w.ValidOn G ∧ w.start = u ∧ w.finish = v ∧ w.length = n)
+    : ∃ n, ∃ w : Walk α β, w.ValidIn G ∧ w.first = u ∧ w.last = v ∧ w.length = n)
