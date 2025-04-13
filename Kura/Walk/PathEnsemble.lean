@@ -1,4 +1,4 @@
-import Kura.Walk.Path
+import Kura.Walk.Lemma
 
 namespace Graph
 open Set Function List Nat Walk

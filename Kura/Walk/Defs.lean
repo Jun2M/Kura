@@ -502,9 +502,9 @@ lemma reflAdj.exist_walk (h : G.reflAdj u v) : ∃ (W : Walk α β), W.ValidIn G
     · simp [hx]
     · simp
 
-namespace Walk
+namespace Walk.ValidIn
 
-lemma ValidIn.connected (h : w.ValidIn G) : G.Connected w.first w.last := by
+lemma connected (h : w.ValidIn G) : G.Connected w.first w.last := by
   induction w with
   | nil x => simpa only [nil_first, nil_last, Connected.refl_iff]
   | cons x e w ih =>
@@ -512,7 +512,7 @@ lemma ValidIn.connected (h : w.ValidIn G) : G.Connected w.first w.last := by
     simp only [cons_first, cons_last]
     exact H1.connected.trans (ih H2)
 
-lemma ValidIn.connected_last_of_mem (h : w.ValidIn G) (hx : u ∈ w) : G.Connected u w.last := by
+lemma connected_last_of_mem (h : w.ValidIn G) (hx : u ∈ w) : G.Connected u w.last := by
   induction w generalizing u with
   | nil x =>
     rw [mem_nil_iff] at hx
@@ -525,39 +525,16 @@ lemma ValidIn.connected_last_of_mem (h : w.ValidIn G) (hx : u ∈ w) : G.Connect
     · exact Connected.trans h.1.connected (ih h.2 (first_mem))
     · exact ih h.2 hx
 
-lemma ValidIn.connected_of_mem (h : w.ValidIn G) (hx : x ∈ w) (hy : y ∈ w) :
+lemma connected_of_mem (h : w.ValidIn G) (hx : x ∈ w) (hy : y ∈ w) :
     G.Connected x y := by
-  have hx' := ValidIn.connected_last_of_mem h hx
-  have hy' := ValidIn.connected_last_of_mem h hy
+  have hx' := connected_last_of_mem h hx
+  have hy' := connected_last_of_mem h hy
   exact Connected.trans hx' hy'.symm
 
-lemma ValidIn.connected_first_of_mem (h : w.ValidIn G) (hx : x ∈ w) : G.Connected w.first x :=
+lemma connected_first_of_mem (h : w.ValidIn G) (hx : x ∈ w) : G.Connected w.first x :=
   h.connected_of_mem first_mem hx
 
-/-- A subgraph inherits all valid walks -/
-lemma ValidIn.le {w : Walk α β} (h : w.ValidIn G) (hle : G ≤ H) : w.ValidIn H := by
-  match w with
-  | .nil x => exact vx_subset_of_le hle h
-  | .cons x e w =>
-    obtain ⟨hbtw, hVd⟩ := h
-    exact ⟨hbtw.le hle, hVd.le hle⟩
-
-lemma IsWalkFrom.le (h : G.IsWalkFrom S T w) (hle : G ≤ H) : H.IsWalkFrom S T w where
-  validIn := h.validIn.le hle
-  first_mem := h.first_mem
-  last_mem := h.last_mem
-
-lemma IsPath.le (hp : G.IsPath w) (hle : G ≤ H) : H.IsPath w where
-  validIn := hp.validIn.le hle
-  nodup := hp.nodup
-
-lemma IsPathFrom.le (hp : G.IsPathFrom S T w) (hle : G ≤ H) : H.IsPathFrom S T w where
-  validIn := hp.validIn.le hle
-  nodup := hp.nodup
-  first_mem := hp.first_mem
-  last_mem := hp.last_mem
-
-lemma ValidIn.eq_nil_of_mem_isolated {w : Walk α β} {x : α} (hisol : G.Isolated x) (hmem : x ∈ w)
+lemma eq_nil_of_mem_isolated {w : Walk α β} {x : α} (hisol : G.Isolated x) (hmem : x ∈ w)
     (h : w.ValidIn G) : w = nil x := by
   match w with
   | .nil y => simp_all only [mem_nil_iff, nil_validIn]
@@ -567,12 +544,20 @@ lemma ValidIn.eq_nil_of_mem_isolated {w : Walk α β} {x : α} (hisol : G.Isolat
     rw [mem_cons_iff] at hmem
     obtain rfl | h := hmem
     · exact hisol e hbtw.inc_left
-    · have := ValidIn.eq_nil_of_mem_isolated hisol h hVd
+    · have := eq_nil_of_mem_isolated hisol h hVd
       subst w
       rw [nil_first] at hbtw
       exact hisol e hbtw.inc_right
 
-lemma ValidIn.induce (hVd : w.ValidIn G) (hU : w.vxSet ⊆ U) : w.ValidIn (G[U]) := by
+/-- A subgraph inherits all valid walks -/
+lemma le {w : Walk α β} (h : w.ValidIn G) (hle : G ≤ H) : w.ValidIn H := by
+  match w with
+  | .nil x => exact vx_subset_of_le hle h
+  | .cons x e w =>
+    obtain ⟨hbtw, hVd⟩ := h
+    exact ⟨hbtw.le hle, hVd.le hle⟩
+
+lemma induce (hVd : w.ValidIn G) (hU : w.vxSet ⊆ U) : w.ValidIn (G[U]) := by
   induction w with
   | nil x => simpa using hU
   | cons x e w ih =>
@@ -582,23 +567,12 @@ lemma ValidIn.induce (hVd : w.ValidIn G) (hU : w.vxSet ⊆ U) : w.ValidIn (G[U])
     simp only [induce_inc₂_iff, hbtw, hUx, true_and]
     exact hUw first_mem_vxSet
 
--- Not true : Take a trivial walk on some vertex v ∈ U \ G.V
--- lemma ValidIn.induce_iff : w.ValidIn (G[U]) ↔ w.ValidIn G ∧ ∀ x ∈ w, x ∈ U := by
+lemma of_vxDel (hVd : w.ValidIn (G - U)) : w.ValidIn G := hVd.le (vxDel_le G)
 
-lemma ValidIn.vxDel (hVd : w.ValidIn G) (hU : Disjoint w.vxSet U) : w.ValidIn (G - U) :=
-  ValidIn.induce hVd (subset_diff.mpr ⟨hVd.vxSet_subset, hU⟩)
+lemma vxDel (hVd : w.ValidIn G) (hU : Disjoint w.vxSet U) : w.ValidIn (G - U) :=
+  hVd.induce <| subset_diff.mpr ⟨hVd.vxSet_subset, hU⟩
 
-@[simp]
-lemma validIn_vxDel_iff : w.ValidIn (G - U) ↔ w.ValidIn G ∧ Disjoint w.vxSet U := by
-  constructor
-  · rintro h
-    refine ⟨h.le (vxDel_le G), ?_⟩
-    rintro V hVw hVU x hxV
-    exact (h.vxSet_subset <| hVw hxV).2 <| hVU hxV
-  · rintro ⟨hVd, hU⟩
-    exact ValidIn.vxDel hVd hU
-
-lemma ValidIn.restrict (hVd : w.ValidIn G) (hF : w.edgeSet ⊆ F) : w.ValidIn (G{F}) := by
+lemma restrict (hVd : w.ValidIn G) (hF : w.edgeSet ⊆ F) : w.ValidIn (G{F}) := by
   induction w with
   | nil x => exact hVd
   | cons x e w ih =>
@@ -607,8 +581,25 @@ lemma ValidIn.restrict (hVd : w.ValidIn G) (hF : w.edgeSet ⊆ F) : w.ValidIn (G
     simp only [cons_validIn, restrict_inc₂, hbtw, true_and, ih, and_true]
     exact hF (by simp [cons_edge])
 
+lemma edgeDel (hVd : w.ValidIn G) (hF : Disjoint w.edgeSet F) : w.ValidIn (G \ F) :=
+  hVd.restrict (by rw [subset_diff]; simp [hF, hVd.edgeSet_subset])
+
+lemma of_edgeDel (h : w.ValidIn (G \ F)) : w.ValidIn G := h.le <| edgeDel_le G F
+
+end Walk.ValidIn
+
 @[simp]
-lemma validIn_restrict_iff : w.ValidIn (G{F}) ↔ w.ValidIn G ∧ w.edgeSet ⊆ F := by
+lemma validIn_vxDel : w.ValidIn (G - U) ↔ w.ValidIn G ∧ Disjoint w.vxSet U := by
+  constructor
+  · rintro h
+    refine ⟨h.le (vxDel_le G), ?_⟩
+    rintro V hVw hVU x hxV
+    exact (h.vxSet_subset <| hVw hxV).2 <| hVU hxV
+  · rintro ⟨hVd, hU⟩
+    exact ValidIn.induce hVd (subset_diff.mpr ⟨hVd.vxSet_subset, hU⟩)
+
+@[simp]
+lemma validIn_restrict : w.ValidIn (G{F}) ↔ w.ValidIn G ∧ w.edgeSet ⊆ F := by
   constructor
   · rintro h
     refine ⟨h.le (restrict_le G F), ?_⟩
@@ -618,12 +609,130 @@ lemma validIn_restrict_iff : w.ValidIn (G{F}) ↔ w.ValidIn G ∧ w.edgeSet ⊆ 
     exact ValidIn.restrict hVd hF
 
 @[simp]
-lemma validIn_edgeDel_iff : w.ValidIn (G \ F) ↔ w.ValidIn G ∧ Disjoint w.edgeSet F := by
-  rw [edgeDel, validIn_restrict_iff, and_congr_right_iff]
+lemma validIn_edgeDel : w.ValidIn (G \ F) ↔ w.ValidIn G ∧ Disjoint w.edgeSet F := by
+  rw [edgeDel, validIn_restrict, and_congr_right_iff]
   rintro hVd
   simp only [subset_diff, hVd.edgeSet_subset, true_and]
 
-lemma ValidIn.subgraph (hVd : w.ValidIn G) (hU : w.vxSet ⊆ U) (hF : w.edgeSet ⊆ F) :
-    w.ValidIn (G{F}[U]) := ValidIn.induce (ValidIn.restrict hVd hF) hU
+namespace IsWalkFrom
 
-end Walk
+lemma le (h : G.IsWalkFrom S T w) (hle : G ≤ H) : H.IsWalkFrom S T w where
+  validIn := h.validIn.le hle
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma induce (h : G.IsWalkFrom S T w) (hU : w.vxSet ⊆ U) : G[U].IsWalkFrom S T w where
+  validIn := h.validIn.induce hU
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma vxDel (h : G.IsWalkFrom S T w) (hU : Disjoint w.vxSet U) : (G - U).IsWalkFrom S T w where
+  validIn := h.validIn.vxDel hU
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma of_vxDel (h : (G - U).IsWalkFrom S T w) : G.IsWalkFrom S T w where
+  validIn := h.validIn.of_vxDel
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma restrict (h : G.IsWalkFrom S T w) (hF : w.edgeSet ⊆ F) : G{F}.IsWalkFrom S T w where
+  validIn := h.validIn.restrict hF
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma edgeDel (h : G.IsWalkFrom S T w) (hF : Disjoint w.edgeSet F) : (G \ F).IsWalkFrom S T w where
+  validIn := h.validIn.edgeDel hF
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma of_edgeDel (h : (G \ F).IsWalkFrom S T w) : G.IsWalkFrom S T w where
+  validIn := h.validIn.of_edgeDel
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+end IsWalkFrom
+
+namespace IsTrail
+
+lemma le (h : G.IsTrail w) (hle : G ≤ H) : H.IsTrail w where
+  validIn := h.validIn.le hle
+  edge_nodup := h.edge_nodup
+
+lemma induce (h : G.IsTrail w) (hU : w.vxSet ⊆ U) : G[U].IsTrail w where
+  validIn := ValidIn.induce h.validIn hU
+  edge_nodup := h.edge_nodup
+
+lemma vxDel (h : G.IsTrail w) (hU : Disjoint w.vxSet U) : (G - U).IsTrail w where
+  validIn := h.validIn.vxDel hU
+  edge_nodup := h.edge_nodup
+
+lemma of_vxDel (h : (G - U).IsTrail w) : G.IsTrail w where
+  validIn := h.validIn.of_vxDel
+  edge_nodup := h.edge_nodup
+
+lemma restrict (h : G.IsTrail w) (hF : w.edgeSet ⊆ F) : G{F}.IsTrail w where
+  validIn := h.validIn.restrict hF
+  edge_nodup := h.edge_nodup
+
+lemma edgeDel (h : G.IsTrail w) (hF : Disjoint w.edgeSet F) : (G \ F).IsTrail w where
+  validIn := h.validIn.edgeDel hF
+  edge_nodup := h.edge_nodup
+
+lemma of_edgeDel (h : (G \ F).IsTrail w) : G.IsTrail w where
+  validIn := h.validIn.of_edgeDel
+  edge_nodup := h.edge_nodup
+
+end IsTrail
+
+namespace IsPath
+
+lemma le (h : G.IsPath w) (hle : G ≤ H) : H.IsPath w where
+  validIn := h.validIn.le hle
+  nodup := h.nodup
+
+lemma induce (h : G.IsPath w) (hU : w.vxSet ⊆ U) : G[U].IsPath w where
+  validIn := ValidIn.induce h.validIn hU
+  nodup := h.nodup
+
+lemma vxDel (h : G.IsPath w) (hU : Disjoint w.vxSet U) : (G - U).IsPath w where
+  validIn := h.validIn.vxDel hU
+  nodup := h.nodup
+
+lemma of_vxDel (h : (G - U).IsPath w) : G.IsPath w where
+  validIn := h.validIn.of_vxDel
+  nodup := h.nodup
+
+lemma restrict (h : G.IsPath w) (hF : w.edgeSet ⊆ F) : G{F}.IsPath w where
+  validIn := h.validIn.restrict hF
+  nodup := h.nodup
+
+lemma edgeDel (h : G.IsPath w) (hF : Disjoint w.edgeSet F) : (G \ F).IsPath w where
+  validIn := h.validIn.edgeDel hF
+  nodup := h.nodup
+
+lemma of_edgeDel (h : (G \ F).IsPath w) : G.IsPath w where
+  validIn := h.validIn.of_edgeDel
+  nodup := h.nodup
+
+end IsPath
+
+lemma isPath_vxDel : (G - U).IsPath w ↔ G.IsPath w ∧ Disjoint w.vxSet U := by
+  constructor
+  · rintro h
+    refine ⟨h.of_vxDel, ?_⟩
+    rintro V hVw hVU x hxV
+    exact (h.validIn.vxSet_subset <| hVw hxV).2 <| hVU hxV
+  · rintro ⟨hVp, hU⟩
+    exact hVp.vxDel hU
+
+lemma isPath_edgeDel : (G \ F).IsPath w ↔ G.IsPath w ∧ Disjoint w.edgeSet F := by
+  constructor
+  · rintro h
+    refine ⟨h.of_edgeDel, ?_⟩
+    rintro F' hF'w hF'F e heF'
+    exact (h.validIn.edgeSet_subset <| hF'w heF').2.2 <| hF'F heF'
+  · rintro ⟨hVp, hF⟩
+    exact hVp.edgeDel hF
+
+end Graph

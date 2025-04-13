@@ -6,7 +6,7 @@ import Kura.Operation.Map
 import Kura.Operation.Minor
 import Kura.Operation.Hom
 import Kura.Walk.Defs
-import Kura.Walk.Path
+import Kura.Walk.Lemma
 import Kura.Walk.PathEnsemble
 import Kura.Separators
 import Kura.Menger
