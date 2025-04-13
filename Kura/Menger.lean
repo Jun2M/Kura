@@ -1,10 +1,10 @@
 import Kura.Walk.PathEnsemble
 import Mathlib.Data.Set.Disjoint
-import Mathlib.Tactic.TautoSet
 
-open Set Function List Nat Graph.Path.PathEnsemble
-variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {X S T : Set α}
-  {F F' : Set β} {W P Q : Graph.Walk α β}
+namespace Graph
+open Set Function List Nat Walk Path PathEnsemble
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
+  {F F' : Set β} {w w1 w2 : Walk α β}
 
 namespace Graph
 

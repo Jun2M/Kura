@@ -225,15 +225,17 @@ lemma induce_V : (G[U]).V = U := rfl
 @[simp]
 lemma vxDel_V : (G - U).V = G.V \ U := rfl
 
+lemma vxDel_V_subset (U : Set α) : (G - U).V ⊆ G.V := by simp only [vxDel_V, diff_subset]
+
 @[simp]
 lemma induce_E : (G[U]).E = G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ U} := rfl
 
 @[simp]
 lemma vxDel_E : (G - U).E = G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ G.V \ U} := rfl
 
-lemma induce_E_le (U : Set α) : (G[U]).E ⊆ G.E := by simp only [induce_E, inter_subset_left]
+lemma induce_E_subset (U : Set α) : (G[U]).E ⊆ G.E := by simp only [induce_E, inter_subset_left]
 
-lemma vxDel_E_le (U : Set α) : (G - U).E ⊆ G.E := by simp only [vxDel_E, mem_diff,
+lemma vxDel_E_subset (U : Set α) : (G - U).E ⊆ G.E := by simp only [vxDel_E, mem_diff,
   inter_subset_left]
 
 @[simp]
@@ -588,7 +590,7 @@ lemma vx_ncard_le_of_induce [hfin : G.Finite] (hU : U ⊆ G.V) : (G[U]).V.ncard 
 
 @[simp]
 lemma edge_ncard_le_of_induce [hfin : G.Finite] : (G[U]).E.ncard ≤ G.E.ncard :=
-  Set.ncard_le_ncard (G.induce_E_le U) hfin.edge_fin
+  Set.ncard_le_ncard (G.induce_E_subset U) hfin.edge_fin
 
 /-- Restrict a graph to a set of edges -/
 noncomputable def restrict (G : Graph α β) (R : Set β) : Graph α β where
@@ -620,18 +622,26 @@ scoped infix:70 " \\ " => Graph.edgeDel
 
 variable {G H : Graph α β} {S S' R R'  : Set β}
 
-@[simp]
-theorem restrict_V : (G{R}).V = G.V := rfl
+@[simp] theorem restrict_V : (G{R}).V = G.V := rfl
 
-@[simp]
-theorem edgeDel_V : (G \ R).V = G.V := rfl
+@[simp] theorem edgeDel_V : (G \ R).V = G.V := rfl
 
-@[simp]
-theorem restrict_E : (G{R}).E = G.E ∩ R := rfl
+@[simp] theorem restrict_E : (G{R}).E = G.E ∩ R := rfl
 
 @[simp]
 theorem edgeDel_E : (G \ R).E = G.E \ R := by
-  simp only [edgeDel, restrict_E, inter_eq_right, diff_subset]
+  rw [edgeDel, restrict_E, inter_eq_right]
+  exact diff_subset
+
+@[simp]
+lemma restrict_E_subset : (G{R}).E ⊆ G.E := by
+  rw [restrict_E]
+  exact inter_subset_left
+
+@[simp]
+lemma edgeDel_E_subset : (G \ R).E ⊆ G.E := by
+  rw [edgeDel_E]
+  exact diff_subset
 
 @[simp]
 theorem restrict_inc : (G{R}).Inc e v ↔ G.Inc e v ∧ e ∈ R := by
@@ -666,7 +676,7 @@ lemma restrict_inc₂ : (G{R}).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∈ R := by
 
 @[simp]
 lemma edgeDel_inc₂ : (G \ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
-  simp [edgeDel, restrict_inc₂]
+  simp [restrict_inc₂]
   exact fun h _ ↦ h.edge_mem
 
 /-- If an edge is in the restricted subgraph, it's in the original graph and the restricting set. -/
@@ -913,6 +923,9 @@ lemma EdgeDel_singleton_inc₂_iff_inc₂_of_ne {e' : β} (hne : e ≠ e') :
 --       apply ih.tail
 --       rwa [reflAdj_iff_edgeDel_singleton he]
 
+
+-- lemmas about mixed applications of induce, vxDel, restrict and edgeDel
+
 lemma induce_induce_eq_induce_restrict' (U V : Set α) : G[U][V] = G{G[U].E}[V] := by
   apply ext_inc
   · rfl
@@ -967,10 +980,10 @@ lemma vxDel_vxDel_eq_vxDel_union (U V : Set α) : G - U - V = G - (U ∪ V) := b
 lemma vxDel_comm (U V : Set α) : G - U - V = G - V - U := by
   rw [vxDel_vxDel_eq_vxDel_union, vxDel_vxDel_eq_vxDel_union, union_comm]
 
-lemma vxDel_induce_eq_induce_vxDel (U V : Set α) : (G - U)[V] = G{(G - U).E}[V] := by
+lemma vxDel_induce_eq (U V : Set α) : (G - U)[V] = G{(G - U).E}[V] := by
   rw [← vxDel_notation, induce_induce_eq_induce_restrict']
 
-/-- G{R}[U] is the prefered notation for explicit subgraph over G[U]{R} -/
+@[simp]
 lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) : G[U]{R} = G{R}[U] := by
   apply ext_inc
   · simp only [restrict_V, induce_V]
@@ -981,17 +994,13 @@ lemma induce_restrict_eq_restrict_induce (U : Set α) (R : Set β) : G[U]{R} = G
     simp +contextual only [restrict_inc, induce_inc_iff, and_imp, iff_def, and_self, imp_self,
       implies_true]
 
-/-- From here `subgraph` refers to G{R}[U] -/
-@[simp]
-theorem induce_restrict_eq_subgraph (U : Set α) (R : Set β) :
-    G[U]{R} = G{R}[U] := G.induce_restrict_eq_restrict_induce U R
-
 lemma vxDel_restrict_eq_restrict_vxDel (U : Set α) (R : Set β) :
     (G - U){R} = G{R} - U := by
   simp only [← vxDel_notation, restrict_V]
-  rw [induce_restrict_eq_subgraph]
+  rw [induce_restrict_eq_restrict_induce]
 
-lemma subgraph_eq_induce (h : {e | e ∈ G.E ∧ ∀ (x : α), G.Inc e x → x ∈ U} ⊆ R) : G{R}[U] = G[U] := by
+lemma restict_induce_eq_induce (h : {e | e ∈ G.E ∧ ∀ (x : α), G.Inc e x → x ∈ U} ⊆ R) :
+    G{R}[U] = G[U] := by
   apply ext_inc
   · rfl
   . simp only [induce_E, restrict_E, restrict_inc, and_imp]
@@ -1009,11 +1018,16 @@ lemma subgraph_eq_induce (h : {e | e ∈ G.E ∧ ∀ (x : α), G.Inc e x → x �
 lemma induce_vxDel_eq_induce (U V : Set α) : G[U] - V = G[U \ V] := by
   rw [← vxDel_notation]
   simp
-  apply subgraph_eq_induce
+  apply restict_induce_eq_induce
   intro e
   simp +contextual only [mem_diff, mem_setOf_eq, implies_true]
 
-lemma subgraph_le (G : Graph α β) (R : Set β) {U : Set α} (hU : U ⊆ G.V) : G{R}[U] ≤ G :=
+lemma vxDel_edgeDel_comm : (G - U) \ R = G \ R - U := by
+  rw [eq_comm, edgeDel, ← vxDel_restrict_eq_restrict_vxDel, edgeDel, restrict_eq_restrict_iff]
+  have := G.vxDel_E_subset U
+  tauto_set
+
+lemma restrict_induce_le (G : Graph α β) (R : Set β) (hU : U ⊆ G.V) : G{R}[U] ≤ G :=
   (Graph.induce_le _ (by exact hU : U ⊆ G{R}.V)).trans (G.restrict_le R)
 
 /-- Implicit subgraph iff explicit subgraph-/

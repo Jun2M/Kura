@@ -4,8 +4,8 @@ import Kura.Isolated
 import Kura.Operation.Subgraph
 import Kura.Operation.Map
 import Kura.Operation.Minor
-import Kura.Hom
-import Kura.Walk.Walk
+import Kura.Operation.Hom
+import Kura.Walk.Defs
 import Kura.Walk.Path
 import Kura.Walk.PathEnsemble
 import Kura.Separators

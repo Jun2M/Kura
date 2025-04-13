@@ -1,4 +1,4 @@
-import Kura.Walk.Walk
+import Kura.Walk.Operation
 
 
 namespace Graph
@@ -6,75 +6,7 @@ open Set Function List Nat Walk
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
   {F F' : Set β} {w w1 w2 : Walk α β}
 
-@[mk_iff]
-structure IsPath (G : Graph α β) (W : Walk α β) : Prop where
-  validIn : W.ValidIn G
-  nodup : W.vx.Nodup
-
-@[mk_iff]
-structure IsPathFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
-  validIn : W.ValidIn G
-  nodup : W.vx.Nodup
-  first_mem : W.first ∈ S
-  last_mem : W.last ∈ T
-
-lemma IsPathFrom.isWalkFrom (h : G.IsPathFrom S T w) : G.IsWalkFrom S T w := sorry
-
-
-/-- A path is a walk with no duplicate vertices -/
-def Path (α β : Type*) := {w : Walk α β // w.vx.Nodup}
-
-variable {p q : Path α β} {w w1 w2 : Walk α β}
 namespace Path
-
-@[simp]
-abbrev ofWalk [DecidableEq α] (w : Walk α β) : Path α β := ⟨w.dedup, w.dedup_vx_nodup⟩
-
-/-- Create a nil path -/
-@[simp]
-def nil (x : α) : Path α β := ⟨Walk.nil x, by simp⟩
-
-lemma nil_injective : Injective (nil : α → Path α β) := by
-  rintro x y h
-  rwa [nil, nil, ← Subtype.val_inj, nil.injEq] at h
-
-@[simp]
-lemma nil_inj : (nil x : Path α β) = nil y ↔ x = y := by
-  rw [nil, nil, ← Subtype.val_inj, nil.injEq]
-
-end Path
-
-/-- Create a path from a single edge between two vertices -/
-def Inc₂.path (hbtw : G.Inc₂ e u v) (hne : u ≠ v) : Path α β := ⟨hbtw.walk, by simp [hne]⟩
-
-namespace Path
-/-- Create the reverse of a path -/
-def reverse (p : Path α β) : Path α β := ⟨p.val.reverse, by simp [p.prop]⟩
-
-lemma ValidIn.le {p : Path α β} (h : p.val.ValidIn G) (hle : G ≤ H) : p.val.ValidIn H :=
-  Walk.ValidIn.le h hle
-
-lemma of_cons {p : Path α β} (h : p.val = Walk.cons x e w) : w.vx.Nodup := by
-  have := h ▸ p.prop
-  rw [cons_vx, nodup_cons] at this
-  exact this.2
-
-lemma of_prefix {p : Path α β} (h : p.val = w1.append w2)
-    (heq : w1.last = w2.first) : w1.vx.Nodup := by
-  have : (w1.append w2).vx = _ ++ _ := append_vx' heq
-  rw [← h] at this
-  have : w1.vx.Sublist p.val.vx := by
-    rw [this]
-    exact sublist_append_left w1.vx w2.vx.tail
-  exact this.nodup p.prop
-
-lemma of_suffix {p : Path α β} (h : p.val = w1.append w2) : w2.vx.Nodup := by
-  have : (w1.append w2).vx = _ ++ w2.vx := append_vx
-  rw [← h] at this
-  have : w2.vx.Sublist p.val.vx := by
-    rw [this]
-    exact sublist_append_right w1.vx.dropLast w2.vx
-  exact this.nodup p.prop
 
 lemma not_mem_prefix_of_mem_suffix_tail {p : Path α β} (h : p.val = w1 ++ w2)
     (heq : w1.last = w2.first) (hmem : u ∈ w2.vx.tail) : u ∉ w1.vx := by
@@ -100,44 +32,6 @@ lemma eq_first_of_mem_prefix_suffix {p : Path α β} (h : p.val = w1 ++ w2)
 lemma eq_last_of_mem_prefix_suffix {p : Path α β} (h : p.val = w1 ++ w2)
     (heq : w1.last = w2.first) (hmem1 : u ∈ w1.vx) (hmem2 : u ∈ w2.vx) :
     u = w1.last := heq ▸ eq_first_of_mem_prefix_suffix h heq hmem1 hmem2
-
-def append (p q : Path α β) (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) : Path α β :=
-  ⟨p.val ++ q.val, by
-    rw [append_vx]
-    refine List.Nodup.append ?_ q.prop hDisj
-    exact p.prop.sublist (List.dropLast_sublist p.val.vx)⟩
-
-@[simp]
-lemma append_first {p q : Path α β} (heq : p.val.last = q.val.first)
-    (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) : (p.append q hDisj).val.first = p.val.first :=
-  append_first_of_eq heq
-
-@[simp]
-lemma append_last {p q : Path α β} (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) :
-    (p.append q hDisj).val.last = q.val.last := by
-  simp only [append, Walk.append_last]
-
-@[simp]
-lemma append_length {p q : Path α β} (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) :
-    (p.append q hDisj).val.length = p.val.length + q.val.length := by
-  simp only [append, Walk.append_length]
-
-@[simp]
-lemma append_vx {p q : Path α β} (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) :
-    (p.append q hDisj).val.vx = p.val.vx.dropLast ++ q.val.vx := by
-  simp only [append, Walk.append_vx]
-
-@[simp]
-lemma append_edge {p q : Path α β} (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) :
-    (p.append q hDisj).val.edge = p.val.edge ++ q.val.edge := by
-  simp only [append, Walk.append_edge]
-
-@[simp]
-lemma append_validIn {p q : Path α β} (heq : p.val.last = q.val.first)
-    (hpVd : p.val.ValidIn G) (hqVd : q.val.ValidIn G)
-    (hDisj : p.val.vx.dropLast.Disjoint q.val.vx) : (p.append q hDisj).val.ValidIn G :=
-  Walk.append_validIn heq hpVd hqVd
-
 
 
 lemma edge_not_isLoop {p : Path α β} (he : e ∈ p.val.edge) (hVd : p.val.ValidIn G) : ¬ G.IsLoopAt e x := by
@@ -189,37 +83,6 @@ lemma first_ne_last_iff : p.val.first ≠ p.val.last ↔ p.val.Nonempty :=
   first_eq_last_iff.not_left
 
 end Path
-
-@[simp]
-lemma Inc₂.path_first (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.first = u := by simp only [path, Walk.first]
-
-@[simp]
-lemma Inc₂.path_last (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.last = v := by simp only [path, Walk.last]
-
-@[simp]
-lemma Inc₂.path_length (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.length = 1 := by simp only [path, Walk.length]
-
-@[simp]
-lemma Inc₂.path_vx (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.vx = [u, v] := by simp only [path, Walk.vx]
-
-@[simp]
-lemma Inc₂.path_edge (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.edge = [e] := by simp only [path, Walk.edge]
-
-@[simp]
-lemma Inc₂.path_validIn (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.ValidIn G := walk_validIn hbtw
-
-@[simp]
-lemma Inc₂.path_validIn' (hbtw : G.Inc₂ e u v) (hne : u ≠ v) :
-    (Inc₂.path hbtw hne).val.ValidIn (G[{u, v}]) := by
-  refine (path_validIn hbtw hne).induce ?_
-  rintro x hx
-  simpa [Inc₂.path] using hx
 
 lemma Connected.iff_path :
   G.Connected u v ↔ ∃ p : Path α β, p.val.ValidIn G ∧ p.val.first = u ∧ p.val.last = v := by

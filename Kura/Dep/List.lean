@@ -357,6 +357,29 @@ theorem getLast_tail_eq_getLast {l : List α} (h : l.tail ≠ []) :
     rw [tail_cons] at h
     simp only [tail_cons, getLast_cons h]
 
+@[simp]
+lemma head_not_mem_tail_of_nodup {l : List α} (h : l.Nodup) (h' : l ≠ []) :
+    l.head h' ∉ l.tail := by
+  have : l.head h' :: l.tail = l := by exact head_cons_tail l h'
+  rw [← this, List.nodup_cons] at h
+  exact h.1
+
+@[simp]
+lemma getLast_not_mem_dropLast_of_nodup {l : List α} (h : l.Nodup) (h' : l ≠ []) :
+    l.getLast h' ∉ l.dropLast := by
+  let l' := l.reverse
+  have : l'.reverse ≠ [] := by
+    unfold l'
+    simp [h']
+  suffices l'.reverse.getLast this ∉ l'.reverse.dropLast by
+    unfold l' at this
+    simp only [reverse_reverse] at this
+    convert this
+  have : l'.Nodup := by
+    unfold l'
+    exact nodup_reverse.mpr h
+  simp [this]
+
 theorem mem_head?_eq_head : ∀ {l : List α} {x : α}, x ∈ l.head? →
     ∃ (hx : l ≠ []), x = l.head hx
 | [], x, hx => by simp only [head?_nil, Option.mem_def, reduceCtorEq] at hx
@@ -410,6 +433,10 @@ lemma nodup_concat {a : α} {l : List α} : (l.concat a).Nodup ↔ l.Nodup ∧ a
   · intro hal
     rw [← nodup_reverse, concat_eq_append, reverse_concat, nodup_cons] at h
     exact h.1 (mem_reverse.mpr hal)
+
+lemma Nodup.dropLast {l : List α} (h : l.Nodup) : (l.dropLast).Nodup := by
+  rw [dropLast_eq_take]
+  exact h.take
 
 lemma Chain.prefix {l1 l2 : List α} {a : α} {p : α → α → Prop} (h : List.Chain p a l2) (h' : l1 <+: l2) :
     List.Chain p a l1 := by
