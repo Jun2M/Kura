@@ -2,8 +2,8 @@ import Kura.Basic
 
 open Set Function
 
-variable {α β : Type*} {G : Graph α β} {u v w x y : α} {e f g : β}
-
+variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v w : α} {e f : β} {S S' T T' : Set α}
+  {F F' R R' : Set β}
 namespace Graph
 
 section edge_empty
@@ -72,7 +72,58 @@ lemma eq_Edgeless_of_E_empty (h : G.E = ∅) : G = Edgeless G.V β := by
   · exact h
   · simp [h]
 
+@[simp]
+instance instOrderBotGraph : OrderBot (Graph α β) where
+  bot := Edgeless ∅ β
+  bot_le G := by refine ⟨?_, ?_, ?_⟩ <;> simp only [Edgeless, empty_subset, mem_empty_iff_false,
+    false_iff, IsEmpty.forall_iff, implies_true]
+
+instance instInhabitedGraph : Inhabited (Graph α β) where
+  default := ⊥
+
+@[simp]
+lemma bot_V : (⊥ : Graph α β).V = ∅ := rfl
+
+@[simp]
+lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
+
+@[simp]
+lemma bot_incFun : (⊥ : Graph α β).incFun = 0 := rfl
+
+@[simp]
+lemma bot_inc : (⊥ : Graph α β).Inc = fun _ _ ↦ False := by
+  ext e a
+  simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty]
+
+@[simp]
+lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
+  constructor <;> rintro h
+  · apply ext_inc
+    · exact h
+    · simp only [bot_E]
+      by_contra! hE
+      have := h ▸ (G.exists_vertex_inc hE.some_mem).choose_spec.vx_mem
+      simp only [mem_empty_iff_false] at this
+    · simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty, iff_false]
+      rintro e v hinc
+      have := h ▸ hinc.vx_mem
+      simp only [mem_empty_iff_false] at this
+  · rw [h]
+    rfl
+
+lemma vx_disjoint_of_disjoint (hDisj : Disjoint G H) : Disjoint G.V H.V := by
+  intro x hx1 hx2
+  let X : Graph α β := Edgeless x β
+  specialize hDisj (?_ : X ≤ G) ?_
+  · exact ⟨hx1, empty_subset _, by simp [X, Edgeless]⟩
+  · exact ⟨hx2, empty_subset _, by simp [X, Edgeless]⟩
+  exact hDisj.1
+
+-- Not True!
+-- lemma Disjoint.edge_disjoint {G₁ G₂ : Graph α β} (hDisj : Disjoint G₁ G₂) : Disjoint G₁.E G₂.E := by
+
 end edge_empty
+
 section edge_subsingleton
 
 @[simp]
@@ -117,7 +168,6 @@ lemma connected_iff_reflAdj_of_E_subsingleton (h : G.E ⊆ {e}) :
   · exact connected_iff_reflAdj_of_E_singleton hE
 
 end edge_subsingleton
-
 
 section Isolated
 

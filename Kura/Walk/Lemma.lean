@@ -180,26 +180,6 @@ end IsPath
 --     -- change (w'.append (Walk.cons w'.last e <| walk hVd h.2 hbtw.vx_mem_right hy ha hpy)).ValidIn G
 --     sorry
 
-lemma Connected.exist_walk (h : G.Connected u v) : ∃ (W : Walk α β), W.ValidIn G ∧
-    W.first = u ∧ W.last = v := by
-  induction h with
-  | single hradj =>
-    obtain ⟨W, hW, hlength, hfirst, hlast⟩ := hradj.exist_walk
-    use W
-  | tail hconn hradj ih =>
-    expose_names
-    obtain ⟨W, hW, hfirst, hlast⟩ := ih
-    obtain ⟨W', hW', hlength, hfirst', hlast'⟩ := hradj.exist_walk
-    subst b c u
-    use W ++ W', append_validIn hfirst'.symm hW hW'
-    simp only [hfirst', append_first_of_eq, append_last, and_self]
-
-theorem Connected.iff_walk : G.Connected u v ↔ ∃ w : Walk α β, w.ValidIn G ∧ w.first = u ∧ w.last = v := by
-  constructor
-  · exact fun a ↦ exist_walk a
-  · rintro ⟨w, h1, rfl, rfl⟩
-    exact h1.connected
-
 lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β} (hVd : ValidIn G p C)
     (h : w.ValidIn (G /[p] C)) : ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.first → p y = w.last →
     ∃ w' : Walk α β, w'.ValidIn G ∧ w'.first = x ∧ w'.last = y ∧

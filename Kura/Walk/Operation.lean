@@ -569,4 +569,25 @@ lemma IsPath.IsSuffix (hPf : w.IsSuffix w₁) (hP : G.IsPath w) : G.IsPath w₁ 
   exact append_right_isPath hP
 
 end IsSuffix
+
+lemma Connected.exist_walk (h : G.Connected u v) : ∃ (W : Walk α β), W.ValidIn G ∧
+    W.first = u ∧ W.last = v := by
+  induction h with
+  | single hradj =>
+    obtain ⟨W, hW, hlength, hfirst, hlast⟩ := hradj.exist_walk
+    use W
+  | tail hconn hradj ih =>
+    expose_names
+    obtain ⟨W, hW, hfirst, hlast⟩ := ih
+    obtain ⟨W', hW', hlength, hfirst', hlast'⟩ := hradj.exist_walk
+    subst b c u
+    use W ++ W', append_validIn hfirst'.symm hW hW'
+    simp only [hfirst', append_first_of_eq, append_last, and_self]
+
+theorem Connected.iff_walk : G.Connected u v ↔ ∃ w : Walk α β, w.ValidIn G ∧ w.first = u ∧ w.last = v := by
+  constructor
+  · exact fun a ↦ exist_walk a
+  · rintro ⟨w, h1, rfl, rfl⟩
+    exact h1.connected
+
 end Walk
