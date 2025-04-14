@@ -1,5 +1,7 @@
 import Kura.Walk.Operation
 import Kura.Walk.Dedup
+import Kura.Operation.Minor
+import Kura.Walk.Subgraph
 
 
 namespace Graph
@@ -109,6 +111,16 @@ lemma first_ne_last_iff (hP : G.IsPath w) : w.first ≠ w.last ↔ w.Nonempty :=
   (first_eq_last_iff hP).not_left
 
 end IsPath
+
+lemma Connected.iff_path : G.Connected u v ↔
+    ∃ w : Walk α β, G.IsPath w ∧ w.first = u ∧ w.last = v := by
+  classical
+  rw [Connected.iff_walk]
+  constructor
+  · rintro ⟨w, hP, rfl, rfl⟩
+    use w.dedup, dedup_isPath hP, dedup_first w, dedup_last w
+  · rintro ⟨w, hP, rfl, rfl⟩
+    use w, hP.validIn
 
 -- noncomputable def Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
 --     (hVd : ValidIn G p C) (h : w.ValidIn (G /[p] C)) {x y : α} (hx : x ∈ G.V) (hy : y ∈ G.V)
@@ -248,16 +260,6 @@ lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} 
         exact hsub hfw'
       · simp only [hw'Vd, cons_validIn, Inc₂, and_true]
         use u, rfl, W.first, hst.symm, hbtw
-
-lemma Connected.iff_path : G.Connected u v ↔
-    ∃ w : Walk α β, G.IsPath w ∧ w.first = u ∧ w.last = v := by
-  classical
-  rw [Connected.iff_walk]
-  constructor
-  · rintro ⟨w, hP, rfl, rfl⟩
-    use w.dedup, dedup_isPath hP, dedup_first w, dedup_last w
-  · rintro ⟨w, hP, rfl, rfl⟩
-    use w, hP.validIn
 
 lemma Contract.path {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β} (hVd : ValidIn G p C)
     (h : w.ValidIn (G /[p] C)) : ∀ x ∈ G.V, ∀ y ∈ G.V, p x = w.first → p y = w.last →

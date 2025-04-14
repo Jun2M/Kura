@@ -610,7 +610,7 @@ lemma restrict_univ_eq_self : G{Set.univ} = G := by
 
 @[simp]
 lemma edgeDel_univ_eq_self : G \ Set.univ = Edgeless G.V β := by
-  apply eq_Edgeless_of_E_empty
+  rw [← edgeDel_V, ← edge_empty_iff_eq_Edgeless]
   simp only [edgeDel, diff_univ, restrict_E, inter_empty]
 
 @[simp]
@@ -619,8 +619,8 @@ lemma restrict_E_eq_self : G{G.E} = G := by
 
 @[simp]
 lemma edgeDel_E_eq_self : G \ G.E = Edgeless G.V β := by
-  apply eq_Edgeless_of_E_empty
-  simp only [edgeDel, sdiff_self, bot_eq_empty, restrict_E, inter_empty]
+  rw [← edgeDel_V, ← edge_empty_iff_eq_Edgeless]
+  simp only [edgeDel, diff_self, bot_eq_empty, restrict_E, inter_empty]
 
 
 lemma restrict_E_subset_singleton (e : β) : G{{e}}.E ⊆ {e} := by simp

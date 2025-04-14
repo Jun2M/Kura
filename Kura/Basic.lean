@@ -717,6 +717,7 @@ lemma reflAdj.le (h : G.reflAdj u w) (hle : G ≤ H) : H.reflAdj u w := by
   · right
     simp only [vx_subset_of_le hle hu, and_self]
 
+
 def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
 
 @[simp]
@@ -818,8 +819,37 @@ lemma right_subset (h : G.SetConnected S T) (hT : T ⊆ T') : G.SetConnected S T
 lemma subset (h : G.SetConnected S T) (hS : S ⊆ S') (hT : T ⊆ T') : G.SetConnected S' T' :=
   (h.left_subset hS).right_subset hT
 
+lemma left_supported : G.SetConnected S T ↔ G.SetConnected (S ∩ G.V) T := by
+  constructor
+  · rintro ⟨s, hsS, t, htT, h⟩
+    use s, ⟨hsS, h.mem_left⟩, t, htT
+  · rintro ⟨s, ⟨hsS, hs⟩, t, htT, h⟩
+    use s, hsS, t, htT
+
+lemma right_supported : G.SetConnected S T ↔ G.SetConnected S (T ∩ G.V) := by
+  rw [comm, left_supported, comm]
+
+lemma supported : G.SetConnected S T ↔ G.SetConnected (S ∩ G.V) (T ∩ G.V) := by
+  rw [left_supported, right_supported]
+
 lemma le (h : G.SetConnected S T) (hle : G ≤ H) : H.SetConnected S T := by
   obtain ⟨s, hs, t, ht, h⟩ := h
   exact ⟨s, hs, t, ht, h.le hle⟩
+
+@[simp]
+lemma empty_source : ¬ G.SetConnected ∅ T := by
+  rintro ⟨s, hs, t, ht, h⟩
+  simp at hs
+
+@[simp]
+lemma empty_target : ¬ G.SetConnected S ∅ := by
+  rw [SetConnected.comm]
+  exact empty_source
+
+@[simp]
+lemma nonempty_inter (h : (S ∩ T ∩ G.V).Nonempty) : G.SetConnected S T := by
+  obtain ⟨x, ⟨hxS, hxT⟩, hx⟩ := h
+  use x, hxS, x, hxT, Connected.refl hx
+
 
 end SetConnected

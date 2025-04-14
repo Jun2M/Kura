@@ -36,8 +36,7 @@ lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u
 --       sorry
 --   · sorry
 
-def IsVxSetSeparator (G : Graph α β) (V S T : Set α) : Prop :=
-  ∀ s ∈ S, ∀ t ∈ T, ¬ (G - V).Connected s t
+def IsVxSetSeparator (G : Graph α β) (V S T : Set α) : Prop := ¬ (G - V).SetConnected S T
 
 namespace IsVxSetSeparator
 variable {U V S S' T T' : Set α} (h : G.IsVxSetSeparator V S T)
@@ -48,55 +47,44 @@ def leftSet (h : G.IsVxSetSeparator V S T) : Set α :=
 def rightSet (h : G.IsVxSetSeparator V S T) : Set α :=
   {v | ∃ t ∈ T, (G - V).Connected v t}
 
-lemma isVxSetSeparator_iff_inter_vxSet (G : Graph α β) {V S T : Set α} :
-    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) (T ∩ G.V) := sorry
-
 @[simp]
 lemma le (h : G'.IsVxSetSeparator V S T) (hle : G ≤ G') : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s hs t ht (hconn.le (induce_le_induce hle ?_))
-  exact Set.diff_subset_diff_left hle.1
+  rintro hconn
+  have : G - V ≤ G' - V := vxDel_le_vxDel hle fun ⦃a⦄ a ↦ a
+  exact h <| hconn.le this
 
-lemma symm (h : G.IsVxSetSeparator V S T) : G.IsVxSetSeparator V T S := by
-  rintro s hs t ht hconn
-  exact h t ht s hs hconn.symm
+lemma symm (h : G.IsVxSetSeparator V S T) : G.IsVxSetSeparator V T S := (h ·.symm)
 
 lemma comm : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V T S := ⟨symm, symm⟩
 
 @[simp]
-lemma subset (h : G.IsVxSetSeparator U S T) (hUV : U ⊆ V) : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s hs t ht (hconn.le (induce_le_induce (le_refl _) ?_))
-  exact diff_subset_diff_right hUV
+lemma subset (h : G.IsVxSetSeparator U S T) (hUV : U ⊆ V) : G.IsVxSetSeparator V S T :=
+  fun hconn ↦ h <| hconn.le <| vxDel_anti G hUV
 
 @[simp]
-lemma subset_source (h : G.IsVxSetSeparator V S' T) (hS : S ⊆ S') : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s (hS hs) t ht (hconn.le (le_refl _))
+lemma subset_source (h : G.IsVxSetSeparator V S' T) (hS : S ⊆ S') : G.IsVxSetSeparator V S T :=
+  fun hconn ↦ h <| hconn.left_subset hS
 
 @[simp]
-lemma subset_target (h : G.IsVxSetSeparator V S T') (hT : T ⊆ T') : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  refine h s hs t (hT ht) (hconn.le (le_refl _))
+lemma subset_target (h : G.IsVxSetSeparator V S T') (hT : T ⊆ T') : G.IsVxSetSeparator V S T :=
+  fun hconn ↦ h <| hconn.right_subset hT
 
 @[simp]
-lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ (∀ s ∈ S, ∀ t ∈ T, ¬ G.Connected s t) := by
+lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ ¬ G.SetConnected S T := by
   unfold IsVxSetSeparator
   simp only [vxDel_empty_eq_self]
 
 @[simp]
 lemma empty_source : G.IsVxSetSeparator V ∅ T := by
-  rintro s hs t ht hconn
-  rwa [mem_empty_iff_false] at hs
+  simp [IsVxSetSeparator]
 
 @[simp]
 lemma empty_target : G.IsVxSetSeparator V S ∅ := by
-  rintro s hs t ht hconn
-  rwa [mem_empty_iff_false] at ht
+  simp [IsVxSetSeparator]
 
 @[simp]
 lemma univ : G.IsVxSetSeparator univ S T := by
-  rintro s hs t ht hconn
+  simp [IsVxSetSeparator]
   simp only [vxDel_V, diff_univ, mem_empty_iff_false, not_false_eq_true,
     not_connected_of_not_mem] at hconn
 
@@ -136,6 +124,14 @@ lemma iff_right_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S 
   · by_cases h' : t ∈ G.V
     · exact h s hs t (mem_inter ht h') hconn
     · exact h' hconn.mem_right.1
+
+lemma isVxSetSeparator_iff_inter_vxSet (G : Graph α β) :
+    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) (T ∩ G.V) := by
+  constructor
+  · rintro h s ⟨hsS, hs⟩ t ⟨htT, ht⟩ hconn
+    exact h s hsS t htT hconn
+  · rintro h s hs t ht hconn
+    exact h s ⟨hs, hconn.mem_left.1⟩ t ⟨ht, hconn.mem_right.1⟩ hconn
 
 lemma iff_left_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S \ V) T := by
   constructor <;> rintro h s hs t ht hconn
@@ -268,11 +264,11 @@ def of_edges (G : Graph α β) (U : Set β) :
   sorry
 
 
-lemma walk_inter (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidIn G)
-    (hS : w.first ∈ S) (hT : w.last ∈ T) : ∃ x ∈ w, x ∈ U := by
+lemma walk_inter (hUsep : G.IsVxSetSeparator U S T) (hWF : G.IsWalkFrom S T w) :
+    ∃ x ∈ w, x ∈ U := by
   by_contra! hx
-  have hVdU : w.ValidIn (G - U) := ValidIn.vxDel hVd fun V hV hVU x hxV ↦ hx x (hV hxV) (hVU hxV)
-  exact hUsep w.first hS w.last hT hVdU.connected
+  have hVdU := ValidIn.vxDel hWF.validIn fun V hV hVU x hxV ↦ hx x (hV hxV) (hVU hxV)
+  exact hUsep w.first hWF.first_mem w.last hWF.last_mem hVdU.connected
 
 lemma walk_validOn_left (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidIn (G - U))
     (hLeft : ∃ x ∈ w, x ∈ hUsep.leftSet) : w.ValidIn (G[hUsep.leftSet]) := by

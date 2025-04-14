@@ -569,6 +569,7 @@ lemma IsPath.IsSuffix (hPf : w.IsSuffix w₁) (hP : G.IsPath w) : G.IsPath w₁ 
   exact append_right_isPath hP
 
 end IsSuffix
+end Walk
 
 lemma Connected.exist_walk (h : G.Connected u v) : ∃ (W : Walk α β), W.ValidIn G ∧
     W.first = u ∧ W.last = v := by
@@ -589,5 +590,3 @@ theorem Connected.iff_walk : G.Connected u v ↔ ∃ w : Walk α β, w.ValidIn G
   · exact fun a ↦ exist_walk a
   · rintro ⟨w, h1, rfl, rfl⟩
     exact h1.connected
-
-end Walk

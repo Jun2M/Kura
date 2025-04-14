@@ -1,5 +1,6 @@
 import Kura.Basic
 
+
 open Set Function
 
 variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v w : α} {e f : β} {S S' T T' : Set α}
@@ -57,20 +58,58 @@ def Edgeless (V : Set α) (β : Type*) : Graph α β where
   vertex_support := by tauto
   edge_support := by tauto
 
-@[simp]
-lemma Edgeless.V (V : Set α) (β : Type*) : (Edgeless V β).V = V := rfl
+namespace Edgeless
+variable {U : Set α} {β : Type*}
+
+@[simp] lemma V : (Edgeless U β).V = U := rfl
+
+@[simp] lemma E : (Edgeless U β).E = ∅ := rfl
+
+@[simp] lemma incFun : (Edgeless U β).incFun = 0 := rfl
 
 @[simp]
-lemma Edgeless.E (V : Set α) (β : Type*) : (Edgeless V β).E = ∅ := rfl
+lemma Inc  : (Edgeless U β).Inc = fun _ _ ↦ False := by
+  ext e v
+  simp
 
 @[simp]
-lemma Edgeless.incFun (V : Set α) (β : Type*) : (Edgeless V β).incFun = 0 := rfl
+lemma Inc₂ : (Edgeless U β).Inc₂ = fun _ _ _ ↦ False := by
+  ext e x y
+  simp
 
-lemma eq_Edgeless_of_E_empty (h : G.E = ∅) : G = Edgeless G.V β := by
-  ext1
-  · rfl
-  · exact h
-  · simp [h]
+@[simp]
+lemma Adj : (Edgeless U β).Adj = fun _ _ ↦ False := by
+  ext x y
+  simp
+
+@[simp]
+lemma reflAdj : (Edgeless U β).reflAdj = fun x y ↦ x = y ∧ x ∈ U := by
+  ext x y
+  simp
+
+@[simp]
+lemma Connected : (Edgeless U β).Connected = fun x y ↦ x = y ∧ x ∈ U := by
+  ext x y
+  simp
+
+end Edgeless
+
+@[simp]
+lemma edge_empty_iff_eq_Edgeless (G : Graph α β) : G.E = ∅ ↔ G = Edgeless G.V β := by
+  constructor
+  · rintro h
+    ext1
+    · rfl
+    · exact h
+    · ext e v
+      simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true, incFun_of_not_mem_edgeSet,
+        Finsupp.coe_zero, Pi.zero_apply, incFun_eq_zero]
+      rintro hinc
+      have := h ▸ hinc.edge_mem
+      simp at this
+  · rintro heq
+    rw [heq]
+    rfl
 
 @[simp]
 instance instOrderBotGraph : OrderBot (Graph α β) where
