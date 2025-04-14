@@ -3,7 +3,7 @@ import Kura.Basic
 
 open Set Function
 
-variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v w : α} {e f : β} {S S' T T' : Set α}
+variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v : α} {e f : β} {S S' T T' U : Set α}
   {F F' R R' : Set β}
 namespace Graph
 
@@ -59,7 +59,6 @@ def Edgeless (V : Set α) (β : Type*) : Graph α β where
   edge_support := by tauto
 
 namespace Edgeless
-variable {U : Set α} {β : Type*}
 
 @[simp] lemma V : (Edgeless U β).V = U := rfl
 
@@ -67,30 +66,22 @@ variable {U : Set α} {β : Type*}
 
 @[simp] lemma incFun : (Edgeless U β).incFun = 0 := rfl
 
-@[simp]
-lemma Inc  : (Edgeless U β).Inc = fun _ _ ↦ False := by
-  ext e v
-  simp
+@[simp] lemma Inc  : ¬ (Edgeless U β).Inc e v  := by simp
 
-@[simp]
-lemma Inc₂ : (Edgeless U β).Inc₂ = fun _ _ _ ↦ False := by
-  ext e x y
-  simp
+@[simp] lemma Inc₂ : ¬ (Edgeless U β).Inc₂ e u v := by simp
 
-@[simp]
-lemma Adj : (Edgeless U β).Adj = fun _ _ ↦ False := by
-  ext x y
-  simp
+@[simp] lemma Adj : ¬ (Edgeless U β).Adj x y := by simp
 
-@[simp]
-lemma reflAdj : (Edgeless U β).reflAdj = fun x y ↦ x = y ∧ x ∈ U := by
-  ext x y
-  simp
+@[simp] lemma reflAdj : (Edgeless U β).reflAdj x y ↔ x = y ∧ x ∈ U := by simp
 
-@[simp]
-lemma Connected : (Edgeless U β).Connected = fun x y ↦ x = y ∧ x ∈ U := by
-  ext x y
-  simp
+@[simp] lemma Connected : (Edgeless U β).Connected x y ↔ x = y ∧ x ∈ U := by simp
+
+@[simp] lemma SetConnected : (Edgeless U β).SetConnected S T ↔ (S ∩ T ∩ U).Nonempty := by
+  refine ⟨fun ⟨s, hsS, t, htT, hst⟩ ↦ ?_,
+  fun ⟨x, ⟨hxS, hxT⟩, hxU⟩ ↦ ⟨x, hxS, x, hxT, Connected.refl hxU⟩⟩
+  · rw [Connected] at hst
+    obtain ⟨rfl, hsU⟩ := hst
+    use s, ⟨hsS, htT⟩, hsU
 
 end Edgeless
 

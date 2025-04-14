@@ -98,7 +98,7 @@ noncomputable def SubgraphContractFun (G : Graph α β) (S : Set β) :=
 
 lemma SubgraphContractFun.ValidIn (S : Set β) : ValidIn G (SubgraphContractFun G S) S := by
   rintro x y hx hy
-  simp +contextual only [induce_eq_induce_iff, ext_iff_simp, iff_def, SubgraphContractFun]
+  simp +contextual only [induce_eq_induce, ext_iff_simp, iff_def, SubgraphContractFun]
   constructor
   · rintro h
     obtain ⟨H1, H2⟩ := h y

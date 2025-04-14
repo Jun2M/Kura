@@ -7,8 +7,8 @@ import Kura.Operation.Minor
 import Kura.Operation.Hom
 import Kura.Walk.Defs
 import Kura.Walk.Lemma
-import Kura.Walk.PathEnsemble
-import Kura.Separators
+import Kura.S-T.PathEnsemble
+import Kura.S-T.Separator
 import Kura.Menger
 
 -- This module serves as the root of the `Kura` library.

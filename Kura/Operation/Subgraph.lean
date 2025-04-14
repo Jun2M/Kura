@@ -159,7 +159,7 @@ lemma mem_restrict_E_iff : e ∈ (G{R}).E ↔ e ∈ G.E ∧ e ∈ R := by
   simp only [restrict_E, mem_inter_iff]
 
 /-- Edge deletion operator, defined as the graph restricted to the complement of the deleted set -/
-noncomputable abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
+noncomputable def edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
 scoped infix:70 " \\ " => Graph.edgeDel
 
@@ -215,7 +215,7 @@ lemma IsLoopAt.of_IsLoopAt_induce (h : (G[U]).IsLoopAt e x) : G.IsLoopAt e x := 
   exact h.1
 
 /-- Order relation properties -/
-theorem induce_le_induce (hle : G ≤ G') (hsu : U ⊆ V) : G[U] ≤ G'[V] := by
+theorem induce_le_induce_of_subset (hle : G ≤ G') (hsu : U ⊆ V) : G[U] ≤ G'[V] := by
   rw [le_iff_inc]
   refine ⟨hsu, ?_, ?_⟩
   · rintro e he
@@ -234,12 +234,12 @@ theorem induce_le_induce (hle : G ≤ G') (hsu : U ⊆ V) : G[U] ≤ G'[V] := by
       exact And.imp_left (fun a ↦ hinc) he₁U
 
 @[simp]
-theorem induce_le_induce_iff_subset : G[U] ≤ G[V] ↔ U ⊆ V :=
-  ⟨vx_subset_of_le, induce_le_induce (le_refl G)⟩
+theorem induce_le_induce : G[U] ≤ G[V] ↔ U ⊆ V :=
+  ⟨vx_subset_of_le, induce_le_induce_of_subset (le_refl G)⟩
 
 @[simp]
-theorem induce_eq_induce_iff : G[U] = G[V] ↔ U = V := by
-  rw [le_antisymm_iff, induce_le_induce_iff_subset, induce_le_induce_iff_subset, antisymm_iff]
+theorem induce_eq_induce : G[U] = G[V] ↔ U = V := by
+  rw [le_antisymm_iff, induce_le_induce, induce_le_induce, antisymm_iff]
 
 @[simp]
 lemma induce_le (G : Graph α β) (hU : U ⊆ G.V) : G[U] ≤ G := by
@@ -274,7 +274,7 @@ lemma induce_empty_eq_bot : G[∅] = ⊥ := by
 
 @[simp]
 lemma induce_mono (G : Graph α β) (hsu : U ⊆ V) : G[U] ≤ G[V] := by
-  rwa [induce_le_induce_iff_subset]
+  rwa [induce_le_induce]
 
 lemma induce_monotone : Monotone (G[·] : Set α → Graph α β) := fun _U _V ↦ induce_mono G
 
@@ -438,28 +438,28 @@ lemma IsLoopAt.of_IsLoopAt_vxDel (h : (G - U).IsLoopAt e x) : G.IsLoopAt e x := 
   exact h.1
 
 /-- Order relation properties -/
-theorem vxDel_le_vxDel (hle : G ≤ G') (hsu : U ⊆ V) : G - V ≤ G' - U := by
+theorem vxDel_le_vxDel_of_subset (hle : G ≤ G') (hsu : U ⊆ V) : G - V ≤ G' - U := by
   rw [← vxDel_notation]
-  exact induce_le_induce hle <| diff_subset_diff hle.1 hsu
+  exact induce_le_induce_of_subset hle <| diff_subset_diff hle.1 hsu
 
 @[simp]
-lemma vxDel_le_vxDel_iff_subset : G - U ≤ G - V ↔ G.V \ U ⊆ G.V \ V := by
+lemma vxDel_le_vxDel : G - U ≤ G - V ↔ G.V \ U ⊆ G.V \ V := by
   unfold instHSub vxDel
-  simp only [induce_le_induce_iff_subset]
+  simp only [induce_le_induce]
 
 @[simp]
-lemma vxDel_le_vxDel_iff_subset' (hU : U ⊆ G.V) (hV : V ⊆ G.V) : G - U ≤ G - V ↔ V ⊆ U := by
-  rw [vxDel_le_vxDel_iff_subset]
+lemma vxDel_le_vxDel_iff' (hU : U ⊆ G.V) (hV : V ⊆ G.V) : G - U ≤ G - V ↔ V ⊆ U := by
+  rw [vxDel_le_vxDel]
   exact diff_subset_diff_iff_subset hU hV
 
 @[simp]
 theorem vxDel_eq_vxDel_iff : G - U = G - V ↔ G.V \ U = G.V \ V := by
-  rw [le_antisymm_iff, vxDel_le_vxDel_iff_subset, vxDel_le_vxDel_iff_subset, antisymm_iff]
+  rw [le_antisymm_iff, vxDel_le_vxDel, vxDel_le_vxDel, antisymm_iff]
 
 @[simp]
 theorem vxDel_eq_vxDel_iff' (hU : U ⊆ G.V) (hV : V ⊆ G.V) : G - U = G - V ↔ U = V := by
-  rw [le_antisymm_iff, le_antisymm_iff, vxDel_le_vxDel_iff_subset' hU hV,
-  vxDel_le_vxDel_iff_subset' hV hU, and_comm]
+  rw [le_antisymm_iff, le_antisymm_iff, vxDel_le_vxDel_iff' hU hV,
+  vxDel_le_vxDel_iff' hV hU, and_comm]
   rfl
 
 @[simp]
@@ -487,7 +487,7 @@ lemma vxDel_univ_eq_bot : G - (Set.univ : Set α) = ⊥ := by
 
 @[simp]
 lemma vxDel_anti (G : Graph α β) (hsu : U ⊆ V) : G - V ≤ G - U := by
-  simp only [vxDel_le_vxDel_iff_subset]
+  simp only [vxDel_le_vxDel]
   exact diff_subset_diff_right hsu
 
 @[simp]
@@ -745,23 +745,24 @@ This section contains lemmas about the edge deletion operation.
 lemma edgeDel_le (G : Graph α β) (R : Set β) : (G \ R) ≤ G := by
   simp only [edgeDel, restrict_le]
 
-lemma edgeDel_le_edgeDel_of_le (hle : G ≤ G') (hRF : R ⊆ F) : G \ F ≤ G' \ R :=
+lemma edgeDel_le_edgeDel_of_subset (hle : G ≤ G') (hRF : R ⊆ F) : G \ F ≤ G' \ R :=
   restrict_le_restrict_of_le hle <| diff_subset_diff (edge_subset_of_le hle) hRF
 
 @[simp]
-lemma edgeDel_le_edgeDel_iff (G : Graph α β) (R S : Set β) :
+lemma edgeDel_le_edgeDel (G : Graph α β) (R S : Set β) :
     G \ R ≤ G \ S ↔ G.E \ R ⊆ G.E \ S := by
-  rw [restrict_le_restrict_iff, inter_eq_right.mpr diff_subset, inter_eq_right.mpr diff_subset]
+  rw [edgeDel, edgeDel, restrict_le_restrict_iff, inter_eq_right.mpr diff_subset,
+  inter_eq_right.mpr diff_subset]
 
 @[simp]
 lemma edgeDel_eq_edgeDel_iff (G : Graph α β) (R S : Set β) :
     G \ R = G \ S ↔ G.E \ R = G.E \ S := by
-  rw [le_antisymm_iff, subset_antisymm_iff, edgeDel_le_edgeDel_iff, edgeDel_le_edgeDel_iff]
+  rw [le_antisymm_iff, subset_antisymm_iff, edgeDel_le_edgeDel, edgeDel_le_edgeDel]
 
 /-- Equality to self/base cases -/
 @[simp]
 lemma edgeDel_eq_self_iff (G : Graph α β) (R : Set β) : G \ R = G ↔ Disjoint G.E R := by
-  rw [restrict_eq_self_iff, ← Set.subset_compl_iff_disjoint_right, diff_eq_compl_inter]
+  rw [edgeDel, restrict_eq_self_iff, ← Set.subset_compl_iff_disjoint_right, diff_eq_compl_inter]
   simp only [subset_inter_iff, subset_refl, and_true]
 
 @[simp]
@@ -774,10 +775,15 @@ lemma edgeDel_E_eq_self : G \ G.E = Edgeless G.V β := by
   rw [← edgeDel_V, ← edge_empty_iff_eq_Edgeless]
   simp only [edgeDel, diff_self, bot_eq_empty, restrict_E, inter_empty]
 
+@[simp]
+lemma edgeDel_empty_eq_self : G \ ∅ = G := by
+  rw [edgeDel_eq_self_iff]
+  simp
+
 /-- Antitonicity -/
 lemma edgeDel_antitone (G : Graph α β) : Antitone (fun R ↦ G \ R) := by
   rintro R S h
-  rw [edgeDel_le_edgeDel_iff]
+  rw [edgeDel_le_edgeDel]
   exact diff_subset_diff_right h
 
 @[simp]
@@ -798,7 +804,7 @@ lemma edgeDel_idem (R : Set β) : (G \ R) \ R = G \ R := by
 /-- Inc₂ lemmas -/
 @[simp]
 lemma edgeDel_inc₂ : (G \ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
-  simp only [restrict_inc₂, mem_diff, and_congr_right_iff, and_iff_right_iff_imp]
+  rw [edgeDel, restrict_inc₂, mem_diff, and_congr_right_iff, and_iff_right_iff_imp]
   exact fun h _ ↦ h.edge_mem
 
 /-- Adjacency properties -/

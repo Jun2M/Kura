@@ -1,4 +1,4 @@
-import Kura.Walk.PathEnsemble
+import Kura.S-T.PathEnsemble
 import Mathlib.Data.Set.Disjoint
 
 namespace Graph
