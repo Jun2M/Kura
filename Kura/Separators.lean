@@ -1,4 +1,4 @@
-import Kura.Operation.Subgraph
+import Kura..Ignore.SubgraphOld
 import Kura.Walk.Operation
 
 
