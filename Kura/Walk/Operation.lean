@@ -590,3 +590,16 @@ theorem Connected.iff_walk : G.Connected u v ↔ ∃ w : Walk α β, w.ValidIn G
   · exact fun a ↦ exist_walk a
   · rintro ⟨w, h1, rfl, rfl⟩
     exact h1.connected
+
+lemma SetConnected.exist_walk (h : G.SetConnected S T) : ∃ w : Walk α β, G.IsWalkFrom S T w := by
+  obtain ⟨x, hxS, y, hyT, h⟩ := h
+  obtain ⟨w, hVd, rfl, rfl⟩ := h.exist_walk
+  use w, hVd
+
+theorem SetConnected.iff_walk : G.SetConnected S T ↔ ∃ w : Walk α β, G.IsWalkFrom S T w := by
+  constructor
+  · exact SetConnected.exist_walk
+  · rintro ⟨w, h⟩
+    exact h.setConnected
+
+end Graph

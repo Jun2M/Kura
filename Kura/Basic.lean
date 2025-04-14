@@ -851,5 +851,12 @@ lemma nonempty_inter (h : (S ∩ T ∩ G.V).Nonempty) : G.SetConnected S T := by
   obtain ⟨x, ⟨hxS, hxT⟩, hx⟩ := h
   use x, hxS, x, hxT, Connected.refl hx
 
+lemma exists_mem_left (h : G.SetConnected S T) : ∃ x ∈ S, x ∈ G.V := by
+  obtain ⟨s, hs, t, ht, h⟩ := h
+  exact ⟨s, hs, h.mem_left⟩
+
+lemma exists_mem_right (h : G.SetConnected S T) : ∃ x ∈ T, x ∈ G.V := by
+  rw [SetConnected.comm] at h
+  exact exists_mem_left h
 
 end SetConnected

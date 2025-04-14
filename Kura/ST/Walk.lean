@@ -1,36 +1,36 @@
 import Kura.ST.Separator
-import Kura.Walk.Lemmas
+import Kura.Walk.Lemma
 
 namespace Graph
 open Set Function List Nat Walk
-variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
-  {F F' : Set β} {w w1 w2 : Walk α β}
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S S' T T' U V : Set α}
+  {F F' R R' : Set β} {w w1 w2 : Walk α β}
 
 
 namespace IsVxSetSeparator
 
-
-lemma walk_inter (hUsep : G.IsVxSetSeparator U S T) (hWF : G.IsWalkFrom S T w) :
+lemma walk_inter (hUsep : G.IsVxSetSeparator S T U) (hWF : G.IsWalkFrom S T w) :
     ∃ x ∈ w, x ∈ U := by
   by_contra! hx
-  have hVdU := ValidIn.vxDel hWF.validIn fun V hV hVU x hxV ↦ hx x (hV hxV) (hVU hxV)
-  exact hUsep w.first hWF.first_mem w.last hWF.last_mem hVdU.connected
+  refine hUsep ?_
+  use w.first, hWF.first_mem, w.last, hWF.last_mem
+  exact (hWF.validIn.vxDel fun V hV hVU x hxV ↦ hx x (hV hxV) (hVU hxV)).connected
 
-lemma walk_validOn_left (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidIn (G - U))
+lemma walk_validOn_left (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G - U))
     (hLeft : ∃ x ∈ w, x ∈ hUsep.leftSet) : w.ValidIn (G[hUsep.leftSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hLeft
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
 
-lemma walk_validOn_right (hUsep : G.IsVxSetSeparator U S T) (hVd : w.ValidIn (G - U))
+lemma walk_validOn_right (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G - U))
     (hT : ∃ x ∈ w, x ∈ hUsep.rightSet) :
     w.ValidIn (G[hUsep.rightSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hT
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
 
-lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hNodup : w.vx.Nodup) (hVd : w.ValidIn G)
-    (hUsep : G.IsVxSetSeparator {w.last} S T) (hS : w.first ∈ hUsep.leftSet) (hx : x ∈ w.vx) :
+lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hP : G.IsPath w)
+    (hUsep : G.IsVxSetSeparator S T {w.last}) (hS : w.first ∈ hUsep.leftSet) (hx : x ∈ w.vx) :
     x ∈ hUsep.leftSet ∪ {w.last} := by
   obtain (h | h) := em (w.Nonempty) |>.symm
   · right
@@ -47,31 +47,31 @@ lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hNodup : w.vx.Nodup) (hVd 
     simp only [cons_last] at hUsep ⊢
     change x ∈ hUsep.leftSet ∪ {w'.last}
     by_cases hw' : w'.first = w'.last
-    · simp [cons_vx_nodup hNodup] at hw'
+    · simp [cons_vx_nodup hP.nodup] at hw'
       obtain ⟨y, rfl⟩ := hw'
       right
       simpa using hx
-    · apply (path_in_leftHalf_of_finishSep (w := w') (cons_vx_nodup hNodup) hVd.cons hUsep · hx)
+    · apply (path_in_leftHalf_of_finishSep (w := w') hP.cons hUsep · hx)
       simp only [cons_last, cons_first] at hS
       obtain ⟨s, hs, hys⟩ := hS
       use s, hs, Connected.trans ?_ hys
-      refine (hVd.1.induce_of_mem hys.mem_left ?_).connected.symm
-      refine ⟨hVd.2.vx_mem_of_mem first_mem, hw'⟩
+      refine (hP.validIn.1.induce_of_mem hys.mem_left ?_).connected.symm
+      refine ⟨hP.validIn.2.vx_mem_of_mem first_mem, hw'⟩
 
-lemma path_validOn_leftHalf_of_finishSep (hUsep : G.IsVxSetSeparator {w.last} S T) (hNodup : w.vx.Nodup)
-    (hVd : w.ValidIn G) (hS : w.first ∈ hUsep.leftSet) :
-    w.ValidIn (G[hUsep.leftSet ∪ {w.last}]) :=
-  hVd.induce <| fun _ => path_in_leftHalf_of_finishSep (w := w) hNodup hVd hUsep hS
+lemma path_validOn_leftHalf_of_finishSep (hUsep : G.IsVxSetSeparator S T {w.last}) (hP : G.IsPath w)
+    (hS : w.first ∈ hUsep.leftSet) : w.ValidIn (G[hUsep.leftSet ∪ {w.last}]) :=
+  hP.validIn.induce <| fun _ => path_in_leftHalf_of_finishSep (w := w) hP hUsep hS
 
-instance IsPreorder : IsPreorder (Set α) (IsVxSetSeparator G · S ·) where
-  refl A s hs a ha hconn := by
-    have := hconn.mem_right
-    simp only [vxDel_V, mem_diff, ha, not_true_eq_false, and_false] at this
-  trans A B C hAB hBC s hs c hc hconn := by
-    rw [Connected.iff_walk] at hconn
-    obtain ⟨p, hpVd, rfl, rfl⟩ := hconn
-    obtain ⟨x, hxp, hxB⟩ := hBC.walk_inter (hpVd.le (induce_le G Set.diff_subset)) hs hc
-    exact hAB p.first hs x hxB <| hpVd.connected_of_mem first_mem hxp
+instance IsPreorder : IsPreorder (Set α) (IsVxSetSeparator G S) where
+  refl A hconn := by
+    obtain ⟨x, hxS, hx⟩ := hconn.exists_mem_right
+    simp only [vxDel_V, mem_diff, hxS, not_true_eq_false, and_false] at hx
+  trans A B C hAB hBC hconn := by
+    rw [SetConnected.iff_walk] at hconn
+    obtain ⟨w, hwF⟩ := hconn
+    obtain ⟨x, hxw, hxB⟩ := hAB.walk_inter (w := w) (hwF.le (induce_le G Set.diff_subset))
+    refine hBC ?_
+    use w.first, hwF.first_mem, x, hxB, hwF.validIn.connected_first_of_mem hxw
 
 lemma crossingWalk_intersect (hVsep : G.IsVxSetSeparator V S T) [DecidablePred (· ∈ V)]
     (hwVd : w.ValidIn G) (hwfirst : w.first ∈ hVsep.leftSet ∪ V)

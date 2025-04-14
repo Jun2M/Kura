@@ -118,9 +118,19 @@ lemma Connected.iff_path : G.Connected u v ↔
   rw [Connected.iff_walk]
   constructor
   · rintro ⟨w, hP, rfl, rfl⟩
-    use w.dedup, dedup_isPath hP, dedup_first w, dedup_last w
+    use w.dedup, hP.dedup_isPath, dedup_first w, dedup_last w
   · rintro ⟨w, hP, rfl, rfl⟩
     use w, hP.validIn
+
+lemma SetConnected.iff_path : G.SetConnected S T ↔ ∃ w : Walk α β, G.IsPathFrom S T w := by
+  classical
+  constructor
+  · rintro hconn
+    obtain ⟨w, hwF⟩ := hconn.exist_walk
+    use w.dedup
+    refine hwF.dedup
+  · rintro ⟨w, hPF⟩
+    exact hPF.isWalkFrom.setConnected
 
 -- noncomputable def Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β}
 --     (hVd : ValidIn G p C) (h : w.ValidIn (G /[p] C)) {x y : α} (hx : x ∈ G.V) (hy : y ∈ G.V)
@@ -267,7 +277,7 @@ lemma Contract.path {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
   classical
   rintro x hx y hy hpx hpy
   obtain ⟨w', hw'Vd, rfl, rfl, hsub⟩ := Contract.walk hVd h x hx y hy hpx hpy
-  use w'.dedup, dedup_isPath hw'Vd, dedup_first w', dedup_last w',
+  use w'.dedup, hw'Vd.dedup_isPath, dedup_first w', dedup_last w',
     Subset.trans (dedup_edge_sublist w') hsub
 
 -- /-- If the endpoints of a path are connected in G via a valid path, they are connected in G -/

@@ -287,14 +287,23 @@ lemma dedup_edge_nodup {w : Walk α β} (hVd : w.ValidIn G) : w.dedup.edge.Nodup
       rintro he
       exact h <| hne.mem_left_of_edge_mem_walk (dedup_edge_sublist W he) hVd
 
-lemma dedup_isPath (hVd : w.ValidIn G) : G.IsPath w.dedup where
+lemma ValidIn.dedup_isPath (hVd : w.ValidIn G) : G.IsPath w.dedup where
   validIn := ValidIn.dedup hVd
   nodup := dedup_vx_nodup w
 
+end Walk
+open Walk
+
+lemma IsWalkFrom.dedup [DecidableEq α] (h : G.IsWalkFrom S T w) : G.IsPathFrom S T w.dedup := by
+  obtain ⟨hVd, hfirst, hlast⟩ := h
+  refine hVd.dedup_isPath.isPathFrom ?_ ?_
+  · rwa [dedup_first]
+  · rwa [dedup_last]
+
+namespace Walk
 
 /- Properties of `endIf` -/
 variable {P : α → Prop} [DecidablePred P]
-omit [DecidableEq α]
 
 @[simp]
 lemma endIf_nil (h : ∃ u ∈ nil x, P u) : (nil x : Walk α β).endIf h = nil x := rfl
