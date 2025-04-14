@@ -111,7 +111,6 @@ lemma edge_empty_iff_eq_Edgeless (G : Graph α β) : G.E = ∅ ↔ G = Edgeless 
     rw [heq]
     rfl
 
-@[simp]
 instance instOrderBotGraph : OrderBot (Graph α β) where
   bot := Edgeless ∅ β
   bot_le G := by refine ⟨?_, ?_, ?_⟩ <;> simp only [Edgeless, empty_subset, mem_empty_iff_false,
@@ -120,19 +119,42 @@ instance instOrderBotGraph : OrderBot (Graph α β) where
 instance instInhabitedGraph : Inhabited (Graph α β) where
   default := ⊥
 
-@[simp]
-lemma bot_V : (⊥ : Graph α β).V = ∅ := rfl
+@[simp] lemma bot_V : (⊥ : Graph α β).V = ∅ := rfl
 
-@[simp]
-lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
+@[simp] lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
 
-@[simp]
-lemma bot_incFun : (⊥ : Graph α β).incFun = 0 := rfl
+@[simp] lemma bot_incFun : (⊥ : Graph α β).incFun = 0 := rfl
 
 @[simp]
 lemma bot_inc : (⊥ : Graph α β).Inc = fun _ _ ↦ False := by
   ext e a
   simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty]
+
+@[simp]
+lemma bot_inc₂ : (⊥ : Graph α β).Inc₂ = fun _ _ _ ↦ False := by
+  ext e a b
+  simp only [instOrderBotGraph, Edgeless.E, not_inc₂_of_E_empty]
+
+@[simp]
+lemma bot_adj : (⊥ : Graph α β).Adj = fun _ _ ↦ False := by
+  ext x y
+  simp only [instOrderBotGraph, Edgeless.E, not_adj_of_E_empty]
+
+@[simp]
+lemma bot_reflAdj : (⊥ : Graph α β).reflAdj = fun _ _ ↦ False := by
+  ext x y
+  simp
+
+@[simp]
+lemma bot_connected : (⊥ : Graph α β).Connected = fun _ _ ↦ False := by
+  ext x y
+  simp
+
+@[simp]
+lemma bot_setConnected : (⊥ : Graph α β).SetConnected = fun _ _ ↦ False := by
+  ext S T
+  rw [SetConnected.supported]
+  simp
 
 @[simp]
 lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by

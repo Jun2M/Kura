@@ -47,6 +47,9 @@ def leftSet (h : G.IsVxSetSeparator V S T) : Set α :=
 def rightSet (h : G.IsVxSetSeparator V S T) : Set α :=
   {v | ∃ t ∈ T, (G - V).Connected v t}
 
+@[simp] lemma not_isVxSetSeparator : ¬ G.IsVxSetSeparator V S T ↔ (G - V).SetConnected S T := by
+  simp [IsVxSetSeparator]
+
 @[simp]
 lemma le (h : G'.IsVxSetSeparator V S T) (hle : G ≤ G') : G.IsVxSetSeparator V S T := by
   rintro hconn
@@ -58,7 +61,7 @@ lemma symm (h : G.IsVxSetSeparator V S T) : G.IsVxSetSeparator V T S := (h ·.sy
 lemma comm : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V T S := ⟨symm, symm⟩
 
 @[simp]
-lemma subset (h : G.IsVxSetSeparator U S T) (hUV : U ⊆ V) : G.IsVxSetSeparator V S T :=
+lemma sep_subset (h : G.IsVxSetSeparator U S T) (hUV : U ⊆ V) : G.IsVxSetSeparator V S T :=
   fun hconn ↦ h <| hconn.le <| vxDel_anti G hUV
 
 @[simp]
@@ -70,84 +73,65 @@ lemma subset_target (h : G.IsVxSetSeparator V S T') (hT : T ⊆ T') : G.IsVxSetS
   fun hconn ↦ h <| hconn.right_subset hT
 
 @[simp]
-lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ ¬ G.SetConnected S T := by
+lemma empty_iff : G.IsVxSetSeparator ∅ S T ↔ ¬ G.SetConnected S T := by simp [IsVxSetSeparator]
+
+@[simp] lemma empty_source : G.IsVxSetSeparator V ∅ T := by simp [IsVxSetSeparator]
+
+@[simp] lemma empty_target : G.IsVxSetSeparator V S ∅ := by simp [IsVxSetSeparator]
+
+@[simp] lemma univ_sep : G.IsVxSetSeparator univ S T := by simp [IsVxSetSeparator]
+
+@[simp] lemma support_sep : G.IsVxSetSeparator G.V S T := by simp [IsVxSetSeparator]
+
+lemma sep_support : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (V ∩ G.V) S T := by
   unfold IsVxSetSeparator
-  simp only [vxDel_empty_eq_self]
+  suffices G - V = G - (V ∩ G.V) by rw [this]
+  rw [vxDel_eq_vxDel_iff]
+  simp
+
+lemma left_support : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) T := by
+  constructor <;> refine fun hSep hconn ↦ hSep ?_
+  · rw [SetConnected.left_supported, vxDel_V] at hconn ⊢
+    exact hconn.left_subset (by tauto_set)
+  · rw [SetConnected.left_supported, vxDel_V] at hconn
+    exact hconn.left_subset (by tauto_set)
+
+lemma right_support : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T ∩ G.V) := by
+  constructor <;> refine fun hSep hconn ↦ hSep ?_
+  · rw [SetConnected.right_supported, vxDel_V] at hconn ⊢
+    exact hconn.right_subset (by tauto_set)
+  · rw [SetConnected.right_supported, vxDel_V] at hconn
+    exact hconn.right_subset (by tauto_set)
+
+lemma left_right_support : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) (T ∩ G.V) := by
+  rw [left_support, right_support]
+
+lemma left_diff_sep : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S \ V) T := by
+  constructor <;> refine fun hSep hconn ↦ hSep ?_
+  · rw [SetConnected.left_supported, vxDel_V] at hconn ⊢
+    exact hconn.left_subset (by tauto_set)
+  · rw [SetConnected.left_supported, vxDel_V] at hconn
+    exact hconn.left_subset (by tauto_set)
+
+lemma right_diff_sep : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T \ V) := by
+  constructor <;> refine fun hSep hconn ↦ hSep ?_
+  · rw [SetConnected.right_supported, vxDel_V] at hconn ⊢
+    exact hconn.right_subset (by tauto_set)
+  · rw [SetConnected.right_supported, vxDel_V] at hconn
+    exact hconn.right_subset (by tauto_set)
+
+lemma source_inter_target_subset (h : G.IsVxSetSeparator V S T) : G.V ∩ S ∩ T ⊆ V := by
+  rintro x ⟨⟨hx, hxS⟩, hxT⟩
+  by_contra! hxV
+  apply h
+  use x, hxS, x, hxT, Connected.refl ⟨hx, hxV⟩
 
 @[simp]
-lemma empty_source : G.IsVxSetSeparator V ∅ T := by
-  simp [IsVxSetSeparator]
-
-@[simp]
-lemma empty_target : G.IsVxSetSeparator V S ∅ := by
-  simp [IsVxSetSeparator]
-
-@[simp]
-lemma univ : G.IsVxSetSeparator univ S T := by
-  simp [IsVxSetSeparator]
-  simp only [vxDel_V, diff_univ, mem_empty_iff_false, not_false_eq_true,
-    not_connected_of_not_mem] at hconn
-
-@[simp]
-lemma supp : G.IsVxSetSeparator G.V S T := by
-  rintro s hs t ht hconn
-  simp only [vxDel_V_eq_bot, instOrderBotGraph, Edgeless.V, mem_empty_iff_false, not_false_eq_true,
-    not_connected_of_not_mem] at hconn
-
-@[simp]
-lemma source_subset (hSU : S ⊆ V) : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  have := hconn.mem_left
-  simp only [vxDel_V, mem_diff, hSU hs, not_true_eq_false, and_false] at this
-
-@[simp]
-lemma target_subset (hTV : T ⊆ V) : G.IsVxSetSeparator V S T := by
-  rintro s hs t ht hconn
-  have := hconn.mem_right
-  simp only [vxDel_V, mem_diff, hTV ht, not_true_eq_false, and_false] at this
-
-@[simp]
-lemma induce : (G - U).IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (U ∪ V) S T := by
+lemma vxDel : (G - U).IsVxSetSeparator V S T ↔ G.IsVxSetSeparator (U ∪ V) S T := by
   unfold IsVxSetSeparator
   rw [vxDel_vxDel_eq_vxDel_union]
 
-lemma iff_left_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) T := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s (mem_of_mem_inter_left hs) t ht hconn
-  · by_cases h' : s ∈ G.V
-    · exact h s (mem_inter hs h') t ht hconn
-    · exact h' hconn.mem_left.1
-
-lemma iff_right_supported : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T ∩ G.V) := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s hs t (mem_of_mem_inter_left ht) hconn
-  · by_cases h' : t ∈ G.V
-    · exact h s hs t (mem_inter ht h') hconn
-    · exact h' hconn.mem_right.1
-
-lemma isVxSetSeparator_iff_inter_vxSet (G : Graph α β) :
-    G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S ∩ G.V) (T ∩ G.V) := by
-  constructor
-  · rintro h s ⟨hsS, hs⟩ t ⟨htT, ht⟩ hconn
-    exact h s hsS t htT hconn
-  · rintro h s hs t ht hconn
-    exact h s ⟨hs, hconn.mem_left.1⟩ t ⟨ht, hconn.mem_right.1⟩ hconn
-
-lemma iff_left_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V (S \ V) T := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s (mem_of_mem_diff hs) t ht hconn
-  · exact h s ⟨hs, hconn.mem_left.2⟩ t ht hconn
-
-lemma iff_right_diff : G.IsVxSetSeparator V S T ↔ G.IsVxSetSeparator V S (T \ V) := by
-  constructor <;> rintro h s hs t ht hconn
-  · exact h s hs t (mem_of_mem_diff ht) hconn
-  · exact h s hs t ⟨ht, hconn.mem_right.2⟩ hconn
-
-lemma source_inter_target_subset (h : G.IsVxSetSeparator V S T) : G.V ∩ S ∩ T ⊆ V := by
-  rintro x hx
-  specialize h x hx.1.2 x hx.2
-  simpa only [Connected.refl_iff, vxDel_V, mem_diff, hx.1.1, true_and, not_not] using h
-
+/- Lemmas about the left and right sets of a separator -/
 lemma leftSet_subset (h : G.IsVxSetSeparator V S T) : h.leftSet ⊆ G.V \ V :=
   fun _v ⟨_s, _hs, hconn⟩ ↦ hconn.mem_left
 
@@ -156,19 +140,17 @@ lemma subset_leftSet (h : G.IsVxSetSeparator V S T) (hS : S ⊆ G.V) : S ⊆ h.l
   by_cases h' : s ∈ V
   · exact Or.inr h'
   · left
-    use s, hs
-    exact Connected.refl ⟨hS hs, h'⟩
+    use s, hs, Connected.refl ⟨hS hs, h'⟩
 
 lemma rightSet_subset (h : G.IsVxSetSeparator V S T) : h.rightSet ⊆ G.V \ V :=
-    fun _v ⟨_t, _ht, hconn⟩ ↦ hconn.mem_left
+  fun _v ⟨_t, _ht, hconn⟩ ↦ hconn.mem_left
 
 lemma subset_rightSet (h : G.IsVxSetSeparator V S T) (hT : T ⊆ G.V) : T ⊆ h.rightSet ∪ V := by
   rintro t ht
   by_cases h' : t ∈ V
   · exact Or.inr h'
   · left
-    use t, ht
-    exact Connected.refl ⟨hT ht, h'⟩
+    use t, ht, Connected.refl ⟨hT ht, h'⟩
 
 @[simp]
 lemma symm_leftSet (h : G.IsVxSetSeparator V S T) : h.symm.leftSet = h.rightSet := by
@@ -182,20 +164,21 @@ lemma symm_rightSet (h : G.IsVxSetSeparator V S T) : h.symm.rightSet = h.leftSet
 
 @[simp]
 lemma leftSet_rightSet_disjoint (h : G.IsVxSetSeparator V S T) :
-    _root_.Disjoint h.leftSet h.rightSet := by
+    Disjoint h.leftSet h.rightSet := by
   rintro U hUl hUr a haU
   obtain ⟨s, hs, hconn⟩ := hUl haU
   obtain ⟨t, ht, hconn'⟩ := hUr haU
-  exact h s hs t ht (hconn.symm.trans hconn')
+  apply h
+  use s, hs, t, ht, hconn.symm.trans hconn'
 
 @[simp]
-lemma leftSet_V_disjoint (h : G.IsVxSetSeparator V S T) : _root_.Disjoint h.leftSet V := by
+lemma leftSet_V_disjoint (h : G.IsVxSetSeparator V S T) : Disjoint h.leftSet V := by
   rintro U hUl hUV a haU
   obtain ⟨s, hs, hconn⟩ := hUl haU
   exact hconn.mem_left.2 (hUV haU)
 
 @[simp]
-lemma rightSet_V_disjoint (h : G.IsVxSetSeparator V S T) : _root_.Disjoint h.rightSet V := by
+lemma rightSet_V_disjoint (h : G.IsVxSetSeparator V S T) : Disjoint h.rightSet V := by
   rintro U hUr hUV a haU
   obtain ⟨t, ht, hconn⟩ := hUr haU
   exact hconn.mem_left.2 (hUV haU)

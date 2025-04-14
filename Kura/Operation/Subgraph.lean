@@ -2,8 +2,8 @@ import Kura.Isolated
 
 
 open Set Function
-variable {α β : Type*} {G G₁ G₂ : Graph α β} {u v w x y : α} {e f g : β} {S T U: Set α}
-  {F F' : Set β}
+variable {α β : Type*} {G G' H H' : Graph α β} {u v w x y : α} {e f g : β} {S T U V: Set α}
+  {F F' R R' : Set β}
 namespace Graph
 
 private lemma foo (U : Set α) : (∀ (x : α), G.Inc e x → x ∈ U) ↔ ∀ x ∈ (G.incFun e).support, x ∈ U := by
@@ -31,53 +31,55 @@ noncomputable def induce (G : Graph α β) (U : Set α) : Graph α β := by
 
 notation G "[" S "]" => Graph.induce G S
 
-variable {U V U' V' : Set α}
-
 @[simp]
 noncomputable abbrev vxDel (G : Graph α β) (V : Set α) : Graph α β := G[G.V \ V]
 
 noncomputable instance instHSub : HSub (Graph α β) (Set α) (Graph α β) where
   hSub := vxDel
 
-@[simp]
-lemma vxDel_notation : G[G.V \ U] = G - U := rfl
+@[simp] lemma vxDel_notation : G[G.V \ U] = G - U := rfl
 
-@[simp]
-lemma induce_V : (G[U]).V = U := rfl
+/-- Restrict a graph to a set of edges -/
+noncomputable def restrict (G : Graph α β) (R : Set β) : Graph α β where
+  V := G.V
+  E := G.E ∩ R
+  incFun e :=
+    haveI := Classical.dec (e ∈ R)
+    if e ∈ R then G.incFun e else 0
+  sum_eq e he := by
+    simp only [he.2, ↓reduceIte]
+    exact G.sum_eq he.1
+  vertex_support e v h := by
+    beta_reduce at h
+    split_ifs at h with he
+    · exact G.vertex_support h
+    · simp only [Finsupp.coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
+  edge_support e v h := by
+    beta_reduce at h
+    split_ifs at h with he
+    · exact ⟨G.edge_support h, he⟩
+    · simp only [Finsupp.coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
 
-@[simp]
-lemma vxDel_V : (G - U).V = G.V \ U := rfl
+notation G "{" S "}" => Graph.restrict G S
 
-lemma vxDel_V_subset (U : Set α) : (G - U).V ⊆ G.V := by simp only [vxDel_V, diff_subset]
+noncomputable abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
-@[simp]
-lemma induce_E : (G[U]).E = G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ U} := rfl
+scoped infix:70 " \\ " => Graph.edgeDel
 
-@[simp]
-lemma vxDel_E : (G - U).E = G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ G.V \ U} := rfl
+@[simp] lemma edgeDel_notation : G{G.E \ F} = G \ F := rfl
+
+section Induce
+
+@[simp] lemma induce_V : (G[U]).V = U := rfl
+
+@[simp] lemma induce_E : (G[U]).E = G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ U} := rfl
 
 lemma induce_E_subset (U : Set α) : (G[U]).E ⊆ G.E := by simp only [induce_E, inter_subset_left]
 
-lemma vxDel_E_subset (U : Set α) : (G - U).E ⊆ G.E := by simp only [vxDel_E, mem_diff,
-  inter_subset_left]
-
-@[simp]
-lemma induce_inc₂_iff : (G[U]).Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∈ U ∧ y ∈ U :=
-  Inc₂.ofInc₂
-
-@[simp]
-lemma vxDel_inc₂_iff : (G - U).Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∉ U ∧ y ∉ U := by
-  simp +contextual only [← vxDel_notation, induce_inc₂_iff, mem_diff, iff_def,
-    not_false_eq_true, and_self, implies_true, and_true, true_and, and_imp]
-  rintro hbtw hx hy
-  exact ⟨hbtw.vx_mem_left, hbtw.vx_mem_right⟩
+@[simp] lemma induce_inc₂_iff : (G[U]).Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∈ U ∧ y ∈ U := Inc₂.ofInc₂
 
 lemma Inc₂.of_inc₂_induce (h : (G[U]).Inc₂ e x y) : G.Inc₂ e x y := by
   rw [induce_inc₂_iff] at h
-  exact h.1
-
-lemma Inc₂.of_inc₂_vxDel (h : (G - U).Inc₂ e x y) : G.Inc₂ e x y := by
-  rw [vxDel_inc₂_iff] at h
   exact h.1
 
 lemma Inc₂.iff_induce_pair : G.Inc₂ e x y ↔ G[{x, y}].Inc₂ e x y := by
@@ -98,16 +100,40 @@ lemma induce_inc_iff : (G[U]).Inc e v ↔ G.Inc e v ∧ ∀ (x : α), G.Inc e x 
     · use y, hx, hU v hx.inc_left, hU y hx.inc_right
     · use x, hx.symm, hU v hx.inc_right, hU x hx.inc_left
 
+lemma Inc.of_Inc_induce (h : (G[U]).Inc e v) : G.Inc e v := by
+  rw [induce_inc_iff] at h
+  exact h.1
+
+end Induce
+
+section VxDel
+
+@[simp] lemma vxDel_V : (G - U).V = G.V \ U := rfl
+
+lemma vxDel_V_subset (U : Set α) : (G - U).V ⊆ G.V := by simp only [vxDel_V, diff_subset]
+
+@[simp] lemma vxDel_E : (G - U).E = G.E ∩ {e | ∀ (x : α), G.Inc e x → x ∈ G.V \ U} := rfl
+
+lemma vxDel_E_subset (U : Set α) : (G - U).E ⊆ G.E := by simp only [vxDel_E, mem_diff,
+  inter_subset_left]
+
+@[simp]
+lemma vxDel_inc₂_iff : (G - U).Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∉ U ∧ y ∉ U := by
+  simp +contextual only [← vxDel_notation, induce_inc₂_iff, mem_diff, iff_def,
+    not_false_eq_true, and_self, implies_true, and_true, true_and, and_imp]
+  rintro hbtw hx hy
+  exact ⟨hbtw.vx_mem_left, hbtw.vx_mem_right⟩
+
+lemma Inc₂.of_inc₂_vxDel (h : (G - U).Inc₂ e x y) : G.Inc₂ e x y := by
+  rw [vxDel_inc₂_iff] at h
+  exact h.1
+
 @[simp]
 lemma vxDel_inc_iff : (G - U).Inc e v ↔ G.Inc e v ∧ ∀ (x : α), G.Inc e x → x ∉ U := by
   simp +contextual only [← vxDel_notation, induce_inc_iff, mem_diff, iff_def, not_false_eq_true,
     implies_true, and_self, and_true, true_and, and_imp]
   rintro hinc hnin x hincx
   exact hincx.vx_mem
-
-lemma Inc.of_Inc_induce (h : (G[U]).Inc e v) : G.Inc e v := by
-  rw [induce_inc_iff] at h
-  exact h.1
 
 lemma Inc.of_Inc_vxDel (h : (G - U).Inc e v) : G.Inc e v := by
   rw [vxDel_inc_iff] at h
@@ -142,7 +168,7 @@ lemma IsLoopAt.of_IsLoopAt_vxDel (h : (G - U).IsLoopAt e x) : G.IsLoopAt e x := 
   rw [vxDel_isLoopAt_iff] at h
   exact h.1
 
-theorem induce_le_induce (hle : G₁ ≤ G₂) (hsu : U ⊆ V) : G₁[U] ≤ G₂[V] := by
+theorem induce_le_induce (hle : G ≤ G') (hsu : U ⊆ V) : G[U] ≤ G'[V] := by
   rw [le_iff_inc]
   refine ⟨hsu, ?_, ?_⟩
   · rintro e he
@@ -160,7 +186,7 @@ theorem induce_le_induce (hle : G₁ ≤ G₂) (hsu : U ⊆ V) : G₁[U] ≤ G�
     · rintro ⟨hinc, hU⟩
       exact And.imp_left (fun a ↦ hinc) he₁U
 
-theorem vxDel_le_vxDel (hle : G₁ ≤ G₂) (hsu : U ⊆ V) : G₁ - V ≤ G₂ - U := by
+theorem vxDel_le_vxDel (hle : G ≤ G') (hsu : U ⊆ V) : G - V ≤ G' - U := by
   rw [← vxDel_notation]
   exact induce_le_induce hle <| diff_subset_diff hle.1 hsu
 
@@ -240,6 +266,11 @@ lemma induce_empty_eq_bot : G[∅] = ⊥ := by
 @[simp]
 lemma vxDel_V_eq_bot : G - G.V = ⊥ := by
   simp only [← vxDel_notation, sdiff_self, bot_eq_empty, induce_empty_eq_bot, instOrderBotGraph]
+
+@[simp]
+lemma vxDel_univ_eq_bot : G - (Set.univ : Set α) = ⊥ := by
+  rw [← vxDel_V_eq_bot, vxDel_eq_vxDel_iff]
+  simp
 
 @[simp]
 lemma induce_mono (G : Graph α β) (hsu : U ⊆ V) : G[U] ≤ G[V] := by
@@ -446,35 +477,6 @@ lemma vx_ncard_le_of_induce [hfin : G.Finite] (hU : U ⊆ G.V) : (G[U]).V.ncard 
 lemma edge_ncard_le_of_induce [hfin : G.Finite] : (G[U]).E.ncard ≤ G.E.ncard :=
   Set.ncard_le_ncard (G.induce_E_subset U) hfin.edge_fin
 
-/-- Restrict a graph to a set of edges -/
-noncomputable def restrict (G : Graph α β) (R : Set β) : Graph α β where
-  V := G.V
-  E := G.E ∩ R
-  incFun e :=
-    haveI := Classical.dec (e ∈ R)
-    if e ∈ R then G.incFun e else 0
-  sum_eq e he := by
-    simp only [he.2, ↓reduceIte]
-    exact G.sum_eq he.1
-  vertex_support e v h := by
-    beta_reduce at h
-    split_ifs at h with he
-    · exact G.vertex_support h
-    · simp only [Finsupp.coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
-  edge_support e v h := by
-    beta_reduce at h
-    split_ifs at h with he
-    · exact ⟨G.edge_support h, he⟩
-    · simp only [Finsupp.coe_zero, Pi.zero_apply, ne_eq, not_true_eq_false] at h
-
-notation G "{" S "}" => Graph.restrict G S
-
-@[simp]
-noncomputable abbrev edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
-
-scoped infix:70 " \\ " => Graph.edgeDel
-
-variable {G H : Graph α β} {R R'  : Set β}
 
 @[simp] theorem restrict_V : (G{R}).V = G.V := rfl
 
