@@ -36,30 +36,37 @@ def Empty (α β : Type*) : PathEnsemble α β where
     exact False.elim hp
 
 def nil (U : Set α) (β : Type*) : PathEnsemble α β where
-  Paths := Path.nil '' U
+  Walks := Walk.nil '' U
+  IsPath w hw := by
+    obtain ⟨u, huU, rfl⟩ := hw
+    simp
   Disj := by
     rintro x p q hp hq hxp hxq
     simp only [mem_image] at hp hq
     obtain ⟨u, hu, rfl⟩ := hp
     obtain ⟨v, hv, rfl⟩ := hq
-    simp only [vx, Graph.Path.nil, nil_vx, mem_cons, not_mem_nil, or_false] at hxp hxq
+    simp only [vx, mem_cons, not_mem_nil, or_false] at hxp hxq
     subst u v
     rfl
 
-def ValidIn (Ps : PathEnsemble α β) (G : Graph α β) := ∀ p ∈ Ps.Paths, p.val.ValidIn G
+def ValidIn (Ps : PathEnsemble α β) (G : Graph α β) := ∀ w ∈ Ps.Walks, w.ValidIn G
 
-def StartSet (Ps : PathEnsemble α β) : Set α := (·.val.first) '' Ps.Paths
+def StartSet (Ps : PathEnsemble α β) : Set α := (·.first) '' Ps.Walks
 
-def FinishSet (Ps : PathEnsemble α β) : Set α := (·.val.last) '' Ps.Paths
+def FinishSet (Ps : PathEnsemble α β) : Set α := (·.last) '' Ps.Walks
 
-def VxSet (Ps : PathEnsemble α β) : Set α := {x | ∃ p ∈ Ps.Paths, x ∈ p.val.vx}
+def VxSet (Ps : PathEnsemble α β) : Set α := {x | ∃ w ∈ Ps.Walks, x ∈ w.vx}
 
-def EdgeSet (Ps : PathEnsemble α β) : Set β := {e | ∃ p ∈ Ps.Paths, e ∈ p.val.edge}
+def EdgeSet (Ps : PathEnsemble α β) : Set β := {e | ∃ w ∈ Ps.Walks, e ∈ w.edge}
 
-def InternalVsSet (Ps : PathEnsemble α β) : Set α := {x | ∃ p ∈ Ps.Paths, x ∈ p.val.vx.tail.dropLast}
+def InternalVsSet (Ps : PathEnsemble α β) : Set α := {x | ∃ w ∈ Ps.Walks, x ∈ w.vx.tail.dropLast}
 
-def insert (p : Path α β) (Ps : PathEnsemble α β) (h : ∀ v ∈ p.val.vx, v ∉ Ps.VxSet) : PathEnsemble α β where
-  Paths := Ps.Paths ∪ {p}
+def insert (w : Walk α β) (Ps : PathEnsemble α β) (h : ∀ v ∈ w.vx, v ∉ Ps.VxSet) : PathEnsemble α β where
+  Walks := Ps.Walks ∪ {w}
+  IsPath w hw := by
+    obtain (hw | rfl) := hw
+    · exact Ps.IsPath w hw
+    · simp
   Disj := by
     rintro x p₁ p₂ hp1 hp2 hxp hxq
     simp only [union_singleton, Set.mem_insert_iff] at hp1 hp2

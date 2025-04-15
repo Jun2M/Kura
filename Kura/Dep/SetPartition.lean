@@ -349,15 +349,15 @@ lemma refl_of_rel {α : Type*} (r : α → α → Prop) [IsSymm α r] [IsTrans �
       not_and, not_forall, not_not]
     exact fun x hx ↦ ⟨x,hx⟩
 
+variable {r : α → α → Prop} [IsSymm α r] [IsTrans α r] {s : Set α}
+
 @[simp]
-lemma ofRel_supp {r : α → α → Prop} [IsTrans α r] [IsSymm α r] : (ofRel r).supp = {x | r x x} := by
+lemma ofRel_supp : (ofRel r).supp = {x | r x x} := by
   rw [supp, ofRel, sSup_eq_sUnion, subset_antisymm_iff]
   simp only [sUnion_image, mem_setOf_eq, iUnion_subset_iff, setOf_subset_setOf]
   refine ⟨fun i _ a ha ↦ trans_of r (symm_of r ha) ha, fun i (hi : r i i) ↦ ?_⟩
   simp only [mem_iUnion, mem_setOf_eq, exists_prop]
   exact ⟨i, hi, hi⟩
-
-variable {r : α → α → Prop} [IsSymm α r] [IsTrans α r] {s : Set α}
 
 lemma eqv_class_comm {r : α → α → Prop} [IsSymm α r] (x : α) : {y | r x y} = {y | r y x} := by
   simp_rw [symm_iff_of]
@@ -379,6 +379,17 @@ lemma eqv_class_mem_ofRel (h : r x x) : {y | r x y} ∈ ofRel r :=
 
 lemma class_nonempty {t : Set α} (ht : t ∈ ofRel r) : t.Nonempty := by
   obtain ⟨x, hx, rfl⟩ := ht; exact ⟨x, hx⟩
+
+@[simp]
+lemma ofRel_le_ofRel {r' : α → α → Prop} [IsTrans α r'] [IsSymm α r'] :
+    ofRel r ≤ ofRel r' ↔ r ≤ r' := by
+  constructor
+  · rintro hle a b hrab
+    have : r a a := refl_of_rel r hrab
+    obtain ⟨S, ⟨z, hz, rfl⟩, hleS⟩ := hle {x | r a x} (mem_ofRel_iff.mpr (by use a, this))
+    exact _root_.trans (symm <| hleS this) (hleS hrab)
+  · rintro hle S ⟨a, ha, rfl⟩
+    use {x | r' a x}, (by rw [mem_ofRel_iff]; use a; simp [hle a a ha]), hle a
 
 /-- Every partition of `s : Set α` induces a transitive, symmetric Binary relation on `α`
   whose equivalence classes are the parts of `P`. The relation is irreflexive outside `s`.  -/
