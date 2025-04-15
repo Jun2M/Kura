@@ -1,8 +1,8 @@
 import Kura.Isolated
 
 open Set Function List Nat
-variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
-  {F F' : Set β}
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S S' T T' U V : Set α}
+  {F F' R R': Set β}
 namespace Graph
 
 
@@ -91,32 +91,13 @@ structure IsWalkFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop wh
     G.IsWalkFrom S T w := IsWalkFrom.mk hVd hfirst hlast
 
 @[mk_iff]
-structure IsTrailFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
-  validIn : W.ValidIn G
-  edge_nodup : W.edge.Nodup
-  first_mem : W.first ∈ S
-  last_mem : W.last ∈ T
-
-@[simp] lemma IsTrailFrom.validIn_simp (h : G.IsTrailFrom S T w) : w.ValidIn G := h.validIn
-@[simp] lemma IsTrailFrom.edge_nodup_simp (h : G.IsTrailFrom S T w) : w.edge.Nodup := h.edge_nodup
-@[simp] lemma IsTrailFrom.first_mem_simp (h : G.IsTrailFrom S T w) : w.first ∈ S := h.first_mem
-@[simp] lemma IsTrailFrom.last_mem_simp (h : G.IsTrailFrom S T w) : w.last ∈ T := h.last_mem
-@[simp] lemma isTrailFrom_simp (hVd : w.ValidIn G) (hed : w.edge.Nodup) (hfirst : w.first ∈ S)
-    (hlast : w.last ∈ T) : G.IsTrailFrom S T w := IsTrailFrom.mk hVd hed hfirst hlast
+structure IsTrailFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop extends
+  G.IsTrail W, G.IsWalkFrom S T W
 
 @[mk_iff]
-structure IsPathFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop where
-  validIn : W.ValidIn G
-  nodup : W.vx.Nodup
-  first_mem : W.first ∈ S
-  last_mem : W.last ∈ T
+structure IsPathFrom (G : Graph α β) (S T : Set α) (W : Walk α β) : Prop extends
+  G.IsPath W, G.IsWalkFrom S T W
 
-@[simp] lemma IsPathFrom.validIn_simp (h : G.IsPathFrom S T w) : w.ValidIn G := h.validIn
-@[simp] lemma IsPathFrom.nodup_simp (h : G.IsPathFrom S T w) : w.vx.Nodup := h.nodup
-@[simp] lemma IsPathFrom.first_mem_simp (h : G.IsPathFrom S T w) : w.first ∈ S := h.first_mem
-@[simp] lemma IsPathFrom.last_mem_simp (h : G.IsPathFrom S T w) : w.last ∈ T := h.last_mem
-@[simp] lemma isPathFrom_simp (hVd : w.ValidIn G) (hnodup : w.vx.Nodup) (hfirst : w.first ∈ S)
-    (hlast : w.last ∈ T) : G.IsPathFrom S T w := IsPathFrom.mk hVd hnodup hfirst hlast
 
 -- def IsClosed (W : Walk α β) : Prop := W.first = W.last
 
@@ -175,10 +156,10 @@ lemma Walk.ValidIn.isCycle (hVd : w.ValidIn G) (hvx : w.vx.dropLast.Nodup) (hclo
     G.IsCycle w := ⟨hVd, hvx, hclosed⟩
 
 lemma Walk.ValidIn.isTrailFrom (hVd : w.ValidIn G) (hedge : w.edge.Nodup) (hfirst : w.first ∈ S)
-    (hlast : w.last ∈ T) : G.IsTrailFrom S T w := ⟨hVd, hedge, hfirst, hlast⟩
+    (hlast : w.last ∈ T) : G.IsTrailFrom S T w := ⟨⟨hVd, hedge⟩, hfirst, hlast⟩
 
 lemma Walk.ValidIn.isPathFrom (hVd : w.ValidIn G) (hvx : w.vx.Nodup) (hfirst : w.first ∈ S)
-    (hlast : w.last ∈ T) : G.IsPathFrom S T w := ⟨hVd, hvx, hfirst, hlast⟩
+    (hlast : w.last ∈ T) : G.IsPathFrom S T w := ⟨⟨hVd, hvx⟩, hfirst, hlast⟩
 
 lemma IsTrail.isPath (hT : G.IsTrail w) (hvx : w.vx.Nodup) : G.IsPath w := ⟨hT.validIn, hvx⟩
 
@@ -186,13 +167,13 @@ lemma IsTrail.isCycle (hT : G.IsTrail w) (hvx : w.vx.dropLast.Nodup) (hclosed : 
     G.IsCycle w := ⟨hT.validIn, hvx, hclosed⟩
 
 lemma IsTrail.isTrailFrom (hT : G.IsTrail w) (hfirst : w.first ∈ S) (hlast : w.last ∈ T) :
-    G.IsTrailFrom S T w := ⟨hT.validIn, hT.edge_nodup, hfirst, hlast⟩
+    G.IsTrailFrom S T w := ⟨hT, hfirst, hlast⟩
 
 lemma IsTrail.isPathFrom (hT : G.IsTrail w) (hvx : w.vx.Nodup) (hfirst : w.first ∈ S)
-    (hlast : w.last ∈ T) : G.IsPathFrom S T w := ⟨hT.validIn, hvx, hfirst, hlast⟩
+    (hlast : w.last ∈ T) : G.IsPathFrom S T w := ⟨⟨hT.validIn, hvx⟩, hfirst, hlast⟩
 
 lemma IsPath.isPathFrom (hP : G.IsPath w) (hfirst : w.first ∈ S) (hlast : w.last ∈ T) :
-    G.IsPathFrom S T w := ⟨hP.validIn, hP.nodup, hfirst, hlast⟩
+    G.IsPathFrom S T w := ⟨hP, hfirst, hlast⟩
 
 namespace Walk
 
@@ -239,12 +220,20 @@ namespace Walk
     nodup_cons, not_mem_nil, not_false_eq_true, nodup_nil, and_self, nil_validIn]
 
 @[simp] lemma nil_isTrailFrom : G.IsTrailFrom S T (nil x) ↔ x ∈ G.V ∧ x ∈ S ∧ x ∈ T := by
-  refine ⟨fun ⟨H1, H2, H3, H4⟩ ↦ ?_, fun h ↦ ⟨?_, ?_, ?_, ?_⟩⟩ <;> simp_all only [nil_validIn,
-    nil_edge, nodup_nil, nil_first, nil_last, and_self]
+  constructor
+  · rintro ⟨hT, hfirst, hlast⟩
+    simp_all only [nil_isTrail, nil_first, nil_last, and_self]
+  · rintro ⟨hV, hS, hT⟩
+    refine ⟨?_, ?_, ?_⟩ <;> simp_all only [nil_isTrail, IsTrail.validIn_simp, nil_edge,
+      nodup_nil, isTrail_simp, nil_first, nil_last]
 
 @[simp] lemma nil_isPathFrom : G.IsPathFrom S T (nil x) ↔ x ∈ G.V ∧ x ∈ S ∧ x ∈ T := by
-  refine ⟨fun ⟨H1, H2, H3, H4⟩ ↦ ?_, fun ⟨H1, H2, H3⟩ ↦ ⟨?_, ?_, ?_, ?_⟩⟩ <;> simp_all only [nil_validIn,
-    nil_vx, nodup_cons, not_mem_nil, not_false_eq_true, nodup_nil, and_self, nil_first, nil_last]
+  constructor
+  · rintro ⟨hP, hfirst, hlast⟩
+    simp_all only [nil_isPath, nil_first, nil_last, and_self]
+  · rintro ⟨hV, hS, hT⟩
+    refine ⟨?_, ?_, ?_⟩ <;> simp_all only [nil_isPath, IsPath.validIn_simp, nil_edge,
+      nodup_nil, isPath_simp, nil_first, nil_last]
 
 /- Properties of cons -/
 
@@ -316,16 +305,16 @@ lemma cons_vx_nodup (h : (cons x e w).vx.Nodup) : w.vx.Nodup := by
 lemma cons_isTrailFrom : G.IsTrailFrom S T (cons x e w) ↔
     G.IsTrail w ∧ G.Inc₂ e x w.first ∧ e ∉ w.edge ∧ x ∈ S ∧ w.last ∈ T := by
   constructor
-  · refine fun ⟨hVd, hnodup, hfirst, hlast⟩ ↦ ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp_all only [cons_validIn,
+  · refine fun ⟨⟨hVd, hnodup⟩, hfirst, hlast⟩ ↦ ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp_all only [cons_validIn,
     cons_edge, nodup_cons, cons_first, cons_last, isTrail_simp, not_false_eq_true]
-  · refine fun ⟨hV, hS, hVd, hT⟩ ↦ ⟨?_, ?_, ?_, ?_⟩ <;> simp_all only [IsTrail.validIn_simp,
+  · refine fun ⟨hV, hS, hVd, hT⟩ ↦ ⟨⟨?_, ?_⟩, ?_, ?_⟩ <;> simp_all only [IsTrail.validIn_simp,
     not_false_eq_true, and_self, cons_edge, nodup_cons, true_and, cons_isTrail, cons_first,
     cons_last, hV.edge_nodup]
 
 @[simp]
 lemma cons_isPathFrom : G.IsPathFrom S T (cons x e w) ↔
     G.IsPath w ∧ G.Inc₂ e x w.first ∧ x ∉ w ∧ x ∈ S ∧ w.last ∈ T := by
-  refine ⟨fun ⟨hVd, hnodup, hfirst, hlast⟩ ↦ ⟨?_, ?_, ?_, ?_, ?_⟩, fun ⟨hV, hS, hVd, hT⟩ ↦ ⟨?_, ?_, ?_, ?_⟩⟩
+  refine ⟨fun ⟨⟨hVd, hnodup⟩, hfirst, hlast⟩ ↦ ⟨?_, ?_, ?_, ?_, ?_⟩, fun ⟨hV, hS, hVd, hT⟩ ↦ ⟨⟨?_, ?_⟩, ?_, ?_⟩⟩
   <;> simp_all only [not_false_eq_true, and_self, cons_edge, nodup_cons, cons_validIn, cons_first,
   cons_last, mem_notation, cons_vx, isPath_simp, cons_isPath, true_and, IsPath.validIn]
   exact hV.nodup
@@ -594,9 +583,36 @@ end Walk.ValidIn
 
 namespace IsWalkFrom
 
-lemma setConnected (h : G.IsWalkFrom S T w) : G.SetConnected S T := by
-  obtain ⟨hVd, hfirst, hlast⟩ := h
+lemma setConnected (hWF : G.IsWalkFrom S T w) : G.SetConnected S T := by
+  obtain ⟨hVd, hfirst, hlast⟩ := hWF
   use w.first, hfirst, w.last, hlast, hVd.connected
+
+lemma left_subset (hWF : G.IsWalkFrom S T w) (hsubset : S ∩ G.V ⊆ S') : G.IsWalkFrom S' T w where
+  validIn := hWF.validIn
+  first_mem := hsubset ⟨hWF.first_mem, hWF.validIn.vx_mem_of_mem Walk.first_mem⟩
+  last_mem := hWF.last_mem
+
+lemma left_subset' (hWF : G.IsWalkFrom S T w) (hsubset : S ⊆ S') : G.IsWalkFrom S' T w where
+  validIn := hWF.validIn
+  first_mem := hsubset hWF.first_mem
+  last_mem := hWF.last_mem
+
+lemma right_subset (hWF : G.IsWalkFrom S T w) (hsubset : T ∩ G.V ⊆ T') : G.IsWalkFrom S T' w where
+  validIn := hWF.validIn
+  first_mem := hWF.first_mem
+  last_mem := hsubset ⟨hWF.last_mem, hWF.validIn.vx_mem_of_mem Walk.last_mem⟩
+
+lemma right_subset' (hWF : G.IsWalkFrom S T w) (hsubset : T ⊆ T') : G.IsWalkFrom S T' w where
+  validIn := hWF.validIn
+  first_mem := hWF.first_mem
+  last_mem := hsubset hWF.last_mem
+
+lemma left_right_subset (hWF : G.IsWalkFrom S T w) (hS : S ∩ G.V ⊆ S') (hT : T ∩ G.V ⊆ T') :
+    G.IsWalkFrom S' T' w := hWF.left_subset hS |>.right_subset hT
+
+lemma left_right_subset' (hWF : G.IsWalkFrom S T w) (hS : S ⊆ S') (hT : T ⊆ T') :
+    G.IsWalkFrom S' T' w := hWF.left_subset' hS |>.right_subset' hT
+
 
 end IsWalkFrom
 

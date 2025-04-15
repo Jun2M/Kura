@@ -382,18 +382,18 @@ lemma endIf_sizeOf_le {w : Walk α β} (h : ∃ u ∈ w, P u) :
     · simp only [cons.sizeOf_spec, sizeOf_default, add_zero, add_le_add_iff_left]
       apply endIf_sizeOf_le
 
-lemma endIf_validIn {w : Walk α β} (h : ∃ u ∈ w, P u) (hVd : w.ValidIn G) :
+lemma ValidIn.endIf {w : Walk α β} (hVd : w.ValidIn G) (h : ∃ u ∈ w, P u) :
     (w.endIf h).ValidIn G := by
   match w with
   | .nil x => simpa only [endIf, nil_validIn]
   | .cons x e w =>
-    simp only [endIf]
+    simp only [Walk.endIf]
     split_ifs with hPx
     · rw [nil_validIn]
       simp only [cons_validIn] at hVd
       exact hVd.1.vx_mem_left
     · rw [cons_validIn] at hVd ⊢
-      refine ⟨?_, endIf_validIn _ hVd.2⟩
+      refine ⟨?_, hVd.2.endIf _ ⟩
       convert hVd.1 using 1
       simp only [mem_cons_iff, exists_eq_or_imp, hPx, false_or] at h
       exact endIf_first h

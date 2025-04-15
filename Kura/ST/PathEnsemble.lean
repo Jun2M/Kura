@@ -5,30 +5,32 @@ open Set Function List Nat Walk
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
   {F F' : Set β} {w w1 w2 : Walk α β}
 
-namespace Path
+namespace Walk
 section disjoint
 
 /-- A collection of paths is internally disjoint if no vertex appears in more than one path
   except for the special two vertices u and v. (i.e. the endpoints of the paths. But this is not
   enforced in the definition) -/
-def InternallyDisjoint (u v : α) (Ps : Set (Path α β)) : Prop :=
-  ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.val.vx → x ∈ pj.val.vx → pi ≠ pj → x = u ∨ x = v
+def InternallyDisjoint (u v : α) (Ps : Set <| Walk α β) : Prop :=
+  ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi ≠ pj → x = u ∨ x = v
 
 /-- A collection of paths is disjoint if no vertex appears in more than one path -/
-def Disjoint (Ps : Set (Path α β)) : Prop :=
-  ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.val.vx → x ∈ pj.val.vx → pi = pj
+def Disjoint (Ps : Set <| Walk α β) : Prop :=
+  ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi = pj
 
 end disjoint
-
+end Walk
 
 structure PathEnsemble (α β : Type*) where
-  Paths : Set (Path α β)
-  Disj : Disjoint Paths
+  Walks : Set (Walk α β)
+  IsPath : ∀ w ∈ Walks, w.vx.Nodup
+  Disj : Disjoint Walks
 
 namespace PathEnsemble
 
 def Empty (α β : Type*) : PathEnsemble α β where
-  Paths := ∅
+  Walks := ∅
+  IsPath w hw := by simp at hw
   Disj := by
     rintro x p q hp hq hxp hxq
     exact False.elim hp

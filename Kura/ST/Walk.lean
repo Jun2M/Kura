@@ -23,8 +23,7 @@ lemma walk_validOn_left (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G -
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
 
 lemma walk_validOn_right (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G - U))
-    (hT : ∃ x ∈ w, x ∈ hUsep.rightSet) :
-    w.ValidIn (G[hUsep.rightSet]) := by
+    (hT : ∃ x ∈ w, x ∈ hUsep.rightSet) : w.ValidIn (G[hUsep.rightSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hT
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
@@ -73,31 +72,26 @@ instance IsPreorder : IsPreorder (Set α) (IsVxSetSeparator G S) where
     refine hBC ?_
     use w.first, hwF.first_mem, x, hxB, hwF.validIn.connected_first_of_mem hxw
 
-lemma crossingWalk_intersect (hVsep : G.IsVxSetSeparator V S T) [DecidablePred (· ∈ V)]
-    (hwVd : w.ValidIn G) (hwfirst : w.first ∈ hVsep.leftSet ∪ V)
-    (hwlast : w.last ∈ hVsep.rightSet ∪ V) : ∃ x ∈ w.vx, x ∈ V := by
-  rw [mem_union] at hwfirst hwlast
-  obtain (hV | ⟨s, hs, hconnStart⟩) := hwfirst.symm <;> clear hwfirst
+lemma crossingWalk_intersect (hVsep : G.IsVxSetSeparator S T V) [DecidablePred (· ∈ V)]
+    (hwF : G.IsWalkFrom (hVsep.leftSet ∪ V) (hVsep.rightSet ∪ V) w) : ∃ x ∈ w.vx, x ∈ V := by
+  obtain (hV | ⟨s, hs, hconnStart⟩) := hwF.first_mem.symm
   · use w.first, first_mem
-  obtain (hV | ⟨t, ht, hconnFinish⟩) := hwlast.symm <;> clear hwlast
+  obtain (hV | ⟨t, ht, hconnFinish⟩) := hwF.last_mem.symm
   · use w.last, last_mem
   by_contra! hw
-  have hVd : w.ValidIn (G - V) :=
-    hwVd.induce fun x hx ↦ ⟨hwVd.vx_mem_of_mem hx, hw x hx⟩
-  exact hVsep s hs t ht <| hconnStart.symm.trans hVd.connected |>.trans hconnFinish
+  have hVd : (G - V).IsWalkFrom _ _ w := hwF.induce fun x hx ↦ ⟨hwF.validIn.vx_mem_of_mem hx, hw x hx⟩
+  refine hVsep ?_
+  use s, hs, t, ht, hconnStart.symm.trans hVd.validIn.connected |>.trans hconnFinish
 
-lemma crossingWalk_intersect' (hVsep : G.IsVxSetSeparator V S T) [DecidablePred (· ∈ V)]
-    {w : Walk α β} (hwVd : w.ValidIn G) (hwfirst : w.first ∈ hVsep.rightSet ∪ V)
-    (hwlast : w.last ∈ hVsep.leftSet ∪ V) : ∃ x ∈ w.vx, x ∈ V :=
-  crossingWalk_intersect hVsep.symm hwVd hwfirst hwlast
+lemma crossingWalk_intersect' (hVsep : G.IsVxSetSeparator S T V) [DecidablePred (· ∈ V)]
+    (hwF : G.IsWalkFrom (hVsep.rightSet ∪ V) (hVsep.leftSet ∪ V) w) : ∃ x ∈ w.vx, x ∈ V :=
+  crossingWalk_intersect hVsep.symm hwF
 
-lemma crossingWalk_endIf_validOn [DecidableEq α] (hVsep : G.IsVxSetSeparator V S T)
-    [DecidablePred (· ∈ V)] {w : Walk α β} (hwVd : w.ValidIn G)
-    (hwfirst : w.first ∈ hVsep.leftSet ∪ V) (hwlast : w.last ∈ hVsep.rightSet ∪ V) :
-    (w.endIf (P := (· ∈ V))
-    (hVsep.crossingWalk_intersect hwVd hwfirst hwlast)).ValidIn (G[hVsep.leftSet ∪ V]) := by
-  let h := hVsep.crossingWalk_intersect hwVd hwfirst hwlast
-  refine endIf_validIn h hwVd |>.induce ?_
+lemma crossingWalk_endIf_validOn [DecidableEq α] (hVsep : G.IsVxSetSeparator S T V)
+    [DecidablePred (· ∈ V)] (hwF : G.IsWalkFrom (hVsep.leftSet ∪ V) (hVsep.rightSet ∪ V) w) :
+    (w.endIf (P := (· ∈ V)) (hVsep.crossingWalk_intersect hwF)).ValidIn (G[hVsep.leftSet ∪ V]) := by
+  let h := hVsep.crossingWalk_intersect hwF
+  refine hwF.validIn.endIf h |>.induce ?_
   rintro x hx
   by_cases hnonempty : ¬ (w.endIf h).Nonempty
   · rw [Nonempty.not_iff] at hnonempty
@@ -111,10 +105,11 @@ lemma crossingWalk_endIf_validOn [DecidableEq α] (hVsep : G.IsVxSetSeparator V 
   obtain (rfl | hxV) := mem_dropLast_or_last_of_mem hx |>.symm
   · right
     exact endIf_last h
-  · have := dropLast_validIn (endIf_validIn h hwVd)
+  · have := dropLast_validIn (hwF.validIn.endIf h)
     have : Walk.ValidIn _ (G - V):= this.induce fun x hx ↦
       ⟨this.vx_mem_of_mem hx, endIf_dropLast_mem_vx h hnonempty hx⟩
-    simp only [endIf_nonempty_iff] at hnonempty
+    rw [endIf_nonempty_iff] at hnonempty
+    have hwfirst := hwF.first_mem
     simp only [mem_union, hnonempty, or_false] at hwfirst
     left
     refine (hVsep.walk_validOn_left this ?_).vx_mem_of_mem hxV
@@ -123,50 +118,40 @@ lemma crossingWalk_endIf_validOn [DecidableEq α] (hVsep : G.IsVxSetSeparator V 
     simp [endIf_nonempty_iff, hnonempty, not_false_eq_true, dropLast_first, endIf_first]
 
 lemma crossingWalk_endIf_validOn' [DecidableEq α] [DecidablePred (· ∈ V)]
-    (hVsep : G.IsVxSetSeparator V S T)
-    (hwVd : w.ValidIn G) (hwfirst : w.first ∈ hVsep.rightSet ∪ V)
-    (hwlast : w.last ∈ hVsep.leftSet ∪ V) : (w.endIf (P := (· ∈ V))
-    (hVsep.crossingWalk_intersect' hwVd hwfirst hwlast)).ValidIn (G[hVsep.rightSet ∪ V]) :=
-  hVsep.symm.crossingWalk_endIf_validOn hwVd hwfirst hwlast
+    (hVsep : G.IsVxSetSeparator S T V)
+    (hwF : G.IsWalkFrom (hVsep.rightSet ∪ V) (hVsep.leftSet ∪ V) w) : (w.endIf (P := (· ∈ V))
+    (hVsep.crossingWalk_intersect' hwF)).ValidIn (G[hVsep.rightSet ∪ V]) :=
+  hVsep.symm.crossingWalk_endIf_validOn hwF
 
-lemma leftSetV_iff (h : G.IsVxSetSeparator V S T) (hV : V ⊆ G.V) (U : Set α) :
-    G[h.leftSet ∪ V].IsVxSetSeparator U S V ↔ G.IsVxSetSeparator U S V := by
+lemma leftSetV_iff (h : G.IsVxSetSeparator S T V) (hV : V ⊆ G.V) (U : Set α) :
+    G[h.leftSet ∪ V].IsVxSetSeparator S V U ↔ G.IsVxSetSeparator S V U := by
   classical
   constructor
-  · rintro hUsep s hs v hv hconn
-    rw [Connected.iff_walk] at hconn
-    obtain ⟨w, hwVd, rfl, rfl⟩ := hconn
-    have hwVdG : w.ValidIn G := hwVd.le (induce_le _ Set.diff_subset)
-    have hwfirst : w.first ∈ h.leftSet ∪ V := by
-      by_cases hsUv : w.first ∈ V
-      · right
-        exact hsUv
-      · left
-        use w.first, hs
-        refine Connected.refl ⟨?_, hsUv⟩
-        exact Set.diff_subset <| hwVd.vx_mem_of_mem Walk.first_mem
-    have hwlast : w.last ∈ h.rightSet ∪ V := Set.mem_union_right h.rightSet hv
-    have hw' : ∃ x ∈ w.vx, x ∈ V := h.crossingWalk_intersect hwVdG hwfirst hwlast
-    have := h.crossingWalk_endIf_validOn hwVdG hwfirst hwlast
+  · refine fun hUsep hconn ↦ hUsep ?_
+    obtain ⟨w, hwF⟩ := hconn.exist_walk
+    have hwFG := hwF.le (induce_le G Set.diff_subset)
+    have hwFG' : G.IsWalkFrom (h.leftSet ∪ V) (h.rightSet ∪ V) w :=
+      hwFG.left_right_subset h.source_subset_leftHalf (by tauto_set)
+    have hw' : ∃ x ∈ w.vx, x ∈ V := h.crossingWalk_intersect hwFG'
+    have := h.crossingWalk_endIf_validOn hwFG'
     let w' := w.endIf (P := (· ∈ V)) hw'
-    apply hUsep w'.first (by rwa [Walk.endIf_first]) w'.last (Walk.endIf_last hw')
+    use w'.first, (by rw [Walk.endIf_first]; exact hwFG.first_mem), w'.last, Walk.endIf_last hw'
     rw [← vxDel_notation, induce_induce_eq_induce_right _ _ (Set.inter_subset_right.trans ?_), induce_V]
-    apply ValidIn.connected
-    apply (Walk.endIf_validIn hw' hwVdG).induce
+    apply ((hwFG.validIn.endIf hw').induce ?_).connected
     rintro x hx
-    exact ⟨this.vx_mem_of_mem hx, (hwVd.vx_mem_of_mem (Walk.endIf_vx_sublist hw' hx)).2⟩
+    exact ⟨this.vx_mem_of_mem hx, (hwF.validIn.vx_mem_of_mem <| endIf_vx_sublist hw' hx).2⟩
     · exact Set.diff_subset
   · rintro hUsep
     refine hUsep.le <| induce_le _ <| Set.union_subset ?_ hV
     exact (leftSet_subset h).trans diff_subset
 
-lemma rightSetV_iff (hVsep : G.IsVxSetSeparator V S T) (hV : V ⊆ G.V) (U : Set α) :
-    G[hVsep.rightSet ∪ V].IsVxSetSeparator U V T ↔ G.IsVxSetSeparator U V T := by
+lemma rightSetV_iff (hVsep : G.IsVxSetSeparator S T V) (hV : V ⊆ G.V) (U : Set α) :
+    G[hVsep.rightSet ∪ V].IsVxSetSeparator V T U ↔ G.IsVxSetSeparator V T U := by
   have := hVsep.symm.leftSetV_iff hV U
   rw [comm (S := V), comm (S := V)]
   convert this using 1
 
-lemma conn_sep_iff_conn_left (hVsep : G.IsVxSetSeparator V S T) (hu : u ∈ hVsep.leftSet)
+lemma conn_sep_iff_conn_left (hVsep : G.IsVxSetSeparator S T V) (hu : u ∈ hVsep.leftSet)
     (hV : V ⊆ G.V) :
     (∃ v ∈ V, G.Connected u v) ↔ ∃ v ∈ V, G[hVsep.leftSet ∪ V].Connected u v := by
   classical
@@ -179,7 +164,7 @@ lemma conn_sep_iff_conn_left (hVsep : G.IsVxSetSeparator V S T) (hu : u ∈ hVse
     use w'.last, endIf_last hw'
     rw [Connected.iff_walk]
     use w', ?_, endIf_first hw'
-    have hw'VdG : w'.ValidIn G := endIf_validIn hw' hwVd
+    have hw'VdG : w'.ValidIn G := hwVd.endIf hw'
     refine hw'VdG.induce ?_
     rintro x hxw'
     by_cases hNonempty : w'.Nonempty
@@ -225,8 +210,12 @@ end IsVxSetSeparator
 
 namespace IsEdgeSetSeparator
 
-lemma walk_edges_inter_nonempty (h_sep : G.IsEdgeSetSeparator S T F) {s t : α} (w : Walk G s t)
-    (hs : s ∈ S) (ht : t ∈ T) : (Walk.edges w ∩ F).Nonempty := by
-  sorry
+lemma walk_edges_inter_nonempty (hSep : G.IsEdgeSetSeparator S T F) (hWF : G.IsWalkFrom S T w) :
+    (w.edgeSet ∩ F).Nonempty := by
+  by_contra! h
+  rw [← Set.disjoint_iff_inter_eq_empty] at h
+  exact hSep (hWF.edgeDel h |>.setConnected)
+
+
 
 end IsEdgeSetSeparator

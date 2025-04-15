@@ -133,22 +133,22 @@ lemma vxDel : (G - U).IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S T (U ∪ V
 lemma leftSet_subset (h : G.IsVxSetSeparator S T V) : h.leftSet ⊆ G.V \ V :=
   fun _v ⟨_s, _hs, hconn⟩ ↦ hconn.mem_left
 
-lemma subset_leftSet (h : G.IsVxSetSeparator S T V) (hS : S ⊆ G.V) : S ⊆ h.leftSet ∪ V := by
-  rintro s hs
-  by_cases h' : s ∈ V
-  · exact Or.inr h'
-  · left
-    use s, hs, Connected.refl ⟨hS hs, h'⟩
+lemma source_subset_leftHalf (h : G.IsVxSetSeparator S T V) : S ∩ G.V ⊆ h.leftSet ∪ V := by
+  rintro x ⟨hxS, hx⟩
+  simp only [leftSet, mem_union, mem_setOf_eq]
+  rw [or_iff_not_imp_right]
+  rintro hxV
+  use x, hxS, Connected.refl ⟨hx, hxV⟩
 
 lemma rightSet_subset (h : G.IsVxSetSeparator S T V) : h.rightSet ⊆ G.V \ V :=
   fun _v ⟨_t, _ht, hconn⟩ ↦ hconn.mem_left
 
-lemma subset_rightSet (h : G.IsVxSetSeparator S T V) (hT : T ⊆ G.V) : T ⊆ h.rightSet ∪ V := by
-  rintro t ht
-  by_cases h' : t ∈ V
-  · exact Or.inr h'
-  · left
-    use t, ht, Connected.refl ⟨hT ht, h'⟩
+lemma target_subset_rightHalf (h : G.IsVxSetSeparator S T V) : T ∩ G.V ⊆ h.rightSet ∪ V := by
+  rintro t ⟨htT, ht⟩
+  simp only [leftSet, mem_union, mem_setOf_eq]
+  rw [or_iff_not_imp_right]
+  rintro htV
+  use t, htT, Connected.refl ⟨ht, htV⟩
 
 @[simp]
 lemma symm_leftSet (h : G.IsVxSetSeparator S T V) : h.symm.leftSet = h.rightSet := by
@@ -161,8 +161,7 @@ lemma symm_rightSet (h : G.IsVxSetSeparator S T V) : h.symm.rightSet = h.leftSet
   simp only [IsVxSetSeparator.leftSet, IsVxSetSeparator.rightSet, mem_setOf_eq, exists_eq_right]
 
 @[simp]
-lemma leftSet_rightSet_disjoint (h : G.IsVxSetSeparator S T V) :
-    Disjoint h.leftSet h.rightSet := by
+lemma leftSet_rightSet_disjoint (h : G.IsVxSetSeparator S T V) : Disjoint h.leftSet h.rightSet := by
   rintro U hUl hUr a haU
   obtain ⟨s, hs, hconn⟩ := hUl haU
   obtain ⟨t, ht, hconn'⟩ := hUr haU
