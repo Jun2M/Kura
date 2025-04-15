@@ -195,96 +195,6 @@ lemma exists_vertex_inc (G : Graph α β) (he : e ∈ G.E) : ∃ v, G.Inc e v :=
 --   E := E
 --   incFun e :=
 
-section SubgraphOrder
-/-- Subgraph order of Graph -/
-instance instPartialOrderGraph : PartialOrder (Graph α β) where
-  le G₁ G₂ := G₁.V ⊆ G₂.V ∧ G₁.E ⊆ G₂.E ∧ ∀ e (hin : e ∈ G₁.E), G₁.incFun e = G₂.incFun e
-  le_refl G := by simp only [subset_refl, le_refl, implies_true, exists_const, and_self]
-  le_trans G₁ G₂ G₃ h₁₂ h₂₃ := by
-    obtain ⟨h₁₂v, h₁₂e, h₁₂S⟩ := h₁₂
-    obtain ⟨h₂₃v, h₂₃e, h₂₃S⟩ := h₂₃
-    refine ⟨h₁₂v.trans h₂₃v, h₁₂e.trans h₂₃e, ?_⟩
-    rintro e he
-    rw [h₁₂S _ he, h₂₃S _ (h₁₂e he)]
-  le_antisymm G₁ G₂ h₁₂ h₂₁ := by
-    ext1
-    · exact h₁₂.1.antisymm h₂₁.1
-    · exact h₁₂.2.1.antisymm h₂₁.2.1
-    · ext e x
-      by_cases h : e ∈ G₁.E
-      · rw [h₁₂.2.2 _ h]
-      · have : e ∉ G₂.E := by
-          contrapose! h
-          exact h₂₁.2.1 h
-        simp only [h, not_false_eq_true, incFun_of_not_mem_edgeSet, Finsupp.coe_zero, Pi.zero_apply,
-          this]
-
-@[simp] lemma vx_subset_of_le (hle : G ≤ H) : G.V ⊆ H.V := hle.1
-
-@[simp] lemma mem_of_le (hle : G ≤ H) : x ∈ G.V → x ∈ H.V := (hle.1 ·)
-
-@[simp] lemma edge_subset_of_le (hle : G ≤ H) : G.E ⊆ H.E := hle.2.1
-
-@[simp] lemma edge_mem_of_le (hle : G ≤ H) : e ∈ G.E → e ∈ H.E := (hle.2.1 ·)
-
-lemma Inc_iff_Inc_of_le {e : β} (hle : G ≤ H) (he : e ∈ G.E) : G.Inc e v ↔ H.Inc e v := by
-  unfold Inc
-  rw [hle.2.2 e he]
-
-lemma incFun_eq_incFun_of_le (hle : G ≤ H) (he : e ∈ G.E) : G.incFun e = H.incFun e :=
-  hle.2.2 e he
-
-lemma le_of_exist_mutual_le (hle1 : G' ≤ H') (hle2 : H ≤ H') : G' ≤ H ↔ G'.V ⊆ H.V ∧ G'.E ⊆ H.E := by
-  constructor
-  · intro h
-    exact ⟨vx_subset_of_le h, edge_subset_of_le h⟩
-  · rintro ⟨hV, hE⟩
-    refine ⟨hV, hE, ?_⟩
-    rintro e he
-    rw [incFun_eq_incFun_of_le hle1 he, incFun_eq_incFun_of_le hle2 (hE he)]
-
-@[simp]
-lemma Inc.le (hinc : G.Inc e x) (hle : G ≤ H) : H.Inc e x := by
-  rwa [← Inc_iff_Inc_of_le hle hinc.edge_mem]
-
-lemma IsLoopAt_iff_IsLoopAt_of_edge_mem_le (hle : G ≤ H) (he : e ∈ G.E) :
-    G.IsLoopAt e x ↔ H.IsLoopAt e x := by
-  unfold IsLoopAt
-  rw [incFun_eq_incFun_of_le hle he]
-
-lemma IsLoop.le (hisLoopAt : G.IsLoopAt e x) (hle : G ≤ H) : H.IsLoopAt e x := by
-  rwa [← IsLoopAt_iff_IsLoopAt_of_edge_mem_le hle hisLoopAt.edge_mem]
-
-lemma le_iff_inc : G ≤ H ↔ G.V ⊆ H.V ∧ G.E ⊆ H.E ∧ ∀ e ∈ G.E, ∀ v,
-  G.Inc e v ↔ H.Inc e v := by
-  constructor
-  · rintro ⟨hV, hE, hinc⟩
-    refine ⟨hV, hE, fun e he v ↦ ?_⟩
-    unfold Inc
-    rw [hinc e he]
-  · refine fun ⟨hV, hE, hinc⟩ ↦ ⟨hV, hE, fun e he ↦ ?_⟩
-    rw [← inc_eq_inc_iff]
-    ext x
-    exact hinc e he x
-
-/-- If G₁ ≤ G₂ and G₂ is finite, then G₁ is finite too. -/
-theorem finite_of_le_finite (hle : G ≤ H) [h : H.Finite] : G.Finite := by
-  constructor
-  · -- Prove the vertex set is finite
-    apply Set.Finite.subset h.vx_fin
-    exact vx_subset_of_le hle
-  · -- Prove the edge set is finite
-    apply Set.Finite.subset h.edge_fin
-    exact edge_subset_of_le hle
-
-lemma vx_ncard_le_of_le [hfin : H.Finite] (hle : G ≤ H) : G.V.ncard ≤ H.V.ncard :=
-  Set.ncard_le_ncard (vx_subset_of_le hle) hfin.vx_fin
-
-lemma edge_ncard_le_of_le [hfin : H.Finite] (hle : G ≤ H) : G.E.ncard ≤ H.E.ncard :=
-  Set.ncard_le_ncard (edge_subset_of_le hle) hfin.edge_fin
-
-end SubgraphOrder
-
 section Inc₂
 def toMultiset (G : Graph α β) (e : β) : Multiset α := (G.incFun e).toMultiset
 
@@ -443,6 +353,29 @@ lemma inc₂_iff_inc_and_loop :
       rw [toMultiset_card hincx.edge_mem]
       simp
 
+
+lemma edge_subset_of_inc₂_le_inc₂ (h : G.Inc₂ ≤ G'.Inc₂) : G.E ⊆ G'.E := by
+  rintro e he
+  obtain ⟨x, y, hbtw⟩ := G.exist_inc₂_of_mem he
+  exact (h e x y hbtw).edge_mem
+
+lemma inc_eq_inc_of_inc₂_le_inc₂ (h : G.Inc₂ ≤ G'.Inc₂) (he : e ∈ G.E) : G.Inc e = G'.Inc e := by
+  ext x
+  constructor
+  · rw [inc_iff_exists_inc₂, inc_iff_exists_inc₂]
+    rintro ⟨y, hbtw⟩
+    exact ⟨y, h _ _ _ hbtw⟩
+  · rintro hinc
+    obtain ⟨y, z, hbtw⟩ := G.exist_inc₂_of_mem he
+    obtain rfl | rfl := (h e y z hbtw).inc_iff.mp hinc
+    · exact hbtw.inc_left
+    · exact hbtw.inc_right
+
+lemma incFun_eq_incFun_of_inc₂_le_inc₂ (h : G.Inc₂ ≤ G'.Inc₂) (he : e ∈ G.E) :
+    G.incFun e = G'.incFun e := by
+  rw [← inc_eq_inc_iff]
+  exact inc_eq_inc_of_inc₂_le_inc₂ h he
+
 lemma inc₂_eq_inc₂_iff_inc_eq_inc : G.Inc₂ e = G'.Inc₂ e ↔ G.Inc e = G'.Inc e := by
   constructor <;> rintro h
   · simp_rw [funext_iff, inc_iff_exists_inc₂, eq_iff_iff]
@@ -452,6 +385,14 @@ lemma inc₂_eq_inc₂_iff_inc_eq_inc : G.Inc₂ e = G'.Inc₂ e ↔ G.Inc e = G
 
 lemma inc₂_eq_inc₂_iff : G.Inc₂ e = G'.Inc₂ e ↔ G.incFun e = G'.incFun e :=
   inc₂_eq_inc₂_iff_inc_eq_inc.trans inc_eq_inc_iff
+
+lemma ext_Inc₂ (hV : G.V = G'.V) (h : ∀ e x y, G.Inc₂ e x y ↔ G'.Inc₂ e x y) : G = G' := by
+  refine Graph.ext hV ((edge_subset_of_inc₂_le_inc₂ (h · · · |>.1)).antisymm
+      (edge_subset_of_inc₂_le_inc₂ (h · · · |>.2))) ?_
+  ext1 e
+  rw [← inc₂_eq_inc₂_iff]
+  ext x y
+  exact h e x y
 
 lemma exist_Inc₂_of_mem_of_distinct {P : α → Prop} (hP1 : ∃ x, G.Inc e x ∧ P x)
     (hP2 : ∃ x, G.Inc e x ∧ ¬ P x) : ∃ x y, G.Inc₂ e x y ∧ P x ∧ ¬ P y := by
@@ -538,17 +479,82 @@ lemma Inc.ofInc₂ {V : Set α} {E : Set β} {isBtw : β → α → α → Prop}
       ∃ u, isBtw e v u := by
   simp_rw [inc_iff_exists_inc₂, Inc₂.ofInc₂]
 
-lemma le_iff_inc₂ : G ≤ H ↔ G.V ⊆ H.V ∧ G.E ⊆ H.E ∧ ∀ e ∈ G.E, ∀ v w,
-  G.Inc₂ e v w ↔ H.Inc₂ e v w := by
+end Inc₂
+
+section SubgraphOrder
+/-- Subgraph order of Graph -/
+instance instPartialOrderGraph : PartialOrder (Graph α β) where
+  le G₁ G₂ := G₁.V ≤ G₂.V ∧ G₁.Inc₂ ≤ G₂.Inc₂
+  le_refl G := by simp only [subset_refl, le_refl, implies_true, exists_const, and_self]
+  le_trans G₁ G₂ G₃ h₁₂ h₂₃ := by
+    obtain ⟨h₁₂v, h₁₂S⟩ := h₁₂
+    obtain ⟨h₂₃v, h₂₃S⟩ := h₂₃
+    exact ⟨h₁₂v.trans h₂₃v, h₁₂S.trans h₂₃S⟩
+  le_antisymm G₁ G₂ h₁₂ h₂₁ := ext_Inc₂ (h₁₂.1.antisymm h₂₁.1) fun e x y ↦ (by
+    rw [h₁₂.2.antisymm h₂₁.2])
+
+@[simp] lemma vx_subset_of_le (hle : G ≤ H) : G.V ⊆ H.V := hle.1
+
+@[simp] lemma mem_of_le (hle : G ≤ H) : x ∈ G.V → x ∈ H.V := (hle.1 ·)
+
+@[simp] lemma edge_subset_of_le (hle : G ≤ H) : G.E ⊆ H.E := edge_subset_of_inc₂_le_inc₂ hle.2
+
+@[simp] lemma edge_mem_of_le (hle : G ≤ H) : e ∈ G.E → e ∈ H.E := (edge_subset_of_le hle ·)
+
+lemma Inc_iff_Inc_of_le (hle : G ≤ H) (he : e ∈ G.E) : G.Inc e v ↔ H.Inc e v := by
+  rw [inc_eq_inc_of_inc₂_le_inc₂ hle.2 he]
+
+lemma incFun_eq_incFun_of_le (hle : G ≤ H) (he : e ∈ G.E) : G.incFun e = H.incFun e :=
+  incFun_eq_incFun_of_inc₂_le_inc₂ hle.2 he
+
+lemma Inc₂_iff_Inc₂_of_le (hle : G ≤ H) (he : e ∈ G.E) : G.Inc₂ e x y ↔ H.Inc₂ e x y := by
+  suffices G.Inc₂ e = H.Inc₂ e by rw [this]
+  rw [inc₂_eq_inc₂_iff]
+  exact incFun_eq_incFun_of_le hle he
+
+lemma le_of_exist_mutual_le (hle1 : G' ≤ H') (hle2 : H ≤ H') : G' ≤ H ↔ G'.V ⊆ H.V ∧ G'.E ⊆ H.E := by
   constructor
-  · rintro ⟨hV, hE, hinc⟩
-    refine ⟨hV, hE, fun e he v w ↦ ?_⟩
-    unfold Inc₂ toMultiset
-    rw [hinc e he]
-  · refine fun ⟨hV, hE, hinc⟩ ↦ ⟨hV, hE, fun e he ↦ ?_⟩
-    rw [← inc₂_eq_inc₂_iff]
-    ext v w
-    exact hinc e he v w
+  · intro h
+    exact ⟨vx_subset_of_le h, edge_subset_of_le h⟩
+  · rintro ⟨hV, hE⟩
+    refine ⟨hV, ?_⟩
+    rintro e x y hbtw
+    rwa [Inc₂_iff_Inc₂_of_le hle2 (hE hbtw.edge_mem), ← Inc₂_iff_Inc₂_of_le hle1 hbtw.edge_mem]
+
+@[simp]
+lemma Inc.le (hinc : G.Inc e x) (hle : G ≤ H) : H.Inc e x := by
+  rwa [← Inc_iff_Inc_of_le hle hinc.edge_mem]
+
+lemma IsLoopAt_iff_IsLoopAt_of_edge_mem_le (hle : G ≤ H) (he : e ∈ G.E) :
+    G.IsLoopAt e x ↔ H.IsLoopAt e x := by
+  unfold IsLoopAt
+  rw [incFun_eq_incFun_of_le hle he]
+
+lemma IsLoop.le (hisLoopAt : G.IsLoopAt e x) (hle : G ≤ H) : H.IsLoopAt e x := by
+  rwa [← IsLoopAt_iff_IsLoopAt_of_edge_mem_le hle hisLoopAt.edge_mem]
+
+lemma le_iff_inc : G ≤ H ↔ G.V ⊆ H.V ∧ G.E ⊆ H.E ∧ ∀ e ∈ G.E, ∀ v,
+  G.Inc e v ↔ H.Inc e v := by
+  constructor
+  · rintro hle
+    exact ⟨vx_subset_of_le hle, edge_subset_of_le hle, fun e he v ↦ Inc_iff_Inc_of_le hle he⟩
+  · refine fun ⟨hV, hE, hinc⟩ ↦ ⟨hV, fun e x y ↦ ?_⟩
+    by_cases he : e ∈ G.E
+    · rw [inc₂_eq_inc₂_iff_inc_eq_inc.mpr (by ext; exact hinc e he _)]
+    · simp [he]
+
+-- This is now the definition of `le`
+-- lemma le_iff_inc₂ : G ≤ H ↔ G.V ⊆ H.V ∧ G.E ⊆ H.E ∧ ∀ e ∈ G.E, ∀ v w,
+--   G.Inc₂ e v w ↔ H.Inc₂ e v w := by
+--   constructor
+--   · rintro ⟨hV, hE, hinc⟩
+--     refine ⟨hV, hE, fun e he v w ↦ ?_⟩
+--     unfold Inc₂ toMultiset
+--     rw [hinc e he]
+--   · refine fun ⟨hV, hE, hinc⟩ ↦ ⟨hV, hE, fun e he ↦ ?_⟩
+--     rw [← inc₂_eq_inc₂_iff]
+--     ext v w
+--     exact hinc e he v w
 
 lemma inc₂_iff_inc₂_of_edge_mem_le (hle : G ≤ H) (he : e ∈ G.E) :
     G.Inc₂ e u v ↔ H.Inc₂ e u v := by
@@ -558,7 +564,23 @@ lemma inc₂_iff_inc₂_of_edge_mem_le (hle : G ≤ H) (he : e ∈ G.E) :
 lemma Inc₂.le (h : G.Inc₂ e u v) (hle : G ≤ H) : H.Inc₂ e u v := by
   rwa [← inc₂_iff_inc₂_of_edge_mem_le hle (edge_mem h)]
 
-end Inc₂
+/-- If G₁ ≤ G₂ and G₂ is finite, then G₁ is finite too. -/
+theorem finite_of_le_finite (hle : G ≤ H) [h : H.Finite] : G.Finite := by
+  constructor
+  · -- Prove the vertex set is finite
+    apply Set.Finite.subset h.vx_fin
+    exact vx_subset_of_le hle
+  · -- Prove the edge set is finite
+    apply Set.Finite.subset h.edge_fin
+    exact edge_subset_of_le hle
+
+lemma vx_ncard_le_of_le [hfin : H.Finite] (hle : G ≤ H) : G.V.ncard ≤ H.V.ncard :=
+  Set.ncard_le_ncard (vx_subset_of_le hle) hfin.vx_fin
+
+lemma edge_ncard_le_of_le [hfin : H.Finite] (hle : G ≤ H) : G.E.ncard ≤ H.E.ncard :=
+  Set.ncard_le_ncard (edge_subset_of_le hle) hfin.edge_fin
+
+end SubgraphOrder
 
 section Adj
 
@@ -648,215 +670,3 @@ lemma handshake [Finite α] [Finite β] (G : Graph α β) :
   simp [mul_comm]
 
 end Degree
-
-section Connected
-
-@[simp]
-def reflAdj (G : Graph α β) (x y : α) :=
-  G.Adj x y ∨ x = y ∧ x ∈ G.V
-
-lemma reflAdj.of_vxMem (h : x ∈ G.V) : G.reflAdj x x := by
-  simp only [reflAdj, h, and_self, or_true]
-
-@[simp]
-lemma reflAdj.refl (h : x ∈ G.V) : G.reflAdj x x := reflAdj.of_vxMem h
-
-lemma reflAdj.symm (h : G.reflAdj x y) : G.reflAdj y x := by
-  apply h.imp
-  · exact fun h ↦ h.symm
-  · rintro ⟨rfl, hx⟩
-    exact ⟨rfl, hx⟩
-
-lemma reflAdj.comm : G.reflAdj x y ↔ G.reflAdj y x := by
-  refine ⟨reflAdj.symm, reflAdj.symm⟩
-
-lemma Inc.reflAdj_of_inc (hx : G.Inc e x) (hy : G.Inc e y) : G.reflAdj x y := by
-  by_cases hxy : x = y
-  · subst y
-    right
-    exact ⟨rfl, hx.vx_mem⟩
-  · left
-    use e
-    rw [inc₂_iff_inc_and_loop]
-    use hx, hy, fun h ↦ (hxy h).elim
-
-@[simp]
-lemma reflAdj.mem_left (h : G.reflAdj x y) : x ∈ G.V := by
-  apply h.elim
-  · exact fun a ↦ a.mem_left
-  · tauto
-
-@[simp]
-lemma reflAdj.mem_right (h : G.reflAdj x y) : y ∈ G.V := by
-  rw [reflAdj.comm] at h
-  exact h.mem_left
-
-@[simp]
-lemma Inc₂.reflAdj (h : G.Inc₂ e x y) : G.reflAdj x y := by
-  left
-  use e
-
-@[simp]
-lemma Adj.reflAdj (h : G.Adj x y) : G.reflAdj x y := by
-  left
-  exact h
-
-lemma reflAdj.Adj_of_ne (h : G.reflAdj x y) (hne : x ≠ y) : G.Adj x y := by
-  obtain ⟨e, h⟩ | ⟨rfl, hx⟩ := h
-  · use e
-  · contradiction
-
-@[simp]
-lemma reflAdj.Adj_iff_ne (hne : x ≠ y) : G.reflAdj x y ↔ G.Adj x y :=
-  ⟨fun h => h.Adj_of_ne hne, fun h => h.reflAdj⟩
-
-lemma reflAdj.le (h : G.reflAdj u w) (hle : G ≤ H) : H.reflAdj u w := by
-  obtain hadj | ⟨rfl, hu⟩ := h
-  · left
-    exact hadj.le hle
-  · right
-    simp only [vx_subset_of_le hle hu, and_self]
-
-
-def Connected (G : Graph α β) := Relation.TransGen G.reflAdj
-
-@[simp]
-lemma Inc₂.connected (h : G.Inc₂ e x y) : G.Connected x y :=
-  Relation.TransGen.single h.reflAdj
-
-@[simp]
-lemma Adj.connected (h : G.Adj x y) : G.Connected x y := Relation.TransGen.single h.reflAdj
-
-@[simp]
-lemma reflAdj.connected (h : G.reflAdj x y) : G.Connected x y := Relation.TransGen.single h
-
-lemma connected_self (hx : x ∈ G.V) : G.Connected x x :=
-  Relation.TransGen.single <| reflAdj.of_vxMem hx
-
-lemma Inc.connected_of_inc (hx : G.Inc e x) (hy : G.Inc e y) : G.Connected x y :=
-  reflAdj.connected (hx.reflAdj_of_inc hy)
-
-lemma Connected.comm : G.Connected x y ↔ G.Connected y x := by
-  unfold Connected
-  rw [Relation.transGen_swap]
-  congr! 1
-  ext
-  exact reflAdj.comm
-
-@[simp]
-lemma Connected.refl (hx : x ∈ G.V) : G.Connected x x :=
-  connected_self hx
-
-lemma Connected.symm (h : G.Connected x y) : G.Connected y x := by
-  rwa [Connected.comm]
-
-instance : IsSymm α (G.Connected) := ⟨fun _ _ ↦ Connected.symm⟩
-
-lemma Connected.trans (hxy : G.Connected x y) (hyz : G.Connected y z) :
-    G.Connected x z := Relation.TransGen.trans hxy hyz
-
-instance : IsTrans α (G.Connected) := ⟨fun _ _ _ ↦ Connected.trans⟩
-
-@[simp]
-lemma Connected.mem_left (hconn : G.Connected x y) : x ∈ G.V := by
-  simp only [Connected, Relation.TransGen.head'_iff, not_exists, not_and, not_or] at hconn
-  obtain ⟨a, hradj, hTG⟩ := hconn
-  exact hradj.mem_left
-
-@[simp]
-lemma Connected.mem_right (hconn : G.Connected x y) : y ∈ G.V := by
-  rw [Connected.comm] at hconn
-  exact hconn.mem_left
-
-@[simp]
-lemma not_connected_of_not_mem (h : x ∉ G.V) : ¬G.Connected x y := by
-  contrapose! h
-  exact h.mem_left
-
-@[simp]
-lemma not_connected_of_not_mem' (h : y ∉ G.V) : ¬G.Connected x y := by
-  rw [Connected.comm]
-  exact not_connected_of_not_mem h
-
-@[simp]
-lemma Connected.refl_iff : G.Connected x x ↔ x ∈ G.V := by
-  refine ⟨?_, Connected.refl⟩
-  rintro h
-  exact h.mem_left
-
-lemma Connected.le (h : G.Connected u v) (hle : G ≤ H) : H.Connected u v := by
-  induction h with
-  | single huv => exact Relation.TransGen.single (huv.le hle)
-  | tail huv h ih => exact Relation.TransGen.tail ih (h.le hle)
-
-class Conn (G : Graph α β) : Prop where
-  all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
-
-
-def SetConnected (G : Graph α β) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.Connected s t
-
-namespace SetConnected
-variable {G : Graph α β} {S S' T T' U V : Set α}
-
-lemma refl (h : ∃ x ∈ S, x ∈ G.V) : G.SetConnected S S := by
-  obtain ⟨x, hxS, hxV⟩ := h
-  use x, hxS, x, hxS, Connected.refl hxV
-
-lemma symm (h : G.SetConnected S T) : G.SetConnected T S := by
-  obtain ⟨s, hs, t, ht, h⟩ := h
-  exact ⟨t, ht, s, hs, h.symm⟩
-
-lemma comm : G.SetConnected S T ↔ G.SetConnected T S := ⟨SetConnected.symm, SetConnected.symm⟩
-
-lemma left_subset (h : G.SetConnected S T) (hS : S ⊆ S') : G.SetConnected S' T := by
-  obtain ⟨s, hs, t, ht, h⟩ := h
-  use s, hS hs, t, ht
-
-lemma right_subset (h : G.SetConnected S T) (hT : T ⊆ T') : G.SetConnected S T' := by
-  rw [SetConnected.comm] at h ⊢
-  exact h.left_subset hT
-
-lemma subset (h : G.SetConnected S T) (hS : S ⊆ S') (hT : T ⊆ T') : G.SetConnected S' T' :=
-  (h.left_subset hS).right_subset hT
-
-lemma left_supported : G.SetConnected S T ↔ G.SetConnected (S ∩ G.V) T := by
-  constructor
-  · rintro ⟨s, hsS, t, htT, h⟩
-    use s, ⟨hsS, h.mem_left⟩, t, htT
-  · rintro ⟨s, ⟨hsS, hs⟩, t, htT, h⟩
-    use s, hsS, t, htT
-
-lemma right_supported : G.SetConnected S T ↔ G.SetConnected S (T ∩ G.V) := by
-  rw [comm, left_supported, comm]
-
-lemma supported : G.SetConnected S T ↔ G.SetConnected (S ∩ G.V) (T ∩ G.V) := by
-  rw [left_supported, right_supported]
-
-lemma le (h : G.SetConnected S T) (hle : G ≤ H) : H.SetConnected S T := by
-  obtain ⟨s, hs, t, ht, h⟩ := h
-  exact ⟨s, hs, t, ht, h.le hle⟩
-
-@[simp]
-lemma empty_source : ¬ G.SetConnected ∅ T := by
-  rintro ⟨s, hs, t, ht, h⟩
-  simp at hs
-
-@[simp]
-lemma empty_target : ¬ G.SetConnected S ∅ := by
-  rw [SetConnected.comm]
-  exact empty_source
-
-@[simp]
-lemma nonempty_inter (h : (S ∩ T ∩ G.V).Nonempty) : G.SetConnected S T := by
-  obtain ⟨x, ⟨hxS, hxT⟩, hx⟩ := h
-  use x, hxS, x, hxT, Connected.refl hx
-
-lemma exists_mem_left (h : G.SetConnected S T) : ∃ x ∈ S, x ∈ G.V := by
-  obtain ⟨s, hs, t, ht, h⟩ := h
-  exact ⟨s, hs, h.mem_left⟩
-
-lemma exists_mem_right (h : G.SetConnected S T) : ∃ x ∈ T, x ∈ G.V := by
-  rw [SetConnected.comm] at h
-  exact exists_mem_left h
-
-end SetConnected
