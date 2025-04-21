@@ -1,5 +1,5 @@
 -- import Mathlib
-import Kura.Basic
+import Kura.Graph
 import Kura.Isolated
 import Kura.Connected
 import Kura.Operation.Subgraph

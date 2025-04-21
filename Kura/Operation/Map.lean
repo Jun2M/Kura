@@ -1,118 +1,66 @@
-import Kura.Basic
-import Kura.Dep.SetPartition
+import Kura.Le
+
 
 open Set Function
-variable {α α' β : Type*} {G H : Graph α β} {u v w x y : α} {e f g : β}
+variable {α α' β : Type*} {G H : Graph α β} {u v w : α} {e f g : β} {φ : α → α'} {x y z : α'}
 namespace Graph
 
 
-def ConnectedPartition (G : Graph α β) : Partition G.V :=
-  Partition.ofRel' (G.Connected) (by
-    ext v
-    simp only [Connected.refl_iff, setOf_mem_eq])
-
--- namespace ConnectedPartition
-
--- noncomputable def rep (x : α) (hx : x ∈ G.V) : α :=
---   G.ConnectedPartition.rep (G.ConnectedPartition.partOf_mem hx)
-
--- @[simp]
--- lemma rep_mem (hx : x ∈ G.V) : rep x hx ∈ G.V :=
---   Partition.rep_mem' (G.ConnectedPartition.partOf_mem hx)
-
--- @[simp]
--- lemma rep_connected (hx : x ∈ G.V) :
---     G.Connected (rep x hx) x := by
---   rw [Connected.comm]
---   convert G.ConnectedPartition.rep_rel (G.ConnectedPartition.partOf_mem hx) (G.ConnectedPartition.mem_partOf hx)
---   rw [eq_comm]
---   exact Partition.rel_ofRel'_eq (G.Connected) (by simp only [Connected.refl_iff, setOf_mem_eq])
-
--- @[simp]
--- lemma req_eq_iff_connected (hx : x ∈ G.V) (hy : y ∈ G.V) :
---     rep x hx = rep y hy ↔ G.Connected x y := by
---   constructor <;> rintro h
---   · exact (rep_connected hx).symm.trans (h ▸ rep_connected hy)
---   · rw [Partition.rel_iff_eqv_class_eq_left (Connected.refl hx)] at h
---     simp [rep]
---     congr
---     refine Partition.eq_partOf_of_mem (G.ConnectedPartition.partOf_mem hx) ?_
---     simp only [Partition.partOf, mem_sUnion, mem_setOf_eq]
---     use {z | G.Connected y z}, ⟨?_, ?_⟩, Connected.refl hy
---     · rw [ConnectedPartition, Partition.mem_ofRel'_iff]
---       use x, hx
---       rw [h]
---     · rw [← h]
---       exact Connected.refl hx
-
--- lemma rep_idem (hx : x ∈ G.V) :
---     rep (rep x hx) (rep_mem hx) = rep x hx := by
---   simp only [rep, Partition.partOf_rep]
-
--- end ConnectedPartition
-
-
 lemma vxMap_aux (G : Graph α β) {f : α → α'} {x : α'} :
-    (G.incFun e).mapDomain f x ≠ 0 ↔ ∃ v, f v = x ∧ G.Inc e v := by
+    (G.IncFun e).mapDomain f x ≠ 0 ↔ ∃ v, f v = x ∧ G.Inc e v := by
   classical
   simp +contextual [← incFun_eq_zero, Finsupp.mapDomain, Finsupp.sum,
     Finsupp.single_apply, and_comm, ← incFun_ne_zero]
 
 /-- Maps are easy too -/
-noncomputable def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β where
-  V := f '' G.V
-  E := G.E
-  incFun e := (G.incFun e).mapDomain f
-  sum_eq e he := by rwa [Finsupp.sum_mapDomain_index (by simp) (by simp), G.sum_eq]
-  vertex_support e v := by
-    classical
-    simp only [ne_eq, vxMap_aux, Set.mem_image, forall_exists_index, and_imp]
-    exact fun x hxv h ↦ ⟨x, h.vx_mem, hxv⟩
-  edge_support e v := by
-    classical
-    simp only [ne_eq, vxMap_aux, forall_exists_index, and_imp]
-    exact fun _ _ ↦ Inc.edge_mem
-
-variable {α' : Type*} {φ : α → α'}
+def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
+  oftoMultiset (f '' G.V) (fun e ↦ (G.toMultiset e).map f) fun e v h ↦ (by
+    simp only [Multiset.mem_map, inc_iff_mem_toMultiset, mem_image] at h ⊢
+    obtain ⟨v, hv, rfl⟩ := h
+    use v, hv.vx_mem)
 
 @[simp]
 lemma vxMap.V : (G.vxMap φ).V = φ '' G.V := rfl
 
 @[simp]
-lemma vxMap.E : (G.vxMap φ).E = G.E := rfl
+lemma vxMap.E : (G.vxMap φ).E = G.E := by simp [vxMap]
 
 /-- `vxMap` has the expected incidence predicate. -/
 @[simp]
-lemma vxMap_inc_iff (G : Graph α β) (f : α → α') (x : α') (e : β) :
-    (G.vxMap f).Inc e x ↔ ∃ v, f v = x ∧ G.Inc e v := by
-  rw [← incFun_ne_zero, ← vxMap_aux]
+lemma vxMap_inc_iff : (G.vxMap φ).Inc e x ↔ ∃ v, G.Inc e v ∧ φ v = x := by
+  rw [← inc_iff_mem_toMultiset]
+  unfold vxMap
+  rw [oftoMultiset_toMultiset (by simp [em])]
+  simp
+
+@[simp]
+lemma vxMap_toMultiset_eq_map_toMultiset : (G.vxMap φ).toMultiset e = (G.toMultiset e).map φ := by
+  unfold vxMap
+  rw [oftoMultiset_toMultiset (by simp [em])]
+
+lemma Inc₂.vxMap_of_inc₂ (hBtw : G.Inc₂ e u v) (φ : α → α') : (G.vxMap φ).Inc₂ e (φ u) (φ v) := by
+  rw [inc₂_iff_toMultiset] at hBtw
+  unfold vxMap
+  rw [inc₂_iff_toMultiset, oftoMultiset_toMultiset (by simp [em]), hBtw]
   rfl
 
 @[simp]
-lemma vxMap_toMultiset_eq_map_toMultiset (G : Graph α β) (f : α → α') (e : β) :
-    (G.vxMap f).toMultiset e = Multiset.map f (G.toMultiset e) := by
-  simp only [vxMap, toMultiset, Finsupp.toMultiset_map]
-
-lemma Inc₂.vxMap_of_inc₂ {x y : α} (hBtw : G.Inc₂ e x y) (φ : α → α') :
-    (G.vxMap φ).Inc₂ e (φ x) (φ y) := by
-  unfold Inc₂ at hBtw ⊢
-  simp only [Multiset.insert_eq_cons, vxMap_toMultiset_eq_map_toMultiset, ← hBtw, Multiset.map_cons,
-    Multiset.map_singleton]
-
-@[simp]
-lemma vxMap.Inc₂ {x y : α'} : (G.vxMap φ).Inc₂ e x y ↔
-    ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.Inc₂ e x' y' := by
+lemma vxMap.Inc₂ : (G.vxMap φ).Inc₂ e x y ↔ ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.Inc₂ e x' y' := by
+  classical
+  simp_rw [inc₂_iff_toMultiset]
+  rw [vxMap, oftoMultiset_toMultiset (by simp [em])]
   constructor
-  · rintro hBtw
-    obtain he : e ∈ G.E := hBtw.edge_mem
-    obtain ⟨x', y', hbtw⟩ := exist_inc₂_of_mem he
-    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (hbtw.vxMap_of_inc₂ φ).eq_or_eq_of_inc₂ hBtw
-    · use x', rfl, y'
-    · use y', rfl, x', rfl
-      exact hbtw.symm
-  · rintro ⟨x', rfl, y', rfl, hbtw⟩
-    exact hbtw.vxMap_of_inc₂ φ
-
+  · rintro h
+    simp only [Multiset.insert_eq_cons] at h
+    simp_rw [← Multiset.map_eq_cons, Multiset.map_eq_singleton] at h
+    obtain ⟨a, ha, rfl, b, hb, rfl⟩ := h
+    use a, rfl, b, rfl
+    obtain ⟨m, hm⟩ := Multiset.exists_cons_of_mem ha
+    rw [hm, Multiset.erase_cons_head] at hb
+    rwa [hb] at hm
+  · rintro ⟨x', rfl, y', rfl, hBtw⟩
+    rw [hBtw]
+    rfl
 
 -- def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where
 --   V := G.V

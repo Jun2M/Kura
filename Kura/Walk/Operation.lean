@@ -421,7 +421,7 @@ lemma ValidIn.last_eq_first (hw₁ : w₁.Nonempty) (hVd₁ : w₁.ValidIn G) (h
       obtain ⟨y, rfl⟩ := hNonempty
       simp_all only [Nonempty.not_nil, nil_last, IsEmpty.forall_iff, nil_first, nil_validIn,
         nil_append]
-      exact hVd₁.1.eq_of_inc₂ hVd.1
+      exact hVd₁.1.inc₂_iff_eq_right.mp hVd.1
 
 lemma append_isWalkFrom (h : w₁.last = w₂.first) (h₁ : G.IsWalkFrom S T w₁)
     (h₂ : G.IsWalkFrom T U w₂) : G.IsWalkFrom S U (w₁ ++ w₂) := by

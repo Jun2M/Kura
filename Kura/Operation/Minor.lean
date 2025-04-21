@@ -3,7 +3,7 @@ import Kura.Operation.Map
 
 
 open Set Function
-variable {α β α' α'' : Type*} {G H : Graph α β} {u v w x y : α} {e f g : β}
+variable {α β α' α'' : Type*} {G H : Graph α β} {u v w : α} {x y z : α'} {e f g : β}
 namespace Graph
 
 /-- `Contract G φ C` contracts the edges in set `C` of graph `G`,
@@ -17,7 +17,7 @@ namespace Graph
 noncomputable def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
   (G.vxMap φ){G.E \ C}
 
-notation:1023 G "/["φ"]" C => Graph.Contract G φ C
+notation G "/["φ"]" C => Graph.Contract G φ C
 
 /- lemmas about Contract -/
 namespace Contract
@@ -35,10 +35,10 @@ def ValidIn (G : Graph α β) (φ : α → α') (C : Set β) :=
 variable {φ τ : α → α'} {C D : Set β}
 
 @[simp]
-lemma map_mem (φ : α → α') (C : Set β) (hx : x ∈ G.V) : φ x ∈ (G /[φ] C).V := by
-  use x
+lemma map_mem (φ : α → α') (C : Set β) (hx : u ∈ G.V) : φ u ∈ (G /[φ] C).V := by
+  use u
 
-lemma map_eq_of_reflAdj (hC : ValidIn G φ C) (hradj : G{C}.reflAdj x y) : φ x = φ y := by
+lemma map_eq_of_reflAdj (hC : ValidIn G φ C) (hradj : G{C}.reflAdj u v) : φ u = φ v := by
   obtain h | ⟨rfl, h⟩ := hradj
   · rw [hC h.mem_left h.mem_right]
     exact h.connected
@@ -77,21 +77,14 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
   -- Get a representative function for the connected components
   obtain ⟨φ, hid, hrel, heq⟩ := Partition.nonempty_repFun (ConnectedPartition (G{S}))
   use φ
+  simp only [ComponentPartition.supp, restrict_V, ConnectedPartition.Rel] at hrel heq
   -- Show that φ is a valid contraction function with respect to S
   intro x y hx hy
-  constructor
-  · intro h_eq_φ
-    obtain hconnx := hrel x hx
-    obtain hconny := hrel y hy
-    simp only [ConnectedPartition, rel_ofRel'_eq] at hconnx hconny
-    refine (hconnx.trans ?_).trans hconny.symm
-    rw [h_eq_φ]
-    refine Connected.refl ?_
-    exact hconny.mem_right
-  · intro h_connected
-    apply heq _ _
-    simp only [ConnectedPartition, rel_ofRel'_eq]
-    exact h_connected
+  refine ⟨fun h_eq_φ ↦ ?_, (heq _ _ ·)⟩
+  obtain hconny := hrel y hy
+  refine ((hrel x hx).trans ?_).trans hconny.symm
+  rw [h_eq_φ]
+  exact Connected.refl hconny.mem_right
 
 noncomputable def SubgraphContractFun (G : Graph α β) (S : Set β) :=
   fun x ↦ G{S}[{y | G{S}.Connected x y}]
@@ -165,7 +158,8 @@ lemma V : (G /[φ] C).V = φ '' G.V := rfl
 
 @[simp]
 lemma E : (G /[φ] C).E = G.E \ C := by
-  simp only [Contract, vxMap, restrict_E, inter_eq_right]
+  simp only [Contract, vxMap, restrict_E, oftoMultiset_E, Multiset.card_map,
+    toMultiset_card_eq_two_iff, setOf_mem_eq, inter_eq_right]
   tauto_set
 
 lemma E_subset : (G /[φ] C).E ⊆ G.E := by
@@ -173,36 +167,34 @@ lemma E_subset : (G /[φ] C).E ⊆ G.E := by
   tauto_set
 
 @[simp]
-lemma Inc {x : α'} : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ e ∉ C := by
-  simp +contextual only [Contract, vxMap_inc_iff, restrict_inc, mem_diff, iff_def]
+lemma Inc : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ e ∉ C := by
+  simp +contextual only [Contract, restrict_inc, vxMap_inc_iff, mem_diff, iff_def,
+    not_false_eq_true, and_true, and_imp, forall_exists_index]
   constructor
-  · rintro ⟨⟨v, rfl, hv⟩, hin, hnin⟩
+  · rintro v hinc rfl he heC
     use v
-    tauto
-  · rintro ⟨v, rfl, hinc, hnin⟩
-    use ⟨v, rfl, hinc⟩, hinc.edge_mem, hnin
+  · rintro v rfl hinc heC
+    use ⟨v, hinc, rfl⟩, hinc.edge_mem
 
-lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e x y) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ x) (φ y) := by
-  simp only [Contract, restrict_inc₂, vxMap.Inc₂, mem_diff, hbtw.edge_mem, hnin,
+lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e u v) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
+  simp only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, hbtw.edge_mem, hnin,
     not_false_eq_true, and_self, and_true]
-  use x, rfl, y
+  use u, rfl, v
 
 @[simp]
-lemma Inc₂ {x' y' : α'} : (G /[φ] C).Inc₂ e x' y' ↔ ∃ x, φ x = x' ∧ ∃ y, φ y = y' ∧
-    G.Inc₂ e x y ∧ e ∉ C:= by
-  simp +contextual only [Contract, restrict_inc₂, vxMap.Inc₂, mem_diff, iff_def,
+lemma Inc₂ : (G /[φ] C).Inc₂ e x y ↔ ∃ u, φ u = x ∧ ∃ v, φ v = y ∧
+    G.Inc₂ e u v ∧ e ∉ C:= by
+  simp +contextual only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, iff_def,
     not_false_eq_true, and_true, implies_true, forall_exists_index, and_imp, true_and]
   rintro x rfl y rfl hbtw hnin
   exact ⟨⟨x, rfl, y, rfl, hbtw⟩, hbtw.edge_mem⟩
 
-lemma inc₂ (φ : α → α') (he : e ∉ C) (hbtw : G.Inc₂ e u v) :
-    (G /[φ] C).Inc₂ e (φ u) (φ v) := by
-  rw [Contract, restrict_inc₂]
+lemma inc₂ (φ : α → α') (he : e ∉ C) (hbtw : G.Inc₂ e u v) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
+  rw [Contract, restrict_inc₂_iff]
   exact ⟨hbtw.vxMap_of_inc₂ φ, hbtw.edge_mem, he⟩
 
 @[simp]
-lemma contract_eq_contract_iff :
-    (G /[φ] C) = (G /[φ] D) ↔ G.E \ C = G.E \ D := by
+lemma contract_eq_contract_iff : (G /[φ] C) = (G /[φ] D) ↔ G.E \ C = G.E \ D := by
   constructor <;> rintro hE
   · apply_fun Graph.E at hE
     simpa using hE
@@ -210,9 +202,6 @@ lemma contract_eq_contract_iff :
     simp only [mem_diff, and_congr_right_iff] at hE'
     apply ext_inc
     · simp
-    · ext e
-      specialize hE' e
-      simpa  [E, mem_diff, and_congr_right_iff]
     · intro e x
       simp only [Inc]
       constructor <;> rintro ⟨x, rfl, hinc, hnin⟩ <;> use x, rfl, hinc
@@ -224,8 +213,6 @@ lemma contract_restrict_eq_restrict_contract {S : Set β} :
     (G /[φ] C){S} = (G{S ∪ (G.E ∩ C)} /[φ] C) := by
   apply ext_inc
   · simp
-  · simp only [restrict_E, E, mem_inter_iff, mem_diff, mem_union]
-    tauto_set
   · simp only [restrict_inc, Inc, mem_union, mem_inter_iff]
     tauto
 
@@ -290,56 +277,58 @@ end Contract
 
 /- Creators of ContractSys -/
 
--- /-- Creates a contraction system from a single edge incident to a vertex.
+/-- Creates a contraction system from a single edge incident to a vertex.
 
---     Given a vertex `x` incident to edge `e`, this creates a contraction system
---     that contracts edge `e` and maps all vertices incident to `e` to `x`. -/
--- def Inc.contractFun (_hxe : G.Inc x e) [DecidablePred (G.Inc · e)] : α → α :=
---   fun y ↦ if G.Inc y e then x else y
+    Given a vertex `u` incident to edge `e`, this creates a contraction system
+    that contracts edge `e` and maps all vertices incident to `e` to `u`. -/
+def Inc.contractFun (_hxe : G.Inc e u) [DecidablePred (G.Inc e)] : α → α :=
+  fun v ↦ if G.Inc e v then u else v
 
--- lemma Inc.contractFun_validIn (hxe : G.Inc x e) [DecidablePred (G.Inc · e)] :
---     Contract.ValidIn G (Inc.contractFun hxe) {e} := by
---   rintro a b ha hb
---   simp only [contractFun]
---   split_ifs with hainc hbinc hbinc
---   · simp only [true_iff]
---     refine reflAdj.connected ?_
---     refine Inc.reflAdj_of_inc ⟨hainc, rfl⟩ ⟨hbinc, rfl⟩
---   · apply iff_of_false
---     · rintro rfl
---       exact hbinc hxe
---     · have hab : a ≠ b := by
---         rintro rfl
---         exact hbinc hainc
---       rw [Connected.comm, connected_iff_eq_and_mem_no_inc_edge' ?_]
---       tauto
---       · rintro e' he'
---         simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
---         obtain ⟨he, rfl⟩ := he'
---         simp [hbinc]
---   · apply iff_of_false
---     · rintro rfl
---       exact hainc hxe
---     · have hab : a ≠ b := by
---         rintro rfl
---         exact hainc hbinc
---       rw [connected_iff_eq_and_mem_no_inc_edge' ?_]
---       tauto
---       · rintro e' he'
---         simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
---         obtain ⟨he, rfl⟩ := he'
---         simp only [restrict_inc, hainc, mem_singleton_iff, and_true, not_false_eq_true]
---   · rw [connected_iff_eq_and_mem_no_inc_edge' ?_]
---     simp [ha]
---     · rintro e' he'
---       simp only [restrict_E, mem_inter_iff, mem_singleton_iff] at he'
---       obtain ⟨he, rfl⟩ := he'
---       simpa [restrict_inc]
+lemma Inc.contractFun_validIn (hxe : G.Inc e u) [DecidablePred (G.Inc e)] :
+    Contract.ValidIn G (Inc.contractFun hxe) {e} := by
+  rintro a b ha hb
+  simp only [contractFun]
+  split_ifs with hainc hbinc hbinc
+  · simp only [true_iff]
+    refine reflAdj.connected ?_
+    refine Inc.reflAdj_of_inc (e := e) ?_ ?_ <;>
+    · rwa [Inc_eq_Inc_of_le (G.restrict_le {e})]
+      simp [hxe.edge_mem]
+  · apply iff_of_false
+    · rintro rfl
+      exact hbinc hxe
+    · have hab : a ≠ b := by
+        rintro rfl
+        exact hbinc hainc
+      rw [Connected.comm, Isolated.connected_iff ?_]
+      tauto
+      · rintro e' he'
+        simp only [restrict_inc, mem_singleton_iff] at he'
+        obtain ⟨he, rfl⟩ := he'
+        exact hbinc he
+  · apply iff_of_false
+    · rintro rfl
+      exact hainc hxe
+    · have hab : a ≠ b := by
+        rintro rfl
+        exact hainc hbinc
+      rw [Isolated.connected_iff ?_]
+      tauto
+      · rintro e' he'
+        simp only [restrict_inc, mem_singleton_iff] at he'
+        obtain ⟨he, rfl⟩ := he'
+        exact hainc he
+  · rw [Isolated.connected_iff ?_]
+    simp [ha]
+    · rintro e' he'
+      simp only [restrict_inc, mem_singleton_iff] at he'
+      obtain ⟨he, rfl⟩ := he'
+      exact hainc he
 
-def Inc₂.contractFun (_hexy : G.Inc₂ e x y) [DecidableEq α] : α → α :=
-  fun u ↦ if u = y then x else u
+def Inc₂.contractFun (_hexy : G.Inc₂ e u v) [DecidableEq α] : α → α :=
+  fun w ↦ if w = v then u else w
 
-lemma Inc₂.contractFun_validIn (hexy : G.Inc₂ e x y) [DecidableEq α] :
+lemma Inc₂.contractFun_validIn (hexy : G.Inc₂ e u v) [DecidableEq α] :
     Contract.ValidIn G hexy.contractFun {e} := by
   rintro a b ha hb
   have hsub := G.restrict_E_subset_singleton e
@@ -352,47 +341,47 @@ lemma Inc₂.contractFun_validIn (hexy : G.Inc₂ e x y) [DecidableEq α] :
   · subst hainc
     rw [connected_iff_reflAdj_of_E_subsingleton hsub, reflAdj.Adj_iff_ne,
       Adj.iff_inc₂_of_E_subsingleton hsub,
-      inc₂_iff_inc₂_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
+      Inc₂_eq_Inc₂_of_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
       hexy.symm.inc₂_iff_eq_right]
     exact fun a_1 ↦ hbinc a_1.symm
   · subst hbinc
     rw [connected_iff_reflAdj_of_E_subsingleton hsub, reflAdj.Adj_iff_ne,
       Adj.iff_inc₂_of_E_subsingleton hsub,
-      inc₂_iff_inc₂_of_edge_mem_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
+      Inc₂_eq_Inc₂_of_le (restrict_le _ _) (by simp [hsub, hexy.edge_mem]),
       hexy.inc₂_iff_eq_left]
     exact fun a_1 ↦ hainc a_1
   · rw [connected_iff_reflAdj_of_E_subsingleton hsub]
     have hnadj : ¬ G{{e}}.Adj a b := by
       rintro ⟨e', hbtw⟩
-      simp only [restrict_inc₂, mem_singleton_iff] at hbtw
+      simp only [restrict_inc₂_iff, mem_singleton_iff] at hbtw
       obtain ⟨hbtw, rfl⟩ := hbtw
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_or_eq_of_inc₂ hbtw
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_of_inc₂ hbtw
       · exact hbinc rfl
       · exact hainc rfl
     simp [hnadj, ha]
 
-lemma Inc₂.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.Inc₂ e x y)
+lemma Inc₂.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.Inc₂ e u v)
     (h : ¬ G.Inc e u) : hexy.contractFun u = u := by
   simp only [contractFun, ite_eq_right_iff]
   rintro rfl
   exact (h hexy.inc_right).elim
 
 @[simp]
-lemma Inc₂.contractFun_eq_self_iff [DecidableEq α] (hexy : G.Inc₂ e x y) (hxy : x ≠ y) :
-    hexy.contractFun u = u ↔ u ≠ y := by
-  simp +contextual [Inc₂.contractFun, hxy]
+lemma Inc₂.contractFun_eq_self_iff [DecidableEq α] (hexy : G.Inc₂ e u v) (huv : u ≠ v) :
+    hexy.contractFun u = u ↔ u ≠ v := by
+  simp +contextual [Inc₂.contractFun, huv]
 
 @[simp]
-lemma Inc₂.vx_mem_contract_iff [DecidableEq α] (hexy : G.Inc₂ e x y) :
-    u ∈ (G /[hexy.contractFun] {e}).V ↔ u ∈ G.V \ {y} ∪ {x} := by
+lemma Inc₂.vx_mem_contract_iff [DecidableEq α] (hexy : G.Inc₂ e u v) :
+    w ∈ (G /[hexy.contractFun] {e}).V ↔ w ∈ G.V \ {v} ∪ {u} := by
   simp +contextual only [Contract.V, Inc₂.contractFun, mem_image, union_singleton,
     mem_insert_iff, mem_diff, mem_singleton_iff, iff_def, forall_exists_index, and_imp]
   constructor
-  · rintro v hv rfl
-    split_ifs with h <;> simp [h, hv]
+  · rintro w hw rfl
+    split_ifs with h <;> simp [h, hw]
   · rintro (rfl | ⟨h, hnin⟩)
-    · use y, hexy.vx_mem_right, (by simp)
-    . use u, h, (by simp [hnin])
+    · use v, hexy.vx_mem_right, (by simp)
+    . use w, h, (by simp [hnin])
 
 namespace Contract
 variable {φ : α → α'} {τ : α' → α''} {C D : Set β} {x y : α'}
@@ -408,7 +397,7 @@ lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidIn G φ C) : (G /[φ] C).reflAd
   · by_cases he : e' ∈ C
     · have : G{C}.Connected u v := by
         apply Inc₂.connected
-        rw [restrict_inc₂]
+        rw [restrict_inc₂_iff]
         exact ⟨hbtw', he⟩
       rw [← hVd hbtw'.vx_mem_left hbtw'.vx_mem_right] at this
       rw [this]; clear this
@@ -421,9 +410,11 @@ lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflA
     (hu : u ∈ G.V) (hv : v ∈ G.V) : G.Connected u v := by
   have hle := G.restrict_le C
   obtain ⟨e, hbtw⟩ | ⟨heq, hmem⟩ := hradj
-  · obtain ⟨he', he, heC⟩ := hbtw.edge_mem; clear he'
-    obtain ⟨a, b, hbtwG⟩ := G.exist_inc₂_of_mem he
-    have heqeq := (inc₂ φ heC hbtwG).eq_or_eq_of_inc₂ hbtw
+  · obtain he := hbtw.edge_mem
+    simp only [E, mem_diff] at he
+    obtain ⟨he, heC⟩ := he
+    obtain ⟨a, b, hbtwG⟩ := Inc₂.exists_vx_inc₂ he
+    have heqeq := (inc₂ φ heC hbtwG).eq_of_inc₂ hbtw
     wlog heq : φ a = φ u ∧ φ b = φ v
     · simp only [heq, false_or] at heqeq
       rw [and_comm] at heqeq

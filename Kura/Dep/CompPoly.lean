@@ -4,12 +4,12 @@ import Mathlib.Tactic
 /-- Polynomial in Mathlib is not computable.
   This is.
   e.g. [2, 3] = 2x + 3 -/
-structure CompPoly (α : Type u) [Ring α] [DecidableEq α] where
+structure CompPoly (α : Type*) [Ring α] [DecidableEq α] where
   toList : List α
   last_nezero : (h : toList ≠ []) → toList.head h ≠ 0
 
 namespace CompPoly
-variable {α : Type u} [Ring α] [DecidableEq α] (p : CompPoly α)
+variable {α : Type*} [Ring α] [DecidableEq α] (p : CompPoly α)
 
 instance [Repr α] : Repr (CompPoly α) where
   reprPrec p _ := "CompPoly " ++ repr p.toList

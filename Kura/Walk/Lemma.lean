@@ -67,14 +67,14 @@ end Walk
 namespace IsPath
 
 lemma edge_not_isLoop (hP : G.IsPath w) (he : e ∈ w.edge) : ¬ G.IsLoopAt e x := by
-  rw [IsLoopAt_iff_inc₂]
+  rw [← inc₂_eq_iff_isLoopAt]
   obtain ⟨w₁, w₂, rfl, hnin⟩ := eq_append_cons_of_edge_mem he
   have hbtw' : G.Inc₂ e w₁.last w₂.first := hP.validIn.append_right_validIn.1
   have hNodup := hP.nodup
   rw [Walk.append_vx, cons_vx] at hNodup
   have := List.Nodup.of_append_right hNodup
   rintro hloop
-  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hloop.eq_or_eq_of_inc₂ hbtw'
+  obtain ⟨rfl, heq⟩ | ⟨rfl, heq⟩ := hloop.eq_of_inc₂ hbtw'
   · rw [← w₂.vx.head_cons_tail vx_ne_nil, heq, first_eq_vx_head] at this
     simp only [head_cons_tail, nodup_cons, head_mem, not_true_eq_false, false_and] at this
   · rw [← w₂.vx.head_cons_tail vx_ne_nil, ← heq, first_eq_vx_head] at this
@@ -82,7 +82,7 @@ lemma edge_not_isLoop (hP : G.IsPath w) (he : e ∈ w.edge) : ¬ G.IsLoopAt e x 
 
 lemma ne_of_inc₂_edge_mem (hP : G.IsPath w) (hbtw : G.Inc₂ e u v) (he : e ∈ w.edge) : u ≠ v := by
   refine fun huv ↦ edge_not_isLoop (x := v) hP he ?_
-  rw [IsLoopAt_iff_inc₂]
+  rw [← inc₂_eq_iff_isLoopAt]
   exact huv ▸ hbtw
 
 @[simp]
@@ -217,7 +217,8 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
     · simp only [nil_edge, not_mem_nil, false_or, setOf_mem_eq]
       rintro e he
       have := hwVd.edge_mem_of_mem he
-      exact Set.mem_of_mem_inter_right this
+      simp only [restrict_E, Set.mem_inter_iff] at this
+      exact this.2
     · exact hwVd.le (restrict_le _ _)
   | cons u e W ih =>
     rintro x hx y hy hpx hpy
@@ -225,7 +226,7 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
       apply ValidIn.restrict h ?_
       simp
     simp only [cons_first, cons_last] at hpx hpy
-    simp only [cons_edge, mem_cons, cons_validIn, restrict_inc₂, Inc₂, mem_setOf_eq,
+    simp only [cons_edge, mem_cons, cons_validIn, restrict_inc₂_iff, Inc₂, mem_setOf_eq,
       true_or, and_true] at hw
     simp only [cons_validIn, Inc₂] at h
     obtain ⟨⟨z, rfl, a, ha, hbtw, he⟩, hVdW⟩ := hw
@@ -238,7 +239,8 @@ lemma Contract.walk {α' : Type*} {w : Walk α' β} {p : α → α'} {C : Set β
       rintro f (hfw' | rfl | hfw)
       · right
         have := hw'Vd.edge_mem_of_mem hfw'
-        exact Set.mem_of_mem_inter_right this
+        simp only [restrict_E, Set.mem_inter_iff] at this
+        exact this.2
       · tauto
       · obtain (h1 | h2) := hsu hfw <;> tauto
     · refine append_validIn (by simp) (hw'Vd.le (restrict_le _ _)) ?_
@@ -258,7 +260,7 @@ lemma Contract.map_walk_of_walk {α' : Type*} {w : Walk α β} {p : α → α'} 
     · have : p u = w'.first := by
         rw [hst, hVd hbtw.vx_mem_left hbtw.vx_mem_right]
         apply Inc₂.connected
-        rw [restrict_inc₂]
+        rw [restrict_inc₂_iff]
         exact ⟨hbtw, he⟩
       use w', hw'Vd, this.symm, hfin
       simp only [cons_edge, mem_cons, setOf_subset_setOf]

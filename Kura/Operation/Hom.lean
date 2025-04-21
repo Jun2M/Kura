@@ -1,4 +1,4 @@
-import Kura.Basic
+import Kura.Graph
 
 
 open Set Function

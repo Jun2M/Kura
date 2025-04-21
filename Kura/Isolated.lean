@@ -1,4 +1,4 @@
-import Kura.Connected
+import Kura.Le
 
 
 open Set Function
@@ -10,10 +10,10 @@ namespace Graph
 section edge_empty
 
 @[simp]
-lemma incFun_eq_zero_of_E_empty (h : G.E = ∅) : G.incFun = 0 := by
+lemma IncFun_eq_zero_of_E_empty (h : G.E = ∅) : G.IncFun = 0 := by
   ext e v
-  simp only [h, mem_empty_iff_false, not_false_eq_true, incFun_of_not_mem_edgeSet, Finsupp.coe_zero,
-    Pi.zero_apply]
+  simp only [h, mem_empty_iff_false, not_false_eq_true, IncFun.eq_zero_of_edge_not_mem,
+    Finsupp.coe_zero, Pi.zero_apply]
 
 @[simp]
 lemma not_inc_of_E_empty (h : G.E = ∅) : ¬ G.Inc e v := by
@@ -50,21 +50,15 @@ lemma connected_iff_reflAdj_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ G.r
 lemma connected_iff_eq_mem_of_E_empty (h : G.E = ∅) : G.Connected x y ↔ x = y ∧ x ∈ G.V := by
   rw [← reflAdj_iff_eq_mem_of_E_empty h, connected_iff_reflAdj_of_E_empty h]
 
-def Edgeless (V : Set α) (β : Type*) : Graph α β where
-  V := V
-  E := ∅
-  incFun := fun _ => 0
-  sum_eq := by tauto
-  vertex_support := by tauto
-  edge_support := by tauto
+def Edgeless (V : Set α) (β : Type*) : Graph α β := ofInc V (fun _ _ ↦ False) (by tauto) (by tauto)
 
 namespace Edgeless
 
 @[simp] lemma V : (Edgeless U β).V = U := rfl
 
-@[simp] lemma E : (Edgeless U β).E = ∅ := rfl
+@[simp] lemma E : (Edgeless U β).E = ∅ := by simp [Edgeless]
 
-@[simp] lemma incFun : (Edgeless U β).incFun = 0 := rfl
+@[simp] lemma incFun : (Edgeless U β).IncFun = 0 := by simp
 
 @[simp] lemma Inc  : ¬ (Edgeless U β).Inc e v  := by simp
 
@@ -91,20 +85,21 @@ lemma edge_empty_iff_eq_Edgeless (G : Graph α β) : G.E = ∅ ↔ G = Edgeless 
   · rintro h
     ext1
     · rfl
-    · exact h
+    · simpa
     · ext e v
-      simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true, incFun_of_not_mem_edgeSet,
-        Finsupp.coe_zero, Pi.zero_apply, incFun_eq_zero]
+      simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true, not_inc₂_of_not_edge_mem,
+        iff_false]
       rintro hinc
       have := h ▸ hinc.edge_mem
       simp at this
   · rintro heq
-    rw [heq]
-    rfl
+    rw [heq, Edgeless.E]
 
 instance instOrderBotGraph : OrderBot (Graph α β) where
   bot := Edgeless ∅ β
-  bot_le G := by refine ⟨?_, ?_, ?_⟩ <;> simp only [Edgeless, empty_subset, mem_empty_iff_false,
+  bot_le G := by
+    rw [le_iff_inc]
+    refine ⟨?_, ?_⟩ <;> simp [Edgeless, empty_subset, mem_empty_iff_false,
     false_iff, IsEmpty.forall_iff, implies_true]
 
 instance instInhabitedGraph : Inhabited (Graph α β) where
@@ -112,9 +107,11 @@ instance instInhabitedGraph : Inhabited (Graph α β) where
 
 @[simp] lemma bot_V : (⊥ : Graph α β).V = ∅ := rfl
 
-@[simp] lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
+@[simp] lemma bot_E : (⊥ : Graph α β).E = ∅ := by
+  simp only [edge_empty_iff_eq_Edgeless, bot_V]
+  rfl
 
-@[simp] lemma bot_incFun : (⊥ : Graph α β).incFun = 0 := rfl
+@[simp] lemma bot_incFun : (⊥ : Graph α β).IncFun = 0 := by simp
 
 @[simp]
 lemma bot_inc : (⊥ : Graph α β).Inc = fun _ _ ↦ False := by
@@ -150,26 +147,20 @@ lemma bot_setConnected : (⊥ : Graph α β).SetConnected = fun _ _ ↦ False :=
 @[simp]
 lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
   constructor <;> rintro h
-  · apply ext_inc
-    · exact h
-    · simp only [bot_E]
-      by_contra! hE
-      have := h ▸ (G.exists_vertex_inc hE.some_mem).choose_spec.vx_mem
-      simp only [mem_empty_iff_false] at this
-    · simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty, iff_false]
-      rintro e v hinc
-      have := h ▸ hinc.vx_mem
-      simp only [mem_empty_iff_false] at this
+  · apply ext_inc h ?_
+    simp only [instOrderBotGraph, Edgeless.E, not_inc_of_E_empty, iff_false]
+    rintro e v hinc
+    have := h ▸ hinc.vx_mem
+    simp only [mem_empty_iff_false] at this
   · rw [h]
     rfl
 
 lemma vx_disjoint_of_disjoint (hDisj : Disjoint G H) : Disjoint G.V H.V := by
   intro x hx1 hx2
   let X : Graph α β := Edgeless x β
-  specialize hDisj (?_ : X ≤ G) ?_
-  · exact ⟨hx1, empty_subset _, by simp [X, Edgeless]⟩
-  · exact ⟨hx2, empty_subset _, by simp [X, Edgeless]⟩
-  exact hDisj.1
+  refine (hDisj (?_ : X ≤ G) ?_).1 <;>
+  · rw [le_iff_inc]
+    simpa [X]
 
 -- Not True!
 -- lemma Disjoint.edge_disjoint {G₁ G₂ : Graph α β} (hDisj : Disjoint G₁ G₂) : Disjoint G₁.E G₂.E := by

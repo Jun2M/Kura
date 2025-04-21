@@ -501,7 +501,7 @@ lemma mem_left_of_edge_mem_walk (h : G.Inc₂ e u v) (he : e ∈ w.edge) (hVd : 
     simp only [cons_edge, mem_cons, cons_vx] at he ⊢
     obtain rfl | he' := he
     · obtain ⟨hbtw, hVd⟩ := hVd
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_or_eq_of_inc₂ h
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_of_inc₂ h
       · left
       · right
         exact first_mem

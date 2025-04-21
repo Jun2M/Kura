@@ -38,7 +38,7 @@ lemma restrict (hVd : w.ValidIn G) (hF : w.edgeSet ⊆ F) : w.ValidIn (G{F}) := 
   | cons x e w ih =>
     obtain ⟨hbtw, hVd⟩ := hVd
     specialize ih hVd (fun e' he' => hF (by simp [he']))
-    simp only [cons_validIn, restrict_inc₂, hbtw, true_and, ih, and_true]
+    simp only [cons_validIn, restrict_inc₂_iff, hbtw, true_and, ih, and_true]
     exact hF (by simp [cons_edge])
 
 lemma edgeDel (hVd : w.ValidIn G) (hF : Disjoint w.edgeSet F) : w.ValidIn (G \ F) :=
@@ -64,7 +64,9 @@ lemma validIn_restrict : w.ValidIn (G{F}) ↔ w.ValidIn G ∧ w.edgeSet ⊆ F :=
   · rintro h
     refine ⟨h.le (restrict_le G F), ?_⟩
     rintro e he
-    exact (h.edgeSet_subset he).2
+    have := h.edgeSet_subset he
+    simp only [restrict_E, Set.mem_inter_iff] at this
+    exact this.2
   · rintro ⟨hVd, hF⟩
     exact hVd.restrict hF
 
@@ -191,6 +193,8 @@ lemma isPath_edgeDel : (G \ F).IsPath w ↔ G.IsPath w ∧ Disjoint w.edgeSet F 
   · rintro h
     refine ⟨h.of_edgeDel, ?_⟩
     rintro F' hF'w hF'F e heF'
-    exact (h.validIn.edgeSet_subset <| hF'w heF').2.2 <| hF'F heF'
+    have := h.validIn.edgeSet_subset <| hF'w heF'
+    simp only [edgeDel_E, mem_diff] at this
+    exact this.2 <| hF'F heF'
   · rintro ⟨hVp, hF⟩
     exact hVp.edgeDel hF
