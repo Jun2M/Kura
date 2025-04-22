@@ -2,8 +2,9 @@ import Kura.Isolated
 
 
 open Set Function
-variable {α β α' β' γ δ ε ζ : Type*} {G G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ}
-  {a b c : α} {e f : β} {u v w : γ} {x y z : δ} {S S' T T' U U': Set α} {F F' R R' : Set β}
+variable {α β α' β' γ δ ε ζ : Type*} {G G₁ G₁' H : Graph α β} {G₂ G₂' : Graph γ δ}
+  {G₃ G₃' : Graph ε ζ} {a b c : α} {e f : β} {u v w : γ} {x y z : δ} {S S' T T' U U': Set α}
+  {F F' R R' : Set β}
 namespace Graph
 
 
@@ -49,8 +50,8 @@ def HasEmb.toHasHom {G₁ : Graph α β} {G₂ : Graph γ δ} (h : HasEmb G₁ G
 
 structure HomSys.IsIsomOn (f : HomSys α β γ δ) (G₁ : Graph α β) (G₂ : Graph γ δ) : Prop extends
   IsHomOn f G₁ G₂ where
-  bij_vertex : BijOn f G₁.V G₂.V
-  bij_edge : BijOn f.edgeFun G₁.E G₂.E
+  bijOn_vx : BijOn f G₁.V G₂.V
+  bijOn_edge : BijOn f.edgeFun G₁.E G₂.E
 
 def HasIsom (G₁ : Graph α β) (G₂ : Graph γ δ) := ∃ f : HomSys α β γ δ, f.IsIsomOn G₁ G₂
 
@@ -96,17 +97,31 @@ lemma HomSys.IsEmbOn.comp {g : HomSys α β γ δ} {f : HomSys γ δ ε ζ} (hg 
 lemma HomSys.IsIsomOn.comp {g : HomSys α β γ δ} {f : HomSys γ δ ε ζ} (hg : g.IsIsomOn G₁ G₂)
     (hf : f.IsIsomOn G₂ G₃) : (g.comp f).IsIsomOn G₁ G₃ where
   toIsHomOn := hg.toIsHomOn.comp hf.toIsHomOn
-  bij_vertex := hf.bij_vertex.comp hg.bij_vertex
-  bij_edge := hf.bij_edge.comp hg.bij_edge
+  bijOn_vx := hf.bijOn_vx.comp hg.bijOn_vx
+  bijOn_edge := hf.bijOn_edge.comp hg.bijOn_edge
 
-section Hom
+lemma HomSys.IsHomOn.le {f : HomSys α β γ δ} (hle : G₂ ≤ G₂') (hf : f.IsHomOn G₁ G₂) :
+    f.IsHomOn G₁ G₂' where
+  Mapsto_vx _x hx := vx_subset_of_le hle (hf.Mapsto_vx hx)
+  inc₂ _e _x _y hbtw := (hf.inc₂ hbtw).le hle
 
-lemma HasHom.bot [hg : Nonempty γ] [hd : Nonempty δ] : (⊥ : Graph α β) ≤⟶ G₂ := by
+lemma HomSys.IsEmbOn.le {f : HomSys α β γ δ} (hle : G₂ ≤ G₂') (hf : f.IsEmbOn G₁ G₂) :
+    f.IsEmbOn G₁ G₂' where
+  toIsHomOn := hf.toIsHomOn.le hle
+  injOn_vx := hf.injOn_vx.mono subset_rfl
+  injOn_edge := hf.injOn_edge.mono subset_rfl
+
+lemma HasEmb.bot [hg : Nonempty γ] [hd : Nonempty δ] : (⊥ : Graph α β) ≤↪ G₂ := by
   use ⟨fun _ ↦ hg.some, fun _ ↦ hd.some⟩
   exact {
     Mapsto_vx := mapsTo_empty (fun x ↦ hg.some) G₂.V
     inc₂ := fun e x y hbtw ↦ by
-      simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc₂_of_not_edge_mem] at hbtw}
+      simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc₂_of_not_edge_mem] at hbtw
+    injOn_vx := by simp only [bot_V, injOn_empty]
+    injOn_edge := by simp only [bot_E, injOn_empty]
+  }
+
+section Hom
 
 lemma HasHom.edgeless [hd : Nonempty δ] (hU : U.Nonempty) : (Edgeless U β) ≤⟶ G₂ ↔ G₂.V.Nonempty := by
   constructor
@@ -129,4 +144,35 @@ lemma HasHom.trans {G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ
 
 def IsCore (G : Graph α β) := ∀ f : HomSys α β α β, f.IsHomOn G G → f.IsIsomOn G G
 
+-- lemma core_foo : ∃! H : Graph α β, H ≤ G ∧ G ≤⟶ H ∧ IsCore H := by
+--   by_cases h : G.IsCore
+--   · use G, ⟨le_rfl, HasHom.rfl, h⟩
+--     rintro G' ⟨hG'le, ⟨f, hG'hom⟩, hG'core⟩
+--     specialize h f
+--   sorry
+
 end Hom
+
+section Emb
+
+lemma HasEmb.rfl : G₁ ≤↪ G₁ := ⟨HomSys.id, HomSys.IsEmbOn.id⟩
+
+lemma HasEmb.trans {G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ} (h₁₂ : G₁ ≤↪ G₂)
+    (h₂₃ : G₂ ≤↪ G₃) : G₁ ≤↪ G₃ := by
+  obtain ⟨f₁₂, hf₁₂⟩ := h₁₂
+  obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
+  exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
+
+end Emb
+
+section Isom
+
+lemma HasIsom.rfl : G₁ ≤↔ G₁ := ⟨HomSys.id, HomSys.IsIsomOn.id⟩
+
+lemma HasIsom.trans {G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ} (h₁₂ : G₁ ≤↔ G₂)
+    (h₂₃ : G₂ ≤↔ G₃) : G₁ ≤↔ G₃ := by
+  obtain ⟨f₁₂, hf₁₂⟩ := h₁₂
+  obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
+  exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
+
+end Isom

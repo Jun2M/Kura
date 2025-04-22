@@ -371,6 +371,8 @@ noncomputable def eDegree (G : Graph α β) (v : α) : ℕ∞ := ∑' e, (G.IncF
 /-- The degree of a vertex as a term in `ℕ` (with value zero if the degree is infinite). -/
 noncomputable def degree (G : Graph α β) (v : α) : ℕ := (G.eDegree v).toNat
 
+def regular (G : Graph α β) := ∃ d, ∀ v, G.degree v = d
+
 lemma degree_eq_fintype_sum [Fintype β] (G : Graph α β) (v : α) :
     G.degree v = ∑ e, G.IncFun e v := by
   rw [degree, eDegree, tsum_eq_sum (s := Finset.univ) (by simp), ← Nat.cast_inj (R := ℕ∞),
