@@ -6,7 +6,6 @@ variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v : α} {e f
   {S S' T T' U U': Set α} {F F' R R' : Set β}
 namespace Graph
 
-
 section ext
 
 lemma inc₂_eq_inc₂_iff_inc_eq_inc : G.Inc₂ e = G'.Inc₂ e ↔ G.Inc e = G'.Inc e := by

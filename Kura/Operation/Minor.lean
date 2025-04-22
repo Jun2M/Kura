@@ -3,7 +3,8 @@ import Kura.Operation.Map
 
 
 open Set Function
-variable {α β α' α'' : Type*} {G H : Graph α β} {u v w : α} {x y z : α'} {e f g : β}
+variable {α α' β β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
+  {S S' T T' U U': Set α} {F F' R R' : Set β}
 namespace Graph
 
 /-- `Contract G φ C` contracts the edges in set `C` of graph `G`,
@@ -14,14 +15,54 @@ namespace Graph
     2. Vertices are relabeled according to the mapping function `φ`
 
     This is the fundamental operation for creating graph minors. -/
-noncomputable def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
+def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
   (G.vxMap φ){G.E \ C}
 
-notation G "/["φ"]" C => Graph.Contract G φ C
+notation:70 G " /["φ"]" C => Graph.Contract G φ C
 
 /- lemmas about Contract -/
 namespace Contract
+variable {φ τ : α → α'} {C D : Set β}
 
+@[simp]
+lemma V : (G /[φ] C).V = φ '' G.V := rfl
+
+@[simp]
+lemma E : (G /[φ] C).E = G.E \ C := by
+  simp only [Contract, vxMap, restrict_E, oftoMultiset_E, Multiset.card_map,
+    toMultiset_card_eq_two_iff, setOf_mem_eq, inter_eq_right]
+  tauto_set
+
+lemma E_subset : (G /[φ] C).E ⊆ G.E := by
+  simp only [E]
+  tauto_set
+
+@[simp]
+lemma Inc : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ e ∉ C := by
+  simp +contextual only [Contract, restrict_inc, vxMap_inc_iff, mem_diff, iff_def,
+    not_false_eq_true, and_true, and_imp, forall_exists_index]
+  constructor
+  · rintro v hinc rfl he heC
+    use v
+  · rintro v rfl hinc heC
+    use ⟨v, hinc, rfl⟩, hinc.edge_mem
+
+lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e u v) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
+  simp only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, hbtw.edge_mem, hnin,
+    not_false_eq_true, and_self, and_true]
+  use u, rfl, v
+
+@[simp]
+lemma Inc₂ : (G /[φ] C).Inc₂ e x y ↔ ∃ u, φ u = x ∧ ∃ v, φ v = y ∧
+    G.Inc₂ e u v ∧ e ∉ C:= by
+  simp +contextual only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, iff_def,
+    not_false_eq_true, and_true, implies_true, forall_exists_index, and_imp, true_and]
+  rintro x rfl y rfl hbtw hnin
+  exact ⟨⟨x, rfl, y, rfl, hbtw⟩, hbtw.edge_mem⟩
+
+lemma inc₂ (φ : α → α') (he : e ∉ C) (hbtw : G.Inc₂ e u v) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
+  rw [Contract, restrict_inc₂_iff]
+  exact ⟨hbtw.vxMap_of_inc₂ φ, hbtw.edge_mem, he⟩
 
 /-- A function `φ` is valid on a graph `G` with respect to a set of edges `C` if
     it maps two vertices to the same vertex precisely when they are connected
@@ -31,8 +72,6 @@ namespace Contract
     in a well-defined way. -/
 def ValidIn (G : Graph α β) (φ : α → α') (C : Set β) :=
   ∀ ⦃x y⦄, x ∈ G.V → y ∈ G.V → (φ x = φ y ↔ G{C}.Connected x y)
-
-variable {φ τ : α → α'} {C D : Set β}
 
 @[simp]
 lemma map_mem (φ : α → α') (C : Set β) (hx : u ∈ G.V) : φ u ∈ (G /[φ] C).V := by
@@ -86,18 +125,70 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
   rw [h_eq_φ]
   exact Connected.refl hconny.mem_right
 
-noncomputable def SubgraphContractFun (G : Graph α β) (S : Set β) :=
-  fun x ↦ G{S}[{y | G{S}.Connected x y}]
+def SubgraphContractFun (G : Graph α β) (C : Set β) := fun x ↦ G{C}[G{C}.Component x]
 
-lemma SubgraphContractFun.ValidIn (S : Set β) : ValidIn G (SubgraphContractFun G S) S := by
-  rintro x y hx hy
-  simp +contextual only [induce_eq_induce, ext_iff_simp, iff_def, SubgraphContractFun]
+@[simp]
+lemma SubgraphContractFun.self_mem (C : Set β) (hu : u ∈ G.V) :
+    u ∈ (SubgraphContractFun G C u).V := by
+  simp [SubgraphContractFun, hu]
+
+@[simp]
+lemma SubgraphContractFun.eq (C : Set β) (hu : u ∈ G.V) :
+    SubgraphContractFun G C u = SubgraphContractFun G C v ↔ G{C}.Connected u v := by
+  simp only [SubgraphContractFun, induce_eq_induce, restrict_V, hu, Component.eq]
+
+@[simp]
+lemma SubgraphContractFun.eq' (C : Set β) (hv : v ∈ G.V) :
+    SubgraphContractFun G C u = SubgraphContractFun G C v ↔ G{C}.Connected u v := by
+  simp only [SubgraphContractFun, induce_eq_induce, restrict_V, hv, Component.eq']
+
+@[simp]
+lemma SubgraphContractFun.mem (C : Set β) :
+    u ∈ (SubgraphContractFun G C v).V ↔ G{C}.Connected u v := by
+  simp only [SubgraphContractFun, induce_V, Component.mem']
+
+-- noncomputable def Contract' (G : Graph α β) (S : Set β) := G.Contract (SubgraphContractFun G S) S
+-- scoped infix:100 " / " => Graph.Contract.Contract'
+
+instance instHDiv : HDiv (Graph α β) (Set β) (Graph (Graph α β) β) :=
+  ⟨fun G S ↦ G.Contract (SubgraphContractFun G S) S⟩
+
+@[simp] lemma SubgraphContractFun.div_notation : (G /[SubgraphContractFun G C] C) = G / C := rfl
+
+@[simp]
+lemma SubgraphContractFun.V : (G / C).V = (SubgraphContractFun G C) '' G.V := by
+  rw [← SubgraphContractFun.div_notation, Contract.V]
+
+@[simp]
+lemma SubgraphContractFun.E : (G / C).E = G.E \ C := by
+  rw [← SubgraphContractFun.div_notation, Contract.E]
+
+@[simp]
+lemma SubgraphContractFun.Inc : (G / C).Inc e H ↔
+    ∃ v, SubgraphContractFun G C v = H ∧ G.Inc e v ∧ e ∉ C := by
+  rw [← SubgraphContractFun.div_notation, Contract.Inc]
+
+@[simp]
+lemma SubgraphContractFun.Inc₂ : (G / C).Inc₂ e H H' ↔
+    ∃ v, SubgraphContractFun G C v = H ∧ ∃ w, SubgraphContractFun G C w = H' ∧
+        G.Inc₂ e v w ∧ e ∉ C := by
+  rw [← SubgraphContractFun.div_notation, Contract.Inc₂]
+
+lemma SubgraphContractFun.vx_mem_unique (C : Set β) (hu : u ∈ G.V) :
+    ∃! x ∈ (G/C).V, u ∈ x.V := by
+  use SubgraphContractFun G C u
   constructor
-  · rintro h
-    obtain ⟨H1, H2⟩ := h y
-    exact H2 (Connected.refl hy)
-  · rintro hconn z
-    exact ⟨hconn.symm.trans, hconn.trans⟩
+  · rw [← SubgraphContractFun.div_notation]
+    simp only [hu, map_mem, self_mem, and_self]
+  · rintro G₁ ⟨hG₁, huG₁⟩
+    simp only [V, mem_image] at hG₁
+    obtain ⟨v, hv, rfl⟩ := hG₁
+    simpa only [hu, eq'] using huG₁
+
+@[simp]
+lemma SubgraphContractFun.ValidIn (C : Set β) : ValidIn G (SubgraphContractFun G C) C := by
+  rintro x y hx hy
+  simp +contextual only [SubgraphContractFun, induce_eq_induce, restrict_V, hx, Component.eq]
 
 
 
@@ -151,47 +242,6 @@ lemma SubgraphContractFun.ValidIn (S : Set β) : ValidIn G (SubgraphContractFun 
 --     simp only [hinR _ hxinc, ↓reduceIte, hinR _ hyinc]
 --     exact hmvalid.map_edge hem hxinc hyinc
 
-
-
-@[simp]
-lemma V : (G /[φ] C).V = φ '' G.V := rfl
-
-@[simp]
-lemma E : (G /[φ] C).E = G.E \ C := by
-  simp only [Contract, vxMap, restrict_E, oftoMultiset_E, Multiset.card_map,
-    toMultiset_card_eq_two_iff, setOf_mem_eq, inter_eq_right]
-  tauto_set
-
-lemma E_subset : (G /[φ] C).E ⊆ G.E := by
-  simp only [E]
-  tauto_set
-
-@[simp]
-lemma Inc : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ e ∉ C := by
-  simp +contextual only [Contract, restrict_inc, vxMap_inc_iff, mem_diff, iff_def,
-    not_false_eq_true, and_true, and_imp, forall_exists_index]
-  constructor
-  · rintro v hinc rfl he heC
-    use v
-  · rintro v rfl hinc heC
-    use ⟨v, hinc, rfl⟩, hinc.edge_mem
-
-lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e u v) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
-  simp only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, hbtw.edge_mem, hnin,
-    not_false_eq_true, and_self, and_true]
-  use u, rfl, v
-
-@[simp]
-lemma Inc₂ : (G /[φ] C).Inc₂ e x y ↔ ∃ u, φ u = x ∧ ∃ v, φ v = y ∧
-    G.Inc₂ e u v ∧ e ∉ C:= by
-  simp +contextual only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, iff_def,
-    not_false_eq_true, and_true, implies_true, forall_exists_index, and_imp, true_and]
-  rintro x rfl y rfl hbtw hnin
-  exact ⟨⟨x, rfl, y, rfl, hbtw⟩, hbtw.edge_mem⟩
-
-lemma inc₂ (φ : α → α') (he : e ∉ C) (hbtw : G.Inc₂ e u v) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
-  rw [Contract, restrict_inc₂_iff]
-  exact ⟨hbtw.vxMap_of_inc₂ φ, hbtw.edge_mem, he⟩
 
 @[simp]
 lemma contract_eq_contract_iff : (G /[φ] C) = (G /[φ] D) ↔ G.E \ C = G.E \ D := by

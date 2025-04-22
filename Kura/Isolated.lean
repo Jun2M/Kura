@@ -252,5 +252,14 @@ lemma connected_iff (hisol : G.Isolated u) : G.Connected u v ↔ u = v ∧ u ∈
   · rintro ⟨rfl, h⟩
     exact connected_self h
 
+@[simp]
+lemma bot : Isolated (⊥ : Graph α β) v := by
+  intro e hinc
+  simp only [bot_V, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_vx_mem] at hinc
+
+@[simp]
+lemma edgeless : Isolated (Edgeless U β) v := by
+  intro e hinc
+  simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_edge_mem] at hinc
 
 end Isolated
