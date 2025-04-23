@@ -3,7 +3,7 @@ import Kura.Operation.Map
 
 
 open Set Function
-variable {α α' β β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
+variable {α α' α'' β β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
   {S S' T T' U U': Set α} {F F' R R' : Set β}
 namespace Graph
 

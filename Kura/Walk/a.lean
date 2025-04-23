@@ -10,200 +10,50 @@ inductive Prewalk (α β : Type*) where
 | nil (u : α) : Prewalk α β
 | cons (u : α) (e : β) (W : Prewalk α β) : Prewalk α β
 
-variable {w w₁ w₂ : Prewalk α β}
 namespace Prewalk
 
-def Nonempty : Prewalk α β → Prop
-| nil _ => False
-| cons _ _ _ => True
+-- noncomputable def edgeSigniture (W : Prewalk α β) (e : β) : List α :=
+--   match W with
+--   | .nil _ => []
+--   | .cons u f (.nil v) =>
+--     haveI : DecidableEq β := Classical.decEq _
+--     if e = f then [u, v] else []
+--   | .cons u f (.cons v g W) =>
+--     haveI : DecidableEq β := Classical.decEq _
+--     if e = f
+--     then if e = g then u :: (cons v g W).edgeSigniture e else u :: v :: W.edgeSigniture e
+--     else (cons v g W).edgeSigniture e
 
+@[simp]
 def first : Prewalk α β → α
 | nil x => x
 | cons x _ _ => x
 
+@[simp]
 def last : Prewalk α β → α
 | nil x => x
 | cons _ _ w => w.last
 
+@[simp]
 def vx : Prewalk α β → List α
 | nil x => [x]
 | cons x _e w => x :: w.vx
 
+@[simp]
 def edge : Prewalk α β → List β
 | nil _ => []
 | cons _ e w => e :: w.edge
 
+@[simp]
 def length : Prewalk α β → ℕ
 | nil _ => 0
 | cons _ _ w => w.length + 1
 
+@[simp]
 def ValidIn (w : Prewalk α β) (G : Graph α β) : Prop :=
   match w with
   | nil x => x ∈ G.V
   | cons x e w => G.Inc₂ e x w.first ∧ w.ValidIn G
-
-/- Properties of nil -/
-
-@[simp] lemma nil_not_nonempty : ¬ (nil x : Prewalk α β).Nonempty := by simp [Nonempty]
-
-@[simp] lemma nil_first : (nil x : Prewalk α β).first = x := rfl
-
-@[simp] lemma nil_last : (nil x : Prewalk α β).last = x := rfl
-
-@[simp] lemma nil_vx : (nil x : Prewalk α β).vx = [x] := rfl
-
-@[simp] lemma mem_nil_iff : x ∈ (nil u : Prewalk α β).vx ↔ x = u := by simp
-
-@[simp] lemma nil_edge : (nil x : Prewalk α β).edge = [] := rfl
-
-@[simp] lemma nil_length : (nil x : Prewalk α β).length = 0 := rfl
-
-@[simp] lemma nil_injective : Injective (nil : α → Prewalk α β) := by
-  rintro x y h
-  rwa [nil.injEq] at h
-
--- @[simp] lemma nil_inj : (nil x : Prewalk α β) = nil y ↔ x = y := by
---   rw [nil.injEq]
-
-@[simp] lemma nil_validIn : (nil x : Prewalk α β).ValidIn G ↔ x ∈ G.V := by
-  simp only [ValidIn]
-
-/- Properties of cons -/
-
-@[simp] lemma cons_nonempty : (cons x e w).Nonempty := by simp [Nonempty]
-
-@[simp] lemma cons_first : (cons x e w).first = x := rfl
-
-@[simp] lemma cons_last : (cons x e w).last = w.last := rfl
-
-@[simp] lemma cons_vx : (cons x e w).vx = x :: w.vx := rfl
-
-@[simp] lemma mem_cons_iff : x ∈ (cons u e w).vx ↔ x = u ∨ x ∈ w.vx := by simp
-
-@[simp] lemma cons_edge : (cons x e w).edge = e :: w.edge := rfl
-
-@[simp] lemma cons_length : (cons x e w).length = w.length + 1 := rfl
-
-@[simp] lemma cons_validIn : (cons x e w).ValidIn G ↔ G.Inc₂ e x w.first ∧ w.ValidIn G :=
-  ⟨id, id⟩
-
-@[simp]
-lemma ValidIn.cons (hw : (cons x e w).ValidIn G) : w.ValidIn G := by
-  rw [cons_validIn] at hw
-  exact hw.2
-
-@[simp]
-lemma cons_vx_nodup (h : (cons x e w).vx.Nodup) : w.vx.Nodup := by
-  simp only [cons_vx, nodup_cons] at h
-  exact h.2
-
-/- Properties between the basic properties of a walk -/
-
-lemma vx_ne_nil : w.vx ≠ [] := by
-  match w with
-  | nil x => simp
-  | cons x e w => simp
-
-@[simp] lemma first_mem : w.first ∈ w.vx := by
-  match w with
-  | nil x => simp
-  | cons x e w => simp
-
-lemma first_eq_vx_head : w.first = w.vx.head vx_ne_nil := by
-  match w with
-  | nil x => rfl
-  | cons x e w => rfl
-
-@[simp]
-lemma last_mem {w : Prewalk α β} : w.last ∈ w.vx := by
-  match w with
-  | nil x => simp
-  | cons x e w => simp [last_mem]
-
-lemma last_eq_vx_getLast {w : Prewalk α β} : w.last = w.vx.getLast vx_ne_nil := by
-  match w with
-  | nil x => rfl
-  | cons x e w =>
-    simp only [cons_last, cons_vx, ne_eq, vx_ne_nil, not_false_eq_true, getLast_cons]
-    apply last_eq_vx_getLast
-
-lemma ValidIn.vx_mem_of_mem {w : Prewalk α β} (h : w.ValidIn G) (hmem : x ∈ w.vx) : x ∈ G.V := by
-  match w with
-  | .nil y =>
-    rw [mem_nil_iff] at hmem
-    exact mem_of_eq_of_mem hmem h
-  | .cons y e w =>
-    obtain ⟨hbtw, hVd⟩ := h
-    obtain rfl | h : x = y ∨ x ∈ w.vx := by simpa using hmem
-    · exact hbtw.vx_mem_left
-    · exact hVd.vx_mem_of_mem h
-
-lemma ValidIn.edge_mem_of_mem {w : Prewalk α β} (h : w.ValidIn G) (hmem : e ∈ w.edge) : e ∈ G.E := by
-  match w with
-  | .nil x => simp at hmem
-  | .cons x e' w =>
-    obtain ⟨hbtw, hVd⟩ := h
-    obtain rfl | h : e = e' ∨ e ∈ w.edge := by simpa using hmem
-    · exact hbtw.edge_mem
-    · exact hVd.edge_mem_of_mem h
-
-/- Properties of Nonempty -/
-
-lemma Nonempty.exists_cons : w.Nonempty → ∃ x e w', w = cons x e w' := by
-  induction w with
-  | nil x => simp only [Nonempty, reduceCtorEq, exists_false, imp_self]
-  | cons x e w ih => simp only [cons.injEq, exists_and_left, exists_eq', and_true, implies_true]
-
-lemma Nonempty.iff_exists_cons : w.Nonempty ↔ ∃ x e w', w = cons x e w' := by
-  constructor
-  · apply Nonempty.exists_cons
-  · rintro ⟨x, e, w', rfl⟩
-    simp [Nonempty, cons.injEq]
-
-@[simp]
-lemma Nonempty.not_nil : ¬ (nil x : Prewalk α β).Nonempty := by
-  simp only [Nonempty, not_false_eq_true]
-
-@[simp]
-lemma Nonempty.cons_true : (cons x e w).Nonempty := by
-  simp only [Nonempty]
-
-@[simp]
-lemma Nonempty.not_iff : ¬ w.Nonempty ↔ ∃ x, w = nil x := by
-  match w with
-  | nil x => simp only [not_nil, not_false_eq_true, nil.injEq, exists_eq']
-  | cons x e w => simp only [Nonempty, not_true_eq_false, reduceCtorEq, exists_false]
-
-@[simp]
-lemma Nonempty.iff_length_pos : 0 < w.length ↔ w.Nonempty := by
-  constructor
-  · rintro hlen
-    by_contra! h
-    simp only [not_iff] at h
-    obtain ⟨x, rfl⟩ := h
-    simp at hlen
-  · rw [Nonempty.iff_exists_cons]
-    rintro ⟨x, e, w, rfl⟩
-    simp only [cons_length, lt_add_iff_pos_left, add_pos_iff, lt_one_iff, pos_of_gt, or_true]
-
-lemma first_eq_last_of_not_nonempty (h : ¬ w.Nonempty) : w.first = w.last := by
-  match w with
-  | nil x => simp only [nil_first, nil_last]
-  | cons x e w => simp only [Nonempty.cons_true, not_true_eq_false] at h
-
-@[simp]
-lemma first_eq_last_iff (hnodup : w.vx.Nodup) : w.first = w.last ↔ ¬ w.Nonempty := by
-  match w with
-  | .nil x => simp only [nil_first, nil_last, Nonempty.not_nil, not_false_eq_true]
-  | .cons x e w =>
-    simp only [cons_vx, nodup_cons, cons_first, cons_last, Nonempty.cons_true, not_true_eq_false,
-      iff_false, ne_eq] at hnodup ⊢
-    exact fun h => hnodup.1 (h ▸ last_mem)
-
-@[simp]
-lemma first_ne_last_iff (hnodup : w.vx.Nodup) : w.first ≠ w.last ↔ w.Nonempty :=
-  (first_eq_last_iff hnodup).not_left
-
 
 @[simp]
 def edgeSigniture (W : Prewalk α β) (e : β) : Set (Sym2 α) :=
@@ -214,26 +64,22 @@ def edgeSigniture (W : Prewalk α β) (e : β) : Set (Sym2 α) :=
     if e = f then insert s(u, W.first) (W.edgeSigniture e) else W.edgeSigniture e
 
 end Prewalk
-open Prewalk
 
-/-
-  Walk is a Prewalk with the property that the edge signiture of each edge is at most one vertex pair.
-  This ensures that a prewalk is a walk of some graph.
-
-  Thought : Builting the lemmas around for nil and cons was natual as walk was previously defined
-  as just a Prewalk. However, now there is one layer of abstraction between the inductive definition
-  and the Walk structure, would it be better to jump straight operations like append?
--/
 @[ext]
 structure Walk (α β : Type*) where
   prewalk : Prewalk α β
-  prop : ∀ e, (prewalk.edgeSigniture e).ncard ≤ 1
+  prop : ∀ e : β, (prewalk.edgeSigniture e).ncard ≤ 1
 
+variable {w w₁ w₂ : Walk α β}
 namespace Walk
 
-def Nonempty : Walk α β → Prop := fun w => w.prewalk.Nonempty
+def Nonempty : Walk α β → Prop := fun w => match w.prewalk with
+| .nil _ => False
+| .cons _ _ _ => True
 
-def first : Walk α β → α := fun w => w.prewalk.first
+def first : Walk α β → α := fun w => match w.prewalk with
+| .nil x => x
+| .cons x _ _ => x
 
 def last : Walk α β → α := fun w => w.prewalk.last
 
@@ -241,24 +87,25 @@ def vx : Walk α β → List α := fun w => w.prewalk.vx
 
 def edge : Walk α β → List β := fun w => w.prewalk.edge
 
-def edgeSet : Walk α β → Set β := fun w => {e | e ∈ w.edge}
-
 def length : Walk α β → ℕ := fun w => w.prewalk.length
-
-def ValidIn (w : Walk α β) (G : Graph α β) : Prop := w.prewalk.ValidIn G
 
 instance : Membership α (Walk α β) where
   mem w x := x ∈ w.vx
 
-instance {w : Walk α β} [DecidableEq α] : Decidable (x ∈ w) := by
+instance [DecidableEq α] : Decidable (x ∈ w) := by
   change Decidable (x ∈ w.vx)
   infer_instance
 
-@[simp] lemma mem_notation {w : Walk α β} : (x ∈ w.vx) = (x ∈ w) := rfl
+@[simp]
+lemma mem_notation : (x ∈ w.vx) = (x ∈ w) := rfl
 
 def vxSet : Walk α β → Set α := fun w => {x | x ∈ w}
 
-def nil (x : α) : Walk α β := ⟨Prewalk.nil x, by simp⟩
+def edgeSet : Walk α β → Set β := fun w => {e | e ∈ w.edge}
+
+def ValidIn (w : Walk α β) (G : Graph α β) : Prop := w.prewalk.ValidIn G
+
+def nil (x : α) : Walk α β := ⟨Prewalk.nil x, by simp +contextual [Prewalk.edgeSigniture]⟩
 
 def cons (x : α) (e : β) (w : Walk α β)
     (h : (insert s(x, w.first) (w.prewalk.edgeSigniture e)).ncard ≤ 1) : Walk α β :=
@@ -270,7 +117,6 @@ def cons (x : α) (e : β) (w : Walk α β)
       exact w.prop f⟩
 
 end Walk
-variable {w W : Walk α β}
 
 @[mk_iff]
 structure IsTrail (G : Graph α β) (W : Walk α β) : Prop where
@@ -402,7 +248,7 @@ namespace Walk
 
 @[simp] lemma nil_vx : (nil x : Walk α β).vx = [x] := rfl
 
-@[simp] lemma mem_nil_iff : x ∈ (nil u : Walk α β) ↔ x = u := by simp [nil, ← mem_notation, vx]
+@[simp] lemma mem_nil_iff : x ∈ (nil u : Walk α β) ↔ x = u := by simp [← mem_notation]
 
 @[simp] lemma nil_vxSet : (nil x : Walk α β).vxSet = {x} := by simp [vxSet]
 
@@ -579,33 +425,52 @@ lemma first_eq_vx_head : w.first = w.vx.head vx_ne_nil := by
 @[simp]
 lemma last_mem {w : Walk α β} : w.last ∈ w := by
   obtain ⟨w, p⟩ := w
-  simp [last, ← mem_notation, vx]
+  match w with
+  | .nil x => simp [last, ← mem_notation, vx]
+  | .cons x e w => simp [last, ← mem_notation, vx, last_mem]
+termination_by w.length
+
 
 @[simp]
 lemma last_mem_vxSet : w.last ∈ w.vxSet := by simp
 
 lemma last_eq_vx_getLast {w : Walk α β} : w.last = w.vx.getLast vx_ne_nil := by
-  obtain ⟨w, p⟩ := w
-  simp [last, ← mem_notation, vx]
-  exact Graph.Prewalk.last_eq_vx_getLast
+  match w with
+  | nil x => rfl
+  | cons x e w =>
+    simp only [cons_last, cons_vx, ne_eq, vx_ne_nil, not_false_eq_true, getLast_cons]
+    apply last_eq_vx_getLast
 
 lemma ValidIn.vx_mem_of_mem {w : Walk α β} (h : w.ValidIn G) (hmem : x ∈ w) : x ∈ G.V := by
-  obtain ⟨w, p⟩ := w
-  exact Graph.Prewalk.ValidIn.vx_mem_of_mem h hmem
+  match w with
+  | .nil y =>
+    rw [mem_nil_iff] at hmem
+    exact mem_of_eq_of_mem hmem h
+  | .cons y e w =>
+    obtain ⟨hbtw, hVd⟩ := h
+    obtain rfl | h : x = y ∨ x ∈ w := by simpa using hmem
+    · exact hbtw.vx_mem_left
+    · exact hVd.vx_mem_of_mem h
 
 lemma ValidIn.vxSet_subset (hVd : w.ValidIn G) : w.vxSet ⊆ G.V := fun _ ↦ hVd.vx_mem_of_mem
 
 lemma ValidIn.edge_mem_of_mem {w : Walk α β} (h : w.ValidIn G) (hmem : e ∈ w.edge) : e ∈ G.E := by
-  obtain ⟨w, p⟩ := w
-  exact Graph.Prewalk.ValidIn.edge_mem_of_mem h hmem
+  match w with
+  | .nil x => simp at hmem
+  | .cons x e' w =>
+    obtain ⟨hbtw, hVd⟩ := h
+    obtain rfl | h : e = e' ∨ e ∈ w.edge := by simpa using hmem
+    · exact hbtw.edge_mem
+    · exact hVd.edge_mem_of_mem h
 
 lemma ValidIn.edgeSet_subset (h : w.ValidIn G) : w.edgeSet ⊆ G.E := fun _ ↦ h.edge_mem_of_mem
 
 /- Properties of Nonempty -/
 
-lemma Nonempty.exists_cons : w.Nonempty → ∃ x e w' h, w = cons x e w' h := by
-  obtain ⟨w, p⟩ := w
-
+lemma Nonempty.exists_cons : w.Nonempty → ∃ x e w', w = cons x e w' := by
+  induction w with
+  | nil x => simp only [Nonempty, reduceCtorEq, exists_false, imp_self]
+  | cons x e w ih => simp only [cons.injEq, exists_and_left, exists_eq', and_true, implies_true]
 
 lemma Nonempty.iff_exists_cons : w.Nonempty ↔ ∃ x e w', w = cons x e w' := by
   constructor
