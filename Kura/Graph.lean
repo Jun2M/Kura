@@ -58,6 +58,9 @@ noncomputable def toMultiset (G : Graph α β) (e : β) : Multiset α := by
     then {G.exists_vx_inc₂ he |>.choose, G.exists_vx_inc₂ he |>.choose_spec.choose}
     else 0
 
+noncomputable def toSym2 (G : Graph α β) (e : β) (he : e ∈ G.E) : Sym2 α :=
+  s(G.exists_vx_inc₂ he |>.choose, G.exists_vx_inc₂ he |>.choose_spec.choose)
+
 noncomputable def IncFun (G : Graph α β) (e : β) : α →₀ ℕ := by
   classical
   exact (G.toMultiset e).toFinsupp
@@ -108,6 +111,14 @@ lemma Inc₂.pair_eq (h1 : G.Inc₂ e x y) (h2 : G.Inc₂ e u v) :
     ({x, y} : Multiset α) = {u, v} := by
   rw [Multiset.pair_eq_pair_iff]
   exact h1.eq_of_inc₂ h2
+
+lemma Inc₂.sym2_eq_iff (h : G.Inc₂ e x y) : G.Inc₂ e u v ↔ s(x, y) = s(u, v) := by
+  simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+  constructor
+  · exact h.eq_of_inc₂
+  · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
+    · exact h
+    · exact h.symm
 
 @[simp]
 lemma Inc₂.inc₂_iff_eq_left (h : G.Inc₂ e x y) : G.Inc₂ e u y ↔ u = x := by
@@ -204,6 +215,31 @@ lemma toMultiset_card_eq_two_iff : (G.toMultiset e).card = 2 ↔ e ∈ G.E := by
   · rw [toMultiset.card_eq_two he]
 
 end toMultiset
+
+section toSym2
+
+@[simp]
+lemma toSym2.vx_mem (he : e ∈ G.E) (h : x ∈ G.toSym2 e he) : x ∈ G.V := by
+  simp [toSym2] at h
+  have := (Inc₂.exists_vx_inc₂ he).choose_spec.choose_spec
+  obtain rfl | rfl := h
+  · exact this.vx_mem_left
+  · exact this.vx_mem_right
+
+@[simp]
+lemma toSym2.eq_iff_inc₂ (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc₂ e x y := by
+  constructor
+  · rintro h
+    have := (Inc₂.exists_vx_inc₂ he).choose_spec.choose_spec
+    simp only [toSym2, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at h
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h
+    · exact this
+    · exact this.symm
+  · rintro h
+    simp only [toSym2, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+    exact (Inc₂.exists_vx_inc₂ he).choose_spec.choose_spec.eq_of_inc₂ h
+
+end toSym2
 
 section IncFun
 

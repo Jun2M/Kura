@@ -35,6 +35,18 @@ lemma incFun_eq_incFun_iff_toMultiset_eq_toMultiset :
   · ext v
     rw [← toMultiset_count, h, toMultiset_count]
 
+lemma toSym2_eq_toSym2_iff_inc₂_eq_inc₂ (he : e ∈ G.E) (he' : e ∈ G'.E) :
+    G.toSym2 e he = G'.toSym2 e he' ↔ G.Inc₂ e = G'.Inc₂ e := by
+  obtain ⟨x, y, hxy⟩ := G.exists_vx_inc₂ he
+  obtain ⟨x', y', hx'y'⟩ := G'.exists_vx_inc₂ he'
+  rw [(toSym2.eq_iff_inc₂ he).mpr hxy, (toSym2.eq_iff_inc₂ he').mpr hx'y']
+  constructor <;> rintro h
+  · ext u v
+    rw [hxy.sym2_eq_iff, h, hx'y'.sym2_eq_iff]
+  · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_of_inc₂ hx'y'
+    · rfl
+    · exact Sym2.eq_swap
+
 lemma edge_subset_of_inc₂_le_inc₂ (h : G.Inc₂ ≤ G'.Inc₂) : G.E ⊆ G'.E := by
   rintro e he
   obtain ⟨x, y, hbtw⟩ := Inc₂.exists_vx_inc₂ he
@@ -80,6 +92,17 @@ lemma ext_toMultiset (hV : G.V = G'.V) (h : ∀ e, G.toMultiset e = G'.toMultise
   intro e
   rw [incFun_eq_incFun_iff_toMultiset_eq_toMultiset.mpr (h e)]
 
+lemma ext_toSym2 (hV : G.V = G'.V) (hE : G.E = G'.E)
+    (h : ∀ e he he', G.toSym2 e he = G'.toSym2 e he') : G = G' := by
+  refine ext_inc₂ hV ?_
+  intro e x y
+  by_cases he : e ∈ G.E <;> by_cases he' : e ∈ G'.E
+  · specialize h e he he'
+    rw [toSym2_eq_toSym2_iff_inc₂_eq_inc₂ he he'] at h
+    rw [h]
+  · exact he' (hE ▸ he) |>.elim
+  · exact he (hE ▸ he') |>.elim
+  · simp [he, he']
 end ext
 
 section intro
@@ -250,7 +273,45 @@ def ofIncFun (V : Set α) (incFun : β → α →₀ ℕ) (vx_mem : ∀ e v, inc
     simp only at h1 h2
     rwa [← h2, EmbeddingLike.apply_eq_iff_eq, Multiset.pair_eq_pair_iff] at h1
 
+def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α)
+    (vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V) : Graph α β where
+  V := V
+  E := E
+  Inc₂ e x y := ∃ (he : e ∈ E), tosym2 e he = s(x, y)
+  symm e x y h := by
+    obtain ⟨he, hxy⟩ := h
+    use he, Sym2.eq_swap ▸ hxy
+  vx_mem_left e x y h := by
+    obtain ⟨he, hxy⟩ := h
+    exact vx_mem e x he (by simp [hxy])
+  edge_mem e x y hbtw := by
+    obtain ⟨he, hxy⟩ := hbtw
+    use he
+  exists_vx_inc₂ e he := by
+    simp only [he, exists_true_left]
+    induction' tosym2 e he with x y
+    use x, y
+  eq_of_inc₂ a b c d e h1 h2 := by
+    obtain ⟨he, h1⟩ := h1
+    obtain ⟨he', h2⟩ := h2
+    simpa [h1] using h2
 
+variable {E : Set β} {tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α} {vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V}
+
+@[simp]
+lemma oftoSym2_V : (oftoSym2 V E tosym2 vx_mem).V = V := rfl
+
+@[simp]
+lemma oftoSym2_E : (oftoSym2 V E tosym2 vx_mem).E = E := rfl
+
+@[simp]
+lemma oftoSym2_tosym2 : (oftoSym2 V E tosym2 vx_mem).toSym2 = tosym2 := by
+  ext1 e; ext1 he
+  rw [(tosym2 e he).eq_mk_out]
+  rw [oftoSym2_E] at he
+  simp only [oftoSym2, toSym2.eq_iff_inc₂]
+  use he
+  simp only [Prod.mk.eta, Quot.out_eq]
 
 end intro
 
