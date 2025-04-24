@@ -296,7 +296,8 @@ def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 �
     obtain ⟨he', h2⟩ := h2
     simpa [h1] using h2
 
-variable {E : Set β} {tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α} {vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V}
+variable {E : Set β} {tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α}
+  {vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V}
 
 @[simp]
 lemma oftoSym2_V : (oftoSym2 V E tosym2 vx_mem).V = V := rfl
@@ -364,6 +365,11 @@ lemma Inc₂.le (hle : G ≤ H) (h : G.Inc₂ e u v) : H.Inc₂ e u v := by
   rwa [← Inc₂_eq_Inc₂_of_le hle (edge_mem h)]
 
 lemma Inc₂.le_of_le (hle : G ≤ H) : G.Inc₂ ≤ H.Inc₂ := hle.2
+
+lemma inc₂_iff_inc₂_edge_mem_of_le (hle : G ≤ H) : G.Inc₂ e x y ↔ H.Inc₂ e x y ∧ e ∈ G.E := by
+  rw [← and_iff_left_of_imp (Inc₂.edge_mem), and_congr_left_iff]
+  rintro he
+  rw [inc₂_eq_inc₂_of_edge_mem_and_inc₂_le_inc₂ he (Inc₂.le_of_le hle)]
 
 @[simp]
 lemma Inc.le (hle : G ≤ H) (hinc : G.Inc e x) : H.Inc e x := by
