@@ -623,7 +623,7 @@ lemma restrict_monotone (G : Graph α β) : Monotone (fun R ↦ G{R}) := by
   exact inter_subset_inter (fun ⦃a⦄ a ↦ a) h
 
 @[simp]
-lemma restrict_mono (G : Graph α β) (R S : Set β) (h : R ⊆ S) : G{R} ≤ G{S} :=
+lemma restrict_mono (G : Graph α β) {R S : Set β} (h : R ⊆ S) : G{R} ≤ G{S} :=
   restrict_monotone G h
 
 /-- Interaction (Self) -/
@@ -682,6 +682,15 @@ lemma restrict_Connected_iff_restrict_Connected_of_le (hle : G ≤ G')
 
 /- SetConnected lemmas -/
 -- No specific lemmas in the original file
+
+/-- Transfer of properties from original graph to subgraph -/
+lemma Inc₂.restrict_of_mem (hinc : G.Inc₂ e u v) (hU : e ∈ R) : (G{R}).Inc₂ e u v := by
+  rw [restrict_inc₂_iff]
+  exact ⟨hinc, hU⟩
+
+lemma Inc.restrict_of_mem (hinc : G.Inc e u) (hU : e ∈ R) : (G{R}).Inc e u := by
+  rw [restrict_inc]
+  exact ⟨hinc, hU⟩
 
 /-- Finiteness & Cardinality -/
 instance finite_of_finite_restrict {R : Set β} [h : G.Finite] : (G{R}).Finite := by
@@ -792,6 +801,15 @@ lemma SetConnected.of_Connected_edgeDel : (G \ R).SetConnected S T → G.SetConn
   obtain ⟨s, hs, t, ht, h⟩ := h
   use s, hs, t, ht
   exact h.of_Connected_edgeDel
+
+/-- Transfer of properties from original graph to subgraph -/
+lemma Inc₂.edgeDel_of_mem (hinc : G.Inc₂ e u v) (hU : e ∉ R) : (G \ R).Inc₂ e u v := by
+  rw [edgeDel_inc₂_iff]
+  exact ⟨hinc, hU⟩
+
+lemma Inc.edgeDel_of_mem (hinc : G.Inc e u) (hU : e ∉ R) : (G \ R).Inc e u := by
+  rw [edgeDel_inc]
+  exact ⟨hinc, hU⟩
 
 /-- Finiteness & Cardinality -/
 instance finite_of_finite_edgeDel {R : Set β} [h : G.Finite] : (G \ R).Finite :=

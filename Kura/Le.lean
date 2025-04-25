@@ -477,8 +477,16 @@ end Degree
 section Connected
 
 @[simp]
-def reflAdj (G : Graph α β) (x y : α) :=
-  G.Adj x y ∨ x = y ∧ x ∈ G.V
+def reflAdj (G : Graph α β) (x y : α) := G.Adj x y ∨ x = y ∧ x ∈ G.V
+
+lemma reflAdj_iff_adj_or_eq : G.reflAdj x y ↔ G.Adj x y ∨ x = y ∧ x ∈ G.V := Iff.rfl
+
+lemma reflAdj_iff_or : G.reflAdj x y ↔ x ≠ y ∧ G.Adj x y ∨ x = y ∧ x ∈ G.V := by
+  rw [reflAdj_iff_adj_or_eq]
+  by_cases hxy : x = y
+  · simp only [hxy, true_and, ne_eq, not_true_eq_false, false_and, false_or, or_iff_right_iff_imp]
+    exact Adj.mem_left
+  · simp only [hxy, false_and, or_false, ne_eq, not_false_eq_true, true_and]
 
 lemma reflAdj.of_vxMem (h : x ∈ G.V) : G.reflAdj x x := by
   simp only [reflAdj, h, and_self, or_true]
