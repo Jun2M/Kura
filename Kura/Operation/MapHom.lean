@@ -8,33 +8,29 @@ variable {α β α' β' γ δ ε ζ : Type*} {G G' G₁ G₁' H : Graph α β} {
 namespace Graph
 
 
-def vxMap.HomSys (φ : α → α') : HomSys α β α' β where
-  toFun := φ
-  edgeFun := id
-
-lemma vxMap.HomSys.IsHomOn (φ : α → α') : (vxMap.HomSys φ).IsHomOn G (vxMap G φ) where
+lemma vxMap.IsHomOn (φ : α → α') : (HomSys.ofVxFun φ).IsHomOn G (vxMap G φ) where
   Mapsto_vx v hv := by
-    simp only [V, HomSys, mem_image]
+    simp only [V, HomSys.ofVxFun, mem_image]
     use v
   inc₂ ⦃e x y⦄ h := by
     simp only [HomSys, id_eq, Inc₂]
     use x, rfl, y, rfl, h
 
 lemma vxMap.HasHom (φ : α → α') : G ≤→ (vxMap G φ) :=
-  ⟨vxMap.HomSys φ, vxMap.HomSys.IsHomOn φ⟩
+  ⟨HomSys.ofVxFun φ, vxMap.IsHomOn φ⟩
 
-lemma vxMap.HomSys.IsIsomOn (φ : α → α') (hφ : InjOn φ G.V) :
-    (vxMap.HomSys φ).IsIsomOn G (vxMap G φ) where
-  toIsHomOn := vxMap.HomSys.IsHomOn φ
+lemma vxMap.IsIsomOn (φ : α → α') (hφ : InjOn φ G.V) :
+    (HomSys.ofVxFun φ).IsIsomOn G (vxMap G φ) where
+  toIsHomOn := vxMap.IsHomOn φ
   bijOn_vx := ⟨mapsTo'.mpr fun ⦃a⦄ a ↦ a, hφ, fun ⦃a⦄ a ↦ a⟩
   bijOn_edge := by
     refine ⟨fun e he ↦ ?_, fun e₁ he₁ e₂ he₂ heq ↦ ?_, fun e he ↦ ?_⟩
     · simpa only [E, HomSys, id_eq]
     · simpa only using heq
-    · simpa only [HomSys, id_eq, image_id', E] using he
+    · simpa only [HomSys.ofVxFun, id_eq, image_id', E] using he
 
 lemma vxMap.HasIsom (φ : α → α') (hφ : InjOn φ G.V) : G ≤↔ (vxMap G φ) :=
-  ⟨vxMap.HomSys φ, vxMap.HomSys.IsIsomOn φ hφ⟩
+  ⟨HomSys.ofVxFun φ, vxMap.IsIsomOn φ hφ⟩
 
 
 
@@ -96,4 +92,3 @@ lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : Surj
 
 lemma edgePreimg.HasEmb [Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ G.E) :
     G ≤↪ (edgePreimg G σ) := ⟨edgePreimg.HomSys' σ, edgePreimg.HomSys.IsEmbOn σ hσ⟩
-

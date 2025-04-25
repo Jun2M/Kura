@@ -47,7 +47,7 @@ def HasEmb (G₁ : Graph α β) (G₂ : Graph γ δ) := ∃ f : HomSys α β γ 
 
 scoped infix:50 " ≤↪ " => HasEmb
 
-def HasEmb.toHasHom {G₁ : Graph α β} {G₂ : Graph γ δ} (h : HasEmb G₁ G₂) : HasHom G₁ G₂ := by
+def HasEmb.toHasHom (h : HasEmb G₁ G₂) : HasHom G₁ G₂ := by
   obtain ⟨f, hf⟩ := h
   exact ⟨f, hf.1⟩
 
@@ -60,11 +60,11 @@ def HasIsom (G₁ : Graph α β) (G₂ : Graph γ δ) := ∃ f : HomSys α β γ
 
 scoped infix:50 " ≤↔ " => HasIsom
 
-lemma HasIsom.toHasEmb {G₁ : Graph α β} {G₂ : Graph γ δ} (h : HasIsom G₁ G₂) : HasEmb G₁ G₂ := by
+lemma HasIsom.toHasEmb (h : HasIsom G₁ G₂) : HasEmb G₁ G₂ := by
   obtain ⟨f, hHomOn, ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
   use f, hHomOn
 
-lemma  HasIsom.toHasHom {G₁ : Graph α β} {G₂ : Graph γ δ} (h : HasIsom G₁ G₂) : HasHom G₁ G₂ := by
+lemma HasIsom.toHasHom (h : HasIsom G₁ G₂) : HasHom G₁ G₂ := by
   obtain ⟨f, hHomOn, ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
   exact ⟨f, hHomOn⟩
 
@@ -124,6 +124,8 @@ lemma HasEmb.bot [hg : Nonempty γ] [hd : Nonempty δ] : (⊥ : Graph α β) ≤
     injOn_edge := by simp only [bot_E, injOn_empty]
   }
 
+variable {f : HomSys α β γ δ}
+
 section Hom
 
 lemma HasHom.edgeless [hd : Nonempty δ] (hU : U.Nonempty) : (Edgeless U β) ≤→ G₂ ↔ G₂.V.Nonempty := by
@@ -139,8 +141,7 @@ lemma HasHom.edgeless [hd : Nonempty δ] (hU : U.Nonempty) : (Edgeless U β) ≤
 
 lemma HasHom.rfl : G₁ ≤→ G₁ := ⟨HomSys.id, HomSys.IsHomOn.id⟩
 
-lemma HasHom.trans {G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ} (h₁₂ : G₁ ≤→ G₂)
-    (h₂₃ : G₂ ≤→ G₃) : G₁ ≤→ G₃ := by
+lemma HasHom.trans (h₁₂ : G₁ ≤→ G₂) (h₂₃ : G₂ ≤→ G₃) : G₁ ≤→ G₃ := by
   obtain ⟨f₁₂, hf₁₂⟩ := h₁₂
   obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
   exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
@@ -160,8 +161,7 @@ section Emb
 
 lemma HasEmb.rfl : G₁ ≤↪ G₁ := ⟨HomSys.id, HomSys.IsEmbOn.id⟩
 
-lemma HasEmb.trans {G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ} (h₁₂ : G₁ ≤↪ G₂)
-    (h₂₃ : G₂ ≤↪ G₃) : G₁ ≤↪ G₃ := by
+lemma HasEmb.trans (h₁₂ : G₁ ≤↪ G₂) (h₂₃ : G₂ ≤↪ G₃) : G₁ ≤↪ G₃ := by
   obtain ⟨f₁₂, hf₁₂⟩ := h₁₂
   obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
   exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
@@ -172,13 +172,29 @@ section Isom
 
 lemma HasIsom.rfl : G₁ ≤↔ G₁ := ⟨HomSys.id, HomSys.IsIsomOn.id⟩
 
-lemma HasIsom.trans {G₁ : Graph α β} {G₂ : Graph γ δ} {G₃ : Graph ε ζ} (h₁₂ : G₁ ≤↔ G₂)
-    (h₂₃ : G₂ ≤↔ G₃) : G₁ ≤↔ G₃ := by
+lemma HasIsom.trans (h₁₂ : G₁ ≤↔ G₂) (h₂₃ : G₂ ≤↔ G₃) : G₁ ≤↔ G₃ := by
   obtain ⟨f₁₂, hf₁₂⟩ := h₁₂
   obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
   exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
 
+lemma IsIsomOn.inc₂ (hisom : f.IsIsomOn G₁ G₂) (he : e ∈ G₁.E) (ha : a ∈ G₁.V) (hb : b ∈ G₁.V) :
+    G₁.Inc₂ e a b ↔ G₂.Inc₂ (f.edgeFun e) (f a) (f b) := by
+  constructor <;> rintro hbtw
+  · exact hisom.inc₂ hbtw
+  · obtain ⟨e', he', he'eq⟩ := hisom.bijOn_edge.surjOn hbtw.edge_mem
+    obtain rfl := hisom.bijOn_edge.injOn he' he he'eq
+    obtain ⟨a', b', hbtw'⟩ := Inc₂.exists_vx_inc₂ he
+    obtain ⟨haeq, hbeq⟩ | ⟨haeq, hbeq⟩ := (hisom.inc₂ hbtw').eq_of_inc₂ hbtw
+    · rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_left ha] at haeq
+      rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_right hb] at hbeq
+      subst a' b'
+      exact hbtw'
+    · rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_left hb] at haeq
+      rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_right ha] at hbeq
+      subst a' b'
+      exact hbtw'.symm
 
+alias ⟨Inc₂.isIsomOn, _⟩ := IsIsomOn.inc₂
 
 end Isom
 
@@ -192,10 +208,10 @@ def HomSys.image (f : HomSys α β γ δ) (h : f.IsHomOn G G₂) : Graph γ δ :
     have hcd := heqce ▸ h.inc hinccd
     exact Inc.not_hypergraph hev hab hcd)
 
-@[simp] lemma HomSys.image_V {f : HomSys α β γ δ} (h : f.IsHomOn G G₂) : (f.image h).V = f '' G.V :=
+@[simp] lemma HomSys.image_V (h : f.IsHomOn G G₂) : (f.image h).V = f '' G.V :=
   rfl
 
-@[simp] lemma HomSys.image_E {f : HomSys α β γ δ} (h : f.IsHomOn G G₂) :
+@[simp] lemma HomSys.image_E (h : f.IsHomOn G G₂) :
     (f.image h).E = f.edgeFun '' G.E := by
   ext e'
   simp only [image, ofInc_E, mem_setOf_eq, mem_image]
@@ -207,11 +223,11 @@ def HomSys.image (f : HomSys α β γ δ) (h : f.IsHomOn G G₂) : Graph γ δ :
     use f v, e, rfl, v
 
 @[simp]
-lemma HomSys.image_inc {f : HomSys α β γ δ} (h : f.IsHomOn G G₂) {e'} {v'}:
+lemma HomSys.image_inc (h : f.IsHomOn G G₂) {e'} {v'}:
     (f.image h).Inc e' v' ↔ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v := by
   simp only [image, ofInc_inc]
 
-lemma HomSys.image_le {f : HomSys α β γ δ} (h : f.IsHomOn G G₂) : f.image h ≤ G₂ := by
+lemma HomSys.image_le (h : f.IsHomOn G G₂) : f.image h ≤ G₂ := by
   rw [le_iff_inc, image_V, image_E]
   refine ⟨image_subset_iff.mpr h.Mapsto_vx, image_subset_iff.mpr h.Mapsto_edge, ?_⟩
   rintro e he v
@@ -228,7 +244,7 @@ lemma HomSys.image_le {f : HomSys α β γ δ} (h : f.IsHomOn G G₂) : f.image 
     · use b, rfl, a', rfl
       exact hinc₂.inc_right
 
-lemma HomSys.image_isIsomOn {f : HomSys α β γ δ} (h : f.IsEmbOn G G₂) :
+lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) :
     f.IsIsomOn G (f.image h.toIsHomOn) where
   Mapsto_vx v hv := by use v
   inc₂ e v w hbtw := by
