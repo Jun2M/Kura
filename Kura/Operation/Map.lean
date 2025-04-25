@@ -12,7 +12,6 @@ lemma vxMap_aux (G : Graph α β) {f : α → α'} {x : α'} :
   simp +contextual [← incFun_eq_zero, Finsupp.mapDomain, Finsupp.sum,
     Finsupp.single_apply, and_comm, ← incFun_ne_zero]
 
-/-- Maps are easy too -/
 def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
   oftoMultiset (f '' G.V) (fun e ↦ (G.toMultiset e).map f) fun e v h ↦ (by
     simp only [Multiset.mem_map, inc_iff_mem_toMultiset, mem_image] at h ⊢
@@ -62,14 +61,32 @@ lemma vxMap.Inc₂ : (G.vxMap φ).Inc₂ e x y ↔ ∃ x', φ x' = x ∧ ∃ y',
     rw [hBtw]
     rfl
 
--- def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' where
---   V := G.V
---   E := σ ⁻¹' G.E
---   Inc v e := G.Inc v (σ e)
---   vx_mem_of_inc v e hinc := G.vx_mem_of_inc hinc
---   edge_mem_of_inc v e hinc := hinc.edge_mem
---   exists_vertex_inc e he := by
 
---     obtain ⟨v, hvinc⟩ := G.exists_vertex_inc he
---     use v
---   not_hypergraph x y z e hxinc hyinc hzinc := G.not_hypergraph hxinc hyinc hzinc
+
+def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' :=
+  oftoMultiset G.V (G.toMultiset <| σ ·) (fun e v hv ↦ by
+    simp only [inc_iff_mem_toMultiset] at hv
+    exact hv.vx_mem)
+
+variable {β' : Type*} {σ : β' → β}
+
+@[simp] lemma edgePreimg.V : (G.edgePreimg σ).V = G.V := rfl
+
+@[simp] lemma edgePreimg.E : (G.edgePreimg σ).E = σ ⁻¹' G.E := by
+  ext e
+  simp only [edgePreimg, oftoMultiset_E, toMultiset_card_eq_two_iff, mem_setOf_eq, mem_preimage]
+
+@[simp]
+lemma edgePreimg.Inc {e' : β'} : (G.edgePreimg σ).Inc e' u ↔ ∃ e, σ e' = e ∧ G.Inc e u := by
+  simp only [edgePreimg, exists_eq_left']
+  rw [← inc_iff_mem_toMultiset, oftoMultiset_toMultiset, inc_iff_mem_toMultiset]
+  rintro e
+  apply toMultiset_card_or
+
+@[simp]
+lemma edgePreimg.Inc₂ {e' : β'} : (G.edgePreimg σ).Inc₂ e' u v ↔ ∃ e, σ e' = e ∧ G.Inc₂ e u v := by
+  simp only [edgePreimg, exists_eq_left']
+  rw [inc₂_iff_toMultiset, oftoMultiset_toMultiset, inc₂_iff_toMultiset]
+  rintro e
+  apply toMultiset_card_or
+

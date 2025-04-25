@@ -214,6 +214,11 @@ lemma toMultiset_card_eq_two_iff : (G.toMultiset e).card = 2 ↔ e ∈ G.E := by
     exact toMultiset.edge_mem (by rw [hxy]; simp : x ∈ G.toMultiset e)
   · rw [toMultiset.card_eq_two he]
 
+lemma toMultiset_card_or : (G.toMultiset e).card = 2 ∨ (G.toMultiset e).card = 0 := by
+  by_cases he : e ∈ G.E
+  · exact Or.inl (toMultiset_card_eq_two_iff.mpr he)
+  · exact Or.inr (Multiset.card_eq_zero.mpr (toMultiset_eq_zero_iff.mpr he))
+
 end toMultiset
 
 section toSym2
