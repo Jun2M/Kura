@@ -180,21 +180,6 @@ structure IsPath (G : Graph α β) (w : WList α β) : Prop where
 -- @[simp] lemma isPath_simp (hVd : G.IsWalk w) (hnodup : w.vx.Nodup) :
 --     G.IsPath w := IsPath.mk hVd hnodup
 
-/-- `G.IsClosedWalk w` means that `w` is a closed walk of `G`. -/
-@[mk_iff]
-structure IsClosedWalk (G : Graph α β) (w : WList α β) : Prop where
-  isWalk : G.IsWalk w
-  first_mem : w.first = w.last
-
-/-- `G.IsTour w` means that `w` is a tour of `G`. -/
-@[mk_iff]
-structure IsTour (G : Graph α β) (w : WList α β) : Prop extends G.IsClosedWalk w, G.IsTrail w
-
-/-- `G.IsCycle w` means that `w` is a cycle of `G`. -/
-@[mk_iff]
-structure IsCycle (G : Graph α β) (w : WList α β) : Prop extends G.IsTour w where
-  nodup : w.vx.tail.Nodup
-
 /-- `G.IsWalkFrom S T w` means that `w` is a walk of `G` from `S` to `T`. -/
 @[mk_iff]
 structure IsWalkFrom (G : Graph α β) (S T : Set α) (w : WList α β) : Prop where
@@ -244,15 +229,6 @@ lemma IsWalk.isTrail (hVd : G.IsWalk w) (hedge : w.edge.Nodup) : G.IsTrail w := 
 
 lemma IsWalk.isPath (hVd : G.IsWalk w) (hvx : w.vx.Nodup) : G.IsPath w := ⟨hVd, hvx⟩
 
-lemma IsWalk.isClosedWalk (hVd : G.IsWalk w) (hfirst : w.first = w.last) : G.IsClosedWalk w :=
-  ⟨hVd, hfirst⟩
-
-lemma IsWalk.isTour (hVd : G.IsWalk w) (hfirst : w.first = w.last) (hedge : w.edge.Nodup) :
-    G.IsTour w := ⟨⟨hVd, hfirst⟩, hedge⟩
-
-lemma IsWalk.isCycle (hVd : G.IsWalk w) (hfirst : w.first = w.last) (hedge : w.edge.Nodup)
-    (hvx : w.vx.tail.Nodup) : G.IsCycle w := ⟨⟨⟨hVd, hfirst⟩, hedge⟩, hvx⟩
-
 lemma IsWalk.isWalkFrom (hVd : G.IsWalk w) (hfirst : w.first ∈ S) (hlast : w.last ∈ T) :
     G.IsWalkFrom S T w := ⟨hVd, hfirst, hlast⟩
 
@@ -273,15 +249,6 @@ lemma IsTrail.isPathFrom (hT : G.IsTrail w) (hvx : w.vx.Nodup) (hfirst : w.first
 lemma IsPath.isPathFrom (hP : G.IsPath w) (hfirst : w.first ∈ S) (hlast : w.last ∈ T) :
     G.IsPathFrom S T w := ⟨hP, hfirst, hlast⟩
 
-lemma IsClosedWalk.isCycle (h : G.IsClosedWalk w) (hedge : w.edge.Nodup) (hvx : w.vx.tail.Nodup) :
-    G.IsCycle w := ⟨⟨h, hedge⟩, hvx⟩
-
-lemma IsClosedWalk.isTour (h : G.IsClosedWalk w) (hedge : w.edge.Nodup) : G.IsTour w :=
-  ⟨h, hedge⟩
-
-lemma IsTour.isCycle (hT : G.IsTour w) (hvx : w.vx.tail.Nodup) :
-    G.IsCycle w := ⟨hT, hvx⟩
-
 lemma nil_isTrail (hx : x ∈ G.V) : G.IsTrail (nil x) :=
   ⟨nil_isWalk hx, by simp⟩
 
@@ -301,17 +268,8 @@ lemma nil_isWalkFrom (hx : x ∈ G.V) (hxS : x ∈ S) (hxT : x ∈ T) : G.IsWalk
 @[simp] lemma nil_isPath_iff : G.IsPath (nil x) ↔ x ∈ G.V := by
   simp [isPath_iff]
 
-@[simp] lemma nil_isClosedWalk_iff : G.IsClosedWalk (nil x) ↔ x ∈ G.V := by
-  simp [isClosedWalk_iff]
-
-@[simp] lemma nil_isTour_iff : G.IsTour (nil x) ↔ x ∈ G.V := by
-  simp [isTour_iff]
-
-@[simp] lemma nil_isCycle_iff : G.IsCycle (nil x) ↔ x ∈ G.V := by
-  simp [isCycle_iff]
-
-@[simp] lemma IsPath.first_eq_last (h : G.IsPath w) : w.first = w.last ↔ w.Nil := by
-  sorry
+@[simp] lemma IsPath.first_eq_last (h : G.IsPath w) : w.first = w.last ↔ w.Nil :=
+  w.first_eq_last_iff h.nodup
 
 @[simp] lemma cons_isTrail : G.IsTrail (cons x e w) ↔
     G.IsTrail w ∧ G.Inc₂ e x w.first ∧ e ∉ w.edge := by
@@ -321,21 +279,6 @@ lemma nil_isWalkFrom (hx : x ∈ G.V) (hxS : x ∈ S) (hxT : x ∈ T) : G.IsWalk
 @[simp] lemma cons_isPath : G.IsPath (cons x e w) ↔ G.IsPath w ∧ G.Inc₂ e x w.first ∧ x ∉ w := by
   simp only [isPath_iff, cons_isWalk_iff, cons_vx, nodup_cons, mem_vx]
   tauto
-
-@[simp]
-lemma cons_isClosedWalk : G.IsClosedWalk (cons x e w) ↔ G.IsWalk w ∧ G.Inc₂ e x w.first ∧ x = w.last := by
-  simp only [isClosedWalk_iff, cons_isWalk_iff, cons_first, cons_last]
-  tauto
-
-@[simp]
-lemma cons_isTour : G.IsTour (cons x e w) ↔ G.IsTrail w ∧ G.Inc₂ e x w.first ∧ x = w.last ∧ e ∉ w.edge := by
-  simp only [isTour_iff, cons_isClosedWalk, cons_edge, nodup_cons, isTrail_iff]
-  tauto
-
--- @[simp]
--- lemma cons_isCycle : G.IsCycle (cons x e w) ↔ G.IsPath w ∧ G.Inc₂ e x w.first ∧ x = w.last := by
---   simp [isCycle_iff, cons_isClosedWalk, cons_vx, List.tail_cons, isPath_iff]
---   tauto
 
 @[simp]
 lemma cons_isTrailFrom : G.IsTrailFrom S T (cons x e w) ↔
@@ -384,29 +327,6 @@ lemma IsPath.isTrail (h : G.IsPath w) : G.IsTrail w where
       simp_all only [cons_isPath, cons_edge, nodup_cons, and_true, forall_const]
       exact fun he ↦ h.2.2 <| h.1.isWalk.vx_mem_of_edge_mem he h.2.1.inc_left
 
-lemma IsWalk.isCycle' (hVd : G.IsWalk w) (hfirst : w.first = w.last) (hlen : w.length ≠ 2)
-    (hvx : w.vx.tail.Nodup) : G.IsCycle w where
-  isWalk := hVd
-  first_mem := hfirst
-  edge_nodup := by
-    induction w with
-    | nil => simp_all
-    | cons u e w ih =>
-      obtain ⟨hbtw, hVd⟩ := cons_isWalk_iff.mp hVd
-      simp_all only [ne_eq, forall_const, cons_isWalk_iff, and_self, cons_first, cons_last,
-        cons_length, cons_vx, List.tail_cons, cons_edge, nodup_cons, Nat.reduceEqDiff]
-      subst u
-      have hP : G.IsPath w := ⟨hVd, hvx⟩
-      refine ⟨?_, hP.isTrail.edge_nodup⟩
-      contrapose! hlen
-      obtain ⟨w', heq, hw'P, hlink⟩ := hP.exists_cons hlen hbtw.symm
-      have hlast : w'.last = w.last := by
-        rw [heq, cons_last]
-      obtain ⟨x, rfl⟩ := nil_iff_eq_nil.mp <| hw'P.first_eq_last.mp (hlink.trans hlast.symm)
-      rw [heq]
-      simp
-  nodup := hvx
-
 def Inc₂.walk (_h : G.Inc₂ e u v) : WList α β := cons u e (nil v)
 
 namespace Inc₂
@@ -416,6 +336,8 @@ lemma walk_first (h : G.Inc₂ e u v): h.walk.first = u := rfl
 
 @[simp]
 lemma walk_last (h : G.Inc₂ e u v): h.walk.last = v := rfl
+
+@[simp] lemma walk_nonempty (h : G.Inc₂ e u v): h.walk.Nonempty := by simp [walk]
 
 @[simp]
 lemma walk_vx (h : G.Inc₂ e u v): h.walk.vx = [u, v] := rfl
@@ -446,7 +368,12 @@ lemma walk_isPath (h : G.Inc₂ e u v) (hne : u ≠ v) : G.IsPath h.walk :=
 
 end Inc₂
 
-
+lemma length_eq_one_iff : w.length = 1 ∧ G.IsWalk w ↔ ∃ x e y h, w = (h : G.Inc₂ e x y).walk := by
+  refine ⟨fun ⟨hlen, hVd⟩ ↦ ?_, fun ⟨x, e, y, h, heq⟩ ↦ by simp [heq]⟩
+  obtain ⟨x, e, w', rfl, hlenw'⟩ := length_eq_succ_iff.mp hlen
+  obtain ⟨y, rfl⟩ := nil_iff_eq_nil.mp <| WList.length_eq_zero.mp hlenw'
+  simp only [cons_isWalk_iff, nil_first, nil_isWalk_iff] at hVd
+  exact ⟨x, e, y, hVd.1, by simp [Inc₂.walk]⟩
 
 variable {w₁ w₂ : WList α β}
 

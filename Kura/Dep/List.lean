@@ -438,6 +438,13 @@ lemma Nodup.dropLast {l : List α} (h : l.Nodup) : (l.dropLast).Nodup := by
   rw [dropLast_eq_take]
   exact h.take
 
+lemma Nodup.eq_singleton_of_head_eq_last {l : List α} (hnodup : l.Nodup) (hl : l ≠ [])
+    (h' : l.head hl = l.getLast hl) : ∃ x, l = [x] := by
+  obtain ⟨x, l', rfl⟩ := List.exists_cons_of_ne_nil hl
+  refine ⟨x, by_contra fun hne ↦ ?_⟩
+  simp only [nodup_cons, head_cons, cons.injEq, true_and] at hnodup h' hne
+  exact ((h'.trans <| l'.getLast_cons hne) ▸ hnodup).left <| getLast_mem hne
+
 lemma Chain.prefix {l1 l2 : List α} {a : α} {p : α → α → Prop} (h : List.Chain p a l2) (h' : l1 <+: l2) :
     List.Chain p a l1 := by
   rw [← List.prefix_cons_inj a] at h'
@@ -490,37 +497,37 @@ lemma chain'_pair_infix {l : List α} {x y : α} {p : α → α → Prop} (h : C
 --   rw [not_not] at a
 --   exact a
 
-lemma findJump {l : List α} {p : α → Bool} {a : α} (hhead : p a) (hlast : ¬ p (a::l)[l.length]) :
-    ∃ x y, [x, y] <:+: a :: l ∧ p x ∧ ¬ p y := by
-  let j := Fin.find (fun i ↦ ¬ p ((a::l).get i)) |>.get (Fin.isSome_find_iff.mpr ⟨Fin.last l.length, hlast⟩)
-  have _ : NeZero (a::l).length := by
-    rw [length_cons]
-    exact Nat.instNeZeroSucc
-  have hj : ¬p ((a :: l).get j) = true := by
-    refine Fin.find_spec _ (?_ : j ∈ Fin.find (fun i ↦ ¬ p ((a::l).get i)))
-    exact Option.get_mem _
-  have hj0 : j ≠ 0 := by
-    intro hj0
-    simp only [hj0, get_eq_getElem, length_cons, Fin.val_zero, getElem_cons_zero, hhead,
-      not_true_eq_false] at hj
-  have hj0' : j.val ≠ 0 := by simpa only [length_cons, ne_eq, ← Fin.val_inj, Fin.val_zero] using hj0
-  let i := (j.pred hj0).castSucc
-  use (a::l).get i, (a::l).get j, ?_, ?_, hj
-  · rw [List.infix_iff_suffix_prefix]
-    use (a::l).take (j+1)
-    simp only [get_eq_getElem, length_cons]
-    refine ⟨?_, take_prefix _ _⟩
-    use (a::l).take i
-    simp only [Fin.coe_castSucc, Fin.coe_pred, i]
-    rw [← [(a :: l)[j.val]].singleton_append, ← List.append_assoc, take_append_getElem,
-      ← (a::l).take_append_getElem j.val, append_left_inj]
-    congr
-    omega
-  · have hlt : i < j := sorry
-    -- simp [i, Fin.lt_iff_val_lt_val]; omega used to work.
-    let a := Fin.find_min (i := j) (Option.get_mem _) (j := i) hlt
-    rw [not_not] at a
-    exact a
+-- lemma findJump {l : List α} {p : α → Bool} {a : α} (hhead : p a) (hlast : ¬ p (a::l)[l.length]) :
+--     ∃ x y, [x, y] <:+: a :: l ∧ p x ∧ ¬ p y := by
+--   let j := Fin.find (fun i ↦ ¬ p ((a::l).get i)) |>.get (Fin.isSome_find_iff.mpr ⟨Fin.last l.length, hlast⟩)
+--   have _ : NeZero (a::l).length := by
+--     rw [length_cons]
+--     exact Nat.instNeZeroSucc
+--   have hj : ¬p ((a :: l).get j) = true := by
+--     refine Fin.find_spec _ (?_ : j ∈ Fin.find (fun i ↦ ¬ p ((a::l).get i)))
+--     exact Option.get_mem _
+--   have hj0 : j ≠ 0 := by
+--     intro hj0
+--     simp only [hj0, get_eq_getElem, length_cons, Fin.val_zero, getElem_cons_zero, hhead,
+--       not_true_eq_false] at hj
+--   have hj0' : j.val ≠ 0 := by simpa only [length_cons, ne_eq, ← Fin.val_inj, Fin.val_zero] using hj0
+--   let i := (j.pred hj0).castSucc
+--   use (a::l).get i, (a::l).get j, ?_, ?_, hj
+--   · rw [List.infix_iff_suffix_prefix]
+--     use (a::l).take (j+1)
+--     simp only [get_eq_getElem, length_cons]
+--     refine ⟨?_, take_prefix _ _⟩
+--     use (a::l).take i
+--     simp only [Fin.coe_castSucc, Fin.coe_pred, i]
+--     rw [← [(a :: l)[j.val]].singleton_append, ← List.append_assoc, take_append_getElem,
+--       ← (a::l).take_append_getElem j.val, append_left_inj]
+--     congr
+--     omega
+--   · have hlt : i < j := sorry
+--     -- simp [i, Fin.lt_iff_val_lt_val]; omega used to work.
+--     let a := Fin.find_min (i := j) (Option.get_mem _) (j := i) hlt
+--     rw [not_not] at a
+--     exact a
 
 -- Given an infix `ll` of `l`, split `l` into three parts: the prefix of `ll`, `ll`, and the suffix of `ll`.
 def splitByInfix.loop [DecidableEq α] (l ll p : List α) (hl : ll <:+: l) : List α × List α × List α :=

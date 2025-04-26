@@ -178,6 +178,8 @@ lemma nil_nil : Nil (nil x (β := β)) :=
 lemma nil_iff_eq_nil : Nil w ↔ ∃ x, w = nil x := by
   induction w with simp
 
+lemma nil_iff_vx_eq_nil : Nil w ↔ ∃ x, w.vx = [x] := by
+  induction w with simp
 
 @[simp]
 lemma not_nil_cons (w : WList α β) (x) (e) : ¬ Nil (w.cons x e) := by
@@ -227,6 +229,11 @@ lemma length_ne_zero_iff : w.length ≠ 0 ↔ w.Nonempty := by
 @[simp]
 lemma length_pos_iff : 0 < w.length ↔ w.Nonempty := by
   simp [Nat.pos_iff_ne_zero]
+
+lemma length_eq_succ_iff {n : ℕ} : w.length = n + 1 ↔ ∃ x e w', w = .cons x e w' ∧ w'.length = n := by
+  refine ⟨fun hlen ↦ ?_, fun ⟨x, e, w', hw, ih⟩ ↦ by simp only [hw, cons_length, ih]⟩
+  obtain ⟨x, e, w', rfl⟩ := (length_pos_iff.mp (by omega : 0 < w.length)).exists_cons
+  exact ⟨x, e, w', rfl, by simpa using hlen⟩
 
 lemma first_eq_last_iff (hnodup : w.vx.Nodup) : w.first = w.last ↔ w.Nil :=
   ⟨fun h ↦ by cases w with simp_all, Nil.first_eq_last⟩
