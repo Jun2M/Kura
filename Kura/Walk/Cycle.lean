@@ -81,7 +81,7 @@ lemma cons_isTour : G.IsTour (cons x e w) ↔ G.IsTrail w ∧ G.Inc₂ e x w.fir
 --   simp [isCycle_iff, cons_isClosedWalk, cons_vx, List.tail_cons, isPath_iff]
 --   tauto
 
-lemma IsWalk.isCycle' (hVd : G.IsWalk w) (hfirst : w.first = w.last) (hlen : 2 < w.length)
+lemma IsWalk.isCycle_of_length (hVd : G.IsWalk w) (hfirst : w.first = w.last) (hlen : 2 < w.length)
     (hvx : w.vx.tail.Nodup) : G.IsCycle w where
   isWalk := hVd
   first_last := hfirst
