@@ -43,7 +43,7 @@ lemma toSym2_eq_toSym2_iff_inc₂_eq_inc₂ (he : e ∈ G.E) (he' : e ∈ G'.E) 
   constructor <;> rintro h
   · ext u v
     rw [hxy.sym2_eq_iff, h, hx'y'.sym2_eq_iff]
-  · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_of_inc₂ hx'y'
+  · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_or_eq_of_inc₂ hx'y'
     · rfl
     · exact Sym2.eq_swap
 
@@ -56,7 +56,7 @@ lemma inc₂_eq_inc₂_of_edge_mem_and_inc₂_le_inc₂ (he : e ∈ G.E) (h : G.
     G.Inc₂ e = G'.Inc₂ e := by
   refine le_antisymm (h e) fun x y hinc₂ ↦ ?_
   obtain ⟨u, v, hbtw⟩ := Inc₂.exists_vx_inc₂ he
-  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h e u v hbtw).eq_of_inc₂ hinc₂
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h e u v hbtw).eq_or_eq_of_inc₂ hinc₂
   · exact hbtw
   · exact Inc₂.comm.mp hbtw
 

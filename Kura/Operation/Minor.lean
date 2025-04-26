@@ -305,7 +305,7 @@ lemma Inc₂.contractFun_validIn (hexy : G.Inc₂ e u v) [DecidableEq α] :
       rintro ⟨e', hbtw⟩
       simp only [restrict_inc₂_iff, mem_singleton_iff] at hbtw
       obtain ⟨hbtw, rfl⟩ := hbtw
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_of_inc₂ hbtw
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_or_eq_of_inc₂ hbtw
       · exact hbinc rfl
       · exact hainc rfl
     simp [hnadj, ha]
@@ -364,7 +364,7 @@ lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflA
     simp only [E, mem_diff] at he
     obtain ⟨he, heC⟩ := he
     obtain ⟨a, b, hbtwG⟩ := Inc₂.exists_vx_inc₂ he
-    have heqeq := (inc₂ φ heC hbtwG).eq_of_inc₂ hbtw
+    have heqeq := (inc₂ φ heC hbtwG).eq_or_eq_of_inc₂ hbtw
     wlog heq : φ a = φ u ∧ φ b = φ v
     · simp only [heq, false_or] at heqeq
       rw [and_comm] at heqeq

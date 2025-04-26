@@ -32,7 +32,7 @@ def induce (G : Graph α β) (U : Set α) : Graph α β :=
   (fun e x y ↦ G.Inc₂ e x y ∧ x ∈ U ∧ y ∈ U)
   (fun _e _x _y ⟨hbtw, hx, hy⟩ ↦ ⟨hbtw.symm, hy, hx⟩)
   (fun _e _x _y ⟨_hbtw, hx, _hy⟩ ↦ hx)
-  (fun _e _x _y _u _v ⟨hxy, _hx,_hy⟩ ⟨huv, _hu, _hv⟩ ↦ hxy.left_eq_of_inc₂ huv)
+  (fun _e _x _y _u _v ⟨hxy, _hx,_hy⟩ ⟨huv, _hu, _hv⟩ ↦ hxy.left_or_of_inc₂ huv)
 
 notation G "[" S "]" => Graph.induce G S
 
@@ -142,7 +142,7 @@ def restrict (G : Graph α β) (R : Set β) : Graph α β :=
   ofInc₂ G.V (fun e x y ↦ G.Inc₂ e x y ∧ e ∈ R)
   (fun _e _x _y ⟨hbtw, h⟩ ↦ ⟨hbtw.symm, h⟩)
   (fun _e _x _y ⟨hbtw, _h⟩ ↦ hbtw.vx_mem_left)
-  (fun _e _x _y _u _v ⟨hxy, _he⟩ ⟨huv, _he⟩ ↦ hxy.left_eq_of_inc₂ huv)
+  (fun _e _x _y _u _v ⟨hxy, _he⟩ ⟨huv, _he⟩ ↦ hxy.left_or_of_inc₂ huv)
 
 notation G "{" S "}" => Graph.restrict G S
 
@@ -848,7 +848,7 @@ lemma induce_induce_eq_induce_restrict' (U V : Set α) : G[U][V] = G{G[U].E}[V] 
     rintro e x y hxV hyV hbtw
     refine ⟨fun ⟨hxU, hyU⟩ ↦ ?_, fun ⟨u, v, a, huU, hvU⟩ ↦ ?_⟩
     · use x, y
-    · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_of_inc₂ a <;> tauto
+    · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_or_eq_of_inc₂ a <;> tauto
 
 @[simp]
 lemma induce_induce_eq_induce_restrict (U V : Set α) :

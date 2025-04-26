@@ -184,7 +184,7 @@ lemma IsIsomOn.inc₂ (hisom : f.IsIsomOn G₁ G₂) (he : e ∈ G₁.E) (ha : a
   · obtain ⟨e', he', he'eq⟩ := hisom.bijOn_edge.surjOn hbtw.edge_mem
     obtain rfl := hisom.bijOn_edge.injOn he' he he'eq
     obtain ⟨a', b', hbtw'⟩ := Inc₂.exists_vx_inc₂ he
-    obtain ⟨haeq, hbeq⟩ | ⟨haeq, hbeq⟩ := (hisom.inc₂ hbtw').eq_of_inc₂ hbtw
+    obtain ⟨haeq, hbeq⟩ | ⟨haeq, hbeq⟩ := (hisom.inc₂ hbtw').eq_or_eq_of_inc₂ hbtw
     · rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_left ha] at haeq
       rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_right hb] at hbeq
       subst a' b'

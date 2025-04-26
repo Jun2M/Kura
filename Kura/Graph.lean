@@ -96,12 +96,12 @@ lemma Inc₂.edge_mem (h : G.Inc₂ e x y) : e ∈ G.E := G.edge_mem h
 
 lemma Inc₂.exists_vx_inc₂ (he : e ∈ G.E) : ∃ u v, G.Inc₂ e u v := G.exists_vx_inc₂ he
 
-lemma Inc₂.left_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : x = u ∨ x = v :=
+lemma Inc₂.left_or_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : x = u ∨ x = v :=
   G.left_eq_of_inc₂ h h'
 
 
 
-lemma Inc₂.right_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : y = u ∨ y = v :=
+lemma Inc₂.right_or_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : y = u ∨ y = v :=
   G.left_eq_of_inc₂ h.symm h'
 
 lemma Inc₂.comm : G.Inc₂ e x y ↔ G.Inc₂ e y x := ⟨Inc₂.symm, Inc₂.symm⟩
@@ -109,22 +109,22 @@ lemma Inc₂.comm : G.Inc₂ e x y ↔ G.Inc₂ e y x := ⟨Inc₂.symm, Inc₂.
 @[simp]
 lemma Inc₂.inc₂_iff_eq_left (h : G.Inc₂ e x y) : G.Inc₂ e u y ↔ u = x := by
   refine ⟨fun h' => ?_, fun h' => h' ▸ h⟩
-  obtain (rfl | rfl) := h.left_eq_of_inc₂ h'
-  on_goal 2 => obtain (rfl | rfl) := h'.left_eq_of_inc₂ h
+  obtain (rfl | rfl) := h.left_or_of_inc₂ h'
+  on_goal 2 => obtain (rfl | rfl) := h'.left_or_of_inc₂ h
   all_goals rfl
 
 @[simp]
 lemma Inc₂.inc₂_iff_eq_right (h : G.Inc₂ e x y) : G.Inc₂ e x u ↔ y = u :=
   ⟨fun h' => (h.symm.inc₂_iff_eq_left.mp h'.symm).symm, fun h' => h' ▸ h⟩
 
-lemma Inc₂.eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) :
+lemma Inc₂.eq_or_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) :
     (x = u ∧ y = v) ∨ (x = v ∧ y = u) := by
-  obtain (rfl | rfl) := h.left_eq_of_inc₂ h'
-  · obtain rfl | rfl := h.right_eq_of_inc₂ h'
+  obtain (rfl | rfl) := h.left_or_of_inc₂ h'
+  · obtain rfl | rfl := h.right_or_of_inc₂ h'
     · rw [h'.inc₂_iff_eq_right] at h
       tauto
     · tauto
-  · obtain rfl | rfl := h.symm.left_eq_of_inc₂ h'
+  · obtain rfl | rfl := h.symm.left_or_of_inc₂ h'
     · tauto
     · rw [h'.inc₂_iff_eq_left] at h
       tauto
@@ -136,12 +136,12 @@ lemma not_inc₂_of_not_edge_mem (h : e ∉ G.E) : ¬ G.Inc₂ e x y :=
 lemma Inc₂.pair_eq (h1 : G.Inc₂ e x y) (h2 : G.Inc₂ e u v) :
     ({x, y} : Multiset α) = {u, v} := by
   rw [Multiset.pair_eq_pair_iff]
-  exact h1.eq_of_inc₂ h2
+  exact h1.eq_or_eq_of_inc₂ h2
 
 lemma Inc₂.sym2_eq_iff (h : G.Inc₂ e x y) : G.Inc₂ e u v ↔ s(x, y) = s(u, v) := by
   simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
   constructor
-  · exact h.eq_of_inc₂
+  · exact h.eq_or_eq_of_inc₂
   · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
     · exact h
     · exact h.symm
@@ -164,8 +164,8 @@ lemma Inc.not_hypergraph (hx : G.Inc e x) (hy : G.Inc e y) (hz : G.Inc e z) :
   obtain ⟨x', hx⟩ := hx
   obtain ⟨y', hy⟩ := hy
   obtain ⟨z', hz⟩ := hz
-  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hx.eq_of_inc₂ hy <;>
-  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hx.eq_of_inc₂ hz <;>
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hx.eq_or_eq_of_inc₂ hy <;>
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hx.eq_or_eq_of_inc₂ hz <;>
   tauto
 
 @[simp]
@@ -259,7 +259,7 @@ lemma toSym2.eq_iff_inc₂ (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc�
     · exact this.symm
   · rintro h
     simp only [toSym2, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
-    exact (Inc₂.exists_vx_inc₂ he).choose_spec.choose_spec.eq_of_inc₂ h
+    exact (Inc₂.exists_vx_inc₂ he).choose_spec.choose_spec.eq_or_eq_of_inc₂ h
 
 end toSym2
 
@@ -329,7 +329,7 @@ lemma Inc₂.inc_right (h : G.Inc₂ e x y) : G.Inc e y := by
 @[simp]
 lemma Inc₂.eq_of_inc (h₂ : G.Inc₂ e x y) (h : G.Inc e u) : x = u ∨ y = u := by
   obtain ⟨v, hv⟩ := h
-  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h₂.eq_of_inc₂ hv <;> tauto
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h₂.eq_or_eq_of_inc₂ hv <;> tauto
 
 lemma inc₂_iff_inc_and_loop : G.Inc₂ e x y ↔ G.Inc e x ∧ G.Inc e y ∧ (x = y → G.IsLoopAt e x) := by
   constructor
@@ -342,7 +342,7 @@ lemma inc₂_iff_inc_and_loop : G.Inc₂ e x y ↔ G.Inc e x ∧ G.Inc e y ∧ (
       exact hloop rfl
     · obtain ⟨x', hx'⟩ := hincx
       obtain ⟨y', hy'⟩ := hincy
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hx'.eq_of_inc₂ hy'
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hx'.eq_or_eq_of_inc₂ hy'
       · exact hloop rfl
       · exact hx'
 
@@ -389,7 +389,7 @@ lemma Inc₂.toMultiset (h : G.Inc₂ e x y) : G.toMultiset e = {x, y} := by
   let v := (Inc₂.exists_vx_inc₂ h.edge_mem).choose_spec.choose
   let huv : G.Inc₂ e u v := (Inc₂.exists_vx_inc₂ h.edge_mem).choose_spec.choose_spec
   change {u, v} = ({x, y} : Multiset α)
-  obtain ⟨h1, h2⟩ | ⟨h1, h2⟩ := huv.eq_of_inc₂ h <;> rw [h1, h2]
+  obtain ⟨h1, h2⟩ | ⟨h1, h2⟩ := huv.eq_or_eq_of_inc₂ h <;> rw [h1, h2]
   rw [Multiset.pair_comm]
 
 lemma inc₂_iff_toMultiset : G.Inc₂ e x y ↔ G.toMultiset e = {x, y} :=
