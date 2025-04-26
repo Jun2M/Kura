@@ -109,7 +109,7 @@ section intro
 
 def ofInc₂ (V : Set α) (isBtw : β → α → α → Prop) (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
     (vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V)
-    (eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)) :
+    (left_eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → x = u ∨ x = v) :
     Graph α β where
   V := V
   E := {e | ∃ x y, isBtw e x y}
@@ -118,11 +118,11 @@ def ofInc₂ (V : Set α) (isBtw : β → α → α → Prop) (hsymm : ∀ e x y
   vx_mem_left := vx_mem_of_isBtw_left
   edge_mem e x y hbtw := by use x, y
   exists_vx_inc₂ e he := mem_setOf_eq.mp he
-  eq_of_inc₂ := eq_of_isBtw
+  left_eq_of_inc₂ := left_eq_of_isBtw
 
 variable {V : Set α} {isBtw : β → α → α → Prop} {h1 : ∀ e x y, isBtw e x y → isBtw e y x}
     {h2 : ∀ e x y, isBtw e x y → x ∈ V}
-    {h3 : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)}
+    {h3 : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → x = u ∨ x = v}
 
 @[simp]
 lemma ofInc₂_V : (ofInc₂ V isBtw h1 h2 h3).V = V := rfl
@@ -165,7 +165,7 @@ def ofInc (V : Set α) (inc : β → α → Prop) (vx_mem : ∀ e v, inc e v →
       rintro z hz
       specialize hy z
       tauto
-  eq_of_inc₂ a b c d e h1 h2 := by
+  left_eq_of_inc₂ a b c d e h1 h2 := by
     obtain ⟨hinca, hincb, hinc_unique⟩ := h1
     obtain ⟨hincc, hincd, hinc_unique'⟩ := h2
     obtain rfl | rfl := hinc_unique c hincc <;>
@@ -221,9 +221,10 @@ def oftoMultiset (V : Set α) (toMultiset : β → Multiset α) (vx_mem : ∀ e 
     rw [mem_setOf_eq, Multiset.card_eq_two] at he
     obtain ⟨x, y, hxy⟩ := he
     use x, y
-  eq_of_inc₂ a b c d e h1 h2 := by
+  left_eq_of_inc₂ a b c d e h1 h2 := by
     simp only at h1 h2
-    rwa [h1, Multiset.pair_eq_pair_iff] at h2
+    rw [h1, Multiset.pair_eq_pair_iff] at h2
+    tauto
 
 variable {toMultiset : β → Multiset α} {vx_mem : ∀ e v, v ∈ toMultiset e → v ∈ V}
 
@@ -269,9 +270,10 @@ def ofIncFun (V : Set α) (incFun : β → α →₀ ℕ) (vx_mem : ∀ e v, inc
     obtain ⟨x, y, hxy⟩ := this
     use x, y
     rw [← hxy, Finsupp.toMultiset_toFinsupp]
-  eq_of_inc₂ a b c d e h1 h2 := by
+  left_eq_of_inc₂ a b c d e h1 h2 := by
     simp only at h1 h2
-    rwa [← h2, EmbeddingLike.apply_eq_iff_eq, Multiset.pair_eq_pair_iff] at h1
+    rw [← h2, EmbeddingLike.apply_eq_iff_eq, Multiset.pair_eq_pair_iff] at h1
+    tauto
 
 def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α)
     (vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V) : Graph α β where
@@ -291,10 +293,11 @@ def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 �
     simp only [he, exists_true_left]
     induction' tosym2 e he with x y
     use x, y
-  eq_of_inc₂ a b c d e h1 h2 := by
+  left_eq_of_inc₂ a b c d e h1 h2 := by
     obtain ⟨he, h1⟩ := h1
     obtain ⟨he', h2⟩ := h2
-    simpa [h1] using h2
+    simp [h1] at h2
+    tauto
 
 variable {E : Set β} {tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α}
   {vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V}

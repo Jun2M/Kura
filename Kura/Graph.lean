@@ -33,7 +33,7 @@ lemma finsum_mem_const {α M : Type*} (s : Set α) [AddCommMonoid M] (c : M) :
   vx_mem_left : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ V
   edge_mem : ∀ ⦃e x y⦄, Inc₂ e x y → e ∈ E
   exists_vx_inc₂ : ∀ ⦃e⦄, e ∈ E → ∃ x y, Inc₂ e x y
-  eq_of_inc₂ : ∀ ⦃x y u v e⦄, Inc₂ e x y → Inc₂ e u v → (x = u ∧ y = v) ∨ (x = v ∧ y = u)
+  left_eq_of_inc₂ : ∀ ⦃x y u v e⦄, Inc₂ e x y → Inc₂ e u v → x = u ∨ x = v
 
 variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v w : α} {e f : β} {S S' T T' : Set α}
   {F F' R R' : Set β}
@@ -96,12 +96,38 @@ lemma Inc₂.edge_mem (h : G.Inc₂ e x y) : e ∈ G.E := G.edge_mem h
 
 lemma Inc₂.exists_vx_inc₂ (he : e ∈ G.E) : ∃ u v, G.Inc₂ e u v := G.exists_vx_inc₂ he
 
-lemma Inc₂.eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : (x = u ∧ y = v) ∨ (x = v ∧ y = u) :=
-  G.eq_of_inc₂ h h'
+lemma Inc₂.left_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : x = u ∨ x = v :=
+  G.left_eq_of_inc₂ h h'
 
 
+
+lemma Inc₂.right_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) : y = u ∨ y = v :=
+  G.left_eq_of_inc₂ h.symm h'
 
 lemma Inc₂.comm : G.Inc₂ e x y ↔ G.Inc₂ e y x := ⟨Inc₂.symm, Inc₂.symm⟩
+
+@[simp]
+lemma Inc₂.inc₂_iff_eq_left (h : G.Inc₂ e x y) : G.Inc₂ e u y ↔ u = x := by
+  refine ⟨fun h' => ?_, fun h' => h' ▸ h⟩
+  obtain (rfl | rfl) := h.left_eq_of_inc₂ h'
+  on_goal 2 => obtain (rfl | rfl) := h'.left_eq_of_inc₂ h
+  all_goals rfl
+
+@[simp]
+lemma Inc₂.inc₂_iff_eq_right (h : G.Inc₂ e x y) : G.Inc₂ e x u ↔ y = u :=
+  ⟨fun h' => (h.symm.inc₂_iff_eq_left.mp h'.symm).symm, fun h' => h' ▸ h⟩
+
+lemma Inc₂.eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e u v) :
+    (x = u ∧ y = v) ∨ (x = v ∧ y = u) := by
+  obtain (rfl | rfl) := h.left_eq_of_inc₂ h'
+  · obtain rfl | rfl := h.right_eq_of_inc₂ h'
+    · rw [h'.inc₂_iff_eq_right] at h
+      tauto
+    · tauto
+  · obtain rfl | rfl := h.symm.left_eq_of_inc₂ h'
+    · tauto
+    · rw [h'.inc₂_iff_eq_left] at h
+      tauto
 
 @[simp]
 lemma not_inc₂_of_not_edge_mem (h : e ∉ G.E) : ¬ G.Inc₂ e x y :=
@@ -119,15 +145,6 @@ lemma Inc₂.sym2_eq_iff (h : G.Inc₂ e x y) : G.Inc₂ e u v ↔ s(x, y) = s(u
   · rintro (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
     · exact h
     · exact h.symm
-
-@[simp]
-lemma Inc₂.inc₂_iff_eq_left (h : G.Inc₂ e x y) : G.Inc₂ e u y ↔ u = x := by
-  refine ⟨fun h' => ?_, fun h' => h' ▸ h⟩
-  obtain ⟨rfl, _⟩ | ⟨rfl, rfl⟩ := h.eq_of_inc₂ h' <;> rfl
-
-@[simp]
-lemma Inc₂.inc₂_iff_eq_right (h : G.Inc₂ e x y) : G.Inc₂ e x u ↔ y = u :=
-  ⟨fun h' => (h.symm.inc₂_iff_eq_left.mp h'.symm).symm, fun h' => h' ▸ h⟩
 
 end Inc₂
 
