@@ -1,10 +1,9 @@
 import Kura.ST.Separator
-import Kura.Walk.Lemma
 
 namespace Graph
-open Set Function List Nat Walk
+open Set Function List Nat WList
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S S' T T' U V : Set α}
-  {F F' R R' : Set β} {w w1 w2 : Walk α β}
+  {F F' R R' : Set β} {w w1 w2 : WList α β}
 
 
 namespace IsVxSetSeparator

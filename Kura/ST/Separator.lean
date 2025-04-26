@@ -1,11 +1,11 @@
 import Kura.Operation.Subgraph
-import Kura.Walk.Operation
+import Kura.Walk.Basic
 
 
 namespace Graph
-open Set Function List Nat Walk
+open Set Function List Nat WList
 variable {α β : Type*} {G G' H H' : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
-  {F F' : Set β} {w w1 w2 : Walk α β}
+  {F F' : Set β} {w w1 w2 : WList α β}
 
 
 @[mk_iff]
@@ -249,7 +249,7 @@ def IsEdgeSetSeparator (G : Graph α β) (S T : Set α) (F : Set β) :=
   ¬ (G \ F).SetConnected S T
 
 namespace IsEdgeSetSeparator
-variable {G G' : Graph α β} {S S' T T' : Set α} {F F' : Set β} {u v : α} {w : Walk α β}
+variable {G G' : Graph α β} {S S' T T' : Set α} {F F' : Set β} {u v : α} {w : WList α β}
 
 -- Basic Properties & Negation
 @[simp] lemma not_isEdgeSetSeparator_iff : ¬ G.IsEdgeSetSeparator S T F ↔ (G.edgeDel F).SetConnected S T := by

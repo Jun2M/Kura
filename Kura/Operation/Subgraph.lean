@@ -205,7 +205,9 @@ lemma mem_edgeDel_E_iff : e ∈ (G \ R).E ↔ e ∈ G.E ∧ e ∉ R := by
   simp only [edgeDel_E, mem_diff]
 
 @[simp] lemma edgeDel_inc₂_iff : (G \ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
-  sorry
+  rw [edgeDel, restrict_inc₂_iff]
+  simp +contextual only [mem_diff, and_congr_right_iff, and_iff_right_iff_imp]
+  exact fun h _ ↦ h.edge_mem
 
 end CoreDefinitions
 
