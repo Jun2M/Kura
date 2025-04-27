@@ -233,3 +233,52 @@ lemma oftoSym2_tosym2 : (oftoSym2 V E tosym2 vx_mem).toSym2 = tosym2 := by
   simp only [Prod.mk.eta, Quot.out_eq]
 
 end intro
+
+
+def Edgeless (V : Set α) (β : Type*) : Graph α β := ofInc V (fun _ _ ↦ False) (by tauto) (by tauto)
+
+namespace Edgeless
+
+@[simp] lemma V : (Edgeless U β).V = U := rfl
+
+@[simp] lemma E : (Edgeless U β).E = ∅ := by simp [Edgeless]
+
+@[simp] lemma incFun : (Edgeless U β).IncFun = 0 := by simp
+
+@[simp] lemma Inc  : ¬ (Edgeless U β).Inc e v  := by simp
+
+@[simp] lemma Inc₂ : ¬ (Edgeless U β).Inc₂ e u v := by simp
+
+@[simp] lemma Adj : ¬ (Edgeless U β).Adj x y := by simp
+
+end Edgeless
+
+@[simp]
+lemma edge_empty_iff_eq_Edgeless (G : Graph α β) : G.E = ∅ ↔ G = Edgeless G.V β := by
+  constructor
+  · rintro h
+    ext1
+    · rfl
+    · simpa
+    · ext e v
+      simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true, not_inc₂_of_not_edge_mem,
+        iff_false]
+      rintro hinc
+      have := h ▸ hinc.edge_mem
+      simp at this
+  · rintro heq
+    rw [heq, Edgeless.E]
+
+/-- A graph with a single edge `e` from `u` to `v` -/
+@[simps] protected def singleEdge (u v : α) (e : β) : Graph α β where
+  V := {u,v}
+  E := {e}
+  Inc₂ e' x y := e' = e ∧ ((x = u ∧ y = v) ∨ (x = v ∧ y = u))
+  symm := by tauto
+  vx_mem_left := by tauto
+  edge_mem := by tauto
+  exists_vx_inc₂ := by tauto
+  left_eq_of_inc₂ := by aesop
+
+lemma singleEdge_inc₂_iff : (Graph.singleEdge u v e).Inc₂ f x y ↔ (f = e) ∧ s(x,y) = s(u,v) := by
+  simp [Graph.singleEdge]

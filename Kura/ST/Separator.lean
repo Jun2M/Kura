@@ -52,7 +52,7 @@ def rightSet (h : G.IsVxSetSeparator S T V) : Set α :=
 
 @[simp]
 lemma le (h : G'.IsVxSetSeparator S T V) (hle : G ≤ G') : G.IsVxSetSeparator S T V :=
-  fun hconn ↦ h <| hconn.le <| vxDel_le_vxDel_of_subset hle fun ⦃_⦄ a ↦ a
+  fun hconn ↦ h <| hconn.of_le <| vxDel_le_vxDel_of_subset hle fun ⦃_⦄ a ↦ a
 
 lemma symm (h : G.IsVxSetSeparator S T V) : G.IsVxSetSeparator T S V := (h ·.symm)
 
@@ -60,7 +60,7 @@ lemma comm : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator T S V := ⟨symm, s
 
 @[simp]
 lemma sep_subset (h : G.IsVxSetSeparator S T U) (hUV : U ⊆ V) : G.IsVxSetSeparator S T V :=
-  fun hconn ↦ h <| hconn.le <| vxDel_anti G hUV
+  fun hconn ↦ h <| hconn.of_le <| vxDel_anti G hUV
 
 @[simp]
 lemma subset_source (h : G.IsVxSetSeparator S' T V) (hS : S ⊆ S') : G.IsVxSetSeparator S T V :=
@@ -251,6 +251,10 @@ def IsEdgeSetSeparator (G : Graph α β) (S T : Set α) (F : Set β) :=
 namespace IsEdgeSetSeparator
 variable {G G' : Graph α β} {S S' T T' : Set α} {F F' : Set β} {u v : α} {w : WList α β}
 
+def leftSet (h : G.IsEdgeSetSeparator S T F) : Set α := {v | ∃ s ∈ S, (G \ F).Connected v s}
+
+def rightSet (h : G.IsEdgeSetSeparator S T F) : Set α := {v | ∃ t ∈ T, (G \ F).Connected v t}
+
 -- Basic Properties & Negation
 @[simp] lemma not_isEdgeSetSeparator_iff : ¬ G.IsEdgeSetSeparator S T F ↔ (G.edgeDel F).SetConnected S T := by
   simp [IsEdgeSetSeparator]
@@ -264,12 +268,11 @@ lemma comm : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator T S F :=
 
 -- Monotonicity & Subsets
 lemma le (h : G'.IsEdgeSetSeparator S T F) (hle : G ≤ G') : G.IsEdgeSetSeparator S T F :=
-  fun hconn ↦ h <| hconn.le (edgeDel_le_edgeDel_of_subset hle fun ⦃_⦄ a ↦ a)
+  fun hconn ↦ h <| hconn.of_le <| edgeDel_le_edgeDel_of_subset hle fun ⦃_⦄ a ↦ a
 
 lemma mono (h : G.IsEdgeSetSeparator S T F) (h_subset : F ⊆ F') :
-    G.IsEdgeSetSeparator S T F' := by
-  refine fun hconn ↦ h ?_
-  refine hconn.le (edgeDel_le_edgeDel_of_subset (le_refl G) h_subset)
+    G.IsEdgeSetSeparator S T F' :=
+  fun hconn ↦ h <| hconn.of_le <| edgeDel_le_edgeDel_of_subset (le_refl G) h_subset
 
 @[simp]
 lemma subset_source (h : G.IsEdgeSetSeparator S' T F) (hS : S ⊆ S') : G.IsEdgeSetSeparator S T F :=
@@ -324,6 +327,14 @@ lemma left_right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (
 @[simp]
 lemma edgeDel : (G \ F').IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S T (F' ∪ F) := by
   simp [IsEdgeSetSeparator]
+
+-- Lemmas about the left and right sets of an edge separator
+lemma leftSet_subset (h : G.IsEdgeSetSeparator S T F) : h.leftSet ⊆ G.V \ F := by
+  rintro v ⟨s, hs, hconn⟩
+  simp only [leftSet, mem_setOf_eq, not_exists, not_and] at hconn
+  exact hconn.mem_left
+
+
 
 end IsEdgeSetSeparator
 

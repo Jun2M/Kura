@@ -1,4 +1,4 @@
-import Kura.Isolated
+import Kura.Connected
 
 open Set Function
 

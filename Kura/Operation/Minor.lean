@@ -372,9 +372,9 @@ lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflA
       left
       exact heqeq
     rw [hVd hbtwG.vx_mem_left hu, hVd hbtwG.vx_mem_right hv] at heq
-    exact ((heq.1.symm.le hle).trans (hbtwG.connected)).trans (heq.2.le hle)
+    exact ((heq.1.symm.of_le hle).trans (hbtwG.connected)).trans (heq.2.of_le hle)
   · rw [hVd hu hv] at heq
-    exact heq.le hle
+    exact heq.of_le hle
 
 lemma connnected_of_map_connected (hVd : ValidIn G φ C) (hconn : (G /[φ] C).Connected x y) :
     ∀ u ∈ G.V, ∀ v ∈ G.V, φ u = x → φ v = y → G.Connected u v := by
@@ -411,11 +411,11 @@ private lemma connected_restrict_of_reflAdj_restrict_contract (S : Set β) (hVd 
     obtain ⟨u', hequ, v', heqv, hbtw', hnin⟩ := hinc
     rw [hVd hbtw'.vx_mem_left hu] at hequ
     rw [hVd hbtw'.vx_mem_right hv] at heqv
-    exact hequ.symm.le (G.restrict_mono subset_union_left)
+    exact hequ.symm.of_le (G.restrict_mono subset_union_left)
       |>.trans (hbtw'.restrict_of_mem (mem_union_right C h) |>.connected)
-      |>.trans <| heqv.le (G.restrict_mono subset_union_left)
+      |>.trans <| heqv.of_le (G.restrict_mono subset_union_left)
   · rw [hVd hu hv] at heq
-    exact heq.le (G.restrict_mono subset_union_left)
+    exact heq.of_le (G.restrict_mono subset_union_left)
 
 private lemma Connected.restrict_of_connected_restrict_contract' (S : Set β) (hVd : ValidIn G φ C)
     (hu : u ∈ G.V) (hv : v ∈ G.V) (hx : x = φ u) (hy : y = φ v) (h : (G /[φ] C){S}.Connected x y) :

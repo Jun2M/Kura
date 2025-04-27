@@ -1,4 +1,4 @@
-import Kura.Isolated
+import Kura.Connected
 
 
 open Set Function
@@ -106,7 +106,7 @@ lemma HomSys.IsIsomOn.comp {g : HomSys α β γ δ} {f : HomSys γ δ ε ζ} (hg
 lemma HomSys.IsHomOn.le {f : HomSys α β γ δ} (hle : G₂ ≤ G₂') (hf : f.IsHomOn G₁ G₂) :
     f.IsHomOn G₁ G₂' where
   Mapsto_vx _x hx := vx_subset_of_le hle (hf.Mapsto_vx hx)
-  inc₂ _e _x _y hbtw := (hf.inc₂ hbtw).le hle
+  inc₂ _e _x _y hbtw := (hf.inc₂ hbtw).of_le hle
 
 lemma HomSys.IsEmbOn.le {f : HomSys α β γ δ} (hle : G₂ ≤ G₂') (hf : f.IsEmbOn G₁ G₂) :
     f.IsEmbOn G₁ G₂' where

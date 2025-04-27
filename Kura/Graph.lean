@@ -617,3 +617,174 @@ end Adj
 --   use hxinc, hyinc, ?_
 --   rintro rfl
 --   exact (hy hx).elim
+
+section ext
+
+lemma inc₂_eq_inc₂_iff_inc_eq_inc : G.Inc₂ e = G'.Inc₂ e ↔ G.Inc e = G'.Inc e := by
+  constructor <;> rintro h
+  · simp_rw [funext_iff, inc_iff_exists_inc₂, eq_iff_iff]
+    exact fun x => exists_congr (fun y => by rw [h])
+  · ext x y
+    rw [inc₂_iff_inc_and_loop, inc₂_iff_inc_and_loop, isLoopAt_iff, isLoopAt_iff, h]
+
+lemma inc_eq_inc_iff_incFun_eq_incFun : G.Inc e = G'.Inc e ↔ G.IncFun e = G'.IncFun e := by
+  constructor <;> rintro h <;> ext x
+  · obtain h0 | h1 | h2 := G'.incFun_eq_zero_or_one_or_two e x
+    · rwa [h0, G.incFun_eq_zero, h, ← G'.incFun_eq_zero]
+    · simp_rw [h1, G.incFun_eq_one_iff_isNonloopAt, isNonloopAt_iff, h, ← isNonloopAt_iff]
+      rwa [← G'.incFun_eq_one_iff_isNonloopAt]
+    simp_rw [h2, G.incFun_eq_two_iff_isLoopAt, isLoopAt_iff, h, ← isLoopAt_iff]
+    rwa [← G'.incFun_eq_two_iff_isLoopAt]
+  · rw [← incFun_ne_zero, h, incFun_ne_zero]
+
+lemma incFun_eq_incFun_iff_toMultiset_eq_toMultiset :
+    G.IncFun e = G'.IncFun e ↔ G.toMultiset e = G'.toMultiset e := by
+  classical
+  constructor <;> rintro h
+  · have : ∀ v, G.IncFun e v = G'.IncFun e v := fun v ↦ by rw [h]
+    simp_rw [← toMultiset_count] at this
+    exact Multiset.ext.mpr this
+  · ext v
+    rw [← toMultiset_count, h, toMultiset_count]
+
+lemma toSym2_eq_toSym2_iff_inc₂_eq_inc₂ (he : e ∈ G.E) (he' : e ∈ G'.E) :
+    G.toSym2 e he = G'.toSym2 e he' ↔ G.Inc₂ e = G'.Inc₂ e := by
+  obtain ⟨x, y, hxy⟩ := G.exists_vx_inc₂ he
+  obtain ⟨x', y', hx'y'⟩ := G'.exists_vx_inc₂ he'
+  rw [(toSym2.eq_iff_inc₂ he).mpr hxy, (toSym2.eq_iff_inc₂ he').mpr hx'y']
+  constructor <;> rintro h
+  · ext u v
+    rw [hxy.sym2_eq_iff, h, hx'y'.sym2_eq_iff]
+  · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_or_eq_of_inc₂ hx'y'
+    · rfl
+    · exact Sym2.eq_swap
+
+lemma edge_subset_of_inc₂_le_inc₂ (h : G.Inc₂ ≤ G'.Inc₂) : G.E ⊆ G'.E := by
+  rintro e he
+  obtain ⟨x, y, hbtw⟩ := Inc₂.exists_vx_inc₂ he
+  exact (h e x y hbtw).edge_mem
+
+lemma inc₂_eq_inc₂_of_edge_mem_and_inc₂_le_inc₂ (he : e ∈ G.E) (h : G.Inc₂ ≤ G'.Inc₂) :
+    G.Inc₂ e = G'.Inc₂ e := by
+  refine le_antisymm (h e) fun x y hinc₂ ↦ ?_
+  obtain ⟨u, v, hbtw⟩ := Inc₂.exists_vx_inc₂ he
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h e u v hbtw).eq_or_eq_of_inc₂ hinc₂
+  · exact hbtw
+  · exact Inc₂.comm.mp hbtw
+
+lemma ext_inc₂ (hV : G.V = G'.V) (h : ∀ e x y, G.Inc₂ e x y ↔ G'.Inc₂ e x y) : G = G' := by
+  ext e x y
+  · rw [hV]
+  · constructor <;> rintro H
+    · obtain ⟨x, y, hbtw⟩ := Inc₂.exists_vx_inc₂ H
+      rw [h] at hbtw
+      exact hbtw.edge_mem
+    · obtain ⟨x, y, hbtw⟩ := Inc₂.exists_vx_inc₂ H
+      rw [← h] at hbtw
+      exact hbtw.edge_mem
+  · exact h e x y
+
+lemma ext_inc₂_le (hV : G.V = G'.V) (hE : G'.E ⊆ G.E) (h : G.Inc₂ ≤ G'.Inc₂) : G = G' := by
+  refine ext_inc₂ hV (fun e x y ↦ ⟨fun a ↦ h e x y a, fun hinc₂ ↦ ?_⟩)
+  exact (inc₂_eq_inc₂_of_edge_mem_and_inc₂_le_inc₂ (hE hinc₂.edge_mem) h) ▸ hinc₂
+
+/-- Two graphs with the same incidences are the same. -/
+lemma ext_inc (hV : G.V = G'.V) (h : ∀ e x, G.Inc e x ↔ G'.Inc e x) : G = G' := by
+  refine ext_inc₂ hV ?_
+  intro e x y
+  rw [inc₂_eq_inc₂_iff_inc_eq_inc.mpr (by ext x; exact h e x)]
+
+lemma ext_incFun (hV : G.V = G'.V) (h : ∀ e, G.IncFun e = G'.IncFun e) : G = G' := by
+  refine ext_inc hV ?_
+  intro e x
+  rw [inc_eq_inc_iff_incFun_eq_incFun.mpr (h e)]
+
+lemma ext_toMultiset (hV : G.V = G'.V) (h : ∀ e, G.toMultiset e = G'.toMultiset e) : G = G' := by
+  refine ext_incFun hV ?_
+  intro e
+  rw [incFun_eq_incFun_iff_toMultiset_eq_toMultiset.mpr (h e)]
+
+lemma ext_toSym2 (hV : G.V = G'.V) (hE : G.E = G'.E)
+    (h : ∀ e he he', G.toSym2 e he = G'.toSym2 e he') : G = G' := by
+  refine ext_inc₂ hV ?_
+  intro e x y
+  by_cases he : e ∈ G.E <;> by_cases he' : e ∈ G'.E
+  · specialize h e he he'
+    rw [toSym2_eq_toSym2_iff_inc₂_eq_inc₂ he he'] at h
+    rw [h]
+  · exact he' (hE ▸ he) |>.elim
+  · exact he (hE ▸ he') |>.elim
+  · simp [he, he']
+end ext
+
+
+section edge_empty
+
+@[simp]
+lemma IncFun_eq_zero_of_E_empty (h : G.E = ∅) : G.IncFun = 0 := by
+  ext e v
+  simp only [h, mem_empty_iff_false, not_false_eq_true, IncFun.eq_zero_of_edge_not_mem,
+    Finsupp.coe_zero, Pi.zero_apply]
+
+@[simp]
+lemma not_inc_of_E_empty (h : G.E = ∅) : ¬ G.Inc e v := by
+  rintro hinc
+  have := h ▸ hinc.edge_mem
+  simp only [mem_empty_iff_false] at this
+
+@[simp]
+lemma not_inc₂_of_E_empty (h : G.E = ∅) : ¬ G.Inc₂ e x y := by
+  contrapose! h
+  use e, h.edge_mem
+
+@[simp]
+lemma not_adj_of_E_empty (h : G.E = ∅) : ¬ G.Adj x y := by
+  rintro ⟨e, hbtw⟩
+  exact (h ▸ hbtw.edge_mem : _)
+
+end edge_empty
+
+section edge_subsingleton
+
+@[simp]
+lemma Adj.iff_inc₂_of_E_singleton (h : G.E = {e}) : G.Adj x y ↔ G.Inc₂ e x y := by
+  constructor
+  · rintro ⟨e, hbtw⟩
+    exact (h ▸ hbtw.edge_mem) ▸ hbtw
+  · exact fun h => ⟨e, h⟩
+
+@[simp]
+lemma Adj.iff_inc₂_of_E_subsingleton (h : G.E ⊆ {e}) : G.Adj x y ↔ G.Inc₂ e x y := by
+  constructor
+  · rintro ⟨e, hbtw⟩
+    exact (h hbtw.edge_mem) ▸ hbtw
+  · exact fun h => ⟨e, h⟩
+
+end edge_subsingleton
+
+
+section Isolated
+
+def Isolated (G : Graph α β) (v : α) := ∀ e, ¬ G.Inc e v
+
+namespace Isolated
+
+lemma not_adj_left (hisol : G.Isolated u) : ¬ G.Adj u v := by
+  rintro ⟨e, hbtw⟩
+  exact hisol e hbtw.inc_left
+
+lemma not_adj_right (hisol : G.Isolated u) : ¬ G.Adj v u := by
+  rw [Adj.comm]
+  exact hisol.not_adj_left
+
+lemma not_inc₂_left (hisol : G.Isolated u) : ¬ G.Inc₂ e u v :=
+  (hisol e ·.inc_left)
+
+lemma not_inc₂_right (hisol : G.Isolated u) : ¬ G.Inc₂ e v u :=
+  (hisol e ·.inc_right)
+
+lemma not_inc_of_E_empty (hE : G.E = ∅) : G.Isolated u := by
+  intro e hinc
+  exact (hE ▸ hinc.edge_mem : e ∈ ∅)
+
+end Isolated
