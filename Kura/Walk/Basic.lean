@@ -188,6 +188,45 @@ lemma walk_length (h : G.Inc₂ e u v): h.walk.length = 1 := rfl
 lemma walk_isWalk (h : G.Inc₂ e u v) : G.IsWalk h.walk := by
   simp [walk, h, h.vx_mem_right]
 
+/-- The walk corresponding to an incidence `G.Inc₂ e u v` and then backtracking to `u` using the
+same edge. -/
+def backtrack (_h : G.Inc₂ e u v) : WList α β := cons u e (cons v e (nil u))
+
+@[simp]
+lemma backtrack_first (h : G.Inc₂ e u v) : h.backtrack.first = u := rfl
+
+@[simp]
+lemma backtrack_last (h : G.Inc₂ e u v) : h.backtrack.last = u := by
+  simp [backtrack]
+
+@[simp]
+lemma backtrack_nonempty (h : G.Inc₂ e u v) : h.backtrack.Nonempty := by simp [backtrack]
+
+@[simp]
+lemma backtrack_vx (h : G.Inc₂ e u v) : h.backtrack.vx = [u, v, u] := by simp [backtrack]
+
+@[simp]
+lemma mem_backtrack_iff (h : G.Inc₂ e u v) (x : α) : x ∈ h.backtrack ↔ x = u ∨ x = v := by
+  simp only [backtrack, mem_cons_iff, WList.mem_nil_iff]
+  tauto
+
+@[simp]
+lemma backtrack_vxSet (h : G.Inc₂ e u v) : h.backtrack.vxSet = {u, v} := by
+  simp [backtrack, Set.pair_comm]
+
+@[simp]
+lemma backtrack_edge (h : G.Inc₂ e u v) : h.backtrack.edge = [e, e] := by simp [backtrack]
+
+@[simp]
+lemma backtrack_edgeSet (h : G.Inc₂ e u v) : h.backtrack.edgeSet = {e} := by
+  simp [backtrack, Set.pair_comm]
+
+@[simp]
+lemma backtrack_length (h : G.Inc₂ e u v) : h.backtrack.length = 2 := by simp [backtrack]
+
+@[simp]
+lemma backtrack_isWalk (h : G.Inc₂ e u v) : G.IsWalk h.backtrack := by
+  simp [backtrack, h, h.symm, h.vx_mem_left]
 
 end Inc₂
 
