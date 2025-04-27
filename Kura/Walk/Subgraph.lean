@@ -158,23 +158,12 @@ lemma of_edgeDel (h : (G \ F).IsPath w) : G.IsPath w where
 
 end IsPath
 
-lemma isPath_vxDel : (G - U).IsPath w ↔ G.IsPath w ∧ Disjoint w.vxSet U := by
-  constructor
-  · rintro h
-    refine ⟨h.of_vxDel, ?_⟩
-    rintro V hVw hVU x hxV
-    exact (h.isWalk.vxSet_subset <| hVw hxV).2 <| hVU hxV
-  · rintro ⟨hVp, hU⟩
-    exact hVp.vxDel hU
+lemma isPath_vxDel : (G - U).IsPath w ↔ G.IsPath w ∧ Disjoint w.vxSet U :=
+  ⟨fun h ↦ ⟨h.of_vxDel, fun _V hVw hVU _x hxV ↦ (h.isWalk.vxSet_subset <| hVw hxV).2 <| hVU hxV⟩,
+    fun ⟨hVp, hU⟩ ↦ hVp.vxDel hU⟩
 
 lemma isPath_edgeDel : (G \ F).IsPath w ↔ G.IsPath w ∧ Disjoint w.edgeSet F := by
-  constructor
-  · rintro h
-    refine ⟨h.of_edgeDel, ?_⟩
-    rintro F' hF'w hF'F e heF'
-    have := h.isWalk.edgeSet_subset <| hF'w heF'
-    simp only [edgeDel_E, mem_diff] at this
-    exact this.2 <| hF'F heF'
-  · rintro ⟨hVp, hF⟩
-    exact hVp.edgeDel hF
-
+  refine ⟨fun h ↦ ⟨h.of_edgeDel, fun _F' hF'w hF'F e heF' ↦ ?_⟩, fun ⟨hVp, hF⟩ ↦ hVp.edgeDel hF⟩
+  have := h.isWalk.edgeSet_subset <| hF'w heF'
+  simp only [edgeDel_E, mem_diff] at this
+  exact this.2 <| hF'F heF'

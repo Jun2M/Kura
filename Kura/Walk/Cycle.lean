@@ -112,3 +112,8 @@ lemma Inc₂.walk_isCycle (h : G.Inc₂ e u u) : G.IsCycle h.walk where
   edge_nodup := by simp
   nonempty := by simp
   nodup := by simp
+
+lemma IsCycle.tail_isPath (h : G.IsCycle w) : G.IsPath w.tail where
+  isWalk := h.isWalk.suffix <| tail_isSuffix w
+  nodup := tail_vx_nodup_iff.mpr h.nodup
+
