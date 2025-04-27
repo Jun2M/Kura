@@ -1,9 +1,9 @@
 import Kura.Walk.Basic
 
-variable {α β : Type*} {x y z u v : α} {e f : β} {G H : Graph α β}
-  {w w₁ w₂ : WList α β} {S T : Set α}
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
+  {F F' : Set β} {w w₁ w₂ : WList α β}
 
-open WList
+open WList Set
 
 namespace Graph
 
@@ -171,6 +171,72 @@ lemma IsPath.isTrail (h : G.IsPath w) : G.IsTrail w where
     | cons u e w ih =>
       simp_all only [cons_isPath, cons_edge, List.nodup_cons, and_true, forall_const]
       exact fun he ↦ h.2.2 <| h.1.isWalk.vx_mem_of_edge_mem he h.2.1.inc_left
+
+lemma IsTrail.le (h : G.IsTrail w) (hle : G ≤ H) : H.IsTrail w where
+  isWalk := h.isWalk.le hle
+  edge_nodup := h.edge_nodup
+
+lemma IsTrail.induce (h : G.IsTrail w) (hU : w.vxSet ⊆ U) : G[U].IsTrail w where
+  isWalk := h.isWalk.induce hU
+  edge_nodup := h.edge_nodup
+
+lemma IsTrail.vxDel (h : G.IsTrail w) (hU : Disjoint w.vxSet U) : (G - U).IsTrail w where
+  isWalk := h.isWalk.vxDel hU
+  edge_nodup := h.edge_nodup
+
+lemma IsTrail.of_vxDel (h : (G - U).IsTrail w) : G.IsTrail w where
+  isWalk := h.isWalk.of_vxDel
+  edge_nodup := h.edge_nodup
+
+lemma IsTrail.restrict (h : G.IsTrail w) (hF : w.edgeSet ⊆ F) : G{F}.IsTrail w where
+  isWalk := h.isWalk.restrict hF
+  edge_nodup := h.edge_nodup
+
+lemma IsTrail.edgeDel (h : G.IsTrail w) (hF : Disjoint w.edgeSet F) : (G \ F).IsTrail w where
+  isWalk := h.isWalk.edgeDel hF
+  edge_nodup := h.edge_nodup
+
+lemma IsTrail.of_edgeDel (h : (G \ F).IsTrail w) : G.IsTrail w where
+  isWalk := h.isWalk.of_edgeDel
+  edge_nodup := h.edge_nodup
+
+lemma IsPath.le (h : G.IsPath w) (hle : G ≤ H) : H.IsPath w where
+  isWalk := h.isWalk.le hle
+  nodup := h.nodup
+
+lemma IsPath.induce (h : G.IsPath w) (hU : w.vxSet ⊆ U) : G[U].IsPath w where
+  isWalk := h.isWalk.induce hU
+  nodup := h.nodup
+
+lemma IsPath.vxDel (h : G.IsPath w) (hU : Disjoint w.vxSet U) : (G - U).IsPath w where
+  isWalk := h.isWalk.vxDel hU
+  nodup := h.nodup
+
+lemma IsPath.of_vxDel (h : (G - U).IsPath w) : G.IsPath w where
+  isWalk := h.isWalk.of_vxDel
+  nodup := h.nodup
+
+lemma IsPath.restrict (h : G.IsPath w) (hF : w.edgeSet ⊆ F) : G{F}.IsPath w where
+  isWalk := h.isWalk.restrict hF
+  nodup := h.nodup
+
+lemma IsPath.edgeDel (h : G.IsPath w) (hF : Disjoint w.edgeSet F) : (G \ F).IsPath w where
+  isWalk := h.isWalk.edgeDel hF
+  nodup := h.nodup
+
+lemma IsPath.of_edgeDel (h : (G \ F).IsPath w) : G.IsPath w where
+  isWalk := h.isWalk.of_edgeDel
+  nodup := h.nodup
+
+lemma isPath_vxDel : (G - U).IsPath w ↔ G.IsPath w ∧ Disjoint w.vxSet U :=
+  ⟨fun h ↦ ⟨h.of_vxDel, fun _V hVw hVU _x hxV ↦ (h.isWalk.vxSet_subset <| hVw hxV).2 <| hVU hxV⟩,
+    fun ⟨hVp, hU⟩ ↦ hVp.vxDel hU⟩
+
+lemma isPath_edgeDel : (G \ F).IsPath w ↔ G.IsPath w ∧ Disjoint w.edgeSet F := by
+  refine ⟨fun h ↦ ⟨h.of_edgeDel, fun _F' hF'w hF'F e heF' ↦ ?_⟩, fun ⟨hVp, hF⟩ ↦ hVp.edgeDel hF⟩
+  have := h.isWalk.edgeSet_subset <| hF'w heF'
+  simp only [edgeDel_E, Set.mem_diff] at this
+  exact this.2 <| hF'F heF'
 
 lemma Inc₂.walk_isPath (h : G.Inc₂ e u v) (hne : u ≠ v) : G.IsPath h.walk :=
   ⟨h.walk_isWalk, by simp [hne]⟩

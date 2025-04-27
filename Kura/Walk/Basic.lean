@@ -1,12 +1,12 @@
 import Kura.WList.Sublist
-import Kura.Le
+import Kura.Operation.Subgraph
 
 /-
 This file defined predicates stating that an abstract walk `w` is a walk/trail/path of a graph `G`.
 -/
 
-variable {α β : Type*} {x y z u v : α} {e f : β} {G H : Graph α β}
-  {w w₁ w₂ : WList α β} {S T : Set α}
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
+  {F F' : Set β} {w w₁ w₂ : WList α β}
 
 open Graph WList List Set
 
@@ -135,6 +135,53 @@ lemma IsWalk.wellFormed (h : G.IsWalk w) : w.WellFormed := by
     rw [cons_wellFormed_iff, and_iff_right (ih h.2)]
     exact fun y₁ y₂ h' ↦ (h.2.inc₂_of_inc₂ h').sym2_eq_iff.1 h.1
 
+/-- A subgraph inherits all valid walks -/
+lemma IsWalk.le (h : G.IsWalk w) (hle : G ≤ H) : H.IsWalk w := by
+  induction h with
+  | nil hx => simp [vx_subset_of_le hle hx]
+  | cons hw h ih => simp_all [h.of_le hle]
+
+
+lemma IsWalk.induce (hVd : G.IsWalk w) (hU : w.vxSet ⊆ U) : (G[U]).IsWalk w := by
+  induction hVd with
+  | nil => simpa using hU
+  | cons h hw ih =>
+    simp_all only [cons_vxSet, insert_subset_iff, cons_isWalk_iff, induce_inc₂_iff, true_and,
+      and_true, forall_const]
+    exact hU.2 (by simp)
+
+lemma IsWalk.of_vxDel (hVd : (G - U).IsWalk w) : G.IsWalk w := hVd.le (vxDel_le G)
+
+lemma IsWalk.vxDel (hVd : G.IsWalk w) (hU : Disjoint w.vxSet U) : (G - U).IsWalk w :=
+  hVd.induce <| subset_diff.mpr ⟨hVd.vxSet_subset, hU⟩
+
+lemma IsWalk.restrict (hVd : G.IsWalk w) (hF : w.edgeSet ⊆ F) : (G{F}).IsWalk w := by
+  induction hVd with simp_all [insert_subset_iff]
+
+lemma IsWalk.edgeDel (hVd : G.IsWalk w) (hF : Disjoint w.edgeSet F) : (G \ F).IsWalk w :=
+  hVd.restrict (by rw [subset_diff]; simp [hF, hVd.edgeSet_subset])
+
+lemma IsWalk.of_edgeDel (h : (G \ F).IsWalk w) : G.IsWalk w := h.le (edgeDel_le G F)
+
+@[simp]
+lemma IsWalk_vxDel : (G - U).IsWalk w ↔ G.IsWalk w ∧ Disjoint w.vxSet U :=
+⟨fun h ↦ ⟨h.le (vxDel_le G), fun _V hVw hVU _x hxV ↦ (h.vxSet_subset <| hVw hxV).2 <| hVU hxV⟩,
+  fun ⟨hVd, hU⟩ ↦ hVd.induce (subset_diff.mpr ⟨hVd.vxSet_subset, hU⟩)⟩
+
+@[simp]
+lemma IsWalk_restrict : (G{F}).IsWalk w ↔ G.IsWalk w ∧ w.edgeSet ⊆ F := by
+  refine ⟨fun h ↦ ⟨h.le (restrict_le G F), fun e he ↦ ?_⟩, fun ⟨hVd, hF⟩ ↦ hVd.restrict hF⟩
+  have := h.edgeSet_subset he
+  simp only [restrict_E, Set.mem_inter_iff] at this
+  exact this.2
+
+@[simp]
+lemma IsWalk_edgeDel : (G \ F).IsWalk w ↔ G.IsWalk w ∧ Disjoint w.edgeSet F := by
+  rw [edgeDel, IsWalk_restrict, and_congr_right_iff]
+  rintro hVd
+  simp only [subset_diff, hVd.edgeSet_subset, true_and]
+
+
 /-- `G.IsWalkFrom S T w` means that `w` is a walk of `G` with one end in `S` and the other in `T`.-/
 @[mk_iff]
 structure IsWalkFrom (G : Graph α β) (S T : Set α) (w : WList α β) : Prop where
@@ -147,6 +194,41 @@ lemma IsWalkFrom.reverse (h : G.IsWalkFrom S T w) : G.IsWalkFrom T S w.reverse w
   first_mem := by simp [h.last_mem]
   last_mem := by simp [h.first_mem]
 
+
+lemma IsWalkFrom.le (h : G.IsWalkFrom S T w) (hle : G ≤ H) : H.IsWalkFrom S T w where
+  isWalk := h.isWalk.le hle
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma IsWalkFrom.induce (h : G.IsWalkFrom S T w) (hU : w.vxSet ⊆ U) : G[U].IsWalkFrom S T w where
+  isWalk := h.isWalk.induce hU
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma IsWalkFrom.vxDel (h : G.IsWalkFrom S T w) (hU : Disjoint w.vxSet U) : (G - U).IsWalkFrom S T w where
+  isWalk := h.isWalk.vxDel hU
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma IsWalkFrom.of_vxDel (h : (G - U).IsWalkFrom S T w) : G.IsWalkFrom S T w where
+  isWalk := h.isWalk.of_vxDel
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma IsWalkFrom.restrict (h : G.IsWalkFrom S T w) (hF : w.edgeSet ⊆ F) : G{F}.IsWalkFrom S T w where
+  isWalk := h.isWalk.restrict hF
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma IsWalkFrom.edgeDel (h : G.IsWalkFrom S T w) (hF : Disjoint w.edgeSet F) : (G \ F).IsWalkFrom S T w where
+  isWalk := h.isWalk.edgeDel hF
+  first_mem := h.first_mem
+  last_mem := h.last_mem
+
+lemma IsWalkFrom.of_edgeDel (h : (G \ F).IsWalkFrom S T w) : G.IsWalkFrom S T w where
+  isWalk := h.isWalk.of_edgeDel
+  first_mem := h.first_mem
+  last_mem := h.last_mem
 
 
 
@@ -187,46 +269,6 @@ lemma walk_length (h : G.Inc₂ e u v): h.walk.length = 1 := rfl
 @[simp]
 lemma walk_isWalk (h : G.Inc₂ e u v) : G.IsWalk h.walk := by
   simp [walk, h, h.vx_mem_right]
-
-/-- The walk corresponding to an incidence `G.Inc₂ e u v` and then backtracking to `u` using the
-same edge. -/
-def backtrack (_h : G.Inc₂ e u v) : WList α β := cons u e (cons v e (nil u))
-
-@[simp]
-lemma backtrack_first (h : G.Inc₂ e u v) : h.backtrack.first = u := rfl
-
-@[simp]
-lemma backtrack_last (h : G.Inc₂ e u v) : h.backtrack.last = u := by
-  simp [backtrack]
-
-@[simp]
-lemma backtrack_nonempty (h : G.Inc₂ e u v) : h.backtrack.Nonempty := by simp [backtrack]
-
-@[simp]
-lemma backtrack_vx (h : G.Inc₂ e u v) : h.backtrack.vx = [u, v, u] := by simp [backtrack]
-
-@[simp]
-lemma mem_backtrack_iff (h : G.Inc₂ e u v) (x : α) : x ∈ h.backtrack ↔ x = u ∨ x = v := by
-  simp only [backtrack, mem_cons_iff, WList.mem_nil_iff]
-  tauto
-
-@[simp]
-lemma backtrack_vxSet (h : G.Inc₂ e u v) : h.backtrack.vxSet = {u, v} := by
-  simp [backtrack, Set.pair_comm]
-
-@[simp]
-lemma backtrack_edge (h : G.Inc₂ e u v) : h.backtrack.edge = [e, e] := by simp [backtrack]
-
-@[simp]
-lemma backtrack_edgeSet (h : G.Inc₂ e u v) : h.backtrack.edgeSet = {e} := by
-  simp [backtrack, Set.pair_comm]
-
-@[simp]
-lemma backtrack_length (h : G.Inc₂ e u v) : h.backtrack.length = 2 := by simp [backtrack]
-
-@[simp]
-lemma backtrack_isWalk (h : G.Inc₂ e u v) : G.IsWalk h.backtrack := by
-  simp [backtrack, h, h.symm, h.vx_mem_left]
 
 end Inc₂
 
