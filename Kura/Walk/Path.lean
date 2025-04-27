@@ -172,7 +172,7 @@ lemma IsPath.isTrail (h : G.IsPath w) : G.IsTrail w where
       simp_all only [cons_isPath, cons_edge, List.nodup_cons, and_true, forall_const]
       exact fun he ↦ h.2.2 <| h.1.isWalk.vx_mem_of_edge_mem he h.2.1.inc_left
 
-lemma IsTrail.le (h : G.IsTrail w) (hle : G ≤ H) : H.IsTrail w where
+lemma IsTrail.of_le (h : G.IsTrail w) (hle : G ≤ H) : H.IsTrail w where
   isWalk := h.isWalk.le hle
   edge_nodup := h.edge_nodup
 
@@ -200,7 +200,7 @@ lemma IsTrail.of_edgeDel (h : (G \ F).IsTrail w) : G.IsTrail w where
   isWalk := h.isWalk.of_edgeDel
   edge_nodup := h.edge_nodup
 
-lemma IsPath.le (h : G.IsPath w) (hle : G ≤ H) : H.IsPath w where
+lemma IsPath.of_le (h : G.IsPath w) (hle : G ≤ H) : H.IsPath w where
   isWalk := h.isWalk.le hle
   nodup := h.nodup
 

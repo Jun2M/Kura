@@ -253,7 +253,7 @@ lemma IsCycle.tail_isPath (h : G.IsCycle w) : G.IsPath w.tail where
 lemma IsCycle.two_conn (h : G.IsCycle w) (hne : u ≠ v) (hu : u ∈ w) (hv : v ∈ w) :
     ∀ x, (G - ({x} : Set α)).Connected u v := by
   rintro x
-  have := h.tail_isPath
+  
   sorry
 
 namespace Inc₂

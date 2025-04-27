@@ -328,13 +328,6 @@ lemma left_right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (
 lemma edgeDel : (G \ F').IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S T (F' ∪ F) := by
   simp [IsEdgeSetSeparator]
 
--- Lemmas about the left and right sets of an edge separator
-lemma leftSet_subset (h : G.IsEdgeSetSeparator S T F) : h.leftSet ⊆ G.V \ F := by
-  rintro v ⟨s, hs, hconn⟩
-  simp only [leftSet, mem_setOf_eq, not_exists, not_and] at hconn
-  exact hconn.mem_left
-
-
 
 end IsEdgeSetSeparator
 

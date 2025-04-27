@@ -1,47 +1,44 @@
-import Kura.Walk.Lemma
+import Kura.Walk.Path
 
 namespace Graph
-open Set Function List Nat Walk
+open Set Function List Nat WList
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
-  {F F' : Set β} {w w1 w2 : Walk α β}
+  {F F' : Set β} {w w1 w2 : WList α β}
 
-namespace Walk
+namespace WList
 section disjoint
 
 /-- A collection of paths is internally disjoint if no vertex appears in more than one path
   except for the special two vertices u and v. (i.e. the endpoints of the paths. But this is not
   enforced in the definition) -/
-def InternallyDisjoint (u v : α) (Ps : Set <| Walk α β) : Prop :=
+def InternallyDisjoint (u v : α) (Ps : Set <| WList α β) : Prop :=
   ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi ≠ pj → x = u ∨ x = v
 
 /-- A collection of paths is disjoint if no vertex appears in more than one path -/
-def Disjoint (Ps : Set <| Walk α β) : Prop :=
+protected def Disjoint (Ps : Set <| WList α β) : Prop :=
   ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi = pj
 
 end disjoint
-end Walk
+end WList
 
 structure PathEnsemble (α β : Type*) where
-  Walks : Set (Walk α β)
-  IsPath : ∀ w ∈ Walks, w.vx.Nodup
-  Disj : Disjoint Walks
+  walks : Set (WList α β)
+  isPath : ∀ w ∈ walks, w.vx.Nodup
+  disj : WList.Disjoint walks
 
 namespace PathEnsemble
 
 def Empty (α β : Type*) : PathEnsemble α β where
-  Walks := ∅
-  IsPath w hw := by simp at hw
-  Disj := by
-    rintro x p q hp hq hxp hxq
-    exact False.elim hp
+  walks := ∅
+  isPath w hw := by simp at hw
+  disj x p q hp hq hxp hxq := hp.elim
 
 def nil (U : Set α) (β : Type*) : PathEnsemble α β where
-  Walks := Walk.nil '' U
-  IsPath w hw := by
+  walks := WList.nil '' U
+  isPath w hw := by
     obtain ⟨u, huU, rfl⟩ := hw
     simp
-  Disj := by
-    rintro x p q hp hq hxp hxq
+  disj x p q hp hq hxp hxq := by
     simp only [mem_image] at hp hq
     obtain ⟨u, hu, rfl⟩ := hp
     obtain ⟨v, hv, rfl⟩ := hq
@@ -49,53 +46,50 @@ def nil (U : Set α) (β : Type*) : PathEnsemble α β where
     subst u v
     rfl
 
-def ValidIn (Ps : PathEnsemble α β) (G : Graph α β) := ∀ w ∈ Ps.Walks, w.ValidIn G
+def ValidIn (Ps : PathEnsemble α β) (G : Graph α β) := ∀ w ∈ Ps.walks, G.IsWalk w
 
-def StartSet (Ps : PathEnsemble α β) : Set α := (·.first) '' Ps.Walks
+def StartSet (Ps : PathEnsemble α β) : Set α := (·.first) '' Ps.walks
 
-def FinishSet (Ps : PathEnsemble α β) : Set α := (·.last) '' Ps.Walks
+def FinishSet (Ps : PathEnsemble α β) : Set α := (·.last) '' Ps.walks
 
-def VxSet (Ps : PathEnsemble α β) : Set α := {x | ∃ w ∈ Ps.Walks, x ∈ w.vx}
+def VxSet (Ps : PathEnsemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w}
 
-def EdgeSet (Ps : PathEnsemble α β) : Set β := {e | ∃ w ∈ Ps.Walks, e ∈ w.edge}
+def EdgeSet (Ps : PathEnsemble α β) : Set β := {e | ∃ w ∈ Ps.walks, e ∈ w.edge}
 
-def InternalVsSet (Ps : PathEnsemble α β) : Set α := {x | ∃ w ∈ Ps.Walks, x ∈ w.vx.tail.dropLast}
+def InternalVsSet (Ps : PathEnsemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w.vx.tail.dropLast}
 
-def insert (w : Walk α β) (Ps : PathEnsemble α β) (h : ∀ v ∈ w.vx, v ∉ Ps.VxSet) : PathEnsemble α β where
-  Walks := Ps.Walks ∪ {w}
-  IsPath w hw := by
+def insert (hwP : G.IsPath w) (Ps : PathEnsemble α β) (h : ∀ v ∈ w.vx, v ∉ Ps.VxSet) : PathEnsemble α β where
+  walks := Ps.walks ∪ {w}
+  isPath w hw := by
     obtain (hw | rfl) := hw
-    · exact Ps.IsPath w hw
-    · simp
-  Disj := by
-    rintro x p₁ p₂ hp1 hp2 hxp hxq
+    · exact Ps.isPath w hw
+    · exact hwP.nodup
+  disj x p₁ p₂ hp1 hp2 hxp hxq := by
     simp only [union_singleton, Set.mem_insert_iff] at hp1 hp2
     simp only [VxSet, mem_setOf_eq, not_exists, not_and] at h
     obtain (rfl | h1) := hp1 <;> obtain (rfl | h2) := hp2
     · rfl
     · exact (h x hxp p₂ h2 hxq).elim
     · exact (h x hxq p₁ h1 hxp).elim
-    · exact Ps.Disj x p₁ p₂ h1 h2 hxp hxq
+    · exact Ps.disj x p₁ p₂ h1 h2 hxp hxq
 
-lemma first_injOn (Ps : PathEnsemble α β) : InjOn (·.val.first) Ps.Paths := by
-  rintro p₁ hp₁ p₂ hp₂ hfirst
-  exact Ps.Disj _ _ _ hp₁ hp₂ first_vx_mem (by
+lemma first_injOn (Ps : PathEnsemble α β) : InjOn (·.first) Ps.walks :=
+  fun p₁ hp₁ p₂ hp₂ hfirst ↦ Ps.disj _ _ _ hp₁ hp₂ first_mem (by
     beta_reduce at hfirst
-    exact hfirst ▸ first_vx_mem)
+    exact hfirst ▸ first_mem)
 
-lemma last_injOn (Ps : PathEnsemble α β) : InjOn (·.val.last) Ps.Paths := by
-  rintro p₁ hp₁ p₂ hp₂ hlast
-  exact Ps.Disj _ _ _ hp₁ hp₂ last_vx_mem (by
+lemma last_injOn (Ps : PathEnsemble α β) : InjOn (·.last) Ps.walks :=
+  fun p₁ hp₁ p₂ hp₂ hlast ↦ Ps.disj _ _ _ hp₁ hp₂ last_mem (by
     beta_reduce at hlast
-    exact hlast ▸ last_vx_mem)
+    exact hlast ▸ last_mem)
 
 lemma unique_path_first (Ps : PathEnsemble α β)  :
-    ∀ x ∈ Ps.StartSet, ∃! p ∈ Ps.Paths, p.val.first = x := by
+    ∀ x ∈ Ps.StartSet, ∃! p ∈ Ps.walks, p.first = x := by
   rintro x ⟨p, hp, rfl⟩
   use p, ⟨hp, rfl⟩, (fun q hq ↦ first_injOn Ps hq.1 hp hq.2)
 
 lemma unique_path_last (Ps : PathEnsemble α β) :
-    ∀ x ∈ Ps.FinishSet, ∃! p ∈ Ps.Paths, p.val.last = x := by
+    ∀ x ∈ Ps.FinishSet, ∃! p ∈ Ps.walks, p.last = x := by
   rintro x ⟨p, hp, rfl⟩
   use p, ⟨hp, rfl⟩, (fun q hq ↦ last_injOn Ps hq.1 hp hq.2)
 
