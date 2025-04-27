@@ -181,6 +181,8 @@ lemma vx_disjoint_of_disjoint (hDisj : Disjoint G H) : Disjoint G.V H.V := by
   · assumption
   exact h.symm
 
+section Union
+
 /-- Two graphs are `Compatible` if the edges in their intersection agree on their ends -/
 def Compatible (G H : Graph α β) : Prop := ∀ ⦃e⦄, e ∈ G.E → e ∈ H.E → G.Inc₂ e = H.Inc₂ e
 
@@ -273,3 +275,45 @@ lemma singleEdge_compatible_iff :
   tauto
 
   -- simp +contextual [Graph.singleEdge_Inc₂, iff_def, or_imp]
+
+end Union
+
+section Intersection
+
+protected def inter (G H : Graph α β) : Graph α β := ofInc₂ (G.V ∩ H.V)
+  (fun e x y ↦ G.Inc₂ e x y ∧ H.Inc₂ e x y)
+  (fun e x y h ↦ by beta_reduce at h ⊢; rwa [Inc₂.comm (G := G), Inc₂.comm (G := H)])
+  (fun e x y h ↦ ⟨h.1.vx_mem_left, h.2.vx_mem_left⟩)
+  (fun u v x y e huv hxy ↦ huv.1.left_or_of_inc₂ hxy.1)
+
+instance : Inter (Graph α β) where inter := Graph.inter
+
+@[simp]
+lemma inter_vxSet (G H : Graph α β) : (G ∩ H).V = G.V ∩ H.V := rfl
+
+@[simp]
+lemma inter_edgeSet (G H : Graph α β) : (G ∩ H).E = {e | ∃ x y, G.Inc₂ e x y ∧ H.Inc₂ e x y} := rfl
+
+lemma inter_inc₂_iff : (G ∩ H).Inc₂ e x y ↔ G.Inc₂ e x y ∧ H.Inc₂ e x y := Iff.rfl
+
+lemma le_inter {H₁ H₂ : Graph α β} (h₁ : G ≤ H₁) (h₂ : G ≤ H₂) : G ≤ H₁ ∩ H₂ := by
+  simp_rw [le_iff_inc₂, inter_inc₂_iff]
+  simp +contextual only [inter_vxSet, subset_inter_iff, h₁, vx_subset_of_le, h₂, and_self,
+    Inc₂.of_le h₁, Inc₂.of_le h₂, implies_true]
+
+lemma inter_le_left {H₁ H₂ : Graph α β} : H₁ ∩ H₂ ≤ H₁ := by
+  simp +contextual only [le_iff_inc₂, inter_vxSet, inter_subset_left, inter_inc₂_iff, implies_true,
+    and_self]
+
+lemma inter_le_right {H₁ H₂ : Graph α β} : H₁ ∩ H₂ ≤ H₂ := by
+  simp +contextual only [le_iff_inc₂, inter_vxSet, inter_subset_right, inter_inc₂_iff, implies_true,
+    and_self]
+
+lemma le_inter_iff {H₁ H₂ : Graph α β} : G ≤ H₁ ∩ H₂ ↔ G ≤ H₁ ∧ G ≤ H₂ := by
+  constructor
+  · rintro h
+    exact ⟨h.trans (inter_le_left), h.trans (inter_le_right)⟩
+  · rintro ⟨h₁, h₂⟩
+    exact le_inter h₁ h₂
+
+end Intersection
