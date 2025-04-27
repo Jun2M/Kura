@@ -1,5 +1,5 @@
 import Kura.Operation.Subgraph
-import Kura.Walk.Basic
+import Kura.Walk.Path
 
 open Set Function List Nat WList
 variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
@@ -11,15 +11,16 @@ namespace IsWalk
 /-- A subgraph inherits all valid walks -/
 lemma le (h : G.IsWalk w) (hle : G ≤ H) : H.IsWalk w := by
   induction h with
-  | nil x hx => simp [vx_subset_of_le hle hx]
-  | cons' x e w h hw ih => simp_all [h.le hle]
+  | nil hx => simp [vx_subset_of_le hle hx]
+  | cons hw h ih => simp_all [h.of_le hle]
+
 
 lemma induce (hVd : G.IsWalk w) (hU : w.vxSet ⊆ U) : (G[U]).IsWalk w := by
   induction hVd with
-  | nil x => simpa using hU
-  | cons' x e w h hw ih =>
-    simp_all only [↓cons_vxSet_subset, cons_isWalk_iff, induce_inc₂_iff, true_and, and_true,
-      forall_const]
+  | nil => simpa using hU
+  | cons h hw ih =>
+    simp_all only [cons_vxSet, insert_subset_iff, cons_isWalk_iff, induce_inc₂_iff, true_and,
+      and_true, forall_const]
     exact hU.2 (by simp)
 
 lemma of_vxDel (hVd : (G - U).IsWalk w) : G.IsWalk w := hVd.le (vxDel_le G)

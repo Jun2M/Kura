@@ -150,7 +150,7 @@ lemma le_of_exist_mutual_le (hle1 : G' ≤ H') (hle2 : H ≤ H') : G' ≤ H ↔ 
 lemma le_iff_inc₂ : G ≤ H ↔ G.V ⊆ H.V ∧ G.Inc₂ ≤ H.Inc₂ := Iff.rfl
 
 @[simp]
-lemma Inc₂.le (hle : G ≤ H) (h : G.Inc₂ e u v) : H.Inc₂ e u v := by
+lemma Inc₂.of_le (hle : G ≤ H) (h : G.Inc₂ e u v) : H.Inc₂ e u v := by
   rwa [← Inc₂_eq_Inc₂_of_le hle (edge_mem h)]
 
 lemma Inc₂.le_of_le (hle : G ≤ H) : G.Inc₂ ≤ H.Inc₂ := hle.2
@@ -166,7 +166,7 @@ lemma Inc.le (hle : G ≤ H) (hinc : G.Inc e x) : H.Inc e x := by
 
 lemma Inc.le_of_le (hle : G ≤ H) : G.Inc ≤ H.Inc := by
   rintro e x ⟨y, hbtw⟩
-  use y, hbtw.le hle
+  use y, hbtw.of_le hle
 
 lemma IsLoopAt_iff_IsLoopAt_of_edge_mem_le (hle : G ≤ H) (he : e ∈ G.E) :
     G.IsLoopAt e x ↔ H.IsLoopAt e x := by
@@ -186,10 +186,10 @@ lemma IsNonloopAt_iff_IsNonloopAt_of_edge_mem_le (hle : G ≤ H) (he : e ∈ G.E
 lemma IsNonloopAt.le (hisNonloopAt : G.IsNonloopAt e x) (hle : G ≤ H) : H.IsNonloopAt e x := by
   rwa [← IsNonloopAt_iff_IsNonloopAt_of_edge_mem_le hle hisNonloopAt.edge_mem]
 
-lemma Adj.le (hle : G ≤ H) (hadj : G.Adj x y) : H.Adj x y := by
+lemma Adj.of_le (hle : G ≤ H) (hadj : G.Adj x y) : H.Adj x y := by
   obtain ⟨e, hbtw⟩ := hadj
   use e
-  exact hbtw.le hle
+  exact hbtw.of_le hle
 
 lemma le_iff_inc : G ≤ H ↔ G.V ⊆ H.V ∧ G.E ⊆ H.E ∧ ∀ e ∈ G.E, ∀ v,
   G.Inc e v ↔ H.Inc e v := by
@@ -332,10 +332,10 @@ lemma reflAdj.Adj_of_ne (h : G.reflAdj x y) (hne : x ≠ y) : G.Adj x y := by
 lemma reflAdj.Adj_iff_ne (hne : x ≠ y) : G.reflAdj x y ↔ G.Adj x y :=
   ⟨fun h => h.Adj_of_ne hne, fun h => h.reflAdj⟩
 
-lemma reflAdj.le (h : G.reflAdj u v) (hle : G ≤ H) : H.reflAdj u v := by
+lemma reflAdj.of_le (h : G.reflAdj u v) (hle : G ≤ H) : H.reflAdj u v := by
   obtain hadj | ⟨rfl, hu⟩ := h
   · left
-    exact hadj.le hle
+    exact hadj.of_le hle
   · right
     simp only [vx_subset_of_le hle hu, and_self]
 
@@ -410,10 +410,10 @@ lemma Connected.refl_iff : G.Connected x x ↔ x ∈ G.V := by
   rintro h
   exact h.mem_left
 
-lemma Connected.le (h : G.Connected u v) (hle : G ≤ H) : H.Connected u v := by
+lemma Connected.of_le (h : G.Connected u v) (hle : G ≤ H) : H.Connected u v := by
   induction h with
-  | single huv => exact Relation.TransGen.single (huv.le hle)
-  | tail huv h ih => exact Relation.TransGen.tail ih (h.le hle)
+  | single huv => exact Relation.TransGen.single (huv.of_le hle)
+  | tail huv h ih => exact Relation.TransGen.tail ih (h.of_le hle)
 
 class Conn (G : Graph α β) : Prop where
   all_conn : ∃ x, ∀ y ∈ G.V, G.Connected x y
@@ -484,7 +484,7 @@ lemma ComponentSets.componentSet (hx : x ∈ G.V) :
   simpa [hx, Connected.comm] using hy
 
 lemma ConnectedPartition.le (hle : G ≤ H) : G.ConnectedPartition ≤ H.ConnectedPartition := by
-  simpa [ConnectedPartition] using fun u v ↦ (Connected.le · hle)
+  simpa [ConnectedPartition] using fun u v ↦ (Connected.of_le · hle)
 
 @[simp]
 lemma ConnectedPartition.Rel : G.ConnectedPartition.Rel = G.Connected := by
@@ -530,9 +530,9 @@ lemma right_supported : G.SetConnected S T ↔ G.SetConnected S (T ∩ G.V) := b
 lemma supported : G.SetConnected S T ↔ G.SetConnected (S ∩ G.V) (T ∩ G.V) := by
   rw [left_supported, right_supported]
 
-lemma le (h : G.SetConnected S T) (hle : G ≤ H) : H.SetConnected S T := by
+lemma of_le (h : G.SetConnected S T) (hle : G ≤ H) : H.SetConnected S T := by
   obtain ⟨s, hs, t, ht, h⟩ := h
-  exact ⟨s, hs, t, ht, h.le hle⟩
+  exact ⟨s, hs, t, ht, h.of_le hle⟩
 
 @[simp]
 lemma empty_source : ¬ G.SetConnected ∅ T := by

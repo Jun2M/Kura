@@ -248,7 +248,7 @@ theorem induce_le_induce_of_subset (hle : G ≤ G') (hsu : U ⊆ U') : G[U] ≤ 
   rw [le_iff_inc₂]
   refine ⟨hsu, fun e x y ↦ ?_⟩
   rw [induce_inc₂_iff, induce_inc₂_iff]
-  exact fun ⟨hbtw, hxU, hyU⟩ ↦ ⟨hbtw.le hle, hsu hxU, hsu hyU⟩
+  exact fun ⟨hbtw, hxU, hyU⟩ ↦ ⟨hbtw.of_le hle, hsu hxU, hsu hyU⟩
 
 @[simp]
 theorem induce_le_induce : G[U] ≤ G[U'] ↔ U ⊆ U' :=
@@ -581,7 +581,7 @@ lemma restrict_le (G : Graph α β) (R : Set β) : G{R} ≤ G := by
 lemma restrict_le_restrict_of_le (hle : G ≤ G') (hSR : F ⊆ R) : G{F} ≤ G'{R} := by
   rw [le_iff_inc₂]
   refine ⟨(vx_subset_of_le hle : G.V ⊆ G'.V), fun e x y hbtw ↦ ?_⟩
-  use hbtw.left.le hle, hSR hbtw.right
+  use hbtw.left.of_le hle, hSR hbtw.right
 
 @[simp]
 lemma restrict_le_restrict_iff (G : Graph α β) (R S : Set β) :
@@ -641,7 +641,7 @@ lemma restrict_idem (R : Set β) : G{R}{R} = G{R} := by
   simp only [inter_self]
 
 /-- Adjacency properties -/
-lemma Adj.of_Adj_restrict : (G{R}).Adj u v → G.Adj u v := Adj.le (restrict_le G R)
+lemma Adj.of_Adj_restrict : (G{R}).Adj u v → G.Adj u v := Adj.of_le (restrict_le G R)
 
 lemma reflAdj.restrict_of_le_reflAdj_restrict (hSradj : G'{F}.reflAdj u v)  (hle : G ≤ G')
     (h : G'.E ∩ F ⊆ G.E) (hu : u ∈ G.V) : G{F}.reflAdj u v := by
@@ -659,7 +659,7 @@ lemma reflAdj.restrict_of_le_reflAdj_restrict (hSradj : G'{F}.reflAdj u v)  (hle
 
 /-- Connectivity properties -/
 lemma Connected.of_Connected_restrict : (G{R}).Connected u v → G.Connected u v :=
-  (Connected.le · (restrict_le G R))
+  (Connected.of_le · (restrict_le G R))
 
 lemma Connected.restrict_of_le_inter_subset (hFconn : G'{F}.Connected u v) (hle : G ≤ G')
     (h : G'.E ∩ F ⊆ G.E) (hu : u ∈ G.V) : G{F}.Connected u v := by
@@ -679,7 +679,7 @@ lemma restrict_Connected_iff_restrict_Connected_of_le (hle : G ≤ G')
     (h : G'.E ∩ F ⊆ G.E) (hu : u ∈ G.V) :
     G{F}.Connected u v ↔ G'{F}.Connected u v := by
   constructor <;> rintro hconn
-  · exact hconn.le <| restrict_le_restrict_of_le hle fun ⦃a⦄ a ↦ a
+  · exact hconn.of_le <| restrict_le_restrict_of_le hle fun ⦃a⦄ a ↦ a
   · exact hconn.restrict_of_le_inter_subset hle h hu
 
 /- SetConnected lemmas -/
@@ -792,11 +792,11 @@ lemma edgeDel_inc₂ : (G \ R).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∉ R := by
   exact fun h _ ↦ h.edge_mem
 
 /-- Adjacency properties -/
-lemma Adj.of_Adj_edgeDel : (G \ R).Adj u v → G.Adj u v := Adj.le (edgeDel_le G R)
+lemma Adj.of_Adj_edgeDel : (G \ R).Adj u v → G.Adj u v := Adj.of_le (edgeDel_le G R)
 
 /-- Connectivity properties -/
 lemma Connected.of_Connected_edgeDel : (G \ R).Connected u v → G.Connected u v :=
-  (Connected.le · (edgeDel_le G R))
+  (Connected.of_le · (edgeDel_le G R))
 
 lemma SetConnected.of_Connected_edgeDel : (G \ R).SetConnected S T → G.SetConnected S T := by
   rintro h
@@ -829,7 +829,7 @@ lemma edge_ncard_le_of_edgeDel [hfin : G.Finite] : (G \ R).E.ncard ≤ G.E.ncard
 @[simp]
 lemma EdgeDel_singleton_inc₂_iff_inc₂_of_ne {e' : β} (hne : e ≠ e') :
     (G \ {e}).Inc₂ e' u v ↔ G.Inc₂ e' u v := by
-  refine ⟨fun h ↦ h.le (edgeDel_le G _), fun h ↦ by
+  refine ⟨fun h ↦ h.of_le (edgeDel_le G _), fun h ↦ by
     simp [edgeDel_inc₂, h, hne.symm, h.edge_mem]⟩
 
 end EdgeDel
