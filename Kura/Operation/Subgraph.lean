@@ -152,12 +152,8 @@ notation G "{" S "}" => Graph.restrict G S
 @[simp] theorem restrict_E : (G{R}).E = G.E ∩ R := by
   rw [restrict, ofInc₂_E]
   ext e
-  constructor
-  · rintro ⟨x, y, hxy, h⟩
-    use hxy.edge_mem, h
-  · rintro ⟨he, heR⟩
-    obtain ⟨x, y, hxy⟩ := Inc₂.exists_vx_inc₂ he
-    use x, y, hxy, heR
+  exact ⟨fun ⟨x, y, hxy, h⟩ ↦ ⟨hxy.edge_mem, h⟩, fun ⟨he, heR⟩ ↦ by simp [heR,
+    Inc₂.exists_vx_inc₂ he]⟩
 
 @[simp]
 lemma restrict_E_subset : (G{R}).E ⊆ G.E := by
@@ -931,6 +927,20 @@ lemma vxDel_edgeDel_comm : (G - U) \ R = G \ R - U := by
 /-- General mixed interactions -/
 lemma restrict_induce_le (G : Graph α β) (R : Set β) (hU : U ⊆ G.V) : G{R}[U] ≤ G :=
   (Graph.induce_le _ (by exact hU : U ⊆ G{R}.V)).trans (G.restrict_le R)
+
+
+
+lemma exists_compatible_of_le (h : H ≤ G) : ∃ H' : Graph α β, H.Compatible H' ∧ H ∪ H' = G := by
+  use G \ H.E, fun e heH he ↦ by simp [heH] at he, le_antisymm ?_ ?_
+  · rw [le_of_exist_mutual_le (union_le h (edgeDel_le G H.E)) le_rfl]
+    simp [h]
+  · rw [le_iff_inc₂]
+    simp only [union_vxSet, edgeDel_V, subset_union_right, true_and]
+    rintro e u v hbtw
+    rw [union_inc₂_iff, inc₂_iff_inc₂_edge_mem_of_le h]
+    refine (em (e ∈ H.E)).imp ?_ ?_ <;> simp [hbtw]
+
+
 
 end MixedOperations
 

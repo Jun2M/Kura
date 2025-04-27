@@ -409,3 +409,37 @@ lemma exists_mem_right (h : G.SetConnected S T) : ∃ x ∈ T, x ∈ G.V := by
   exact exists_mem_left h
 
 end SetConnected
+
+namespace Edgeless
+@[simp] lemma reflAdj : (Edgeless U β).reflAdj x y ↔ x = y ∧ x ∈ U := by simp
+
+@[simp] lemma Connected : (Edgeless U β).Connected x y ↔ x = y ∧ x ∈ U := by simp
+
+@[simp] lemma SetConnected : (Edgeless U β).SetConnected S T ↔ (S ∩ T ∩ U).Nonempty := by
+  refine ⟨fun ⟨s, hsS, t, htT, hst⟩ ↦ ?_,
+  fun ⟨x, ⟨hxS, hxT⟩, hxU⟩ ↦ ⟨x, hxS, x, hxT, Connected.refl hxU⟩⟩
+  · rw [Connected] at hst
+    obtain ⟨rfl, hsU⟩ := hst
+    use s, ⟨hsS, htT⟩, hsU
+
+end Edgeless
+
+section bot
+
+@[simp]
+lemma bot_reflAdj : (⊥ : Graph α β).reflAdj = fun _ _ ↦ False := by
+  ext x y
+  simp
+
+@[simp]
+lemma bot_connected : (⊥ : Graph α β).Connected = fun _ _ ↦ False := by
+  ext x y
+  simp
+
+@[simp]
+lemma bot_setConnected : (⊥ : Graph α β).SetConnected = fun _ _ ↦ False := by
+  ext S T
+  rw [SetConnected.supported]
+  simp
+
+end bot

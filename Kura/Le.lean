@@ -163,6 +163,20 @@ lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
   · rw [h]
     rfl
 
+namespace Isolated
+
+@[simp]
+lemma bot : Isolated (⊥ : Graph α β) v := by
+  intro e hinc
+  simp only [bot_V, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_vx_mem] at hinc
+
+@[simp]
+lemma edgeless : Isolated (Edgeless U β) v := by
+  intro e hinc
+  simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_edge_mem] at hinc
+
+end Isolated
+
 lemma vx_disjoint_of_disjoint (hDisj : Disjoint G H) : Disjoint G.V H.V := by
   intro x hx1 hx2
   let X : Graph α β := Edgeless x β
@@ -196,6 +210,9 @@ lemma compatible_of_le_le {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : 
   ext x y
   rw [inc₂_iff_inc₂_edge_mem_of_le h₁, inc₂_iff_inc₂_edge_mem_of_le h₂]
   simp [he₁, he₂]
+
+lemma compatible_of_edge_disjoint {H₁ H₂ : Graph α β} (hDisj : Disjoint H₁.E H₂.E) :
+    H₁.Compatible H₂ := fun e he₁ he₂ ↦ by simpa using hDisj (by simpa:{e} ≤ H₁.E) (by simpa)
 
 /-- The union of two graphs `G` and `H`. If there is an edge `e` whose `G`-ends differ from
 its `H`-ends, then `G` is favoured, so this is not commutative in general.
@@ -274,7 +291,9 @@ lemma singleEdge_compatible_iff :
   rw [(h hfE).sym2_eq_iff, Graph.singleEdge_inc₂_iff, and_iff_right rfl]
   tauto
 
-  -- simp +contextual [Graph.singleEdge_Inc₂, iff_def, or_imp]
+-- In Operation.Subgraph file
+-- lemma exists_compatible_of_le (h : H ≤ G) : ∃ H' : Graph α β, H.Compatible H' ∧ H ∪ H' = G := by
+--   use G \ H.E
 
 end Union
 
@@ -297,11 +316,11 @@ instance : SemilatticeInf (Graph α β) where
 
 -- instance : Inter (Graph α β) where inter := Graph.inter
 
--- @[simp]
--- lemma inter_vxSet (G H : Graph α β) : (G ∩ H).V = G.V ∩ H.V := rfl
+@[simp]
+lemma inter_vxSet (G H : Graph α β) : (G ⊓ H).V = G.V ∩ H.V := rfl
 
--- @[simp]
--- lemma inter_edgeSet (G H : Graph α β) : (G ∩ H).E = {e | ∃ x y, G.Inc₂ e x y ∧ H.Inc₂ e x y} := rfl
+@[simp]
+lemma inter_edgeSet (G H : Graph α β) : (G ⊓ H).E = {e | ∃ x y, G.Inc₂ e x y ∧ H.Inc₂ e x y} := rfl
 
 -- lemma inter_inc₂_iff : (G ∩ H).Inc₂ e x y ↔ G.Inc₂ e x y ∧ H.Inc₂ e x y := Iff.rfl
 
@@ -325,23 +344,61 @@ instance : SemilatticeInf (Graph α β) where
 --   · rintro ⟨h₁, h₂⟩
 --     exact le_inter h₁ h₂
 
+lemma compatible_iff_inter_edge_eq_inter {G H : Graph α β} :
+    G.Compatible H ↔ (G ⊓ H).E = G.E ∩ H.E := by
+  simp only [inter_edgeSet]
+  constructor
+  · rintro h
+    ext e
+    simp only [mem_setOf_eq, mem_inter_iff]
+    refine ⟨fun ⟨x, y, hG, hH⟩ ↦ ⟨hG.edge_mem, hH.edge_mem⟩, fun ⟨heG, heH⟩ ↦ ?_⟩
+    · obtain ⟨x, y, hbtw⟩ := Inc₂.exists_vx_inc₂ heG
+      exact ⟨x, y, hbtw, (h heG heH) ▸ hbtw⟩
+  · rintro h e heG heH
+    have : e ∈ G.E ∩ H.E := ⟨heG, heH⟩
+    obtain ⟨u, v, hbtwG, hbtwH⟩ := h ▸ this
+    rw [← toSym2.eq_iff_inc₂ (by assumption)] at hbtwG hbtwH
+    rw [← toSym2_eq_toSym2_iff_inc₂_eq_inc₂ heG heH, hbtwG, hbtwH]
+
 end Intersection
 
-section EGraph
+-- section EGraph
 
-def EGraph (α β : Type*) := WithTop (Graph α β)
+-- def EGraph (α β : Type*) := WithTop (Graph α β)
 
-instance instSemilatticeInfEGraph : SemilatticeInf (EGraph α β) := WithTop.semilatticeInf
-instance instOrderBotEGraph : OrderBot (EGraph α β) := WithTop.orderBot
-instance instOrderTopEGraph : OrderTop (EGraph α β) := WithTop.orderTop
-instance : Lattice (EGraph α β) where
-  sup G H := sorry
-  le_sup_left G H := sorry
-  le_sup_right := sorry
-  sup_le _ _ _ := sorry
-  inf := instSemilatticeInfEGraph.inf
-  inf_le_left := instSemilatticeInfEGraph.inf_le_left
-  inf_le_right := instSemilatticeInfEGraph.inf_le_right
-  le_inf := instSemilatticeInfEGraph.le_inf
+-- instance instSemilatticeInfEGraph : SemilatticeInf (EGraph α β) := WithTop.semilatticeInf
+-- instance instOrderBotEGraph : OrderBot (EGraph α β) := WithTop.orderBot
+-- instance instOrderTopEGraph : OrderTop (EGraph α β) := WithTop.orderTop
+-- instance : Lattice (EGraph α β) where
+--   sup G H := sorry
+--   le_sup_left G H := sorry
+--   le_sup_right := sorry
+--   sup_le _ _ _ := sorry
+--   inf := instSemilatticeInfEGraph.inf
+--   inf_le_left := instSemilatticeInfEGraph.inf_le_left
+--   inf_le_right := instSemilatticeInfEGraph.inf_le_right
+--   le_inf := instSemilatticeInfEGraph.le_inf
 
-end EGraph
+-- end EGraph
+
+section GraphSeparation
+
+structure GraphSeparation (G : Graph α β) where
+  left : Graph α β
+  right : Graph α β
+  inter_edgeless : (left ⊓ right).E = ∅
+  union_eq : left ∪ right = G
+
+namespace GraphSeparation
+variable (P Q : GraphSeparation G)
+
+def cut : Set α := P.left.V ∩ P.right.V
+
+noncomputable def enorder : ENat := P.cut.encard
+
+noncomputable def order : ℕ := P.cut.ncard
+
+-- lemma exists_Separation_of_edge (F : Set β) :
+--     ∃ P : GraphSeparation G, P.left.E = F ∧ P.left.V = IncidentVertices G F := by
+
+end GraphSeparation

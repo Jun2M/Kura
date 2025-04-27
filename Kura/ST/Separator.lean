@@ -345,8 +345,6 @@ lemma vxDel_isEdgeSetSeparator_iff_edgeDel_isVxSetSeparator :
   rw [vxDel_edgeDel_comm]
 
 -- Relationship with Vertex Separators
-def IncidenceEdges (G : Graph α β) (V : Set α) : Set β := {e ∈ G.E | ∃ v ∈ V, G.Inc e v}
-def IncidentVertices (G : Graph α β) (F : Set β) : Set α := {v ∈ G.V | ∃ e ∈ F, G.Inc e v}
 
 lemma vxSep_implies_edgeSep (h : G.IsVxSetSeparator U S T) :
     G.IsEdgeSetSeparator S T (IncidenceEdges G U) := by

@@ -788,3 +788,6 @@ lemma not_inc_of_E_empty (hE : G.E = ∅) : G.Isolated u := by
   exact (hE ▸ hinc.edge_mem : e ∈ ∅)
 
 end Isolated
+
+def IncidenceEdges (G : Graph α β) (V : Set α) : Set β := {e ∈ G.E | ∃ v ∈ V, G.Inc e v}
+def IncidentVertices (G : Graph α β) (F : Set β) : Set α := {v ∈ G.V | ∃ e ∈ F, G.Inc e v}
