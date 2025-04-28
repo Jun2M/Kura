@@ -308,6 +308,11 @@ lemma prefixUntil_prop_last {w : WList α β} (h : ∃ u ∈ w, P u) : P (w.pref
     obtain h | h : P u ∨ ∃ a ∈ W, P a := by simpa using h
     all_goals simp_all [apply_ite]
 
+lemma prefixUntil_last_eq_findD : (w.prefixUntil P).last = w.findD P w.last := by
+  induction w with
+  | nil u => simp
+  | cons u e W ih => by_cases hPu : P u <;> simp [hPu, ih]
+
 lemma prefixUntil_not_prop (hx : x ∈ w.prefixUntil P) (hne : x ≠ (w.prefixUntil P).last) :
     ¬ P x := by
   induction w with
@@ -372,6 +377,11 @@ lemma suffixFrom_prop_first {w : WList α β} (h : ∃ u ∈ w, P u) : P (w.suff
     · simp [h]
     simp [ih h, apply_ite]
 
+lemma suffixFrom_first_eq_findD : (w.suffixFrom P).first = w.findD P w.last := by
+  induction w with
+  | nil => simp
+  | cons u e W ih => by_cases hPu : P u <;> simp [hPu, ih]
+
 lemma suffixFrom_isSuffix (w : WList α β) (P : α → Prop) [DecidablePred P] :
     (w.suffixFrom P).IsSuffix w := by
   induction w with
@@ -381,6 +391,23 @@ lemma suffixFrom_isSuffix (w : WList α β) (P : α → Prop) [DecidablePred P] 
     split_ifs
     · simp
     exact ih.trans (by simp)
+
+lemma suffixFrom_nil_iff : (w.suffixFrom P).Nil ↔ ∀ x ∈ w.vx.dropLast, ¬ P x := by
+  induction w with
+  | nil => simp
+  | cons u e W ih =>
+    simp only [suffixFrom_cons, cons_vx]
+    obtain ⟨x, l, hWvx⟩ := ne_nil_iff_exists_cons.mp (vx_ne_nil : W.vx ≠ [])
+    by_cases hPu : P u <;> simp [hPu, ih, hWvx]
+
+lemma suffixFrom_nonempty_iff : (w.suffixFrom P).Nonempty ↔ ∃ x ∈ w.vx.dropLast, P x := by
+  rw [← not_nil_iff, suffixFrom_nil_iff]
+  simp
+
+lemma suffixFrom_vx_countP : (w.suffixFrom P).vx.countP P = w.vx.countP P := by
+  induction w with
+  | nil => simp
+  | cons u e W ih => by_cases hPu : P u <;> simp [ih, hPu]
 
 /-- The suffix of `w` starting at the first occurence of a vertex `x`.
 Equal to `[w.last]` if `x ∉ w`. -/
@@ -396,6 +423,9 @@ lemma suffixFromVx_isSuffix [DecidableEq α] (w : WList α β) (x : α) :
 lemma suffixFromVx_last (w : WList α β) (x) [DecidableEq α] : (w.suffixFromVx x).last = w.last :=
   suffixFrom_last ..
 
+lemma suffixFromVx_vx_count [DecidableEq α] : (w.suffixFromVx x).vx.count x = w.vx.count x :=
+  suffixFrom_vx_countP
+
 @[simp]
 lemma prefixUntil_append_suffixFrom (w : WList α β) (P : α → Prop) [DecidablePred P] :
     w.prefixUntil P ++ w.suffixFrom P = w := by
@@ -408,9 +438,34 @@ lemma prefixUntil_append_suffixFrom (w : WList α β) (P : α → Prop) [Decidab
     simpa
 
 @[simp]
+lemma prefixUntil_last_eq_suffixFrom_first (w : WList α β) (P : α → Prop) [DecidablePred P] :
+    (w.prefixUntil P).last = (w.suffixFrom P).first := by
+  rw [prefixUntil_last_eq_findD, suffixFrom_first_eq_findD]
+
+@[simp]
 lemma prefixUntilVx_append_suffixFromVx [DecidableEq α] (w : WList α β) (x : α) :
     w.prefixUntilVx x ++ w.suffixFromVx x = w :=
   prefixUntil_append_suffixFrom ..
+
+@[simp]
+lemma prefixUntilVx_last_eq_suffixFromVx_first [DecidableEq α] (w : WList α β) (x : α) :
+    (w.prefixUntilVx x).last = (w.suffixFromVx x).first :=
+  prefixUntil_last_eq_suffixFrom_first w (· = x)
+
+/-- Take the prefix of `w` ending at the last occurence of `P` in `w`.
+(or the `Nil` wList on the last vertex if nothing satisfies `P`) -/
+def prefixUntilLast (w : WList α β) (P : α → Prop) [DecidablePred P] : WList α β :=
+  (w.reverse.suffixFrom P).reverse
+
+@[simp]
+lemma prefixUntilLast_isPrefix (w : WList α β) (P : α → Prop) [DecidablePred P] :
+    (w.prefixUntilLast P).IsPrefix w := by
+  rw [← reverse_isSuffix_reverse_iff, prefixUntilLast, reverse_reverse]
+  apply suffixFrom_isSuffix
+
+lemma prefixUntilLast_prop_last {w : WList α β} (h : ∃ x ∈ w, P x) : P (w.prefixUntilLast P).last := by
+  rw [prefixUntilLast, reverse_last]
+  exact suffixFrom_prop_first (by simpa)
 
 /-- Take the suffix of `w` starting at the last occurence of `P` in `w`.
 If `P` never occurs, this is all of `w`. -/
@@ -426,6 +481,13 @@ lemma suffixFromLast_isSuffix (w : WList α β) (P : α → Prop) [DecidablePred
 lemma suffixFromLast_prop_first (h : ∃ x ∈ w, P x) : P (w.suffixFromLast P).first := by
   rw [suffixFromLast, reverse_first]
   exact prefixUntil_prop_last (by simpa)
+
+@[simp]
+lemma prefixUntilLast_append_suffixFromLast (w : WList α β) (P : α → Prop) [DecidablePred P] :
+    w.prefixUntilLast P ++ w.suffixFromLast P = w := by
+  rw [prefixUntilLast, suffixFromLast, ← reverse_append, prefixUntil_append_suffixFrom,
+    reverse_reverse]
+  exact prefixUntil_last_eq_suffixFrom_first w.reverse P
 
 section drop
 

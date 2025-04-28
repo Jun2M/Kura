@@ -328,6 +328,37 @@ lemma dInc_reverse_iff : w.reverse.DInc e x y ↔ w.DInc e y x :=
 lemma inc₂_reverse_iff : w.reverse.Inc₂ e x y ↔ w.Inc₂ e x y := by
   simp [inc₂_iff_dInc, or_comm]
 
+/-- Find the first occurence of `P` in `w` -/
+def findD (w : WList α β) (P : α → Prop) [DecidablePred P] (d : α) : α :=
+  match w with
+  | nil x => if P x then x else d
+  | cons x _e w => if P x then x else findD w P d
+
+variable {P : α → Prop} [DecidablePred P]
+
+@[simp] lemma findD_nil (d : α) :
+    findD (nil x : WList α β) P d = if P x then x else d := rfl
+
+@[simp] lemma findD_cons (d : α) :
+    findD (cons x e w) P d = if P x then x else findD w P d := rfl
+
+lemma findD_eq_vx_find?_getD (d : α) :
+    findD w P d = (w.vx.find? P).getD d := by
+  induction w with
+  | nil x =>
+    simp only [findD_nil, nil_vx, find?_singleton, decide_eq_true_eq]
+    by_cases hPx : P x <;> simp [hPx]
+  | cons x e w ih =>
+    simp only [findD_cons, cons_vx]
+    by_cases hPx : P x <;> simp [hPx, ih]
+
+/-- Find the last occurence of `P` in `w` -/
+def findLastD (w : WList α β) (P : α → Prop) [DecidablePred P] (d : α) : α :=
+  w.reverse.findD P d
+
+@[simp] lemma findLastD_nil (d : α) :
+    findLastD (nil x : WList α β) P d = if P x then x else d := rfl
+
 end WList
 
 

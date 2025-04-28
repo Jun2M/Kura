@@ -1,4 +1,5 @@
 import Kura.Graph
+import Mathlib.Combinatorics.SimpleGraph.Basic
 
 open Set Function
 
@@ -282,3 +283,23 @@ lemma edge_empty_iff_eq_Edgeless (G : Graph α β) : G.E = ∅ ↔ G = Edgeless 
 
 lemma singleEdge_inc₂_iff : (Graph.singleEdge u v e).Inc₂ f x y ↔ (f = e) ∧ s(x,y) = s(u,v) := by
   simp [Graph.singleEdge]
+
+def ofSimpleGraph (G : SimpleGraph α) : Graph α (Sym2 α) where
+  V := univ
+  E := G.edgeSet
+  Inc₂ e x y := s(x,y) = e ∧ G.Adj x y
+  symm e x y := by simp [Sym2.eq_swap, SimpleGraph.adj_comm]
+  vx_mem_left e x y := by simp
+  edge_mem e x y he := by
+    obtain ⟨rfl, he⟩ := he
+    simp [he]
+  exists_vx_inc₂ e he := by
+    induction' e with x y
+    use x, y
+    simpa using he
+  left_eq_of_inc₂ a b c d e h1 h2 := by
+    obtain ⟨rfl, he⟩ := h1
+    obtain ⟨heq, he'⟩ := h2
+    simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at heq
+    tauto
+

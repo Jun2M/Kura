@@ -212,8 +212,8 @@ lemma IsCycle_edgeDel : (G \ F).IsCycle w ↔ G.IsCycle w ∧ Disjoint w.edgeSet
   rintro hVd
   simp only [subset_diff, hVd.toIsTour.isWalk.edgeSet_subset, true_and]
 
-/-- Misc lemmas -/
-
+/-- The requirement for a cycle to be a tour is really to prevent a backtrack to be a cycle.
+If a walk is longer than 2, this requirement can be dropped. -/
 lemma IsWalk.isCycle_of_length (hVd : G.IsWalk w) (hfirst : w.first = w.last) (hlen : 2 < w.length)
     (hvx : w.vx.tail.Nodup) : G.IsCycle w where
   isWalk := hVd
@@ -249,12 +249,6 @@ lemma Inc₂.walk_isCycle (h : G.Inc₂ e u u) : G.IsCycle h.walk where
 lemma IsCycle.tail_isPath (h : G.IsCycle w) : G.IsPath w.tail where
   isWalk := h.isWalk.suffix <| tail_isSuffix w
   nodup := tail_vx_nodup_iff.mpr h.nodup
-
-lemma IsCycle.two_conn (h : G.IsCycle w) (hne : u ≠ v) (hu : u ∈ w) (hv : v ∈ w) :
-    ∀ x, (G - ({x} : Set α)).Connected u v := by
-  rintro x
-  
-  sorry
 
 namespace Inc₂
 
@@ -299,3 +293,48 @@ lemma backtrack_isWalk (h : G.Inc₂ e u v) : G.IsWalk h.backtrack := by
   simp [backtrack, h, h.symm, h.vx_mem_left]
 
 end Inc₂
+
+-- lemma IsTour.exists_cycle_sublist {w : WList α β} (h : G.IsTour w) :
+--     w.Nil ∨ (∃ c : WList α β, G.IsCycle c ∧ c.IsSublist w) :=
+--   match hlen : w.length with
+--   | 0 => Or.inl (length_eq_zero.mp hlen)
+--   | n + 1 => by
+--     classical
+--     right
+--     by_cases hex : ∀ x, w.vx.tail.count x ≤ 1
+--     · refine ⟨w, ⟨h, ?_, by simpa [← List.nodup_iff_count_le_one] using hex⟩, isSublist_refl _⟩
+--       rw [← WList.length_pos_iff]
+--       linarith
+--     obtain ⟨x, hcount⟩ := by simpa using hex
+--     let w' := w.suffixFromVx x |>.prefixUntilLast (· = x) ; clear hex hlen n
+--     have hNonempty : w'.Nonempty := by
+--       simp_rw [w', prefixUntilLast, reverse_nonempty, suffixFrom_nonempty_iff, reverse_vx,
+--         dropLast_reverse, List.mem_reverse, ← count_pos_iff]
+--       use x, ?_
+--       have : 1 < w.vx.count x := Nat.lt_of_lt_of_le hcount (w.vx.count_tail_le x)
+--       rw [← suffixFromVx_vx_count] at this
+--       have := (w.suffixFromVx x).vx.le_count_tail x
+--       omega
+--     have hw'Sublist : w'.IsSublist w := prefixUntilLast_isPrefix _ _ |>.isSublist |>.trans
+--       <| suffixFromVx_isSuffix w x |>.isSublist
+--     have hw'len : w'.length < w.length := by
+--       refine Nat.lt_of_le_of_ne hw'Sublist.length_le fun hlen ↦ ?_
+--       obtain heq : w' = w := hw'Sublist.eq_of_length_ge hlen.ge ; clear hlen hw'Sublist
+
+--       sorry
+--     have hw' : G.IsTour w' := sorry
+--     obtain ⟨c, hcyc, hcSubw'⟩ := hw'.exists_cycle_sublist.resolve_left hNonempty.not_nil
+--     exact ⟨c, hcyc, hcSubw'.trans hw'Sublist⟩
+-- termination_by w.length
+
+
+
+-- lemma IsClosedWalk.backtrack_sublist_or_cycle_sublist (h : G.IsClosedWalk w) :
+--     w.Nil ∨ (∃ h : G.Inc₂ e u v, h.backtrack.IsSublist w) ∨
+--     (∃ c : WList α β, G.IsCycle c ∧ c.IsSublist w) := by
+--   match h : w.length with
+--   | 0 =>
+--     left
+--     exact WList.length_eq_zero.mp h
+--   | n + 1 =>
+--     right

@@ -701,6 +701,11 @@ lemma mem_zip_iff {β : Type*} {l : List α} {l' : List β} {a : α} {b : β} :
     rw [getElem_zip]
     exact (length_zip _ _) ▸ hile
 
+lemma le_count_dropLast {l : List α} {x : α} [BEq α] : l.count x - 1 ≤ (l.dropLast).count x := by
+  rw [← reverse_reverse l, dropLast_reverse, count_reverse]
+  conv_rhs => rw [count_reverse]
+  exact le_count_tail _ _
+
 /- ------------------------------------------------------------------------------------ -/
 
 

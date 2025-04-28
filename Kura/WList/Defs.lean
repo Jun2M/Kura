@@ -1,6 +1,7 @@
 import Mathlib.Data.Set.Insert
 import Mathlib.Data.Finset.Dedup
 import Mathlib.Data.Sym.Sym2
+import Mathlib.Data.Fintype.EquivFin
 
 open Set Function List Nat
 
@@ -33,6 +34,9 @@ lemma nil_inj_iff : (nil x : WList α β) = nil y ↔ x = y := by
 @[simp]
 lemma cons_inj_iff : cons x e w₁ = cons y f w₂ ↔ x = y ∧ e = f ∧ w₁ = w₂ := by
   induction w₁ with simp
+
+instance [h : Nonempty α] : Nonempty (WList α β) := Nonempty.intro (nil h.some)
+instance [Inhabited α] : Inhabited (WList α β) := ⟨nil default⟩
 
 /-! ## First and Last -/
 
@@ -259,8 +263,12 @@ lemma nil_injective : Injective (nil : α → WList α β) := by
   simp only [cons_nonempty, not_true_eq_false, false_iff]
   rintro ⟨_⟩
 
+alias ⟨_, Nil.not_nonempty⟩ := not_nonempty_iff
+
 @[simp] lemma not_nil_iff : ¬ w.Nil ↔ w.Nonempty := by
   rw [← not_nonempty_iff, not_not]
+
+alias ⟨_, Nonempty.not_nil⟩ := not_nil_iff
 
 lemma Nonempty.exists_cons (hw : w.Nonempty) : ∃ x e w', w = .cons x e w' := by
   cases hw with simp
@@ -321,6 +329,14 @@ lemma length_eq_succ_iff {n : ℕ} : w.length = n + 1 ↔ ∃ x e w', w = .cons 
   refine ⟨fun hlen ↦ ?_, fun ⟨x, e, w', hw, ih⟩ ↦ by simp only [hw, cons_length, ih]⟩
   obtain ⟨x, e, w', rfl⟩ := (length_pos_iff.mp (by omega : 0 < w.length)).exists_cons
   exact ⟨x, e, w', rfl, by simpa using hlen⟩
+
+instance [hα : _root_.Nonempty α] [hβ : _root_.Nonempty β] : Infinite (WList α β) :=
+  Infinite.of_surjective length fun n ↦ (by
+    induction n with
+    | zero => exact ⟨nil hα.some, rfl⟩
+    | succ n ih =>
+      obtain ⟨w, rfl⟩ := ih
+      exact ⟨cons hα.some hβ.some w, by simp⟩)
 
 /-- `w.DInc e x y` means that `w` contains `[x,e,y]` as a contiguous sublist.
 (`DInc` stands for 'directed incidence')` -/
