@@ -243,7 +243,7 @@ protected def union (G H : Graph α β) : Graph α β where
     exact h.2.left_or_of_inc₂ h'.2
 
 
-instance : Union (Graph α β) where union := Graph.union
+instance Union : Union (Graph α β) where union := Graph.union
 
 @[simp]
 lemma union_vxSet (G H : Graph α β) : (G ∪ H).V = G.V ∪ H.V := rfl
@@ -305,7 +305,7 @@ protected def inter (G H : Graph α β) : Graph α β := ofInc₂ (G.V ∩ H.V)
   (fun e x y h ↦ ⟨h.1.vx_mem_left, h.2.vx_mem_left⟩)
   (fun u v x y e huv hxy ↦ huv.1.left_or_of_inc₂ hxy.1)
 
-instance : SemilatticeInf (Graph α β) where
+instance SemilatticeInf : SemilatticeInf (Graph α β) where
   inf := Graph.inter
   inf_le_left _ _ := by simp +contextual only [Graph.inter, le_iff_inc₂, ofInc₂_V,
     inter_subset_left, ofInc₂_inc₂, implies_true, and_self]

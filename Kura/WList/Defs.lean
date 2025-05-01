@@ -125,7 +125,7 @@ lemma ext_vx_edge {w₁ w₂ : WList α β} (h_vx : w₁.vx = w₂.vx) (h_edge :
 
 
 
-instance : Membership α (WList α β) where
+instance Membership : Membership α (WList α β) where
   mem w x := x ∈ w.vx
 
 
