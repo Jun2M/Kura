@@ -44,7 +44,7 @@ lemma Inc₂.vxMap_of_inc₂ (hBtw : G.Inc₂ e u v) (φ : α → α') : (G.vxMa
   rfl
 
 @[simp]
-lemma vxMap.Inc₂ : (G.vxMap φ).Inc₂ e x y ↔ ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.Inc₂ e x' y' := by
+lemma vxMap_inc₂_iff : (G.vxMap φ).Inc₂ e x y ↔ ∃ x', φ x' = x ∧ ∃ y', φ y' = y ∧ G.Inc₂ e x' y' := by
   classical
   simp_rw [inc₂_iff_toMultiset]
   rw [vxMap, oftoMultiset_toMultiset (by simp [em])]
@@ -89,4 +89,3 @@ lemma edgePreimg.Inc₂ {e' : β'} : (G.edgePreimg σ).Inc₂ e' u v ↔ ∃ e, 
   rw [inc₂_iff_toMultiset, oftoMultiset_toMultiset, inc₂_iff_toMultiset]
   rintro e
   apply toMultiset_card_or
-

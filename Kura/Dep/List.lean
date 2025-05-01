@@ -358,14 +358,14 @@ theorem getLast_tail_eq_getLast {l : List α} (h : l.tail ≠ []) :
     simp only [tail_cons, getLast_cons h]
 
 @[simp]
-lemma head_not_mem_tail_of_nodup {l : List α} (h : l.Nodup) (h' : l ≠ []) :
+lemma Nodup.head_not_mem_tail {l : List α} (h : l.Nodup) (h' : l ≠ []) :
     l.head h' ∉ l.tail := by
   have : l.head h' :: l.tail = l := by exact head_cons_tail l h'
   rw [← this, List.nodup_cons] at h
   exact h.1
 
 @[simp]
-lemma getLast_not_mem_dropLast_of_nodup {l : List α} (h : l.Nodup) (h' : l ≠ []) :
+lemma Nodup.getLast_not_mem_dropLast {l : List α} (h : l.Nodup) (h' : l ≠ []) :
     l.getLast h' ∉ l.dropLast := by
   let l' := l.reverse
   have : l'.reverse ≠ [] := by

@@ -275,17 +275,26 @@ def ConnectedPartition (G : Graph α β) : Partition (Set α) := Partition.ofRel
 
 def Component (G : Graph α β) (v : α) := {u | G.Connected v u}
 
-def ComponentSets (G : Graph α β) (V : Set α) := {Component G u | u ∈ V}
+def ComponentSets (G : Graph α β) (V : Set α) := Component G '' V
 
 @[simp]
-lemma ComponentPartition.supp : G.ConnectedPartition.supp = G.V := by
+lemma ConnectedPartition.supp : G.ConnectedPartition.supp = G.V := by
   simp [ConnectedPartition]
+
+@[simp↓] lemma ConnectedPartition.sSup : sSup G.ConnectedPartition.parts = G.V := supp
+@[simp↓] lemma ConnectedPartition.sUnion : ⋃₀ G.ConnectedPartition.parts = G.V := supp
+
+@[simp]
+lemma ConnectedPartition.parts : G.ConnectedPartition.parts = G.ComponentSets G.V := by
+  ext S
+  simp only [ConnectedPartition, ofRel_parts, Connected.refl_iff, setOf_mem_eq, mem_image,
+    ComponentSets, Component, mem_setOf_eq]
 
 @[simp]
 lemma set_spec_connected_comm : {x | G.Connected x y} = {x | G.Connected y x} := by
   simp_rw [Connected.comm]
 
-@[simp] lemma set_spec_connected_eq_componentSet : {x | G.Connected y x} = G.Component y := rfl
+lemma set_spec_connected_eq_componentSet : {x | G.Connected y x} = G.Component y := rfl
 
 @[simp]
 lemma Component.empty : G.Component x = ∅ ↔ x ∉ G.V := by
@@ -296,6 +305,9 @@ lemma Component.empty : G.Component x = ∅ ↔ x ∉ G.V := by
   · intro h
     ext y
     simp [Component, h]
+
+@[simp]
+lemma Component.subset_V : G.Component x ⊆ G.V := fun _y hy ↦ hy.mem_right
 
 @[simp]
 lemma Component.eq (hx : x ∈ G.V) : G.Component x = G.Component y ↔ G.Connected x y :=
@@ -323,7 +335,7 @@ lemma Component.mem' : y ∈ G.Component x ↔ G.Connected y x := by
 @[simp]
 lemma ComponentSets.mem (hx : x ∈ G.V) :
     G.Component x ∈ G.ComponentSets T ↔ ∃ y ∈ T, G.Connected x y := by
-  simp only [ComponentSets, mem_setOf_eq, hx, Component.eq']
+  simp only [ComponentSets, mem_image, hx, Component.eq']
   simp_rw [Connected.comm]
 
 lemma ComponentSets.componentSet (hx : x ∈ G.V) :
@@ -333,6 +345,13 @@ lemma ComponentSets.componentSet (hx : x ∈ G.V) :
     Connected.exists_connected, implies_true, and_true]
   rintro ⟨y, hy, rfl⟩
   simpa [hx, Connected.comm] using hy
+
+@[simp]
+lemma ComponentSets.sUnion_V : ⋃₀ G.ComponentSets G.V = G.V := by
+  rw [← ConnectedPartition.parts]
+  exact ConnectedPartition.supp
+
+@[simp] lemma ComponentSets.sSup_V : sSup (G.ComponentSets G.V) = G.V := sUnion_V
 
 lemma ConnectedPartition.le (hle : G ≤ H) : G.ConnectedPartition ≤ H.ConnectedPartition := by
   simpa [ConnectedPartition] using fun u v ↦ (Connected.of_le · hle)

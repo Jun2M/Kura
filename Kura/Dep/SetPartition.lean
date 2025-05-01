@@ -107,6 +107,18 @@ def ofIndependent' {u : Set α} (hs : sSupIndep u) : Partition α :=
   show sSup (u \ {⊥}) = sSup u
   simp
 
+/-- The subpartition with over a subset of the parts. -/
+def subpartition (P : Partition α) {s : Set α} (hs : s ⊆ P.parts) : Partition α where
+  parts := s
+  indep := P.indep.mono hs
+  bot_not_mem h := P.bot_not_mem (hs h)
+
+@[simp] lemma subpartition_parts {P : Partition α} {s : Set α} (hs : s ⊆ P.parts) :
+    (P.subpartition hs).parts = s := rfl
+
+@[simp] lemma mem_subpartition_iff {P : Partition α} {s : Set α} (hs : s ⊆ P.parts) {a : α} :
+    a ∈ P.subpartition hs ↔ a ∈ s := Iff.rfl
+
 /-- The partition with no parts. -/
 @[simps] protected def empty (α : Type*) [CompleteLattice α] : Partition α where
   parts := ∅
@@ -262,6 +274,20 @@ lemma exists_unique_of_mem_set (P : Partition (Set α)) (hx : x ∈ P.supp) : �
   rw [← P.sUnion_eq, mem_sUnion] at hx
   obtain ⟨t, hxt⟩ := hx
   exact ⟨t, hxt, fun u ⟨huP, hxu⟩ ↦ eq_of_mem_inter huP hxt.1 ⟨hxu, hxt.2⟩⟩
+
+lemma subset_sUnion_and_mem_iff_mem {S : Set (Set α)} (hSP : S ⊆ P.parts) :
+    t ⊆ ⋃₀ S ∧ t ∈ P ↔ t ∈ S := by
+  refine ⟨fun ⟨htsu, htP⟩ ↦ ?_, fun htS ↦ ⟨subset_sUnion_of_mem htS, hSP htS⟩⟩
+  obtain ⟨x, hxt⟩ := nonempty_of_mem htP
+  obtain ⟨s, hsS, hxs⟩ := htsu hxt
+  obtain rfl := eq_of_mem_of_mem htP (hSP hsS) hxt hxs
+  exact hsS
+
+@[simp]
+lemma subset_sUnion_iff_mem {S : Set (Set α)} (ht : t ∈ P) (hSP : S ⊆ P.parts) :
+    t ⊆ ⋃₀ S ↔ t ∈ S := by
+  rw [← subset_sUnion_and_mem_iff_mem hSP]
+  simp [ht]
 
 /-- The part containing a given element of the set being partitioned. If `x ∉ s`, then `∅`.  -/
 def partOf (P : Partition (Set α)) (x : α) : Set α :=
@@ -530,6 +556,11 @@ protected def discrete (s : Set α) : Partition (Set α) :=
 lemma discrete.rel_iff_eq_of_mem (ha : a ∈ s) : (Partition.discrete s).Rel a b ↔ a = b := by
   rw [discrete.rel_iff_eq, and_iff_left ha]
 
+@[simp] lemma discrete.parts : (Partition.discrete s).parts = ({·}) '' s := by
+  ext x
+  unfold Partition.discrete
+  aesop
+
 end Discrete
 
 section RepFun
@@ -647,3 +678,88 @@ lemma RepFun.coeFun_eq_id_of_eq_discrete {s : Set α} (f : P.RepFun) (hP : P = P
   subst hP; exact repFun_discrete_coeFun s f
 
 end RepFun
+
+section Flatten
+
+def flatten (P : Partition (Set (Set α))) (hP : ∃ p : Partition (Set α), p.parts = sSup P.parts) :
+    Partition (Set α) where
+  parts := sSup '' P.parts
+  indep x hx := by
+    obtain ⟨p, hp⟩ := hP
+    obtain ⟨S, hSP, rfl⟩ := hx
+    simp
+    rintro T hTP hnex s hsS t hT
+    have hSneT : S ≠ T := fun h ↦ by simp [h] at hnex
+    have hst : s ≠ t := by
+      rintro rfl
+      have := P.indep hSP |>.mono_right (by
+        simp
+        refine subset_sUnion_of_mem (by simpa [hSneT.symm]) : T ≤ _)
+      rw [Set.disjoint_left] at this
+      exact this hsS hT
+    refine (hp ▸ p.indep) (by use S : s ∈ sSup P.parts) |>.mono_right ?_
+    simp
+    refine subset_sUnion_of_mem ?_
+    simp [hst.symm]
+    use T
+  bot_not_mem := by
+    simp
+    rintro S hS
+    have hSne : S.Nonempty := by
+      have := P.bot_not_mem
+      simp only [bot_eq_empty, mem_parts, SetLike.mem_coe] at this
+      exact nonempty_of_mem hS
+    obtain ⟨x, hx⟩ := hSne
+    use x, hx
+    rintro rfl
+    obtain ⟨p, hp⟩ := hP
+    have := p.bot_not_mem
+    simp only [bot_eq_empty, mem_parts, SetLike.mem_coe] at this
+    refine this (?_ : ∅ ∈ p.parts)
+    rw [hp]
+    use S, hS
+
+@[simp]
+lemma flatten_parts {P : Partition (Set (Set α))}
+    {hP : ∃ p : Partition (Set α), p.parts = sSup P.parts} :
+    (flatten P hP).parts = sSup '' P.parts := rfl
+
+-- def Flatten' (P : Partition (Set α)) (hP : ∃ p : Partition α, p.parts = sSup P.parts) :
+--     Partition α where
+--   parts := sSup '' P.parts
+--   indep x hx := by
+--     obtain ⟨p, hp⟩ := hP
+--     obtain ⟨S, hSP, rfl⟩ := hx
+--     rintro a haS ha
+--     have := P.indep hSP
+--     have hSneT : S ≠ T := fun h ↦ by simp [h] at hnex
+--     have hst : s ≠ t := by
+--       rintro rfl
+--       have := P.indep hSP |>.mono_right (by
+--         simp
+--         refine subset_sUnion_of_mem (by simpa [hSneT.symm]) : T ≤ _)
+--       rw [Set.disjoint_left] at this
+--       exact this hsS hT
+--     refine (hp ▸ p.indep) (by use S : s ∈ sSup P.parts) |>.mono_right ?_
+--     simp
+--     refine subset_sUnion_of_mem ?_
+--     simp [hst.symm]
+--     use T
+--   bot_not_mem := by
+--     simp
+--     rintro S hS
+--     have hSne : S.Nonempty := by
+--       have := P.bot_not_mem
+--       simp only [bot_eq_empty, mem_parts, SetLike.mem_coe] at this
+--       exact nonempty_of_mem hS
+--     obtain ⟨x, hx⟩ := hSne
+--     use x, hx
+--     rintro rfl
+--     obtain ⟨p, hp⟩ := hP
+--     have := p.bot_not_mem
+--     simp only [bot_eq_empty, mem_parts, SetLike.mem_coe] at this
+--     refine this (?_ : ∅ ∈ p.parts)
+--     rw [hp]
+--     use S, hS
+
+end Flatten

@@ -722,6 +722,73 @@ lemma exists_dInc_not_prop_prop {P : α → Prop} (hfirst : ¬ P w.first) (hlast
   obtain ⟨e, x, y, h, hx, hy⟩ := exists_dInc_prop_not_prop (P := fun x ↦ ¬ P x) hfirst (by simpa)
   exact ⟨e, x, y, h, hx, by simpa using hy⟩
 
+/-- Split the WList at given edge `e` and return a pair of WLists
+  (If there are multiple occurences of `e`, the first one is chosen) -/
+def splitAtEdge [DecidableEq β] (w : WList α β) (e : β) : WList α β × WList α β :=
+  match w with
+  | nil x => (nil x, nil x)
+  | cons x e' w =>
+    if e = e' then (nil x, w) else
+      let ⟨w₁, w₂⟩ := splitAtEdge w e
+      (cons x e' w₁, w₂)
+
+@[simp] lemma splitAtEdge_nil [DecidableEq β] (e : β) :
+    splitAtEdge (nil x : WList α β) e = (nil x, nil x) := rfl
+
+@[simp] lemma splitAtEdge_cons [DecidableEq β] (x) (e e' : β) (w : WList α β) :
+    splitAtEdge (cons x e' w) e = if e = e' then (nil x, w) else
+      let ⟨w₁, w₂⟩ := splitAtEdge w e
+      (cons x e' w₁, w₂) := rfl
+
+lemma splitAtEdge_DInc [DecidableEq β] (w : WList α β) (he : e ∈ w.edge) :
+    let ⟨w₁, w₂⟩ := splitAtEdge w e
+    w.DInc e w₁.last w₂.first := by
+  induction w with
+  | nil u => simp at he
+  | cons u e' w ih =>
+    by_cases he' : e = e'
+    · simp [he']
+    · simp only [cons_edge, mem_cons, he', false_or] at he
+      simp [ih he, he']
+
+lemma splitAtEdge_left_prefix [DecidableEq β] (w : WList α β) (e : β) :
+    (splitAtEdge w e).fst.IsPrefix w := by
+  induction w with
+  | nil u => simp
+  | cons u e' w ih =>
+    by_cases he' : e = e'
+    · simp [he']
+    · simp only [splitAtEdge_cons, he', ↓reduceIte]
+      exact IsPrefix.cons u e' (w.splitAtEdge e).1 w ih
+
+lemma splitAtEdge_right_suffix [DecidableEq β] (w : WList α β) (e : β) :
+    (splitAtEdge w e).snd.IsSuffix w := by
+  induction w with
+  | nil u => simp
+  | cons u e' w ih =>
+    by_cases he' : e = e'
+    · simp [he']
+    · simp only [splitAtEdge_cons, he', ↓reduceIte]
+      exact IsSuffix.cons ih u e'
+
+lemma splitAtEdge_not_mem_left_edge [DecidableEq β] (w : WList α β) (e : β) :
+    e ∉ (splitAtEdge w e).fst.edge := by
+  induction w with
+  | nil => simp
+  | cons u e' w ih =>
+    by_cases he' : e = e'
+    · simp [he']
+    · simpa [splitAtEdge_cons, he', ↓reduceIte]
+
+lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β) (h : w.edge.Nodup) :
+    e ∉ (splitAtEdge w e).snd.edge := by
+  induction w with
+  | nil => simp
+  | cons u e' w ih =>
+    simp only [cons_edge, nodup_cons] at h
+    by_cases he' : e = e'
+    · simp [he', h]
+    · simpa [splitAtEdge_cons, he', ↓reduceIte] using ih h.2
 
 -- end WList
 -- open WList

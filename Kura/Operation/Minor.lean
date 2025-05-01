@@ -48,14 +48,14 @@ lemma Inc : (G /[φ] C).Inc e x ↔ ∃ v, φ v = x ∧ G.Inc e v ∧ e ∉ C :=
     use ⟨v, hinc, rfl⟩, hinc.edge_mem
 
 lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e u v) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
-  simp only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, hbtw.edge_mem, hnin,
+  simp only [Contract, restrict_inc₂_iff, vxMap_inc₂_iff, mem_diff, hbtw.edge_mem, hnin,
     not_false_eq_true, and_self, and_true]
   use u, rfl, v
 
 @[simp]
 lemma Inc₂ : (G /[φ] C).Inc₂ e x y ↔ ∃ u, φ u = x ∧ ∃ v, φ v = y ∧
     G.Inc₂ e u v ∧ e ∉ C:= by
-  simp +contextual only [Contract, restrict_inc₂_iff, vxMap.Inc₂, mem_diff, iff_def,
+  simp +contextual only [Contract, restrict_inc₂_iff, vxMap_inc₂_iff, mem_diff, iff_def,
     not_false_eq_true, and_true, implies_true, forall_exists_index, and_imp, true_and]
   rintro x rfl y rfl hbtw hnin
   exact ⟨⟨x, rfl, y, rfl, hbtw⟩, hbtw.edge_mem⟩
@@ -116,7 +116,7 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
   -- Get a representative function for the connected components
   obtain ⟨φ, hid, hrel, heq⟩ := Partition.nonempty_repFun (ConnectedPartition (G{S}))
   use φ
-  simp only [ComponentPartition.supp, restrict_V, ConnectedPartition.Rel] at hrel heq
+  simp only [ConnectedPartition.supp, restrict_V, ConnectedPartition.Rel] at hrel heq
   -- Show that φ is a valid contraction function with respect to S
   intro x y hx hy
   refine ⟨fun h_eq_φ ↦ ?_, (heq _ _ ·)⟩
@@ -526,9 +526,9 @@ lemma Connected.of_contract (hVd : ValidIn G φ C) (hu : u ∈ G.V) (hv : v ∈ 
 -- def Contract.toSubgraph {m : ContractSys α β} (hm : m.validIn G) (v : α) :
 --     Graph α β := G{m.contractSet}[m ⁻¹' {v}]
 
+end Contract
 
-
--- def IsContraction (H G : Graph α β) := ∃ m hm, H = G/m ~hm
+def IsContraction (H G : Graph α β) := ∃ φ C, H = G /[φ] C
 
 -- lemma IsContraction_refl : G.IsContraction G := by
 --   refine ⟨ContractSys.id, ⟨?_, ?_, ?_⟩, ?_⟩

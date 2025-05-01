@@ -10,7 +10,7 @@ import Kura.Walk.Defs
 import Kura.Walk.Operation
 import Kura.Walk.Subgraph
 import Kura.Walk.Lemma
-import Kura.ST.PathEnsemble
+import Kura.ST.Ensemble
 import Kura.ST.Separator
 import Kura.ST.Walk
 import Kura.ST.Menger

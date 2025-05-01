@@ -172,7 +172,7 @@ lemma mem_restrict_E_iff : e ∈ (G{R}).E ↔ e ∈ G.E ∧ e ∈ R := by
 @[simp] lemma restrict_inc₂_iff : (G{R}).Inc₂ e x y ↔ G.Inc₂ e x y ∧ e ∈ R := Iff.rfl
 
 /-- Edge deletion operator, defined as the graph restricted to the complement of the deleted set -/
-noncomputable def edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
+def edgeDel (G : Graph α β) (F : Set β) : Graph α β := G{G.E \ F}
 
 scoped infix:70 " \\ " => Graph.edgeDel
 

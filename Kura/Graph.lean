@@ -438,7 +438,6 @@ lemma incFun_eq_zero : G.IncFun e x = 0 ↔ ¬ G.Inc e x := by
 lemma Inc.iff_mem_support : G.Inc e x ↔ x ∈ (G.IncFun e).support := by
   rw [Finsupp.mem_support_iff, incFun_ne_zero]
 
-
 section IsLoopAt
 
 @[simp]
@@ -671,6 +670,27 @@ lemma inc₂_eq_inc₂_of_edge_mem_and_inc₂_le_inc₂ (he : e ∈ G.E) (h : G.
   obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h e u v hbtw).eq_or_eq_of_inc₂ hinc₂
   · exact hbtw
   · exact Inc₂.comm.mp hbtw
+
+-- Star of iff's with Inc₂ at the center.
+
+@[simp]
+lemma inc_eq_inc : G.Inc e = G'.Inc e ↔ G.Inc₂ e = G'.Inc₂ e :=
+  inc₂_eq_inc₂_iff_inc_eq_inc.symm
+
+@[simp]
+lemma incFun_eq_incFun : G.IncFun e = G'.IncFun e ↔ G.Inc₂ e = G'.Inc₂ e :=
+  inc_eq_inc_iff_incFun_eq_incFun.symm.trans inc_eq_inc
+
+@[simp]
+lemma toMultiset_eq_toMultiset : G.toMultiset e = G'.toMultiset e ↔ G.Inc₂ e = G'.Inc₂ e :=
+  incFun_eq_incFun_iff_toMultiset_eq_toMultiset.symm.trans incFun_eq_incFun
+
+@[simp]
+lemma toSym2_eq_toSym2 (he : e ∈ G.E) (he' : e ∈ G'.E) :
+    G.toSym2 e he = G'.toSym2 e he' ↔ G.Inc₂ e = G'.Inc₂ e :=
+  toSym2_eq_toSym2_iff_inc₂_eq_inc₂ he he'
+
+-- Actual extension lemmas.
 
 lemma ext_inc₂ (hV : G.V = G'.V) (h : ∀ e x y, G.Inc₂ e x y ↔ G'.Inc₂ e x y) : G = G' := by
   ext e x y

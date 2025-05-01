@@ -1,9 +1,9 @@
 import Kura.Operation.Subgraph
-import Kura.Walk.Basic
+import Kura.Walk.Path
 
 
 namespace Graph
-open Set Function List Nat WList
+open Set Function Nat WList
 variable {α β : Type*} {G G' H H' : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
   {F F' : Set β} {w w1 w2 : WList α β}
 
@@ -256,7 +256,7 @@ def leftSet (h : G.IsEdgeSetSeparator S T F) : Set α := {v | ∃ s ∈ S, (G \ 
 def rightSet (h : G.IsEdgeSetSeparator S T F) : Set α := {v | ∃ t ∈ T, (G \ F).Connected v t}
 
 -- Basic Properties & Negation
-@[simp] lemma not_isEdgeSetSeparator_iff : ¬ G.IsEdgeSetSeparator S T F ↔ (G.edgeDel F).SetConnected S T := by
+@[simp] lemma not_isEdgeSetSeparator_iff : ¬ G.IsEdgeSetSeparator S T F ↔ (G\F).SetConnected S T := by
   simp [IsEdgeSetSeparator]
 
 lemma symm (h : G.IsEdgeSetSeparator S T F) : G.IsEdgeSetSeparator T S F := by
@@ -328,6 +328,48 @@ lemma left_right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (
 lemma edgeDel : (G \ F').IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S T (F' ∪ F) := by
   simp [IsEdgeSetSeparator]
 
+-- Minimal Separator
+
+lemma mem_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) : e ∈ G.E :=
+  by_contra fun hnot ↦ h.not_ssubset
+    (sep_support.mp h.prop |>.mono <| subset_diff_singleton inter_subset_left (by simp [hnot]))
+    (by simp [heF] : F \ {e} ⊂ F)
+
+lemma subset_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) : F ⊆ G.E :=
+  fun _ ↦ mem_of_minimal h
+
+lemma exists_pathFrom_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) :
+    ∃ W : WList α β, (G \ (F \ {e})).IsPathFrom S T W ∧ e ∈ W.edge := by
+  have : ¬ G.IsEdgeSetSeparator S T (F \ {e}) := h.not_prop_of_ssubset (by simp [heF])
+  obtain ⟨W, hVd, hfst, hlst⟩ := by rwa [not_isEdgeSetSeparator_iff,
+    setConnected_iff_exists_pathFrom] at this
+  use W, hVd, by_contra fun heW ↦
+    h.prop (by simpa [heF] using hVd.edgeDel (by simp [heW] : Disjoint W.edgeSet {e}) :
+    (G \ F).IsPathFrom S T W).isWalkFrom.setConnected
+
+lemma exists_left_vx_right_vx_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) :
+    ∃ x y : α, G.Inc₂ e x y ∧ x ∈ h.prop.leftSet ∧ y ∈ h.prop.rightSet := by
+  classical
+  obtain ⟨W, hVd, heW⟩ := exists_pathFrom_of_minimal h heF
+  obtain ⟨x, y, hxy⟩ := W.exists_dInc_of_mem_edge heW
+  use x, y, (hVd.isWalk.of_le (restrict_le G _)).inc₂_of_dInc hxy
+  constructor <;> simp only [leftSet, rightSet, mem_setOf_eq]
+  · use W.first, hVd.first_mem
+    rw [← (W.splitAtEdge_left_prefix e).first_eq, Connected.comm, connected_iff_exists_walk]
+    obtain ⟨rfl, rfl⟩ := hVd.toIsPath.isTrail.eq_of_dInc_dInc (W.splitAtEdge_DInc heW) hxy
+    use (W.splitAtEdge e).fst, ?_
+    have := W.splitAtEdge_not_mem_left_edge e
+    rw [IsWalk_edgeDel_of_not_mem (hVd.toIsPath.isWalk.prefix (W.splitAtEdge_left_prefix e))] at this
+    convert this using 1
+    simp [heF]
+  · use W.last, hVd.last_mem
+    rw [← (W.splitAtEdge_right_suffix e).last_eq, connected_iff_exists_walk]
+    obtain ⟨rfl, rfl⟩ := hVd.toIsPath.isTrail.eq_of_dInc_dInc (W.splitAtEdge_DInc heW) hxy
+    use (W.splitAtEdge e).snd, ?_
+    have := W.splitAtEdge_not_mem_right_edge e hVd.toIsPath.isTrail.edge_nodup
+    rw [IsWalk_edgeDel_of_not_mem (hVd.toIsPath.isWalk.suffix (W.splitAtEdge_right_suffix e))] at this
+    convert this using 1
+    simp [heF]
 
 end IsEdgeSetSeparator
 

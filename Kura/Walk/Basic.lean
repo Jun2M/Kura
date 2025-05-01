@@ -181,6 +181,14 @@ lemma IsWalk_edgeDel : (G \ F).IsWalk w ↔ G.IsWalk w ∧ Disjoint w.edgeSet F 
   rintro hVd
   simp only [subset_diff, hVd.edgeSet_subset, true_and]
 
+lemma IsWalk_vxDel_of_not_mem (h : G.IsWalk w) (v : α) :
+  v ∉ w ↔ (G - ({v} : Set α)).IsWalk w :=
+  ⟨fun hv ↦ h.vxDel (by simp [hv]), fun h hvw ↦ by simpa using h.vx_mem_of_mem hvw⟩
+
+lemma IsWalk_edgeDel_of_not_mem (h : G.IsWalk w) (e : β) :
+  e ∉ w.edge ↔ (G \ ({e} : Set β)).IsWalk w :=
+  ⟨fun he ↦ h.edgeDel (by simp [he]), fun h hvw ↦ by simpa using h.edge_mem_of_mem hvw⟩
+
 
 /-- `G.IsWalkFrom S T w` means that `w` is a walk of `G` with one end in `S` and the other in `T`.-/
 @[mk_iff]
@@ -195,7 +203,7 @@ lemma IsWalkFrom.reverse (h : G.IsWalkFrom S T w) : G.IsWalkFrom T S w.reverse w
   last_mem := by simp [h.first_mem]
 
 
-lemma IsWalkFrom.le (h : G.IsWalkFrom S T w) (hle : G ≤ H) : H.IsWalkFrom S T w where
+lemma IsWalkFrom.of_le (h : G.IsWalkFrom S T w) (hle : G ≤ H) : H.IsWalkFrom S T w where
   isWalk := h.isWalk.le hle
   first_mem := h.first_mem
   last_mem := h.last_mem
@@ -229,9 +237,6 @@ lemma IsWalkFrom.of_edgeDel (h : (G \ F).IsWalkFrom S T w) : G.IsWalkFrom S T w 
   isWalk := h.isWalk.of_edgeDel
   first_mem := h.first_mem
   last_mem := h.last_mem
-
-
-
 
 /-- The walk corresponding to an incidence `G.Inc₂ e u v`. -/
 def Inc₂.walk (_h : G.Inc₂ e u v) : WList α β := cons u e (nil v)
@@ -279,7 +284,37 @@ lemma length_eq_one_iff : w.length = 1 ∧ G.IsWalk w ↔ ∃ x e y h, w = (h : 
   simp only [cons_isWalk_iff, nil_first, nil_isWalk_iff] at hVd
   exact ⟨x, e, y, hVd.1, by simp [Inc₂.walk]⟩
 
+section Connected
 
+lemma reflAdj.exists_walk (h : G.reflAdj x y) : ∃ w, G.IsWalk w ∧ w.first = x ∧ w.last = y := by
+  obtain ⟨e, hbtw⟩ | ⟨rfl, hx⟩ := h
+  · exact ⟨hbtw.walk, hbtw.walk_isWalk, rfl, rfl⟩
+  · exact ⟨nil x, by simpa using hx, rfl, rfl⟩
+
+lemma connected_iff_exists_walk : G.Connected x y ↔ ∃ w, G.IsWalk w ∧ w.first = x ∧ w.last = y := by
+  constructor
+  · rintro h
+    induction h with
+    | single hradj => exact hradj.exists_walk
+    | tail _ hradj ih =>
+      obtain ⟨w, hVd, rfl, rfl⟩ := ih
+      obtain ⟨w', hVd', heq, rfl⟩ := hradj.exists_walk
+      use w ++ w', hVd.append hVd' heq.symm, by simp [heq], append_last
+  · rintro ⟨w, hVd, rfl, rfl⟩
+    induction hVd with
+    | nil hx => simpa
+    | cons hw h ih =>
+      simp only [first_cons, last_cons]
+      exact Connected.trans h.connected ih
+
+lemma IsWalk.connected (h : G.IsWalk w) : G.Connected w.first w.last := by
+  rw [connected_iff_exists_walk]
+  use w, h
+
+lemma IsWalkFrom.setConnected (h : G.IsWalkFrom S T w) : G.SetConnected S T :=
+  ⟨w.first, h.first_mem, w.last, h.last_mem, h.isWalk.connected⟩
+
+end Connected
 
 -- lemma IsPath.prefix (hP : G.IsPath w) (hPf : w₁.IsPrefix w) : G.IsPath w₁ := by
 --   refine ⟨hP.isWalk.prefix hPf, ?_⟩
