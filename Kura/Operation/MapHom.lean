@@ -12,9 +12,7 @@ lemma vxMap.IsHomOn (φ : α → α') : (HomSys.ofVxFun φ).IsHomOn G (vxMap G �
   Mapsto_vx v hv := by
     simp only [V, HomSys.ofVxFun, mem_image]
     use v
-  inc₂ ⦃e x y⦄ h := by
-    simp only [HomSys.ofVxFun_edgeFun, id_eq, HomSys.ofVxFun_toFun, vxMap_inc₂]
-    use x, y
+  inc₂ ⦃e x y⦄ h := by simp [toMultiset_eq_pair_iff.mpr h]
 
 lemma vxMap.HasHom (φ : α → α') : G ≤→ (vxMap G φ) :=
   ⟨HomSys.ofVxFun φ, vxMap.IsHomOn φ⟩
@@ -25,9 +23,9 @@ lemma vxMap.IsIsomOn (φ : α → α') (hφ : InjOn φ G.V) :
   bijOn_vx := ⟨mapsTo'.mpr fun ⦃a⦄ a ↦ a, hφ, fun ⦃a⦄ a ↦ a⟩
   bijOn_edge := by
     refine ⟨fun e he ↦ ?_, fun e₁ he₁ e₂ he₂ heq ↦ ?_, fun e he ↦ ?_⟩
-    · simpa only [E, HomSys, id_eq]
+    · simpa only [vxMap_edgeSet, HomSys.ofVxFun_edgeFun, id_eq]
     · simpa only using heq
-    · simpa only [HomSys.ofVxFun, id_eq, image_id', E] using he
+    · simpa only [HomSys.ofVxFun, id_eq, image_id', vxMap_edgeSet] using he
 
 lemma vxMap.HasIsom (φ : α → α') (hφ : InjOn φ G.V) : G ≤↔ (vxMap G φ) :=
   ⟨HomSys.ofVxFun φ, vxMap.IsIsomOn φ hφ⟩

@@ -113,6 +113,18 @@ lemma pair_eq_pair_iff {a b c d : α} :
     · rfl
     · rw [pair_comm]
 
+@[simp]
+lemma map_eq_pair_iff {f : α → β} {s : Multiset α} {c d : β} :
+    s.map f = {c, d} ↔ ∃ a b, s = {a, b} ∧ f a = c ∧ f b = d := by
+  classical
+  simp_rw [insert_eq_cons, ← map_eq_cons, map_eq_singleton]
+  constructor
+  · rintro ⟨a, ha, rfl, b, hb, rfl⟩
+    use a, b, ?_
+    rw [← cons_erase ha, hb]
+  · rintro ⟨a, b, rfl, rfl, rfl⟩
+    use a, (by simp), rfl, b, (by simp)
+
 end Multiset
 
 namespace Finset

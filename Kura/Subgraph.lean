@@ -167,13 +167,17 @@ lemma edgeRestrict_eq_edgeRestrict_iff (G : Graph α β) (F₁ F₂ : Set β) :
 use `copy` for better definitional properties. -/
 @[simps!]
 def edgeDelete (G : Graph α β) (F : Set β) : Graph α β :=
-  (G.edgeRestrict (G.E \ F)).copy (E := G.E \ F) (Inc₂ := fun e x y ↦ G.Inc₂ e x y ∧ e ∉ F) rfl
+  (G.edgeRestrict (G.E \ F)).copy (E := G.E \ F) (Inc₂ := fun e x y ↦ e ∉ F ∧ G.Inc₂ e x y) rfl
     (by simp [diff_subset])
     (fun e x y ↦ by
       simp only [edgeRestrict_inc₂, mem_diff, and_comm, and_congr_left_iff, and_iff_left_iff_imp]
       exact fun h _ ↦ h.edge_mem)
 
 scoped infixl:65 " ＼ " => Graph.edgeDelete
+
+@[simp]
+lemma edgeDelete_inc : (G ＼ F).Inc e x ↔ e ∉ F ∧ G.Inc e x := by
+  simp_rw [inc_iff_exists_inc₂, edgeDelete_inc₂, exists_and_left]
 
 lemma edgeDelete_eq_edgeRestrict (G : Graph α β) (F : Set β) :
     G ＼ F = G ↾ (G.E \ F) := copy_eq_self ..
@@ -230,8 +234,9 @@ lemma noEdge_le_iff {V : Set α} : Graph.noEdge V β ≤ G ↔ V ⊆ G.V := by
 
 lemma edgeDelete_eq_noEdge (G : Graph α β) (hF : G.E ⊆ F) : G ＼ F = Graph.noEdge G.V β := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [edgeDelete_inc₂, noEdge_inc₂, iff_false, not_and, not_not]
-  exact fun h ↦ hF h.edge_mem
+  simp only [edgeDelete_inc₂, noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
+    not_inc₂_of_not_mem_edgeSet, iff_false, not_and]
+  exact fun h hbtw ↦ h (hF hbtw.edge_mem)
 
 instance instOrderBotGraph : OrderBot (Graph α β) where
   bot := Graph.noEdge ∅ β

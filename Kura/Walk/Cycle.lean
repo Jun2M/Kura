@@ -211,7 +211,7 @@ lemma IsCycle.exists_isPath_toGraph_eq_delete_edge_of_inc₂ (hC : G.IsCycle C) 
       aux (hC.rotate n) (hC.isClosed.dInc_rotate he' n) rfl
   refine ⟨C.tail, hC.tail_isPath, Graph.ext (by simp [hC.isClosed.vxSet_tail]) fun f z z' ↦ ?_, ?_⟩
   · rw [hC.tail_isPath.isWalk.wellFormed.toGraph_inc₂, edgeDelete_inc₂, Set.mem_singleton_iff,
-      hC.isWalk.wellFormed.toGraph_inc₂, hC.nonempty.tail_inc₂_iff hC.edge_nodup, ← hxC]
+      hC.isWalk.wellFormed.toGraph_inc₂, hC.nonempty.tail_inc₂_iff hC.edge_nodup, ← hxC, and_comm]
   rw [tail_last, ← hC.isClosed.eq, and_comm, ← hC.toIsTrail.dInc_iff_eq_of_dInc he', hxC]
   cases C with | _ => simp_all
 
