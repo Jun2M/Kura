@@ -12,6 +12,7 @@ structure HomSys (α β α' β' : Type*) where
   toFun : α → α'
   edgeFun : β → β'
 
+@[simps]
 def HomSys.ofVxFun (f : α → α') : HomSys α β α' β where
   toFun := f
   edgeFun := id
@@ -27,11 +28,11 @@ instance : CoeFun (HomSys α β α' β') fun (_ : HomSys α β α' β') ↦ α �
 
 structure HomSys.IsHomOn (f : HomSys α β γ δ) (G₁ : Graph α β) (G₂ : Graph γ δ) : Prop where
   Mapsto_vx : MapsTo f G₁.V G₂.V
-  inc₂ ⦃e x y⦄ : G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)
+  inc₂ ⦃e : _⦄ ⦃x y : _⦄ : G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)
 
   Mapsto_edge : MapsTo f.edgeFun G₁.E G₂.E :=
-    fun _ he ↦ (inc₂ (Inc₂.exists_vx_inc₂ he).choose_spec.choose_spec).edge_mem
-  inc ⦃e a⦄ : G₁.Inc e a → G₂.Inc (f.edgeFun e) (f a) := fun hinc ↦
+    fun _ he ↦ (inc₂ (exists_inc_of_mem_edgeSet he).choose_spec.choose_spec).edge_mem
+  inc ⦃e : _⦄ ⦃a : _⦄ : G₁.Inc e a → G₂.Inc (f.edgeFun e) (f a) := fun hinc ↦
     (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
 
 def HasHom (G₁ : Graph α β) (G₂ : Graph γ δ) := ∃ f : HomSys α β γ δ, f.IsHomOn G₁ G₂
@@ -68,6 +69,7 @@ lemma HasIsom.toHasHom (h : HasIsom G₁ G₂) : HasHom G₁ G₂ := by
   obtain ⟨f, hHomOn, ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
   exact ⟨f, hHomOn⟩
 
+@[simps]
 def HomSys.id : HomSys α β α β where
   toFun := _root_.id
   edgeFun := _root_.id
@@ -82,6 +84,7 @@ lemma HomSys.IsEmbOn.id : HomSys.id.IsEmbOn G G :=
 lemma HomSys.IsIsomOn.id : HomSys.id.IsIsomOn G G :=
   ⟨HomSys.IsHomOn.id, bijOn_id G.V, bijOn_id G.E⟩
 
+@[simps]
 def HomSys.comp (g : HomSys α β γ δ) (f : HomSys γ δ ε ζ) : HomSys α β ε ζ where
   toFun := f ∘ g
   edgeFun := f.edgeFun ∘ g.edgeFun
@@ -105,7 +108,7 @@ lemma HomSys.IsIsomOn.comp {g : HomSys α β γ δ} {f : HomSys γ δ ε ζ} (hg
 
 lemma HomSys.IsHomOn.le {f : HomSys α β γ δ} (hle : G₂ ≤ G₂') (hf : f.IsHomOn G₁ G₂) :
     f.IsHomOn G₁ G₂' where
-  Mapsto_vx _x hx := vx_subset_of_le hle (hf.Mapsto_vx hx)
+  Mapsto_vx _x hx := vxSet_subset_of_le hle (hf.Mapsto_vx hx)
   inc₂ _e _x _y hbtw := (hf.inc₂ hbtw).of_le hle
 
 lemma HomSys.IsEmbOn.le {f : HomSys α β γ δ} (hle : G₂ ≤ G₂') (hf : f.IsEmbOn G₁ G₂) :
@@ -119,7 +122,7 @@ lemma HasEmb.bot [hg : Nonempty γ] [hd : Nonempty δ] : (⊥ : Graph α β) ≤
   exact {
     Mapsto_vx := mapsTo_empty (fun x ↦ hg.some) G₂.V
     inc₂ := fun e x y hbtw ↦ by
-      simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc₂_of_not_edge_mem] at hbtw
+      simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc₂_of_not_mem_edgeSet] at hbtw
     injOn_vx := by simp only [bot_V, injOn_empty]
     injOn_edge := by simp only [bot_E, injOn_empty]
   }
@@ -128,7 +131,8 @@ variable {f : HomSys α β γ δ}
 
 section Hom
 
-lemma HasHom.edgeless [hd : Nonempty δ] (hU : U.Nonempty) : (Edgeless U β) ≤→ G₂ ↔ G₂.V.Nonempty := by
+lemma HasHom.noEdge [hd : Nonempty δ] (hU : U.Nonempty) :
+    (Graph.noEdge U β) ≤→ G₂ ↔ G₂.V.Nonempty := by
   constructor
   · rintro ⟨f, hsu, hf⟩
     use f hU.some, hsu (by simp [hU.some_mem])
@@ -136,8 +140,8 @@ lemma HasHom.edgeless [hd : Nonempty δ] (hU : U.Nonempty) : (Edgeless U β) ≤
     use ⟨fun _ ↦ v, fun _ ↦ hd.some⟩
     exact {
       Mapsto_vx := fun ⦃x⦄ a ↦ hv
-      inc₂ := fun e x y hbtw ↦ by simp only [Edgeless.E, mem_empty_iff_false, not_false_eq_true,
-        not_inc₂_of_not_edge_mem] at hbtw}
+      inc₂ := fun e x y hbtw ↦ by simp only [noEdge_edgeSet, mem_empty_iff_false,
+        not_false_eq_true, not_inc₂_of_not_mem_edgeSet] at hbtw}
 
 lemma HasHom.rfl : G₁ ≤→ G₁ := ⟨HomSys.id, HomSys.IsHomOn.id⟩
 
@@ -183,8 +187,8 @@ lemma IsIsomOn.inc₂ (hisom : f.IsIsomOn G₁ G₂) (he : e ∈ G₁.E) (ha : a
   · exact hisom.inc₂ hbtw
   · obtain ⟨e', he', he'eq⟩ := hisom.bijOn_edge.surjOn hbtw.edge_mem
     obtain rfl := hisom.bijOn_edge.injOn he' he he'eq
-    obtain ⟨a', b', hbtw'⟩ := Inc₂.exists_vx_inc₂ he
-    obtain ⟨haeq, hbeq⟩ | ⟨haeq, hbeq⟩ := (hisom.inc₂ hbtw').eq_or_eq_of_inc₂ hbtw
+    obtain ⟨a', b', hbtw'⟩ := exists_inc_of_mem_edgeSet he
+    obtain ⟨haeq, hbeq⟩ | ⟨haeq, hbeq⟩ := (hisom.inc₂ hbtw').eq_and_eq_or_eq_and_eq_of_inc₂ hbtw
     · rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_left ha] at haeq
       rw [hisom.bijOn_vx.injOn.eq_iff hbtw'.vx_mem_right hb] at hbeq
       subst a' b'
@@ -206,7 +210,7 @@ def HomSys.image (f : HomSys α β γ δ) (h : f.IsHomOn G G₂) : Graph γ δ :
     have hev := h.inc hincev
     have hab := heqae ▸ h.inc hincab
     have hcd := heqce ▸ h.inc hinccd
-    exact Inc.not_hypergraph hev hab hcd)
+    exact Inc.eq_or_eq_or_eq_of_inc_of_inc hev hab hcd)
 
 @[simp] lemma HomSys.image_V (h : f.IsHomOn G G₂) : (f.image h).V = f '' G.V :=
   rfl
@@ -219,7 +223,7 @@ def HomSys.image (f : HomSys α β γ δ) (h : f.IsHomOn G G₂) : Graph γ δ :
   · rintro ⟨v, e, rfl, v, rfl, hinc⟩
     use e, hinc.edge_mem
   · rintro ⟨e, he, rfl⟩
-    obtain ⟨v, hinc⟩ := Inc.exists_vx_inc he
+    obtain ⟨v, hinc⟩ := exists_inc_of_mem_edgeSet he
     use f v, e, rfl, v
 
 @[simp]
@@ -237,24 +241,21 @@ lemma HomSys.image_le (h : f.IsHomOn G G₂) : f.image h ≤ G₂ := by
     exact h.inc hinc
   · rintro hinc
     obtain ⟨b, hb, rfl⟩ := he
-    obtain ⟨a, a', hinc₂⟩ := Inc₂.exists_vx_inc₂ hb
-    obtain (rfl | rfl) := (h.inc₂ hinc₂).eq_of_inc hinc
+    obtain ⟨a, a', hinc₂⟩ := exists_inc_of_mem_edgeSet hb
+    obtain (rfl | rfl) := (h.inc₂ hinc₂).eq_or_eq_of_inc hinc
     · use b, rfl, a, rfl
       exact hinc₂.inc_left
     · use b, rfl, a', rfl
       exact hinc₂.inc_right
 
-lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) :
-    f.IsIsomOn G (f.image h.toIsHomOn) where
+lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toIsHomOn) where
   Mapsto_vx v hv := by use v
   inc₂ e v w hbtw := by
-    rw [inc₂_iff_inc₂_edge_mem_of_le (HomSys.image_le h.toIsHomOn)]
-    refine ⟨h.inc₂ hbtw, ?_⟩
-    simp only [image_E, mem_image]
-    use e, hbtw.edge_mem
-  bijOn_vx := by
-    refine ⟨fun u hu ↦ ?_, fun u hu v hv heq ↦ h.injOn_vx hu hv heq, fun _ h ↦ h⟩
-    use u
+    rw [← inc₂_iff_inc₂_of_le_of_mem (HomSys.image_le h.toIsHomOn)]
+    exact h.inc₂ hbtw
+    · simp only [image_E, mem_image]
+      use e, hbtw.edge_mem
+  bijOn_vx := ⟨fun u hu ↦ (by use u), fun u hu v hv heq ↦ h.injOn_vx hu hv heq, fun _ h ↦ h⟩
   bijOn_edge := by
     refine ⟨fun e he ↦ ?_, fun e he v hv heq ↦ h.injOn_edge he hv heq, fun d hd ↦ by
       simpa only [image_E] using hd⟩

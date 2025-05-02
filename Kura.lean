@@ -1,6 +1,7 @@
 -- import Mathlib
-import Kura.Graph
-import Kura.Operation.Subgraph
+import Kura.Basic
+import Kura.Subgraph
+import Kura.IncFun
 import Kura.WList.Defs
 import Kura.WList.Ops
 import Kura.WList.Sublist
@@ -12,12 +13,14 @@ import Kura.Connected
 import Kura.Operation.Map
 import Kura.Operation.Hom
 import Kura.Operation.MapHom
-import Kura.Operation.Minor
-import Kura.Operation.Minor2
-import Kura.ST.Separator
+-- import Kura.Operation.Minor
+-- import Kura.Operation.Minor2
+-- import Kura.ST.Separator
 -- import Kura.ST.Ensemble
 -- import Kura.ST.Walk
 -- import Kura.ST.Menger
+import Kura.Tree
+import Kura.Matroid
 
 -- This module serves as the root of the `Kura` library.
 -- Import modules here that should be built as part of the library.
@@ -25,10 +28,10 @@ import Kura.ST.Separator
 -- Graph.lean
 #check finsum_mem_const
 #check Graph
-#check Graph.Finite
+-- #check Graph.Finite
 #check Graph.toMultiset
 #check Graph.toSym2
-#check Graph.IncFun
+#check Graph.incFun
 #check Graph.Inc
 #check Graph.IsLoopAt
 #check Graph.IsNonloopAt
@@ -36,23 +39,22 @@ import Kura.ST.Separator
 #check Graph.Inc₂.vx_mem_left
 #check Graph.Inc₂.vx_mem_right
 #check Graph.Inc₂.edge_mem
-#check Graph.Inc₂.exists_vx_inc₂
-#check Graph.Inc₂.left_or_of_inc₂
+#check Graph.exists_inc₂_of_mem_edgeSet
+#check Graph.Inc₂.left_eq_or_eq_of_inc₂
 #check Graph.Inc₂.right_or_of_inc₂
-#check Graph.Inc₂.comm
+#check Graph.inc₂_comm
 #check Graph.Inc₂.inc₂_iff_eq_left
 #check Graph.Inc₂.inc₂_iff_eq_right
-#check Graph.Inc₂.eq_or_eq_of_inc₂
-#check Graph.not_inc₂_of_not_edge_mem
-#check Graph.Inc₂.pair_eq
-#check Graph.Inc₂.sym2_eq_iff
+#check Graph.Inc₂.eq_and_eq_or_eq_and_eq_of_inc₂
+#check Graph.not_inc₂_of_not_mem_edgeSet
+#check Graph.Inc₂.inc₂_iff_sym2_eq
 #check Graph.Inc.vx_mem
 #check Graph.Inc.edge_mem
-#check Graph.Inc.exists_vx_inc
-#check Graph.Inc.not_hypergraph
-#check Graph.not_inc_of_not_vx_mem
-#check Graph.not_inc_of_not_edge_mem
-#check Graph.exists_vertex_inc
+#check Graph.Inc.exists_vx_inc₂
+#check Graph.Inc.eq_or_eq_or_eq_of_inc_of_inc
+#check Graph.not_inc_of_not_mem_vxSet
+#check Graph.not_inc_of_not_mem_edgeSet
+#check Graph.exists_inc_of_mem_edgeSet
 #check Graph.toMultiset.vx_mem
 #check Graph.toMultiset.edge_mem
 #check Graph.toMultiset.card_eq_two
@@ -62,7 +64,7 @@ import Kura.ST.Separator
 #check Graph.toMultiset_card_eq_two_iff
 #check Graph.toMultiset_card_or
 #check Graph.toSym2.vx_mem
-#check Graph.toSym2.eq_iff_inc₂
+#check Graph.toSym2_eq_pair_iff
 #check Graph.IncFun.sum_eq
 #check Graph.IncFun.vx_mem
 #check Graph.IncFun.edge_mem
@@ -73,8 +75,8 @@ import Kura.ST.Separator
 #check Graph.inc_iff_exists_inc₂
 #check Graph.Inc₂.inc_left
 #check Graph.Inc₂.inc_right
-#check Graph.Inc₂.eq_of_inc
-#check Graph.inc₂_iff_inc_and_loop
+#check Graph.Inc₂.eq_or_eq_of_inc
+#check Graph.inc₂_iff_inc
 #check Graph.Inc₂.inc_iff
 #check Graph.Inc₂.forall_inc_iff
 #check Graph.forall_inc_iff
@@ -92,7 +94,7 @@ import Kura.ST.Separator
 #check Graph.IsNonloopAt.edge_mem
 #check Graph.IsLoopAt.inc
 #check Graph.IsNonloopAt.inc
-#check Graph.inc₂_eq_iff_isLoopAt
+#check Graph.inc₂_self_iff
 #check Graph.Inc₂.IsLoopAt_iff_eq
 #check Graph.inc_and_not_isLoopAt_iff_isNonloopAt
 #check Graph.toMultiset_eq_replicate_two_iff_isLoopAt
@@ -106,26 +108,22 @@ import Kura.ST.Separator
 #check Graph.IsNonloopAt.exists_inc_ne
 #check Graph.isNonloopAt_iff
 #check Graph.Adj
-#check Graph.Adj.comm
+#check Graph.adj_comm
 #check Graph.Adj.symm
 #check Graph.Adj.mem_left
 #check Graph.Adj.mem_right
-#check Graph.not_adj_of_not_mem_left
-#check Graph.not_adj_of_not_mem_right
-#check Graph.Inc₂.Adj
+#check Graph.not_adj_of_left_not_mem_vxSet
+#check Graph.not_adj_of_right_not_mem_vxSet
+#check Graph.Inc₂.adj
 #check Graph.edgeNhd
 #check Graph.vxNhd
-#check Graph.inc₂_eq_inc₂_iff_inc_eq_inc
-#check Graph.inc_eq_inc_iff_incFun_eq_incFun
-#check Graph.incFun_eq_incFun_iff_toMultiset_eq_toMultiset
-#check Graph.toSym2_eq_toSym2_iff_inc₂_eq_inc₂
 #check Graph.edge_subset_of_inc₂_le_inc₂
 #check Graph.inc₂_eq_inc₂_of_edge_mem_and_inc₂_le_inc₂
-#check Graph.inc_eq_inc
-#check Graph.incFun_eq_incFun
-#check Graph.toMultiset_eq_toMultiset
-#check Graph.toSym2_eq_toSym2
-#check Graph.ext_inc₂
+#check Graph.inc_eq_inc_iff
+#check Graph.incFun_eq_incFun_iff
+#check Graph.toMultiset_eq_toMultiset_iff
+#check Graph.toSym2_eq_toSym2_iff
+#check Graph.ext
 #check Graph.ext_inc₂_le
 #check Graph.ext_inc
 #check Graph.ext_incFun
@@ -146,19 +144,16 @@ import Kura.ST.Separator
 #check Graph.IncidenceEdges
 #check Graph.IncidentVertices
 -- Le.lean
-#check Graph.instPartialOrderGraph
-#check Graph.vx_subset_of_le
-#check Graph.mem_of_le
-#check Graph.edge_subset_of_le
-#check Graph.edge_mem_of_le
-#check Graph.Inc_eq_Inc_of_le
+#check Graph.vxSet_subset_of_le
+#check Graph.edgeSet_subset_of_le
+#check Graph.inc_iff_inc_of_le_of_mem
 #check Graph.incFun_eq_incFun_of_le
-#check Graph.Inc₂_eq_Inc₂_of_le
-#check Graph.le_of_exist_mutual_le
-#check Graph.le_iff_inc₂
+#check Graph.inc₂_iff_inc₂_of_le_of_mem
+#check Graph.le_of_le_le_subset_subset
+#check Graph.le_iff
 #check Graph.Inc₂.of_le
 #check Graph.Inc₂.le_of_le
-#check Graph.inc₂_iff_inc₂_edge_mem_of_le
+#check Graph.inc₂_iff_inc₂_of_le_of_mem
 #check Graph.Inc.le
 #check Graph.Inc.le_of_le
 #check Graph.IsLoopAt_iff_IsLoopAt_of_edge_mem_le
@@ -167,17 +162,10 @@ import Kura.ST.Separator
 #check Graph.IsNonloopAt.le
 #check Graph.Adj.of_le
 #check Graph.le_iff_inc
-#check Graph.finite_of_le_finite
-#check Graph.vx_ncard_le_of_le
-#check Graph.edge_ncard_le_of_le
 #check Graph.instOrderBotGraph
 #check Graph.instInhabitedGraph
 #check Graph.bot_V
 #check Graph.bot_E
-#check Graph.bot_incFun
-#check Graph.bot_inc
-#check Graph.bot_inc₂
-#check Graph.bot_adj
 #check Graph.vx_empty_iff_eq_bot
 #check Graph.Isolated.bot
 #check Graph.Isolated.edgeless
@@ -416,7 +404,7 @@ import Kura.ST.Separator
 #check Graph.HomSys.IsHomOn.le
 #check Graph.HomSys.IsEmbOn.le
 #check Graph.HasEmb.bot
-#check Graph.HasHom.edgeless
+#check Graph.HasHom.noEdge
 #check Graph.HasHom.rfl
 #check Graph.HasHom.trans
 #check Graph.IsCore
@@ -435,12 +423,12 @@ import Kura.ST.Separator
 -- Operation.Map.lean
 #check Graph.vxMap_aux
 #check Graph.vxMap
-#check Graph.vxMap.V
-#check Graph.vxMap.E
-#check Graph.vxMap_inc_iff
+#check Graph.vxMap_vxSet
+#check Graph.vxMap_edgeSet
+#check Graph.vxMap_inc
 #check Graph.vxMap_toMultiset_eq_map_toMultiset
 #check Graph.Inc₂.vxMap_of_inc₂
-#check Graph.vxMap_inc₂_iff
+#check Graph.vxMap_inc₂
 #check Graph.edgePreimg
 #check Graph.edgePreimg.V
 #check Graph.edgePreimg.E
@@ -544,8 +532,8 @@ import Kura.ST.Separator
 #check WList.first_mem
 #check WList.last_mem
 #check WList.UniqueMem
-#check WList.vxSet
-#check WList.edgeSet
+#check WList.V
+#check WList.E
 #check WList.mem_vxSet_iff
 #check WList.mem_edgeSet_iff
 #check WList.nil_vxSet
@@ -926,7 +914,7 @@ import Kura.ST.Separator
 #check Graph.Inc₂.walk_isWalk
 #check Graph.length_eq_one_iff
 #check Graph.reflAdj.exists_walk
-#check Graph.connected_iff_exists_walk
+#check Graph.VxConnected.exists_isWalk
 #check Graph.IsWalk.connected
 #check Graph.IsWalkFrom.setConnected
 #check Graph.reverse_isWalk_iff
@@ -971,8 +959,7 @@ import Kura.ST.Separator
 #check Graph.nil_isTrailFrom
 #check Graph.nil_isPathFrom
 #check Graph.IsPath.isTrail
-#check Graph.IsTrail.unique_dInc
-#check Graph.IsTrail.eq_of_dInc_dInc
+#check Graph.IsTrail.dInc_iff_eq_of_dInc
 #check Graph.IsTrail.of_le
 #check Graph.IsTrail.induce
 #check Graph.IsTrail.vxDel

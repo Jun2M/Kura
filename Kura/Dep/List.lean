@@ -350,7 +350,7 @@ theorem indexOf_eq_zero_iff [BEq α] [LawfulBEq α] {l : List α} (hl : l ≠ []
       exact beq_iff_eq.not.mp h'
 
 theorem getLast_tail_eq_getLast {l : List α} (h : l.tail ≠ []) :
-    l.tail.getLast h = l.getLast (ne_nil_of_drop_ne_nil ((drop_one l).symm ▸ h)) := by
+    l.tail.getLast h = l.getLast (ne_nil_of_drop_ne_nil (drop_one.symm ▸ h)) := by
   match l with
   | [] => contradiction
   | a :: as =>
@@ -616,10 +616,8 @@ lemma takeWhile_ne_find?_eq_takeWhile [DecidableEq α] {l : List α} {p : α →
     by_cases h' : p b
     · rw [takeWhile_cons_of_neg, takeWhile_cons_of_neg]
       exact Bool.not_not_eq.mpr h'
-      simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
-        Decidable.not_not]
-      simpa only [find?_cons_of_pos _ h', Option.mem_def, Option.some.injEq] using h
-    · rw [find?_cons_of_neg _ h'] at h
+      simpa [h'] using h
+    · simp only [h', Bool.false_eq_true, not_false_eq_true, find?_cons_of_neg, Option.mem_def] at h
       rw [takeWhile_cons_of_pos, takeWhile_cons_of_pos, cons_inj_right, ih h]
       exact Bool.not_iff_not.mpr h'
       simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
@@ -634,10 +632,8 @@ lemma dropWhile_ne_find?_eq_dropWhile [DecidableEq α] {l : List α} {p : α →
     by_cases h' : p b
     · rw [dropWhile_cons_of_neg, dropWhile_cons_of_neg]
       exact Bool.not_not_eq.mpr h'
-      simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
-        Decidable.not_not]
-      simpa only [find?_cons_of_pos _ h', Option.mem_def, Option.some.injEq] using h
-    · rw [find?_cons_of_neg _ h'] at h
+      simpa [h'] using h
+    · simp only [h', Bool.false_eq_true, not_false_eq_true, find?_cons_of_neg, Option.mem_def] at h
       rw [dropWhile_cons_of_pos, dropWhile_cons_of_pos, ih h]
       exact Bool.not_iff_not.mpr h'
       simp only [ne_eq, decide_not, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not,
@@ -667,12 +663,12 @@ lemma getLast_rotate {α : Type*} {l : List α} {n : ℕ} (h : l ≠ []) (hlen :
     (l.rotate n).getLast (by simp [h]) = l[(n + l.length - 1) % l.length] := by
   simp only [rotate_eq_drop_append_take_mod]
   by_cases htake : take (n % l.length) l = []
-  · simp only [htake, append_nil, getLast_drop, List.getLast_eq_getElem l h]
+  · simp only [htake, append_nil, getLast_drop, List.getLast_eq_getElem h]
     congr
     simp only [take_eq_nil_iff, h, or_false] at htake
     rw [Nat.add_sub_assoc, Nat.add_mod, htake, zero_add, Nat.mod_mod, eq_comm, Nat.mod_eq_iff_lt]
     all_goals omega
-  · rw [getLast_append_of_ne_nil htake, getLast_take]
+  · rw [getLast_append_of_ne_nil, getLast_take htake]
     simp only [take_eq_nil_iff, h, or_false] at htake
     have : n % l.length - 1 < l.length := by
       have := Nat.mod_lt n (y := l.length)
@@ -694,17 +690,17 @@ lemma mem_zip_iff {β : Type*} {l : List α} {l' : List β} {a : α} {b : β} :
   constructor
   · rintro h
     obtain ⟨i, hile, heq⟩ := getElem_of_mem h
-    use i, (length_zip _ _) ▸ hile
+    use i, length_zip ▸ hile
     simpa only [getElem_zip, Prod.mk.injEq] using heq
   · rintro ⟨i, hile, rfl, rfl⟩
     apply List.mem_of_getElem (i := i)
     rw [getElem_zip]
-    exact (length_zip _ _) ▸ hile
+    exact length_zip ▸ hile
 
 lemma le_count_dropLast {l : List α} {x : α} [BEq α] : l.count x - 1 ≤ (l.dropLast).count x := by
   rw [← reverse_reverse l, dropLast_reverse, count_reverse]
   conv_rhs => rw [count_reverse]
-  exact le_count_tail _ _
+  exact le_count_tail
 
 /- ------------------------------------------------------------------------------------ -/
 
@@ -721,7 +717,6 @@ lemma length_le_one_of_tail_eq_nil {l : List α} (h : l.tail = []) :
   l.length ≤ 1 := by
   rcases subsingleton_of_tail_eq_nil h with rfl | ⟨x, rfl⟩ <;> simp
 
-lemma tail_eq_drop_one (l : List α) :
-  l.tail = l.drop 1 := (drop_one l).symm
+lemma tail_eq_drop_one (l : List α) : l.tail = l.drop 1 := drop_one.symm
 
 ---------------------------------------------------------------------------

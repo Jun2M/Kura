@@ -15,7 +15,7 @@ rev = "main"
 [[require]]
 name = "Matroid"
 git = "https://github.com/apnelson1/Matroid.git"
-rev = "2fdf0a4720e54c48f88b25bd571e987e024da9c9"
+rev = "67f6b5c73a9419f5bba7871f30bade7e23e1bf13"
 
 [[require]]
 name = "mathlib"

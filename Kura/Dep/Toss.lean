@@ -47,13 +47,13 @@ lemma Nat.add_eq_toss' {a b c : ℕ} (h : 0 < b) : a = b + c ↔ a - c = b := by
 theorem toss_eq_add {α : Type} [AddGroup α] {a b : α} : a = b ↔ 0 = -a + b := by
   rw [← neg_add_eq_zero, eq_comm]
 
-theorem toss_add_le {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem toss_add_le {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a + b ≤ c ↔ b ≤ -a + c := by
   rw [
     ← le_neg_add_iff_add_le
   ]
 
-theorem add_toss_le {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem add_toss_le {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a + b ≤ c ↔ a ≤ c - b := by
   rw [
     ← le_sub_iff_add_le
@@ -63,13 +63,13 @@ lemma Nat.add_toss_le {a b c : ℕ} (h : b ≤ c) : a + b ≤ c ↔ a ≤ c - b 
 
 lemma Nat.add_toss_le' {a b c : ℕ} (h : 0 < a) : a + b ≤ c ↔ a ≤ c - b := by omega
 
-theorem le_toss_add {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem le_toss_add {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a ≤ b + c ↔ -b + a ≤ c := by
   rw [
     ← neg_add_le_iff_le_add
   ]
 
-theorem le_add_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem le_add_toss {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a ≤ b + c ↔ a - c ≤ b := by
   rw [
     ← sub_le_iff_le_add
@@ -77,13 +77,13 @@ theorem le_add_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
 
 lemma Nat.le_add_toss {a b c : ℕ} : a ≤ b + c ↔ a - c ≤ b := by omega
 
-theorem toss_add_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem toss_add_lt {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a + b < c ↔ b < -a + c := by
   rw [
     ← lt_neg_add_iff_add_lt
   ]
 
-theorem add_toss_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem add_toss_lt {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a + b < c ↔ a < c - b := by
   rw [
     ← lt_sub_iff_add_lt
@@ -92,13 +92,13 @@ theorem add_toss_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
 lemma Nat.toss_add_lt {a b c : ℕ} : a + b < c ↔ b < c - a := by omega
 
 
-theorem lt_toss_add {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem lt_toss_add {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a < b + c ↔ -b + a < c := by
   rw [
     ← neg_add_lt_iff_lt_add
   ]
 
-theorem lt_add_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem lt_add_toss {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a < b + c ↔ a - c < b := by
   rw [
     ← sub_lt_iff_lt_add
@@ -194,23 +194,23 @@ theorem div_toss_eq₀ {α : Type} [GroupWithZero α] {a b c : α} (hbn0 : b ≠
 
 
 
-theorem toss_sub_le {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem toss_sub_le {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a - b ≤ c ↔ -b ≤ -a + c := by
   rw [sub_eq_add_neg]
   exact toss_add_le
 
-theorem sub_toss_le {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem sub_toss_le {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a - b ≤ c ↔ a ≤ c + b := by
   exact sub_le_iff_le_add
 
 lemma Nat.sub_toss_le {a b c : ℕ} : a - b ≤ c ↔ a ≤ c + b := by omega
 
-theorem le_toss_sub {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem le_toss_sub {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a ≤ b - c ↔ -b + a ≤ - c := by
   rw [sub_eq_add_neg]
   exact le_toss_add
 
-theorem le_sub_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem le_sub_toss {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a ≤ b - c ↔ a + c ≤ b := by
   exact le_sub_iff_add_le
 
@@ -218,7 +218,7 @@ lemma Nat.le_sub_toss {a b c : ℕ} (h : c ≤ b) : a ≤ b - c ↔ a + c ≤ b 
 
 lemma Nat.le_sub_toss' {a b c : ℕ} (h : 0 < a) : a ≤ b - c ↔ a + c ≤ b := by omega
 
-theorem toss_mul_le {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem toss_mul_le {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a * b ≤ c ↔ b ≤ a⁻¹ * c := by
   rw [
     ← le_inv_mul_iff_mul_le
@@ -228,7 +228,7 @@ theorem toss_mul_le₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   a * b ≤ c ↔ b ≤ a⁻¹ * c := by
   rw [mul_comm _ c, le_mul_inv_iff₀ haNe0, mul_comm]
 
-theorem mul_toss_le {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem mul_toss_le {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a * b ≤ c ↔ a ≤ c * b⁻¹ := by
   rw [
     ← le_mul_inv_iff_mul_le
@@ -238,7 +238,7 @@ theorem mul_toss_le₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   a * b ≤ c ↔ a ≤ c * b⁻¹ := by
   rw [le_mul_inv_iff₀ hbNe0, mul_comm]
 
-theorem le_toss_mul {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem le_toss_mul {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a ≤ b * c ↔ b⁻¹ * a ≤ c := by
   rw [
     ← inv_mul_le_iff_le_mul
@@ -248,7 +248,7 @@ theorem le_toss_mul₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   a ≤ b * c ↔ b⁻¹ * a ≤ c := by
   rw [mul_comm _ a, mul_inv_le_iff₀ hbNe0, mul_comm]
 
-theorem le_mul_toss {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem le_mul_toss {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a ≤ b * c ↔ a * c⁻¹ ≤ b := by
   rw [
     ← mul_inv_le_iff_le_mul
@@ -258,7 +258,7 @@ theorem le_mul_toss₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   a ≤ b * c ↔ a * c⁻¹ ≤ b := by
   rw [mul_inv_le_iff₀ hcNe0, mul_comm]
 
-theorem toss_div_le {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem toss_div_le {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a / b ≤ c ↔ 1 / b ≤ a⁻¹ * c := by
   rw [le_inv_mul_iff_mul_le, one_div, ← div_eq_mul_inv]
 
@@ -266,7 +266,7 @@ theorem toss_div_le₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   a / b ≤ c ↔ 1 / b ≤ a⁻¹ * c := by
   rw [div_eq_mul_inv, one_div, toss_mul_le₀ haNe0]
 
-theorem div_toss_le {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem div_toss_le {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a / b ≤ c ↔ a ≤ c * b := by
   exact div_le_iff_le_mul
 
@@ -274,7 +274,7 @@ theorem div_toss_le₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   a / b ≤ c ↔ a ≤ c * b := by
   exact div_le_iff₀ hbNe0
 
-theorem le_toss_div {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem le_toss_div {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a ≤ b / c ↔ b⁻¹ * a ≤ c⁻¹ := by
   rw [div_eq_mul_inv]
   exact le_toss_mul
@@ -284,7 +284,7 @@ theorem le_toss_div₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
   rw [div_eq_mul_inv]
   exact le_toss_mul₀ hbNe0
 
-theorem le_div_toss {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem le_div_toss {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a ≤ b / c ↔ a * c ≤ b := by
   exact le_div_iff_mul_le
 
@@ -298,12 +298,12 @@ theorem le_div_toss₀ {α : Type} [LinearOrderedCommGroupWithZero α] {a b c : 
 
 
 
-theorem toss_sub_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem toss_sub_lt {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a - b < c ↔ -b < -a + c := by
   rw [sub_eq_add_neg]
   exact toss_add_lt
 
-theorem sub_toss_lt {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem sub_toss_lt {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a - b < c ↔ a < c + b := by
   exact sub_lt_iff_lt_add
 
@@ -311,54 +311,54 @@ lemma Nat.sub_toss_lt {a b c : ℕ} (h : b < a) : a - b < c ↔ a < c + b := by 
 
 lemma Nat.sub_toss_lt' {a b c : ℕ} (h : 0 < c) : a - b < c ↔ a < c + b := by omega
 
-theorem lt_toss_sub {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem lt_toss_sub {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a < b - c ↔ -b + a < - c := by
   rw [sub_eq_add_neg]
   exact lt_toss_add
 
-theorem lt_sub_toss {α : Type} [OrderedAddCommGroup α] {a b c : α} :
+theorem lt_sub_toss {α : Type} [AddCommGroup α] [PartialOrder α] [IsOrderedAddMonoid α] {a b c : α} :
   a < b - c ↔ a + c < b := by
   exact lt_sub_iff_add_lt
 
 lemma Nat.lt_sub_toss {a b c : ℕ} : a < b - c ↔ a + c < b := by omega
 
-theorem toss_mul_lt {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem toss_mul_lt {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a * b < c ↔ b < a⁻¹ * c := by
   rw [
     ← lt_inv_mul_iff_mul_lt
   ]
 
-theorem mul_toss_lt {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem mul_toss_lt {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a * b < c ↔ a < c * b⁻¹ := by
   rw [
     ← lt_mul_inv_iff_mul_lt
   ]
 
-theorem lt_toss_mul {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem lt_toss_mul {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a < b * c ↔ b⁻¹ * a < c := by
   rw [
     ← inv_mul_lt_iff_lt_mul
   ]
 
-theorem lt_mul_toss {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem lt_mul_toss {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a < b * c ↔ a * c⁻¹ < b := by
   rw [
     ← mul_inv_lt_iff_lt_mul
   ]
 
-theorem toss_div_lt {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem toss_div_lt {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a / b < c ↔ 1 / b < a⁻¹ * c := by
   rw [Iff.comm, lt_inv_mul_iff_mul_lt, one_div, ← div_eq_mul_inv]
 
-theorem div_toss_lt {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem div_toss_lt {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a / b < c ↔ a < c * b := by
   exact div_lt_iff_lt_mul
 
-theorem lt_toss_div {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem lt_toss_div {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a < b / c ↔ b⁻¹ * a < c⁻¹ := by
   rw [div_eq_mul_inv]
   exact lt_toss_mul
 
-theorem lt_div_toss {α : Type} [OrderedCommGroup α] {a b c : α} :
+theorem lt_div_toss {α : Type} [CommGroup α] [PartialOrder α] [IsOrderedMonoid α] {a b c : α} :
   a < b / c ↔ a * c < b := by
   exact lt_div_iff_mul_lt

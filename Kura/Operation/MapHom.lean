@@ -13,8 +13,8 @@ lemma vxMap.IsHomOn (φ : α → α') : (HomSys.ofVxFun φ).IsHomOn G (vxMap G �
     simp only [V, HomSys.ofVxFun, mem_image]
     use v
   inc₂ ⦃e x y⦄ h := by
-    simp only [HomSys, id_eq, vxMap_inc₂_iff]
-    use x, rfl, y, rfl, h
+    simp only [HomSys.ofVxFun_edgeFun, id_eq, HomSys.ofVxFun_toFun, vxMap_inc₂]
+    use x, y
 
 lemma vxMap.HasHom (φ : α → α') : G ≤→ (vxMap G φ) :=
   ⟨HomSys.ofVxFun φ, vxMap.IsHomOn φ⟩
