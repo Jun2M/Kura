@@ -169,6 +169,10 @@ lemma IsPath.suffix (hP : G.IsPath P) (hP₀ : P₀.IsSuffix P) : G.IsPath P₀ 
   isWalk := hP.isWalk.suffix hP₀
   nodup := hP.nodup.sublist hP₀.vx_isSuffix.sublist
 
+lemma IsPath.sublist (hP : G.IsPath P) (hP₀ : P₀.IsSublist P) : G.IsPath P₀ where
+  isWalk := hP.isWalk.sublist hP₀
+  nodup := hP.nodup.sublist hP₀.vx_sublist
+
 /-- This is almost true without the `X ⊆ G.V` assumption; the exception is where
 `w` is a nil walk on a vertex in `X \ G.V`. -/
 lemma isPath_induce_iff (hXV : X ⊆ G.V) : G[X].IsPath P ↔ G.IsPath P ∧ P.V ⊆ X :=

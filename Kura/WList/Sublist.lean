@@ -489,6 +489,12 @@ lemma suffixFromLast_prop_first (h : ∃ x ∈ w, P x) : P (w.suffixFromLast P).
   rw [suffixFromLast, reverse_first]
   exact prefixUntil_prop_last (by simpa)
 
+lemma suffixFromLast_not_prop (hx : x ∈ w.suffixFromLast P) (hne : x ≠ (w.suffixFromLast P).first) :
+    ¬ P x := by
+  rw [suffixFromLast, mem_reverse] at hx
+  rw [suffixFromLast, reverse_first] at hne
+  exact prefixUntil_not_prop hx hne
+
 @[simp]
 lemma prefixUntilLast_append_suffixFromLast (w : WList α β) (P : α → Prop) [DecidablePred P] :
     w.prefixUntilLast P ++ w.suffixFromLast P = w := by

@@ -104,6 +104,14 @@ def edgeRestrict (G : Graph α β) (E₀ : Set β) : Graph α β where
 
 scoped infixl:65 " ↾ "  => Graph.edgeRestrict
 
+lemma Inc₂.edgeRestrict (hG : G.Inc₂ e x y) (he : e ∈ F) : (G ↾ F).Inc₂ e x y := by
+  rw [edgeRestrict_inc₂]
+  exact ⟨he, hG⟩
+
+lemma Inc₂.of_edgeRestrict (hG : (G ↾ F).Inc₂ e x y) : G.Inc₂ e x y := by
+  rw [edgeRestrict_inc₂] at hG
+  exact hG.2
+
 @[simp]
 lemma edgeRestrict_le {E₀ : Set β} : G ↾ E₀ ≤ G where
   vx_subset := rfl.le
@@ -174,6 +182,14 @@ def edgeDelete (G : Graph α β) (F : Set β) : Graph α β :=
       exact fun h _ ↦ h.edge_mem)
 
 scoped infixl:65 " ＼ " => Graph.edgeDelete
+
+lemma Inc₂.edgeDelete (hG : G.Inc₂ e x y) (he : e ∉ F) : (G ＼ F).Inc₂ e x y := by
+  rw [edgeDelete_inc₂]
+  exact ⟨he, hG⟩
+
+lemma Inc₂.of_edgeDelete (hG : (G ＼ F).Inc₂ e x y) : G.Inc₂ e x y := by
+  rw [edgeDelete_inc₂] at hG
+  exact hG.2
 
 @[simp]
 lemma edgeDelete_inc : (G ＼ F).Inc e x ↔ e ∉ F ∧ G.Inc e x := by
@@ -253,7 +269,7 @@ instance instInhabitedGraph : Inhabited (Graph α β) where
 @[simp] lemma bot_E : (⊥ : Graph α β).E = ∅ := rfl
 
 @[simp]
-lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
+lemma vxSet_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
   constructor <;> rintro h
   · apply ext_inc h ?_
     simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_mem_edgeSet, iff_false]
@@ -262,6 +278,18 @@ lemma vx_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
     simp only [mem_empty_iff_false] at this
   · rw [h]
     rfl
+
+@[simp]
+lemma edgeDelete_empty : G ＼ (∅ : Set β) = G := by
+  simp
+
+@[simp]
+lemma edgeDelete_edgeSet_eq_bot : (G ＼ G.E) = Graph.noEdge G.V β := by
+  simp only [subset_refl, edgeDelete_eq_noEdge]
+
+@[simp]
+lemma edgeDelete_univ : G ＼ (univ : Set β) = Graph.noEdge G.V β := by
+  simp [edgeDelete_eq_noEdge]
 
 /-- The subgraph of `G` induced by a set `X` of vertices.
 The edges are the edges of `G` with both ends in `X`.
@@ -282,6 +310,14 @@ lemma induce_le (hX : X ⊆ G.V) : G[X] ≤ G :=
 
 @[simp]
 lemma induce_inc₂_iff {X : Set α} : G[X].Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∈ X ∧ y ∈ X := Iff.rfl
+
+lemma Inc₂.induce (hG : G.Inc₂ e x y) (hx : x ∈ X) (hy : y ∈ X) : G[X].Inc₂ e x y := by
+  rw [induce_inc₂_iff]
+  exact ⟨hG, hx, hy⟩
+
+lemma Inc₂.of_induce (hG : G[X].Inc₂ e x y) : G.Inc₂ e x y := by
+  rw [induce_inc₂_iff] at hG
+  exact hG.1
 
 /-- This is too annoying to be a simp lemma. -/
 lemma induce_edgeSet (G : Graph α β) (X : Set α) :
@@ -338,6 +374,11 @@ lemma induce_eq_self_iff (G : Graph α β) (X : Set α) : G[X] = G ↔ X = G.V :
     rw [induce_inc₂_iff]
     exact ⟨hbtw, hbtw.vx_mem_left, hbtw.vx_mem_right⟩
 
+@[simp]
+lemma induce_empty : G[∅] = ⊥ := by
+  rw [← vxSet_empty_iff_eq_bot]
+  rfl
+
 /-- The graph obtained from `G` by deleting a set of vertices. -/
 protected def vxDelete (G : Graph α β) (X : Set α) : Graph α β := G [G.V \ X]
 
@@ -369,6 +410,34 @@ lemma Inc₂.mem_vxDelete_iff {X : Set α} (hG : G.Inc₂ e x y) : e ∈ (G - X)
 theorem vxDelete_eq_self_iff : G - X = G ↔ Disjoint X G.V := by
   simp only [vxDelete_def, induce_eq_self_iff, sdiff_eq_left, disjoint_comm]
 
+lemma vxDelete_mono_left (hle : G ≤ H) : G - X ≤ H - X := by
+  simp [vxDelete_def]
+  exact induce_mono hle (diff_subset_diff_left <| vxSet_subset_of_le hle)
+
+lemma vxDelete_anti_right (hsu : Y ⊆ X) : G - X ≤ G - Y := by
+  simp only [vxDelete_def, induce_le_induce_iff]
+  exact diff_subset_diff_right hsu
+
+@[simp]
+lemma vxDelete_le_vxDelete_iff : G - X ≤ G - Y ↔ G.V \ X ⊆ G.V \ Y := by
+  simp_rw [vxDelete_def, induce_le_induce_iff]
+
+@[simp]
+lemma vxDelete_eq_vxDelete_iff : G - X = G - Y ↔ G.V \ X = G.V \ Y := by
+  simp_rw [vxDelete_def, induce_eq_induce_iff]
+
+@[simp]
+lemma vxDelete_empty : G - (∅ : Set α) = G := by
+  simp [vxDelete_def]
+
+@[simp]
+lemma vxDelete_V : G - (G.V : Set α) = ⊥ := by
+  simp [vxDelete_def]
+
+@[simp]
+lemma vxDelete_univ : G - (univ : Set α) = ⊥ := by
+  simp [vxDelete_def]
+
 -- TODO: prove some lemmas about `G - X`
 
 @[simp]
@@ -395,6 +464,11 @@ lemma induce_vxDelete (G : Graph α β) (X D : Set α) : G[X] - D = G[X \ D] :=
 @[simp]
 lemma vxDelete_induce (G : Graph α β) (X D : Set α) : (G - D)[X] = G[X] ↾ (G - D).E :=
   induce_induce G (G.V \ D) X
+
+@[simp]
+lemma vxDelete_vxDelete : G - X - Y = G - (X ∪ Y) := by
+  rw [G.vxDelete_def, induce_vxDelete, diff_diff]
+  rfl
 
 @[simp] lemma singleEdge_le_iff : Graph.singleEdge u v e ≤ G ↔ G.Inc₂ e u v := by
   simp only [le_iff, singleEdge_vxSet, Set.pair_subset_iff, singleEdge_inc₂_iff, and_imp,

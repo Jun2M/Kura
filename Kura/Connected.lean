@@ -110,6 +110,12 @@ lemma VxConnected.exists_isPath (h : G.VxConnected x y) :
   obtain ⟨w, hw, rfl, rfl⟩ := h.exists_isWalk
   exact ⟨w.dedup, by simp [hw.dedup_isPath]⟩
 
+lemma vxConnected_iff_exists_path :
+    G.VxConnected x y ↔ ∃ P, G.IsPath P ∧ P.first = x ∧ P.last = y := by
+  refine ⟨VxConnected.exists_isPath, ?_⟩
+  rintro ⟨P, hP, rfl, rfl⟩
+  exact hP.isWalk.vxConnected_first_last
+
 lemma VxConnected.of_le (h : H.VxConnected x y) (hle : H ≤ G) : G.VxConnected x y := by
   obtain ⟨w, hw, rfl, rfl⟩ := h.exists_isWalk
   exact (hw.of_le hle).vxConnected_first_last
@@ -759,6 +765,33 @@ lemma exists_mem_right (h : G.SetConnected S T) : ∃ x ∈ T, x ∈ G.V := by
   exact exists_mem_left h
 
 end SetConnected
+
+lemma setConnected_iff_exists_pathFrom : G.SetConnected S T ↔ ∃ W : WList α β, G.IsPathFrom S T W := by
+  classical
+  refine ⟨fun ⟨s, hs, t, ht, h⟩ ↦ ?_, fun ⟨W, hW, hWfirst, hWlast, _, _⟩ ↦
+    ⟨W.first, hWfirst, W.last, hWlast, hW.isWalk.vxConnected_first_last⟩⟩
+  obtain ⟨P, hP, rfl, rfl⟩ := vxConnected_iff_exists_path.mp h
+  let P' := P.suffixFromLast (· ∈ S) |>.prefixUntil (· ∈ T)
+  have hpf := prefixUntil_isPrefix (P.suffixFromLast (· ∈ S)) (· ∈ T)
+  have hsf := suffixFromLast_isSuffix P (· ∈ S)
+  have hP'first : P'.first ∈ S := by
+    unfold P'
+    rw [hpf.first_eq]
+    exact suffixFromLast_prop_first ⟨P.first, first_mem, hs⟩
+  have hP'last : P'.last ∈ T := by
+    unfold P'
+    refine prefixUntil_prop_last ⟨P.last, ?_, ht⟩
+    rw [← hsf.last_eq]
+    exact WList.last_mem
+  use P', hP.sublist (hpf.isSublist.trans hsf.isSublist), hP'first, hP'last, ?_
+  · intro x hx hxT
+    by_contra! hxlast
+    exact prefixUntil_not_prop hx hxlast hxT
+  · intro x hx hxS
+    by_contra! hxfirst
+    rw [hpf.first_eq] at hxfirst
+    exact suffixFromLast_not_prop (hpf.mem hx) hxfirst hxS
+
 
 @[simp] lemma noEdge_vxConnected : (Graph.noEdge U β).VxConnected x y ↔ x = y ∧ x ∈ U := by
   refine ⟨fun h ↦ ?_, fun ⟨rfl, hxU⟩ ↦ VxConnected.refl hxU⟩
