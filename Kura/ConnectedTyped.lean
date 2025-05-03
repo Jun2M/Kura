@@ -1,7 +1,7 @@
 import Kura.Walk.Cycle
 import Kura.Subgraph
 import Mathlib.Data.Set.Insert
-import Kura.Dep.SetPartitionTypeless
+import Matroid.ForMathlib.SetPartition
 
 open Set Function
 
@@ -666,35 +666,118 @@ theorem twoPaths (hP : G.IsPath P) (hQ : G.IsPath Q) (hPQ : P ≠ Q) (h0 : P.fir
     rw [insert_union]
     exact insert_subset_insert hss
 
-
+end Graph
 open Partition
 
-def ConnectivityPartition (G : Graph α β) : Partition (Set α) := Partition.ofRel (G.VxConnected)
+lemma Partition.mem_sSup {a : α} {s t : Set α} {P : Partition s} (ha : a ∈ t) (ht : t ∈ P) :
+    a ∈ s := by
+  rw [← P.sSup_eq]
+  exact subset_sUnion_of_mem ht ha
+
+@[simp]
+lemma Partition.rel_ofRel'_eq {s : Set α} (r : α → α → Prop) [IsTrans α r] [IsSymm α r]
+    (hs : s = {x | r x x}) : (ofRel' r hs).Rel = r := by
+  simp only [ofRel', rel_congr, rel_ofRel_eq]
+
+lemma Partition.subset_sUnion_and_mem_iff_mem {s t : Set α} {S : Set (Set α)} {P : Partition s}
+    (hSP : S ⊆ P.parts) : t ⊆ ⋃₀ S ∧ t ∈ P ↔ t ∈ S := by
+  refine ⟨fun ⟨htsu, htP⟩ ↦ ?_, fun htS ↦ ⟨subset_sUnion_of_mem htS, hSP htS⟩⟩
+  obtain ⟨x, hxt⟩ := nonempty_of_mem htP
+  obtain ⟨s, hsS, hxs⟩ := htsu hxt
+  obtain rfl := eq_of_mem_of_mem htP (hSP hsS) hxt hxs
+  exact hsS
+
+lemma Partition.subset_sUnion_iff_mem {s t : Set α} {P : Partition s}
+    {S : Set (Set α)} (ht : t ∈ P) (hSP : S ⊆ P.parts) :
+    t ⊆ ⋃₀ S ↔ t ∈ S := by
+  rw [← subset_sUnion_and_mem_iff_mem hSP]
+  simp [ht]
+
+def Partition.flatten {s : Set α} {p : Partition s} (P : Partition p.parts) : Partition s where
+  parts := sSup '' P.parts
+  sSup_eq' := by
+    nth_rw 2 [← p.sSup_eq]
+    ext a
+    simp only [sSup_eq_sUnion, sUnion_image, mem_parts, SetLike.mem_coe, mem_iUnion, mem_sUnion,
+      exists_prop]
+    refine ⟨fun ⟨S, hSP, t, htS, hat⟩ ↦ ?_, fun ⟨t, htP, hat⟩ ↦ ?_⟩
+    · use t, mem_sSup htS hSP, hat
+    · use P.partOf t, partOf_mem P htP, t, mem_partOf P htP
+  indep x hx := by
+    obtain ⟨S, hSP, rfl⟩ := hx
+    simp only [sSup_eq_sUnion, disjoint_sUnion_right, mem_diff, mem_image, mem_parts,
+      SetLike.mem_coe, mem_singleton_iff, disjoint_sUnion_left, and_imp, forall_exists_index,
+      forall_apply_eq_imp_iff₂]
+    rintro T hTP hnex s hsS t hT
+    have hSneT : S ≠ T := fun h ↦ by simp [h] at hnex
+    have hst : s ≠ t := by
+      rintro rfl
+      have := P.indep hSP |>.mono_right (by
+        simp only [sSup_eq_sUnion, le_eq_subset]
+        refine subset_sUnion_of_mem (by simpa [hSneT.symm]) : T ≤ _)
+      rw [Set.disjoint_left] at this
+      exact this hsS hT
+    refine p.indep (P.sSup_eq ▸ (by use S : s ∈ ⋃₀ P.parts)) |>.mono_right ?_
+    simp only [sSup_eq_sUnion, le_eq_subset]
+    refine subset_sUnion_of_mem ?_
+    rw [← P.sSup_eq, sSup_eq_sUnion, mem_diff, mem_sUnion]
+    simp only [SetLike.mem_coe, mem_singleton_iff, hst.symm, not_false_eq_true, and_true]
+    use T
+  bot_not_mem := by
+    simp only [sSup_eq_sUnion, bot_eq_empty, mem_image, mem_parts, SetLike.mem_coe, sUnion_eq_empty,
+      not_exists, not_and, not_forall, Classical.not_imp]
+    rintro S hS
+    have hSne : S.Nonempty := by
+      have := P.bot_not_mem
+      simp only [bot_eq_empty, mem_parts, SetLike.mem_coe] at this
+      exact nonempty_of_mem hS
+    obtain ⟨x, hx⟩ := hSne
+    use x, hx
+    rintro rfl
+    have := p.bot_not_mem
+    simp only [bot_eq_empty, mem_parts, SetLike.mem_coe] at this
+    refine this (?_ : ∅ ∈ p.parts)
+    rw [← P.sSup_eq]
+    use S, hS
+
+@[simp]
+lemma Partition.flatten_parts {s : Set α} {p : Partition s} (P : Partition p.parts) :
+    P.flatten.parts = sSup '' P.parts := rfl
+
+
+namespace Graph
+
+def ConnectivityPartition (G : Graph α β) : Partition G.V := Partition.ofRel' (G.VxConnected) (by simp)
 
 def Component (G : Graph α β) (v : α) := {u | G.VxConnected v u}
 
-def ComponentSets (G : Graph α β) (V : Set α) := Component G '' V
-
 @[simp]
-lemma connectedPartition_supp : G.ConnectivityPartition.supp = G.V := by
-  simp [ConnectivityPartition]
+lemma ConnectivityPartition.Rel : G.ConnectivityPartition.Rel = G.VxConnected := by
+  unfold ConnectivityPartition
+  rw [Partition.rel_ofRel'_eq]
 
-@[simp↓] lemma connectedPartition_sSup : sSup G.ConnectivityPartition.parts = G.V :=
-  connectedPartition_supp
-@[simp↓] lemma connectedPartition_sUnion : ⋃₀ G.ConnectivityPartition.parts = G.V :=
-  connectedPartition_supp
-
-@[simp]
-lemma connectedPartition_parts : G.ConnectivityPartition.parts = G.ComponentSets G.V := by
-  ext S
-  simp only [ConnectivityPartition, ofRel_parts, vxConnected_self, setOf_mem_eq, mem_image,
-    ComponentSets, Component, mem_setOf_eq]
-
-@[simp]
 lemma connectivityPartition_partOf : G.ConnectivityPartition.partOf = G.Component := by
   funext x
-  rw [← setOf_rel_eq_partOf, ConnectivityPartition, rel_ofRel_eq]
+  rw [← setOf_rel_eq_partOf, ConnectivityPartition, Partition.rel_ofRel'_eq]
   rfl
+
+
+-- def ComponentSets (G : Graph α β) (V : Set α) := Component G '' V
+
+-- @[simp]
+-- lemma connectedPartition_supp : G.ConnectedPartition.supp = G.V := by
+--   simp [ConnectedPartition]
+
+-- @[simp↓] lemma connectedPartition_sSup : sSup G.ConnectedPartition.parts = G.V :=
+--   connectedPartition_supp
+-- @[simp↓] lemma connectedPartition_sUnion : ⋃₀ G.ConnectedPartition.parts = G.V :=
+--   connectedPartition_supp
+
+-- @[simp]
+-- lemma connectedPartition_parts : G.ConnectedPartition.parts = G.ComponentSets G.V := by
+--   ext S
+--   simp only [ConnectedPartition, ofRel_parts, vxConnected_self, setOf_mem_eq, mem_image,
+--     ComponentSets, Component, mem_setOf_eq]
 
 @[simp]
 lemma set_spec_connected_comm : {x | G.VxConnected x y} = {x | G.VxConnected y x} := by
@@ -760,13 +843,8 @@ lemma mem_component_iff' : y ∈ G.Component x ↔ G.VxConnected y x := by
 
 -- @[simp] lemma ComponentSets.sSup_V : sSup (G.ComponentSets G.V) = G.V := sUnion_V
 
-lemma ConnectivityPartition.le (hle : G ≤ H) : G.ConnectivityPartition ≤ H.ConnectivityPartition := by
-  simpa [ConnectivityPartition] using fun u v ↦ (VxConnected.of_le · hle)
-
-@[simp]
-lemma ConnectivityPartition.Rel : G.ConnectivityPartition.Rel = G.VxConnected := by
-  unfold ConnectivityPartition
-  rw [rel_ofRel_eq]
+-- lemma ConnectedPartition.le (hle : G ≤ H) : G.ConnectedPartition ≤ H.ConnectedPartition := by
+--   simpa [ConnectedPartition] using fun u v ↦ (VxConnected.of_le · hle)
 
 def SetConnected (G : Graph α β) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.VxConnected s t
 

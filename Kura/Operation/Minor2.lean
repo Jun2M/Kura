@@ -1,30 +1,14 @@
-import Kura.Operation.MapHom
-import Kura.Walk.Path
+import Kura.Operation.VxIdentification
+import Kura.Connected
 
 open Set Function
 variable {α α' α'' β β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
   {S S' T T' U U': Set α} {F F' R R' : Set β}
 namespace Graph
 
-/- I have been thinking about a way to `contract` without supplying the vx map but just the edge
-set I am contracting on. This is one way to do it using partitions. -/
-
-def IsPartitionGraph (G : Graph (Set α) β) : Prop :=
-  ∃ P : Partition (Set α), P.parts = G.V
-
-def Setify (G : Graph α β) : Graph (Set α) β :=
-  vxMap G ({·})
-
-def Setify.HasIsom (G : Graph α β) : G ≤↔ G.Setify :=
-  vxMap.HasIsom ({·}) singleton_injective.injOn
-
-lemma Setify.IsPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := by
-  use Partition.discrete G.V
-  simp only [Partition.discrete.parts, Setify, vxMap_vxSet]
-
 @[simps!]
 def SetContract (G : Graph (Set α) β) (C : Set β) : Graph (Set α) β :=
-  G.vxMap (⋃₀ (G ↾ C).Component ·) ＼ C
+  G.VxIdentification (G ↾ C).ConnectivityPartition ＼ C
 
 scoped infix:100 " / " => Graph.SetContract
 
@@ -33,7 +17,7 @@ variable {G : Graph (Set α) β} {C D : Set β}
 @[simp]
 lemma setContract_toMultiset (heC : e ∉ C) :
     (G / C).toMultiset e = (G.toMultiset e).map (⋃₀ (G ↾ C).Component ·) := by
-  simp [SetContract]
+  simp [SetContract, ← connectivityPartition_partOf]
   rw [← vxMap_toMultiset, toMultiset_eq_toMultiset_iff]
   ext x y
   simp [heC]
@@ -41,13 +25,13 @@ lemma setContract_toMultiset (heC : e ∉ C) :
 @[simp]
 lemma setContract_inc {u : Set α} :
     (G / C).Inc e u ↔ e ∉ C ∧ (∃ v, G.Inc e v ∧ ⋃₀ (G ↾ C).Component v = u) := by
-  simp_rw [SetContract, inc_iff_exists_inc₂, edgeDelete_inc₂, exists_and_left,
-    ← inc_iff_exists_inc₂, vxMap_inc]
+  simp_rw [SetContract, ← connectivityPartition_partOf, inc_iff_exists_inc₂, edgeDelete_inc₂,
+    exists_and_left, ← inc_iff_exists_inc₂, vxIdentification_inc]
 
 @[simp]
-lemma setContract_inc₂ {u v : Set α} :
-    (G / C).Inc₂ e u v ↔ e ∉ C ∧ (∃ x y, G.Inc₂ e x y ∧ ⋃₀ (G ↾ C).Component x = u ∧ ⋃₀ (G ↾ C).Component y = v) := by
-  simp_rw [SetContract, edgeDelete_inc₂, vxMap_inc₂']
+lemma setContract_inc₂ {u v : Set α} : (G / C).Inc₂ e u v ↔
+    e ∉ C ∧ (∃ x y, G.Inc₂ e x y ∧ ⋃₀ (G ↾ C).Component x = u ∧ ⋃₀ (G ↾ C).Component y = v) := by
+  simp_rw [SetContract, ← connectivityPartition_partOf, edgeDelete_inc₂, vxIdentification_inc₂]
 
 lemma SetContract.subset_map (C : Set β) {u : Set α} (hu : u ∈ G.V) : u ⊆ ⋃₀ (G ↾ C).Component u :=
   subset_sUnion_of_subset ((G ↾ C).Component u) u (fun _ a ↦ a) (VxConnected.refl hu)
@@ -101,9 +85,9 @@ lemma SetContract.map_mem_iff {u : Set α} (hP : G.IsPartitionGraph) :
 lemma SetContract.IsPartitionGraph (C : Set β) (hP : G.IsPartitionGraph) :
     (G / C).IsPartitionGraph := by
   obtain ⟨P, hP⟩ := hP
-  use (G ↾ C).ConnectedPartition.flatten ⟨P, by simp [hP]⟩
+  use (G ↾ C).ConnectivityPartition.flatten (by use P; simp [hP])
   simp only [Partition.flatten_parts, sSup_eq_sUnion, connectedPartition_parts, ComponentSets,
-    edgeRestrict_vxSet, SetContract_vxSet]
+    edgeRestrict_vxSet, SetContract_vxSet, connectivityPartition_partOf]
   rw [image_image]
 
 lemma setContract_edgeDel_comm (G : Graph (Set α) β) (hCD : Disjoint C D) :
@@ -145,6 +129,7 @@ lemma SetContract.foo2 {u v : Set α} (hP : G.IsPartitionGraph) (h : (G ↾ (C �
     simp only [WList.nil_last, WList.nil_first, vxConnected_self, edgeRestrict_vxSet, V,
       mem_image]
     use x, by simpa using hwVd
+    rw [connectivityPartition_partOf]
   | cons a e w ih =>
     simp only [cons_isWalk_iff, edgeRestrict_inc₂, mem_union, WList.last_cons,
       WList.first_cons] at hwVd ⊢
@@ -154,6 +139,7 @@ lemma SetContract.foo2 {u v : Set α} (hP : G.IsPartitionGraph) (h : (G ↾ (C �
       · rw [map_eq_iff' hP hbtw.vx_mem_left]
         exact ((edgeRestrict_inc₂ _ _ _ _ _).mpr ⟨heC, hbtw.symm⟩).vxConnected
       · use a, hbtw.vx_mem_left
+        rw [connectivityPartition_partOf]
     · simp only [heC, false_or] at he
       refine Inc₂.vxConnected ?_ (e := e)
       simp only [edgeRestrict_inc₂, he, setContract_inc₂, heC, not_false_eq_true, true_and]
@@ -167,6 +153,7 @@ lemma SetContract.map_map (C D : Set β) (hP : G.IsPartitionGraph) {v : Set α} 
   · rintro ⟨T, hTconn, hxT⟩
     obtain ⟨u, hu, rfl⟩ := hTconn.mem_right
     obtain ⟨u', hu'conn, hxu'⟩ := hxT
+    rw [connectivityPartition_partOf] at hTconn hu'conn
     use u', (foo hP hTconn).trans (hu'conn.of_le (edgeRestrict_mono_right G subset_union_left))
   · rintro ⟨u, huconn, hxu⟩
     use ⋃₀ (G ↾ C).Component u, foo2 hP huconn

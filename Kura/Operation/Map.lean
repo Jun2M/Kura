@@ -3,7 +3,7 @@ import Kura.Dep.Finset
 
 
 open Set Function
-variable {α α' β : Type*} {G H : Graph α β} {u v w : α} {e f g : β} {φ : α → α'} {x y z : α'}
+variable {α α' β : Type*} {G H : Graph α β} {u v w : α} {e f g : β} {φ φ': α → α'} {x y z : α'}
 namespace Graph
 
 
@@ -43,7 +43,7 @@ namespace Graph
 --     rintro e - - ⟨x, y, h, rfl, rfl⟩
 --     exact Set.mem_image_of_mem _ h.vx_mem_left
 
-@[simps!]
+@[simps! vxSet edgeSet]
 def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
   oftoMultiset (f '' G.V) (fun e ↦ (G.toMultiset e).map f) fun e v h ↦ (by
     simp only [Multiset.mem_map, inc_iff_mem_toMultiset, mem_image] at h ⊢
@@ -64,8 +64,20 @@ lemma vxMap_toMultiset : (G.vxMap φ).toMultiset e = (G.toMultiset e).map φ := 
   rw [oftoMultiset_toMultiset (by simp [em])]
 
 @[simp]
-lemma vxMap_inc₂' : (G.vxMap φ).Inc₂ e x y ↔ ∃ v w, G.Inc₂ e v w ∧ φ v = x ∧ φ w = y := by
+lemma vxMap_inc₂ : (G.vxMap φ).Inc₂ e x y ↔ ∃ v w, G.Inc₂ e v w ∧ φ v = x ∧ φ w = y := by
   simp_rw [← toMultiset_eq_pair_iff, vxMap_toMultiset, Multiset.map_eq_pair_iff]
+
+lemma vxMap_inc₂_toMultiset : (G.vxMap φ).Inc₂ e x y ↔ (G.toMultiset e).map φ = {x, y} := Iff.rfl
+
+lemma vxMap_eq_vxMap_of_eqOn (h : EqOn φ φ' G.V) : G.vxMap φ = G.vxMap φ' := by
+  apply Graph.ext ?_ fun e x y ↦ ?_
+  · rw [vxMap_vxSet, vxMap_vxSet]
+    exact image_congr h
+  · simp_rw [vxMap_inc₂]
+    refine exists₂_congr fun v w ↦ and_congr_right fun hvw ↦ ?_
+    rw [h hvw.vx_mem_left, h hvw.vx_mem_right]
+
+
 
 def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' :=
   oftoMultiset G.V (G.toMultiset <| σ ·) (fun e v hv ↦ by
