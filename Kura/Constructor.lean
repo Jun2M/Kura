@@ -249,8 +249,22 @@ lemma singleEdge_comm (u v : α) (e : β) : Graph.singleEdge u v e = Graph.singl
 lemma singleEdge_inc₂_iff : (Graph.singleEdge u v e).Inc₂ f x y ↔ (f = e) ∧ s(x,y) = s(u,v) := by
   simp [Graph.singleEdge]
 
+@[simps]
+def CompleteGraph (n : ℕ) : Graph ℕ (Sym2 ℕ) where
+  V := Set.Iio n
+  E := {s | ∃ x y, x < n ∧ y < n ∧ s = s(x, y)}
+  Inc₂ e x y := x < n ∧ y < n ∧ e = s(x, y)
+  inc₂_symm e x y h := by rw [Sym2.eq_swap]; tauto
+  eq_or_eq_of_inc₂_of_inc₂ e x y z w h := by
+    simp only [h, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
+    tauto
+  edge_mem_iff_exists_inc₂ e := by rfl
+  vx_mem_left_of_inc₂ e x y h := h.1
+
+
 
 /-- The graph induced by a simple graph -/
+@[simps]
 def ofSimpleGraph (G : SimpleGraph α) : Graph α (Sym2 α) where
   V := univ
   E := G.edgeSet

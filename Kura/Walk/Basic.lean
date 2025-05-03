@@ -256,7 +256,7 @@ lemma IsWalk.induce (hw : G.IsWalk w) (hX : w.V ⊆ X) : G[X].IsWalk w := by
   induction hw with
   | nil => simp_all
   | @cons x e w hw h ih =>
-    simp_all only [cons_vxSet, insert_subset_iff, cons_isWalk_iff, induce_inc₂_iff, true_and,
+    simp_all only [cons_vxSet, insert_subset_iff, cons_isWalk_iff, induce_inc₂, true_and,
       and_true, forall_const]
     refine hX.2 <| by simp
 
@@ -266,7 +266,7 @@ lemma isWalk_induce_iff' (hw : w.Nonempty) : G[X].IsWalk w ↔ G.IsWalk w ∧ w.
   | nil => simp at hw
   | cons u e w ih => cases w with
     | nil v =>
-      simp only [cons_isWalk_iff, nil_first, induce_inc₂_iff, nil_isWalk_iff, induce_vxSet] at h ⊢
+      simp only [cons_isWalk_iff, nil_first, induce_inc₂, nil_isWalk_iff, induce_vxSet] at h ⊢
       exact ⟨h.1.1, h.1.1.vx_mem_right⟩
     | cons v f w => simp_all
 

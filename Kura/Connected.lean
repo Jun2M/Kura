@@ -139,6 +139,70 @@ lemma vxConnected_induce_iff {X : Set α} (hx : x ∈ G.V) :
     simp_all only [cons_isPath_iff, first_cons, cons_vxSet, cons_isWalk_iff, true_and, and_true]
     exact h.1.isWalk
 
+lemma vxConnected_edgeRestrict :
+    (G ↾ F).VxConnected x y ↔ ∃ P, G.IsPath P ∧ P.first = x ∧ P.last = y ∧ P.E ⊆ F := by
+  simp_rw [vxConnected_iff_exists_path, isPath_edgeRestrict_iff]
+  tauto
+
+@[simp]
+lemma Isolated.connected_iff (hisol : G.Isolated u) : G.VxConnected u v ↔ u = v ∧ u ∈ G.V := by
+  refine ⟨fun h ↦ ?_, fun ⟨rfl, h⟩ ↦ VxConnected.refl h⟩
+  induction h with
+  | single hradj => simpa [hisol.not_adj_left] using hradj
+  | tail w hconn ih =>
+    obtain ⟨rfl, hu⟩ := ih
+    simpa [hisol.not_adj_left] using hconn
+
+lemma vxConnected_edgeRestrict_singleton :
+    (G ↾ {e}).VxConnected u v ↔ G.Inc₂ e u v ∨ u = v ∧ u ∈ G.V := by
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · induction h with
+    | single hradj =>
+      obtain ⟨f, hf⟩ | ⟨rfl, h⟩ := hradj
+      · obtain rfl := hf.edge_mem.1
+        exact Or.inl <| hf.of_le edgeRestrict_le
+      · exact Or.inr ⟨rfl, h⟩
+    | tail w hconn ih =>
+      obtain ⟨rfl, hb⟩ | ⟨f, hf⟩ := hconn.symm
+      · exact ih
+      obtain ⟨rfl, hf'⟩ := (edgeRestrict_inc₂ _ _ _ _ _).mp hf
+      obtain ⟨rfl, hu⟩ | hinc := ih.symm
+      · exact Or.inl hf'
+      right
+      rw [hinc.symm.inc₂_iff_eq_right] at hf'
+      use hf', hinc.vx_mem_left
+  · obtain h | ⟨rfl, h⟩ := h
+    · exact (h.edgeRestrict (by rfl)).vxConnected
+    · exact vxConnected_self.mpr h
+
+-- lemma VxConnected.vxConnected_of_le_of_edgeSet_eq (hconn : H.VxConnected u v)
+--     (hle : G ≤ H) (hE : H.E ⊆ G.E) (hu : u ∈ G.V) : G.VxConnected u v := by
+--   induction hconn with
+--   | single hradj =>
+--     obtain ⟨e, he⟩ | ⟨rfl, h⟩ := hradj
+--     · rw [inc₂_iff_inc₂_of_le_of_mem hle (hE he.edge_mem)] at he
+--       exact he.vxConnected
+--     · exact vxConnected_self.mpr hu
+--   | tail _hconn hradj ih =>
+--     apply ih.trans
+--     obtain ⟨e, he⟩ | ⟨rfl, h⟩ := hradj
+--     · rw [inc₂_iff_inc₂_of_le_of_mem hle (hE he.edge_mem)] at he
+--       exact he.vxConnected
+--     · exact vxConnected_self.mpr ih.mem_right
+
+-- lemma vxConnected_iff_vxConnected_of_le_of_edgeSet_eq (hle : G ≤ H) (hE : H.E ⊆ G.E) (hu : u ∈ G.V) :
+--     G.VxConnected u v ↔ H.VxConnected u v := by
+--   constructor <;> rintro h
+--   · exact h.of_le hle
+--   · exact h.vxConnected_of_le_of_edgeSet_eq hle hE hu
+
+-- lemma VxConnected_restrict_iff_VxConnected_restrict_of_le (hle : G ≤ H)
+--     (h : F ∩ H.E ⊆ G.E) (hu : u ∈ G.V) :
+--     (G ↾ F).VxConnected u v ↔ (H ↾ F).VxConnected u v := by
+--   constructor <;> rintro hconn
+--   · exact hconn.of_le <| edgeRestrict_mono_left hle _
+--   · exact hconn.vxConnected_of_edgeSet_eq (edgeRestrict_mono_left hle _) (by simp [h]) hu
+
 /-- A graph is `Connected` if it is nonempty, and every pair of vertices is `VxConnected`. -/
 @[mk_iff]
 structure Connected (G : Graph α β) : Prop where
@@ -356,7 +420,7 @@ lemma Separation.edge_induce_disjoint (S : G.Separation) : Disjoint G[S.left].E 
 lemma Separation.eq_union (S : G.Separation) : G = G [S.left] ∪ G [S.right] := by
   refine Graph.ext (by simp [S.union_eq]) fun e x y ↦ ?_
   simp only [(Compatible.of_disjoint_edgeSet S.edge_induce_disjoint).union_inc₂_iff,
-    induce_inc₂_iff, ← and_or_left, iff_self_and]
+    induce_inc₂, ← and_or_left, iff_self_and]
   exact fun h ↦ (S.mem_or_mem h.vx_mem_left).elim
     (.inl ∘ fun h' ↦ ⟨h', S.mem_left_of_adj h' h.adj⟩)
     (.inr ∘ fun h' ↦ ⟨h', S.mem_right_of_adj h' h.adj⟩)

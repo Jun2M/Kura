@@ -66,7 +66,7 @@ lemma HasIsom.toHasEmb (h : HasIsom G₁ G₂) : HasEmb G₁ G₂ := by
   use f, hHomOn
 
 lemma HasIsom.toHasHom (h : HasIsom G₁ G₂) : HasHom G₁ G₂ := by
-  obtain ⟨f, hHomOn, ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
+  obtain ⟨f, hHomOn,  ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
   exact ⟨f, hHomOn⟩
 
 @[simps]
@@ -261,3 +261,5 @@ lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toI
       simpa only [image_E] using hd⟩
     simp only [image_E, mem_image]
     use e
+
+

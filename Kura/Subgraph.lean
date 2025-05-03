@@ -113,6 +113,10 @@ lemma Inc₂.of_edgeRestrict (hG : (G ↾ F).Inc₂ e x y) : G.Inc₂ e x y := b
   exact hG.2
 
 @[simp]
+lemma edgeRestrict_inc : (G ↾ F).Inc e x ↔ e ∈ F ∧ G.Inc e x := by
+  simp_rw [inc_iff_exists_inc₂, edgeRestrict_inc₂, exists_and_left]
+
+@[simp]
 lemma edgeRestrict_le {E₀ : Set β} : G ↾ E₀ ≤ G where
   vx_subset := rfl.le
   inc₂_of_inc₂ := by simp
@@ -295,7 +299,7 @@ lemma edgeDelete_univ : G ＼ (univ : Set β) = Graph.noEdge G.V β := by
 The edges are the edges of `G` with both ends in `X`.
 (`X` is not required to be a subset of `G.V` for this definition to work,
 even though this is the standard use case) -/
-@[simps! vxSet]
+@[simps! vxSet inc₂]
 protected def induce (G : Graph α β) (X : Set α) : Graph α β := Graph.mk'
   (V := X)
   (Inc₂ := fun e x y ↦ G.Inc₂ e x y ∧ x ∈ X ∧ y ∈ X)
@@ -308,15 +312,12 @@ notation:max G:1000 "[" S "]" => Graph.induce G S
 lemma induce_le (hX : X ⊆ G.V) : G[X] ≤ G :=
   ⟨hX, fun _ _ _ h ↦ h.1⟩
 
-@[simp]
-lemma induce_inc₂_iff {X : Set α} : G[X].Inc₂ e x y ↔ G.Inc₂ e x y ∧ x ∈ X ∧ y ∈ X := Iff.rfl
-
 lemma Inc₂.induce (hG : G.Inc₂ e x y) (hx : x ∈ X) (hy : y ∈ X) : G[X].Inc₂ e x y := by
-  rw [induce_inc₂_iff]
+  rw [induce_inc₂]
   exact ⟨hG, hx, hy⟩
 
 lemma Inc₂.of_induce (hG : G[X].Inc₂ e x y) : G.Inc₂ e x y := by
-  rw [induce_inc₂_iff] at hG
+  rw [induce_inc₂] at hG
   exact hG.1
 
 /-- This is too annoying to be a simp lemma. -/
@@ -336,7 +337,7 @@ lemma Inc₂.mem_induce_iff {X : Set α} (hG : G.Inc₂ e x y) : e ∈ G[X].E �
 
 lemma induce_induce (G : Graph α β) (X Y : Set α) : G[X][Y] = G[Y] ↾ G[X].E := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [induce_inc₂_iff, edgeRestrict_inc₂]
+  simp only [induce_inc₂, edgeRestrict_inc₂]
   obtain he | he := em' (G.Inc₂ e x y)
   · simp [he]
   rw [he.mem_induce_iff]
@@ -345,7 +346,7 @@ lemma induce_induce (G : Graph α β) (X Y : Set α) : G[X][Y] = G[Y] ↾ G[X].E
 lemma induce_mono (hle : H ≤ G) (hsu : X ⊆ Y) : H[X] ≤ G[Y] := by
   rw [le_iff]
   refine ⟨hsu, fun e x y ↦ ?_⟩
-  rw [induce_inc₂_iff, induce_inc₂_iff]
+  rw [induce_inc₂, induce_inc₂]
   exact fun ⟨hbtw, hxU, hyU⟩ ↦ ⟨hbtw.of_le hle, hsu hxU, hsu hyU⟩
 
 lemma induce_mono_left (hle : H ≤ G) (X : Set α) : H[X] ≤ G[X] :=
@@ -371,7 +372,7 @@ lemma induce_eq_self_iff (G : Graph α β) (X : Set α) : G[X] = G ↔ X = G.V :
     subst X
     rw [le_iff]
     refine ⟨subset_refl _, fun e x y hbtw ↦ ?_⟩
-    rw [induce_inc₂_iff]
+    rw [induce_inc₂]
     exact ⟨hbtw, hbtw.vx_mem_left, hbtw.vx_mem_right⟩
 
 @[simp]
@@ -395,7 +396,7 @@ lemma vxDelete_edgeSet (G : Graph α β) (X : Set α) :
   (G - X).E = {e | ∃ x y, G.Inc₂ e x y ∧ (x ∈ G.V ∧ x ∉ X) ∧ y ∈ G.V ∧ y ∉ X}  := rfl
 
 @[simp]
-lemma vxDelete_inc₂_iff (G : Graph α β) (X : Set α) :
+lemma vxDelete_inc₂ (G : Graph α β) (X : Set α) :
     (G - X).Inc₂ e x y ↔ (G.Inc₂ e x y ∧ (x ∈ G.V ∧ x ∉ X) ∧ y ∈ G.V ∧ y ∉ X) := Iff.rfl
 
 @[simp]
@@ -443,13 +444,13 @@ lemma vxDelete_univ : G - (univ : Set α) = ⊥ := by
 @[simp]
 lemma edgeRestrict_induce (G : Graph α β) (X : Set α) (F : Set β) : (G ↾ F)[X] = G[X] ↾ F := by
   refine Graph.ext (by simp) fun e x y ↦ ?_
-  simp only [induce_inc₂_iff, edgeRestrict_inc₂]
+  simp only [induce_inc₂, edgeRestrict_inc₂]
   tauto
 
 lemma edgeRestrict_vxDelete (G : Graph α β) (F : Set β) (D : Set α) :
     (G ↾ F) - D = (G - D) ↾ F := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [vxDelete_inc₂_iff, edgeRestrict_inc₂, edgeRestrict_vxSet]
+  simp only [vxDelete_inc₂, edgeRestrict_inc₂, edgeRestrict_vxSet]
   tauto
 
 @[simp]
@@ -614,7 +615,7 @@ lemma Compatible.induce_left (h : Compatible G H) (X : Set α) : G[X].Compatible
   intro e heG heH
   ext x y
   obtain ⟨u, v, heuv : G.Inc₂ e u v, hu, hv⟩ := heG
-  simp only [induce_inc₂_iff, ← h heuv.edge_mem heH, and_iff_left_iff_imp]
+  simp only [induce_inc₂, ← h heuv.edge_mem heH, and_iff_left_iff_imp]
   intro h
   obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_and_eq_or_eq_and_eq_of_inc₂ heuv <;> simp_all
 
@@ -632,13 +633,13 @@ lemma Compatible.induce_induce : G[X].Compatible G[Y] :=
 
 lemma Compatible.induce_union (h : G.Compatible H) (X : Set α) : (G ∪ H)[X] = G[X] ∪ H[X] := by
   refine Graph.ext (by simp) fun e x y ↦ ?_
-  simp only [induce_inc₂_iff, h.union_inc₂_iff, h.induce.union_inc₂_iff]
+  simp only [induce_inc₂, h.union_inc₂_iff, h.induce.union_inc₂_iff]
   tauto
 
 lemma induce_union (G : Graph α β) (X Y : Set α) (hX : ∀ x ∈ X, ∀ y ∈ Y, ¬ G.Adj x y) :
     G [X ∪ Y] = G [X] ∪ G [Y] := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [induce_inc₂_iff, mem_union, Compatible.induce_induce.union_inc₂_iff]
+  simp only [induce_inc₂, mem_union, Compatible.induce_induce.union_inc₂_iff]
   by_cases hxy : G.Inc₂ e x y
   · by_cases hx : x ∈ X
     · simp [hx, show y ∉ Y from fun hy ↦ hX x hx y hy hxy.adj]
@@ -650,10 +651,10 @@ lemma induce_union (G : Graph α β) (X Y : Set α) (hX : ∀ x ∈ X, ∀ y ∈
 lemma Compatible.vxDelete_union (h : G.Compatible H) (X : Set α) :
     (G ∪ H) - X = (G - X) ∪ (H - X) := by
   refine Graph.ext union_diff_distrib fun e x y ↦ ?_
-  simp only [vxDelete_inc₂_iff, union_vxSet, mem_union]
+  simp only [vxDelete_inc₂, union_vxSet, mem_union]
   rw [vxDelete_def, vxDelete_def, ((h.induce_left _).induce_right _).union_inc₂_iff,
     h.union_inc₂_iff]
-  simp only [induce_inc₂_iff, mem_diff]
+  simp only [induce_inc₂, mem_diff]
   by_cases hG : G.Inc₂ e x y
   · simp +contextual [hG, hG.vx_mem_left, hG.vx_mem_right]
   by_cases hH : H.Inc₂ e x y

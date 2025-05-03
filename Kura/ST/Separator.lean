@@ -341,7 +341,7 @@ lemma subset_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) : F ⊆ G.E :
 lemma exists_pathFrom_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) :
     ∃ W : WList α β, (G ＼ (F \ {e})).IsPathFrom S T W ∧ e ∈ W.edge := by
   have : ¬ G.IsEdgeSetSeparator S T (F \ {e}) := h.not_prop_of_ssubset (by simp [heF])
-  obtain ⟨W, hVd, hfst, hlst⟩ := by rwa [not_isEdgeSetSeparator_iff,
+  obtain ⟨W, hVd⟩ := by rwa [not_isEdgeSetSeparator_iff,
     setConnected_iff_exists_pathFrom] at this
   use W, hVd, by_contra fun heW ↦
     h.prop (by simpa [heF] using hVd.edgeDel (by simp [heW] : Disjoint W.edgeSet {e}) :

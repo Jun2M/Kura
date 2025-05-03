@@ -184,7 +184,7 @@ lemma IsCycle.toGraph_vxDelete_first_eq (hC : G.IsCycle C) (hnt : C.Nontrivial) 
   refine Graph.ext (by simpa) fun g x y ↦ ?_
   have h1 : P.Inc₂ g x y → x ∈ P := fun h ↦ h.vx_mem_left
   have h2 : P.Inc₂ g x y → y ∈ P := fun h ↦ h.vx_mem_right
-  simp only [vxDelete_inc₂_iff, hC.isWalk.wellFormed.toGraph_inc₂, inc₂_cons_iff',
+  simp only [vxDelete_inc₂, hC.isWalk.wellFormed.toGraph_inc₂, inc₂_cons_iff',
     concat_first, inc₂_concat_iff, tail_cons, dropLast_concat, hP.isWalk.wellFormed.toGraph_inc₂]
   aesop
 
