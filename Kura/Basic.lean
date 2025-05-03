@@ -3,8 +3,8 @@ Copyright (c) 2025 Peter Nelson. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Peter Nelson, Jun Kwon
 -/
-import Mathlib.Data.Set.Basic
 import Mathlib.Data.Sym.Sym2
+import Mathlib.Topology.Instances.ENat
 import Kura.Dep.Finset
 
 /-!
@@ -243,6 +243,12 @@ lemma inc₂_iff_inc : G.Inc₂ e x y ↔ G.Inc e x ∧ G.Inc e y ∧ ∀ z, G.I
     exact hy'.symm
   assumption
 
+lemma Inc.inc₂_of_inc_of_ne (h : G.Inc e x) (h' : G.Inc e y) (hxy : x ≠ y) : G.Inc₂ e x y := by
+  obtain ⟨z, hz⟩ := h
+  obtain rfl | rfl := hz.eq_or_eq_of_inc h'
+  · simp at hxy
+  exact hz
+
 /-- `G.IsLoopAt e x` means that `e` is a loop edge at the vertex `x`. -/
 def IsLoopAt (G : Graph α β) (e : β) (x : α) : Prop := G.Inc₂ e x x
 
@@ -415,7 +421,6 @@ lemma toMultiset_card_or : (G.toMultiset e).card = 2 ∨ (G.toMultiset e).card =
   · exact Or.inl (toMultiset_card_eq_two_iff.mpr he)
   · exact Or.inr (Multiset.card_eq_zero.mpr (toMultiset_eq_zero_iff.mpr he))
 
-
 @[simp]
 lemma toMultiset_eq_pair_iff : G.toMultiset e = {x, y} ↔ G.Inc₂ e x y := by
   constructor <;> rintro h
@@ -470,6 +475,107 @@ lemma toSym2_eq_pair_iff (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc₂
 alias ⟨_, Inc₂.toSym2⟩ := toSym2_eq_pair_iff
 
 end toSym2
+
+section incFun
+
+noncomputable def incFun (G : Graph α β) (e : β) : α →₀ ℕ := by
+  classical
+  exact (G.toMultiset e).toFinsupp
+
+lemma Inc₂.incFun_support_eq [DecidableEq α] (h : G.Inc₂ e x y) :
+    (G.incFun e).support = {x,y} := by
+  simp only [incFun, h.toMultiset, Multiset.insert_eq_cons, Multiset.toFinsupp_support,
+    Multiset.toFinset_cons, Multiset.toFinset_singleton]
+  convert rfl
+
+-- @[simp] lemma _root_.Set.singleton_inter_eq (x : α) (s : Set α) [Decidable (x ∈ s)] :
+--     {x} ∩ s = if x ∈ s then {x} else ∅ := by
+--   split_ifs <;> simpa
+
+-- @[simp] lemma _root_.Set.inter_singleton_eq (x : α) (s : Set α) [Decidable (x ∈ s)] :
+--     s ∩ {x} = if x ∈ s then {x} else ∅ := by
+--   split_ifs <;> simpa
+
+lemma incFun_eq_zero_of_not_mem (he : e ∉ G.E) : G.incFun e = 0 := by
+  simp [DFunLike.ext_iff, incFun, inc_iff_exists_inc₂, not_inc₂_of_not_mem_edgeSet he]
+
+lemma incFun_le_two (G : Graph α β) (e : β) (x : α) : G.incFun e x ≤ 2 := by
+  classical
+  obtain ⟨y, hy⟩ | hx := em <| G.Inc e x
+  · rw [incFun, Multiset.toFinsupp_apply, ← toMultiset_card_eq_two_iff.mpr (hy.edge_mem)]
+    exact Multiset.count_le_card x _
+  simp [incFun, inc₂_iff_inc, hx]
+
+lemma IsNonloopAt.IncFun_eq_one (h : G.IsNonloopAt e x) : G.incFun e x = 1 := by
+  obtain ⟨y, hne, hxy⟩ := h.exists_inc₂_ne
+  rw [← toMultiset_eq_pair_iff] at hxy
+  simp [incFun, hxy, hne.symm]
+
+@[simp]
+lemma incFun_eq_one_iff : G.incFun e x = 1 ↔ G.IsNonloopAt e x := by
+  obtain (⟨y, hxy⟩ | hex) := em <| G.Inc e x
+  · simp [hxy.isNonloopAt_iff_ne, incFun, toMultiset_eq_pair_iff.mpr hxy]
+  simp [incFun, mt Inc₂.inc_left hex, mt IsNonloopAt.inc hex]
+  rw [← inc_iff_mem_toMultiset] at hex
+  simp_all
+
+lemma IsNonloopAt.incFun_eq_one (h : G.IsNonloopAt e x) : G.incFun e x = 1 :=
+  incFun_eq_one_iff.2 h
+
+@[simp]
+lemma incFun_eq_two_iff : G.incFun e x = 2 ↔ G.IsLoopAt e x := by
+  obtain (⟨y, hxy⟩ | hex) := em <| G.Inc e x
+  · simp only [incFun, toMultiset_eq_pair_iff.mpr hxy, Multiset.insert_eq_cons,
+    Multiset.toFinsupp_apply, Multiset.count_cons_self, Multiset.nodup_singleton,
+    Multiset.count_singleton, Nat.reduceEqDiff, ite_eq_left_iff, zero_ne_one, imp_false, not_not, ←
+    inc₂_self_iff, hxy.inc₂_iff_eq_right]
+    exact eq_comm
+  simp [incFun, mt Inc₂.inc_left hex, hex, mt IsLoopAt.inc hex]
+
+lemma IsLoopAt.incFun_eq_two (h : G.IsLoopAt e x) : G.incFun e x = 2 :=
+  incFun_eq_two_iff.2 h
+
+@[simp]
+lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ G.E := by
+  refine ⟨fun h he ↦ ?_, incFun_eq_zero_of_not_mem⟩
+  obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain hx | hx := hxy.inc_left.isLoopAt_or_isNonloopAt
+  · have := h ▸ hx.incFun_eq_two
+    simp at this
+  have := h ▸ hx.incFun_eq_one
+  simp at this
+
+lemma sum_incFun_eq_two (he : e ∈ G.E) : (G.incFun e).sum (fun _ x ↦ x) = 2 := by
+  classical
+  obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain rfl | hne := eq_or_ne x y
+  · simp [Finsupp.sum, hxy.incFun_support_eq, hxy.inc₂_iff_eq, show G.IsLoopAt e x from hxy]
+  simp [Finsupp.sum, hxy.incFun_support_eq, Finset.sum_pair hne,
+    (hxy.isNonloopAt_of_ne hne).incFun_eq_one, (hxy.isNonloopAt_right_of_ne hne).incFun_eq_one]
+
+@[simp]
+lemma toMultiset_count [DecidableEq α] (x : α) : (G.toMultiset e).count x = G.incFun e x := by
+  classical
+  by_cases he : e ∈ G.E
+  · simp only [toMultiset, he, ↓reduceDIte, incFun]
+    convert (Multiset.toFinsupp_apply _ x).symm
+  · simp only [toMultiset, he, ↓reduceDIte, Multiset.not_mem_zero, not_false_eq_true,
+    Multiset.count_eq_zero_of_not_mem, incFun, map_zero, Finsupp.coe_zero, Pi.ofNat_apply]
+
+@[simp]
+lemma incFun_ne_zero : G.incFun e v ≠ 0 ↔ G.Inc e v := by
+  classical
+  rw [← toMultiset_count, Multiset.count_ne_zero, inc_iff_mem_toMultiset]
+
+@[simp]
+lemma incFun_eq_zero : G.incFun e x = 0 ↔ ¬ G.Inc e x := by
+  rw [← incFun_ne_zero, not_not]
+
+lemma Inc.iff_mem_support : G.Inc e x ↔ x ∈ (G.incFun e).support := by
+  rw [Finsupp.mem_support_iff, incFun_ne_zero]
+
+
+end incFun
 
 /-! ### Extensionality -/
 
@@ -590,5 +696,129 @@ lemma copy_eq_self (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → 
     (hV : G.V = V) (hE : G.E = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) :
     G.copy hV hE h_inc₂ = G := by
   ext <;> simp_all
+
+
+
+section Degree
+
+/-- The degree of a vertex as a term in `ℕ∞`. -/
+noncomputable def eDegree (G : Graph α β) (v : α) : ℕ∞ := ∑' e, (G.incFun e v : ℕ∞)
+
+/-- The degree of a vertex as a term in `ℕ` (with value zero if the degree is infinite). -/
+noncomputable def degree (G : Graph α β) (v : α) : ℕ := (G.eDegree v).toNat
+
+def regular (G : Graph α β) := ∃ d, ∀ v, G.degree v = d
+
+lemma degree_eq_fintype_sum [Fintype β] (G : Graph α β) (v : α) :
+    G.degree v = ∑ e, G.incFun e v := by
+  rw [degree, eDegree, tsum_eq_sum (s := Finset.univ) (by simp), ← Nat.cast_inj (R := ℕ∞),
+    Nat.cast_sum, ENat.coe_toNat]
+  refine WithTop.sum_ne_top.2 fun i _ ↦ ?_
+  rw [← WithTop.lt_top_iff_ne_top]
+  exact Batteries.compareOfLessAndEq_eq_lt.1 rfl
+
+lemma degree_eq_edgeSet_sum (G : Graph α β) [Fintype G.E] (v : α) :
+    G.degree v = ∑ e ∈ G.E, G.incFun e v := by
+  rw [degree, eDegree, tsum_eq_sum (s := G.E.toFinset) (by simp; exact fun b hb ↦ not_inc_of_not_mem_edgeSet hb v), ← Nat.cast_inj (R := ℕ∞),
+    Nat.cast_sum, ENat.coe_toNat]
+  refine WithTop.sum_ne_top.2 fun i _ ↦ ?_
+  rw [← WithTop.lt_top_iff_ne_top]
+  exact Batteries.compareOfLessAndEq_eq_lt.1 rfl
+
+lemma degree_eq_finsum [Finite β] (G : Graph α β) (v : α) :
+    G.degree v = ∑ᶠ e, G.incFun e v := by
+  have := Fintype.ofFinite β
+  rw [degree_eq_fintype_sum, finsum_eq_sum_of_fintype]
+
+lemma degree_eq_finsum_edgeSet (G : Graph α β) [Finite G.E] (v : α) :
+    G.degree v = ∑ᶠ (e) (_ : e ∈ G.E), G.incFun e v := by
+  rw [degree_eq_edgeSet_sum, finsum_cond_eq_sum_of_cond_iff (t := G.E.toFinset) (h := by simp)]
+
+@[simp]
+lemma finsum_incFun_eq (he : e ∈ G.E) : ∑ᶠ v, G.incFun e v = 2 := by
+  simp_rw [← sum_incFun_eq_two he, Finsupp.sum]
+  rw [finsum_eq_finset_sum_of_support_subset]
+  simp
+
+@[simp]
+lemma finsum_vxSet_incFun_eq (he : e ∈ G.E) : ∑ᶠ v ∈ G.V, G.incFun e v = 2 := by
+  simp_rw [← sum_incFun_eq_two he, Finsupp.sum, finsum_mem_def]
+  rw [← finsum_eq_finset_sum_of_support_subset]
+  refine finsum_congr fun v ↦ ?_
+  rw [indicator_apply_eq_self]
+  rintro hv
+  simp [not_inc_of_not_mem_vxSet v hv]
+  · simp
+
+lemma handshake [Finite α] [Finite β] (G : Graph α β) :
+    ∑ᶠ v, G.degree v = 2 * G.E.ncard := by
+  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) G.E.toFinite (Set.finite_univ (α := α))
+  convert h.symm using 1
+  · simp only [Set.mem_univ, finsum_true, degree_eq_finsum, finsum_mem_def]
+    convert rfl with v e
+    rw [indicator_apply_eq_self]
+    simp only [indicator_apply_eq_self, incFun_eq_zero, not_imp_not]
+    apply Inc.edge_mem
+  simp only [Set.mem_univ, finsum_true]
+  rw [finsum_mem_congr (show G.E = G.E from rfl) (fun x h ↦ finsum_incFun_eq h),
+    finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card]
+  simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
+
+lemma handshake' (G : Graph α β) [hV : Finite G.V] [hE : Finite G.E] :
+    ∑ᶠ v, G.degree v = 2 * G.E.ncard := by
+  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) G.E.toFinite hV
+  convert h.symm using 1
+  · simp only [degree_eq_finsum_edgeSet, finsum_mem_def]
+    convert rfl with v
+    rw [indicator_apply_eq_self]
+    rintro hv
+    convert finsum_zero with e
+    simp [not_inc_of_not_mem_vxSet v hv]
+  simp only [Set.mem_univ, finsum_true]
+  rw [finsum_mem_congr (show G.E = G.E from rfl) (fun x h ↦ finsum_vxSet_incFun_eq h),
+    finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card _ hE]
+  simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
+
+end Degree
+
+section Isolated
+
+def Isolated (G : Graph α β) (v : α) := ∀ e, ¬ G.Inc e v
+
+namespace Isolated
+
+lemma not_adj_left (hisol : G.Isolated u) : ¬ G.Adj u v := by
+  rintro ⟨e, hbtw⟩
+  exact hisol e hbtw.inc_left
+
+lemma not_adj_right (hisol : G.Isolated u) : ¬ G.Adj v u := by
+  rw [adj_comm]
+  exact hisol.not_adj_left
+
+lemma not_inc₂_left (hisol : G.Isolated u) : ¬ G.Inc₂ e u v :=
+  (hisol e ·.inc_left)
+
+lemma not_inc₂_right (hisol : G.Isolated u) : ¬ G.Inc₂ e v u :=
+  (hisol e ·.inc_right)
+
+end Isolated
+
+lemma isolated_of_E_empty (hE : G.E = ∅) : G.Isolated u := by
+  intro e hinc
+  exact (hE ▸ hinc.edge_mem : e ∈ ∅)
+
+lemma degree_eq_zero_iff_isolated (G : Graph α β) [Finite G.E] (v : α) :
+    G.degree v = 0 ↔ G.Isolated v := by
+  rw [degree_eq_edgeSet_sum]
+  constructor <;> rintro h
+  · intro e
+    contrapose! h
+    simp only [ne_eq, Finset.sum_eq_zero_iff, mem_toFinset, incFun_eq_zero, not_forall,
+      Classical.not_imp, not_not]
+    use e, h.edge_mem
+  · simp only [Finset.sum_eq_zero_iff, mem_toFinset, incFun_eq_zero]
+    exact fun i _ ↦ h i
+
+end Isolated
 
 end Graph
