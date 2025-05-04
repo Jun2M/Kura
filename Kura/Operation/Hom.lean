@@ -2,8 +2,8 @@ import Kura.Connected
 
 
 open Set Function
-variable {α ε α' ε' γ δ ε ζ : Type*} {G G' G₁ G₁' H : Graph α ε} {G₂ G₂' : Graph γ δ}
-  {G₃ G₃' : Graph ε ζ} {a b c : α} {e f : ε} {u v w : γ} {x y z : δ} {S S' T T' U U': Set α}
+variable {α ε α' ε' α'' ε'' : Type*} {G G' G₁ G₁' H : Graph α ε} {G₂ G₂' : Graph α' ε'}
+  {G₃ G₃' : Graph α'' ε''} {a b c : α} {e f : ε} {u v w : α'} {x y z : ε''} {S S' T T' U U': Set α}
   {F F' R R' : Set ε}
 namespace Graph
 
@@ -20,13 +20,13 @@ def HomSys.ofVxFun (f : α → α') : HomSys α ε α' ε where
 instance : CoeFun (HomSys α ε α' ε') fun (_ : HomSys α ε α' ε') ↦ α → α' where
   coe v := v.toFun
 
--- structure HomSys.IsLawful (G : Graph α ε) (f : HomSys α ε γ δ) : Prop where
+-- structure HomSys.IsLawful (G : Graph α ε) (f : HomSys α ε α' ε') : Prop where
 --   forall_foo : ∀ e x y, G.Inc₂ e x y →
 
--- instance : CoeFun (HomSys α ε γ δ) fun (_ : HomSys α ε γ δ) ↦ ε → δ where
+-- instance : CoeFun (HomSys α ε α' ε') fun (_ : HomSys α ε α' ε') ↦ ε → ε' where
 --   coe v := v.fₑ
 
-structure HomSys.IsHomOn (f : HomSys α ε γ δ) (G₁ : Graph α ε) (G₂ : Graph γ δ) : Prop where
+structure HomSys.IsHomOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
   Mapsto_vx : MapsTo f G₁.V G₂.V
   inc₂ ⦃e : _⦄ ⦃x y : _⦄ : G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)
 
@@ -35,16 +35,22 @@ structure HomSys.IsHomOn (f : HomSys α ε γ δ) (G₁ : Graph α ε) (G₂ : G
   inc ⦃e : _⦄ ⦃a : _⦄ : G₁.Inc e a → G₂.Inc (f.edgeFun e) (f a) := fun hinc ↦
     (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
 
-def HasHom (G₁ : Graph α ε) (G₂ : Graph γ δ) := ∃ f : HomSys α ε γ δ, f.IsHomOn G₁ G₂
+def HomSys.IsHomOn.mk' (f : HomSys α ε α' ε') (hMap : MapsTo f G₁.V G₂.V)
+    (hInc₂ : ∀ e x y, G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)) :
+    f.IsHomOn G₁ G₂ where
+  Mapsto_vx := hMap
+  inc₂ := hInc₂
+
+def HasHom (G₁ : Graph α ε) (G₂ : Graph α' ε') := ∃ f : HomSys α ε α' ε', f.IsHomOn G₁ G₂
 
 scoped infix:50 " ≤→ " => HasHom
 
-structure HomSys.IsEmbOn (f : HomSys α ε γ δ) (G₁ : Graph α ε) (G₂ : Graph γ δ) : Prop extends
+structure HomSys.IsEmbOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop extends
   IsHomOn f G₁ G₂ where
   injOn_vx : InjOn f G₁.V
   injOn_edge : InjOn f.edgeFun G₁.E
 
-def HasEmb (G₁ : Graph α ε) (G₂ : Graph γ δ) := ∃ f : HomSys α ε γ δ, f.IsEmbOn G₁ G₂
+def HasEmb (G₁ : Graph α ε) (G₂ : Graph α' ε') := ∃ f : HomSys α ε α' ε', f.IsEmbOn G₁ G₂
 
 scoped infix:50 " ≤↪ " => HasEmb
 
@@ -52,12 +58,23 @@ def HasEmb.toHasHom (h : HasEmb G₁ G₂) : HasHom G₁ G₂ := by
   obtain ⟨f, hf⟩ := h
   exact ⟨f, hf.1⟩
 
-structure HomSys.IsIsomOn (f : HomSys α ε γ δ) (G₁ : Graph α ε) (G₂ : Graph γ δ) : Prop extends
+structure HomSys.IsIsomOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop extends
   IsHomOn f G₁ G₂ where
   bijOn_vx : BijOn f G₁.V G₂.V
   bijOn_edge : BijOn f.edgeFun G₁.E G₂.E
 
-def HasIsom (G₁ : Graph α ε) (G₂ : Graph γ δ) := ∃ f : HomSys α ε γ δ, f.IsIsomOn G₁ G₂
+lemma HomSys.IsIsomOn.toIsEmbOn (f : HomSys α ε α' ε') (h : f.IsIsomOn G₁ G₂) : f.IsEmbOn G₁ G₂ where
+  toIsHomOn := h.toIsHomOn
+  injOn_vx := h.bijOn_vx.injOn
+  injOn_edge := h.bijOn_edge.injOn
+
+lemma HomSys.IsIsomOn.ofIsEmbOn (f : HomSys α ε α' ε') (h : f.IsEmbOn G₁ G₂)
+    (hVsurj : SurjOn f G₁.V G₂.V) (hEsurj : SurjOn f.edgeFun G₁.E G₂.E) : f.IsIsomOn G₁ G₂ where
+  toIsHomOn := h.toIsHomOn
+  bijOn_vx := ⟨h.Mapsto_vx, h.injOn_vx, hVsurj⟩
+  bijOn_edge := ⟨h.Mapsto_edge, h.injOn_edge, hEsurj⟩
+
+def HasIsom (G₁ : Graph α ε) (G₂ : Graph α' ε') := ∃ f : HomSys α ε α' ε', f.IsIsomOn G₁ G₂
 
 scoped infix:50 " ≤↔ " => HasIsom
 
@@ -85,39 +102,39 @@ lemma HomSys.IsIsomOn.id : HomSys.id.IsIsomOn G G :=
   ⟨HomSys.IsHomOn.id, bijOn_id G.V, bijOn_id G.E⟩
 
 @[simps]
-def HomSys.comp (g : HomSys α ε γ δ) (f : HomSys γ δ ε ζ) : HomSys α ε ε ζ where
+def HomSys.comp (g : HomSys α ε α' ε') (f : HomSys α' ε' α'' ε'') : HomSys α ε α'' ε'' where
   toFun := f ∘ g
   edgeFun := f.edgeFun ∘ g.edgeFun
 
-lemma HomSys.IsHomOn.comp {g : HomSys α ε γ δ} {f : HomSys γ δ ε ζ} (hg : g.IsHomOn G₁ G₂)
+lemma HomSys.IsHomOn.comp {g : HomSys α ε α' ε'} {f : HomSys α' ε' α'' ε''} (hg : g.IsHomOn G₁ G₂)
     (hf : f.IsHomOn G₂ G₃) : (g.comp f).IsHomOn G₁ G₃ where
   Mapsto_vx := fun ⦃_⦄ a ↦ hf.Mapsto_vx (hg.Mapsto_vx a)
   inc₂ := fun ⦃_ _ _⦄ a ↦ hf.inc₂ (hg.inc₂ a)
 
-lemma HomSys.IsEmbOn.comp {g : HomSys α ε γ δ} {f : HomSys γ δ ε ζ} (hg : g.IsEmbOn G₁ G₂)
+lemma HomSys.IsEmbOn.comp {g : HomSys α ε α' ε'} {f : HomSys α' ε' α'' ε''} (hg : g.IsEmbOn G₁ G₂)
     (hf : f.IsEmbOn G₂ G₃) : (g.comp f).IsEmbOn G₁ G₃ where
   toIsHomOn := hg.toIsHomOn.comp hf.toIsHomOn
   injOn_vx := hf.injOn_vx.comp hg.injOn_vx hg.Mapsto_vx
   injOn_edge := hf.injOn_edge.comp hg.injOn_edge hg.Mapsto_edge
 
-lemma HomSys.IsIsomOn.comp {g : HomSys α ε γ δ} {f : HomSys γ δ ε ζ} (hg : g.IsIsomOn G₁ G₂)
+lemma HomSys.IsIsomOn.comp {g : HomSys α ε α' ε'} {f : HomSys α' ε' α'' ε''} (hg : g.IsIsomOn G₁ G₂)
     (hf : f.IsIsomOn G₂ G₃) : (g.comp f).IsIsomOn G₁ G₃ where
   toIsHomOn := hg.toIsHomOn.comp hf.toIsHomOn
   bijOn_vx := hf.bijOn_vx.comp hg.bijOn_vx
   bijOn_edge := hf.bijOn_edge.comp hg.bijOn_edge
 
-lemma HomSys.IsHomOn.le {f : HomSys α ε γ δ} (hle : G₂ ≤ G₂') (hf : f.IsHomOn G₁ G₂) :
+lemma HomSys.IsHomOn.le {f : HomSys α ε α' ε'} (hle : G₂ ≤ G₂') (hf : f.IsHomOn G₁ G₂) :
     f.IsHomOn G₁ G₂' where
   Mapsto_vx _x hx := vxSet_subset_of_le hle (hf.Mapsto_vx hx)
   inc₂ _e _x _y hbtw := (hf.inc₂ hbtw).of_le hle
 
-lemma HomSys.IsEmbOn.le {f : HomSys α ε γ δ} (hle : G₂ ≤ G₂') (hf : f.IsEmbOn G₁ G₂) :
+lemma HomSys.IsEmbOn.le {f : HomSys α ε α' ε'} (hle : G₂ ≤ G₂') (hf : f.IsEmbOn G₁ G₂) :
     f.IsEmbOn G₁ G₂' where
   toIsHomOn := hf.toIsHomOn.le hle
   injOn_vx := hf.injOn_vx.mono subset_rfl
   injOn_edge := hf.injOn_edge.mono subset_rfl
 
-lemma HasEmb.bot [hg : Nonempty γ] [hd : Nonempty δ] : (⊥ : Graph α ε) ≤↪ G₂ := by
+lemma HasEmb.bot [hg : Nonempty α'] [hd : Nonempty ε'] : (⊥ : Graph α ε) ≤↪ G₂ := by
   use ⟨fun _ ↦ hg.some, fun _ ↦ hd.some⟩
   exact {
     Mapsto_vx := mapsTo_empty (fun x ↦ hg.some) G₂.V
@@ -127,11 +144,11 @@ lemma HasEmb.bot [hg : Nonempty γ] [hd : Nonempty δ] : (⊥ : Graph α ε) ≤
     injOn_edge := by simp only [bot_E, injOn_empty]
   }
 
-variable {f : HomSys α ε γ δ}
+variable {f : HomSys α ε α' ε'}
 
 section Hom
 
-lemma HasHom.noEdge [hd : Nonempty δ] (hU : U.Nonempty) :
+lemma HasHom.noEdge [hd : Nonempty ε'] (hU : U.Nonempty) :
     (Graph.noEdge U ε) ≤→ G₂ ↔ G₂.V.Nonempty := by
   constructor
   · rintro ⟨f, hsu, hf⟩
@@ -176,6 +193,40 @@ section Isom
 
 lemma HasIsom.rfl : G₁ ≤↔ G₁ := ⟨HomSys.id, HomSys.IsIsomOn.id⟩
 
+lemma bot_hasIsom_bot [hα' : Nonempty α'] [hε' : Nonempty ε'] : (⊥ : Graph α ε) ≤↔ (⊥ : Graph α' ε') := by
+  use ⟨fun _ ↦ hα'.some, fun _ ↦ hε'.some⟩
+  exact {
+    Mapsto_vx := mapsTo_empty (fun x ↦ hα'.some) (⊥ : Graph α' ε').V
+    inc₂ e x y hbtw := by simp at hbtw
+    bijOn_vx := by simp only [bot_V, bijOn_empty_iff_left]
+    bijOn_edge := by simp only [bot_E, bijOn_empty_iff_left]}
+
+lemma bot_hasIsom_iff [Nonempty α] [Nonempty ε] : (⊥ : Graph α' ε') ≤↔ G ↔ G = ⊥ := by
+  constructor
+  · rintro ⟨f, hf⟩
+    have := hf.bijOn_vx.surjOn
+    simpa using this
+  · rintro rfl
+    exact bot_hasIsom_bot
+
+lemma HasIsom.symm [Nonempty α] [Nonempty ε] (h : G₁ ≤↔ G₂) : G₂ ≤↔ G₁ := by
+  obtain ⟨f, hHom, hBijV, hBijE⟩ := h
+  have hBijVinv := (Set.bijOn_comm hBijV.invOn_invFunOn).mpr hBijV
+  have hBijEinv := (Set.bijOn_comm hBijE.invOn_invFunOn).mpr hBijE
+  use {toFun := invFunOn f G₁.V, edgeFun := invFunOn f.edgeFun G₁.E}, ?_, hBijVinv
+  exact {
+    Mapsto_vx x hx := hBijVinv.mapsTo hx
+    inc₂ e x y hbtw := by
+      simp only
+      obtain ⟨e, he, rfl⟩ := hBijE.surjOn hbtw.edge_mem
+      obtain ⟨x, hx, rfl⟩ := hBijV.surjOn hbtw.vx_mem_left
+      obtain ⟨y, hy, rfl⟩ := hBijV.surjOn hbtw.vx_mem_right
+      rw [hBijV.invOn_invFunOn.1 hx, hBijV.invOn_invFunOn.1 hy, hBijE.invOn_invFunOn.1 he]
+      obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet he
+      have := (hHom.inc₂ huv).eq_and_eq_or_eq_and_eq_of_inc₂ hbtw
+      rwa [hBijV.injOn.eq_iff huv.vx_mem_left hx, hBijV.injOn.eq_iff huv.vx_mem_left hy,
+        hBijV.injOn.eq_iff huv.vx_mem_right hx, hBijV.injOn.eq_iff huv.vx_mem_right hy, ← huv.inc₂_iff] at this}
+
 lemma HasIsom.trans (h₁₂ : G₁ ≤↔ G₂) (h₂₃ : G₂ ≤↔ G₃) : G₁ ≤↔ G₃ := by
   obtain ⟨f₁₂, hf₁₂⟩ := h₁₂
   obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
@@ -202,7 +253,7 @@ alias ⟨Inc₂.isIsomOn, _⟩ := IsIsomOn.inc₂
 
 end Isom
 
-def HomSys.image (f : HomSys α ε γ δ) (h : f.IsHomOn G G₂) : Graph γ δ :=
+def HomSys.image (f : HomSys α ε α' ε') (h : f.IsHomOn G G₂) : Graph α' ε' :=
   ofInc (f '' G.V) (fun e' v' ↦ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v)
   (by rintro e' v' ⟨e, rfl, v, rfl, hinc⟩; use v, hinc.vx_mem)
   (by
@@ -261,3 +312,38 @@ lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toI
       simpa only [image_E] using hd⟩
     simp only [image_E, mem_image]
     use e
+
+variable {α' : Type u_1} {ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε'] {G' : Graph α' ε'}
+
+class GraphicFunction (F : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Sort*) : Prop where
+  presv_isom {α α' : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε]
+    [Nonempty ε'] (G : Graph α ε) (G' : Graph α' ε') : G ≤↔ G' → F α ε G = F α' ε' G'
+
+lemma iff_exists_isom (P : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Prop)
+    [hP : GraphicFunction P] : P α ε G ↔
+    ∃ (α' : Type _) (_ :Nonempty α') (ε' : Type _) (_ :Nonempty ε') (G' : Graph α' ε'),
+      P α' ε' G' ∧ G ≤↔ G' := by
+  constructor
+  · rintro h
+    use α, inferInstance, ε, inferInstance, G
+    exact ⟨h, HasIsom.rfl⟩
+  · rintro ⟨α', _, ε', _, G', h, h'⟩
+    rwa [hP.presv_isom G G' h']
+
+lemma eq_of_isom {F : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Sort*} [hF : GraphicFunction F]
+    {G G' : Graph α ε} (h : G ≤↔ G') : F α ε G = F α ε G' := hF.presv_isom G G' h
+
+lemma iff_of_isom {P : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Prop}
+    [hP : GraphicFunction P] (h : G ≤↔ G') : P α ε G ↔ P α' ε' G' := by
+  rw [← hP.presv_isom G G' h]
+
+instance : GraphicFunction (fun _ _ G ↦ G ≤↔ H) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    exact ⟨h.symm.trans, h.trans⟩
+
+instance : GraphicFunction (fun _ _ G ↦ H ≤↔ G) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    exact ⟨(HasIsom.trans · h), (HasIsom.trans · h.symm)⟩
+

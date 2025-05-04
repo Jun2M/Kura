@@ -219,5 +219,32 @@ def IsiMinor (G : Graph α' ε') (H : Graph α ε) : Prop :=
 def HasCliqueMinor (G : Graph α ε) (n : ℕ) : Prop :=
   (CompleteGraph n).IsiMinor G
 
+lemma GraphicFunction.iff_exists_isom_Setify (P : (α : Type u_1) → (ε : Type u_4) → Graph α ε → Prop)
+    [hP : GraphicFunction P] : P α ε H ↔ ∃ G, P (Set α) ε G ∧ H ≤↔ G := by
+  constructor
+  · rintro h
+    refine ⟨H.Setify, ?_, Setify.HasIsom H⟩
+    rwa [← hP.presv_isom H H.Setify (Setify.HasIsom H)]
+  · rintro ⟨G', h, h'⟩
+    rwa [hP.presv_isom _ _ h']
+
+instance : GraphicFunction (fun α ε G ↦ G.IsiMinor H) where
+  presv_isom G G' h := by
+    unfold IsiMinor
+    rw [eq_iff_iff]
+    constructor
+    · rintro ⟨I, hI, hHI⟩
+      use I, hI, h.symm.trans hHI
+
+
+-- instance : GraphicFunction (fun α ε G ↦ H.IsiMinor G) where
+-- presv_isom G G' h := by
+--   unfold IsiMinor
+--   rw [eq_iff_iff]
+--   constructor
+--   · rintro ⟨I, hI, hHI⟩
+
+
+--   sorry
 
 end Graph

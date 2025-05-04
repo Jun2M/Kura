@@ -283,6 +283,14 @@ lemma vxSet_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
   · rw [h]
     rfl
 
+instance instUniqueGraph [IsEmpty α] : Unique (Graph α ε) where
+  default := ⊥
+  uniq G := by
+    rw [← vxSet_empty_iff_eq_bot]
+    exact eq_empty_of_isEmpty G.V
+
+@[simp] lemma eq_bot_of_isEmpty [IsEmpty α] : G = ⊥ := instUniqueGraph.uniq G
+
 @[simp]
 lemma edgeDelete_empty : G ＼ (∅ : Set ε) = G := by
   simp

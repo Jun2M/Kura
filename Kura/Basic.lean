@@ -464,7 +464,8 @@ lemma toSym2_eq_pair_iff (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc₂
     · exact this.symm
   · simpa [toSym2] using this.eq_and_eq_or_eq_and_eq_of_inc₂ h
 
-alias ⟨_, Inc₂.toSym2⟩ := toSym2_eq_pair_iff
+lemma Inc₂.toSym2 (h : G.Inc₂ e x y) : G.toSym2 e h.edge_mem = s(x, y) := by
+  rwa [toSym2_eq_pair_iff h.edge_mem]
 
 end toSym2
 
@@ -625,7 +626,7 @@ lemma toSym2_eq_toSym2_iff {G' : Graph α ε} (he : e ∈ G.E) (hf : f ∈ G'.E)
     G.toSym2 e he = G'.toSym2 f hf ↔ G.Inc₂ e = G'.Inc₂ f := by
   obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
   obtain ⟨x', y', hx'y'⟩ := G'.exists_inc₂_of_mem_edgeSet hf
-  rw [hxy.toSym2, Inc₂.toSym2 _ hx'y']
+  rw [hxy.toSym2, Inc₂.toSym2 hx'y']
   constructor <;> rintro h
   · ext u v
     rw [hxy.inc₂_iff_sym2_eq, h, hx'y'.inc₂_iff_sym2_eq]
