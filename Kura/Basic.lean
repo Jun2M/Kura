@@ -600,47 +600,48 @@ lemma mk'_eq_self (G : Graph α β) : Graph.mk' G.V G.Inc₂ (fun _ _ _ ↦ Inc�
   have h := G.edgeSet_eq_setOf_exists_inc₂
   cases G with | mk V E Inc₂ _ _ _ => simpa [Graph.mk'] using h.symm
 
-lemma inc_eq_inc_iff {G₁ G₂ : Graph α β} : G₁.Inc e = G₂.Inc e ↔ G₁.Inc₂ e = G₂.Inc₂ e := by
+lemma inc_eq_inc_iff {G₁ G₂ : Graph α β} : G₁.Inc e = G₂.Inc f ↔ G₁.Inc₂ e = G₂.Inc₂ f := by
   constructor <;> rintro h
   · ext x y
     rw [inc₂_iff_inc, inc₂_iff_inc, h]
   · simp [funext_iff, inc_iff_exists_inc₂, eq_iff_iff, h]
 
 lemma inc_iff_inc_iff {G₁ G₂ : Graph α β} :
-    (∀ x, G₁.Inc e x ↔ G₂.Inc e x) ↔ (∀ x y, G₁.Inc₂ e x y ↔ G₂.Inc₂ e x y) := by
-  convert inc_eq_inc_iff (G₁ := G₁) (G₂ := G₂) (e := e) using 1 <;> simp_rw [funext_iff, eq_iff_iff]
+    (∀ x, G₁.Inc e x ↔ G₂.Inc f x) ↔ (∀ x y, G₁.Inc₂ e x y ↔ G₂.Inc₂ f x y) := by
+  convert inc_eq_inc_iff (G₁ := G₁) (G₂ := G₂) (e := e) (f := f) using 1 <;>
+  simp_rw [funext_iff, eq_iff_iff]
 
 lemma toMultiset_eq_toMultiset_iff {G' : Graph α β} :
-    G.toMultiset e = G'.toMultiset e ↔ G.Inc₂ e = G'.Inc₂ e := by
+    G.toMultiset e = G'.toMultiset f ↔ G.Inc₂ e = G'.Inc₂ f := by
   constructor <;> rintro h
   · ext x y
     rw [← toMultiset_eq_pair_iff, h, toMultiset_eq_pair_iff]
   · by_cases he : e ∈ G.E
     · obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
       rw [hxy.toMultiset, Inc₂.toMultiset (h ▸ hxy)]
-    · have : e ∉ G'.E := fun h' ↦ by
+    · have : f ∉ G'.E := fun h' ↦ by
         obtain ⟨x, y, hxy⟩ := G'.exists_inc₂_of_mem_edgeSet h'
         exact he (h ▸ hxy).edge_mem |>.elim
       simp [he, this]
 
 lemma toMultiset_eq_toMultiset_iff' {G' : Graph α β} :
-    G.toMultiset e = G'.toMultiset e ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ e x y) := by
+    G.toMultiset e = G'.toMultiset f ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ f x y) := by
   convert toMultiset_eq_toMultiset_iff (G := G) (G' := G') using 1
   simp_rw [funext_iff, eq_iff_iff]
 
-lemma toSym2_eq_toSym2_iff {G' : Graph α β} (he : e ∈ G.E) (he' : e ∈ G'.E) :
-    G.toSym2 e he = G'.toSym2 e he' ↔ G.Inc₂ e = G'.Inc₂ e := by
+lemma toSym2_eq_toSym2_iff {G' : Graph α β} (he : e ∈ G.E) (hf : f ∈ G'.E) :
+    G.toSym2 e he = G'.toSym2 f hf ↔ G.Inc₂ e = G'.Inc₂ f := by
   obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
-  obtain ⟨x', y', hx'y'⟩ := G'.exists_inc₂_of_mem_edgeSet he'
+  obtain ⟨x', y', hx'y'⟩ := G'.exists_inc₂_of_mem_edgeSet hf
   rw [hxy.toSym2, Inc₂.toSym2 _ hx'y']
   constructor <;> rintro h
   · ext u v
     rw [hxy.inc₂_iff_sym2_eq, h, hx'y'.inc₂_iff_sym2_eq]
   · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_and_eq_or_eq_and_eq_of_inc₂ hx'y' <;> simp
 
-lemma toSym2_eq_toSym2_iff' {G' : Graph α β} (he : e ∈ G.E) (he' : e ∈ G'.E) :
-    G.toSym2 e he = G'.toSym2 e he' ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ e x y) := by
-  convert toSym2_eq_toSym2_iff (G := G) (G' := G') (e := e) (he := he) (he' := he') using 1
+lemma toSym2_eq_toSym2_iff' {G' : Graph α β} (he : e ∈ G.E) (hf : f ∈ G'.E) :
+    G.toSym2 e he = G'.toSym2 f hf ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ f x y) := by
+  convert toSym2_eq_toSym2_iff (he := he) (hf := hf) using 1
   simp_rw [funext_iff, eq_iff_iff]
 
 /-- Two graphs with the same vertex set and binary incidences are equal. -/
