@@ -252,7 +252,6 @@ lemma Inc.inc₂_of_inc_of_ne (h : G.Inc e x) (h' : G.Inc e y) (hxy : x ≠ y) :
 /-- `G.IsLoopAt e x` means that `e` is a loop edge at the vertex `x`. -/
 def IsLoopAt (G : Graph α β) (e : β) (x : α) : Prop := G.Inc₂ e x x
 
-@[simp]
 lemma inc₂_self_iff : G.Inc₂ e x x ↔ G.IsLoopAt e x := Iff.rfl
 
 lemma IsLoopAt.inc₂ (h : G.IsLoopAt e x) : G.Inc₂ e x x := h
@@ -370,7 +369,7 @@ noncomputable def toMultiset (G : Graph α β) (e : β) : Multiset α := by
     else 0
 
 @[simp]
-lemma toMultiset.vx_mem (hxe : x ∈ G.toMultiset e) : x ∈ G.V := by
+lemma vx_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : x ∈ G.V := by
   simp only [toMultiset] at hxe
   split_ifs at hxe with he
   · simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hxe
@@ -380,32 +379,25 @@ lemma toMultiset.vx_mem (hxe : x ∈ G.toMultiset e) : x ∈ G.V := by
   · exact (Multiset.not_mem_zero _ hxe).elim
 
 @[simp]
-lemma toMultiset.edge_mem (hxe : x ∈ G.toMultiset e) : e ∈ G.E := by
+lemma edge_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : e ∈ G.E := by
   simp only [toMultiset] at hxe
   split_ifs at hxe with he
   · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.edge_mem
   · exact (Multiset.not_mem_zero _ hxe).elim
 
 @[simp]
-lemma toMultiset.card_eq_two (he : e ∈ G.E) : (G.toMultiset e).card = 2 := by
+lemma toMultiset_card_eq_two (he : e ∈ G.E) : (G.toMultiset e).card = 2 := by
   simp only [toMultiset, he, ↓reduceDIte, Multiset.insert_eq_cons, Multiset.card_cons,
     Multiset.card_singleton, Nat.reduceAdd]
 
 @[simp]
-lemma toMultiset.eq_zero (he : e ∉ G.E) : G.toMultiset e = 0 := by
+lemma toMultiset_eq_zero (he : e ∉ G.E) : G.toMultiset e = 0 := by
   simp only [toMultiset, he, ↓reduceDIte]
 
 @[simp]
-lemma toMultiset.edge_mem_of_mem (h : x ∈ G.toMultiset e) : e ∈ G.E := by
-  simp only [toMultiset] at h
-  split_ifs at h with he
-  · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.edge_mem
-  · exact (Multiset.not_mem_zero _ h).elim
-
-@[simp]
 lemma toMultiset_eq_zero_iff : G.toMultiset e = 0 ↔ e ∉ G.E := by
-  refine ⟨fun h he ↦ ?_, toMultiset.eq_zero⟩
-  have := h ▸ toMultiset.card_eq_two he
+  refine ⟨fun h he ↦ ?_, toMultiset_eq_zero⟩
+  have := h ▸ toMultiset_card_eq_two he
   simp at this
 
 @[simp]
@@ -413,8 +405,8 @@ lemma toMultiset_card_eq_two_iff : (G.toMultiset e).card = 2 ↔ e ∈ G.E := by
   refine ⟨fun h ↦ ?_, fun he ↦ ?_⟩
   · rw [Multiset.card_eq_two] at h
     obtain ⟨x, y, hxy⟩ := h
-    exact toMultiset.edge_mem (by rw [hxy]; simp : x ∈ G.toMultiset e)
-  · rw [toMultiset.card_eq_two he]
+    exact edge_mem_of_mem_toMultiset (by rw [hxy]; simp : x ∈ G.toMultiset e)
+  · rw [toMultiset_card_eq_two he]
 
 lemma toMultiset_card_or : (G.toMultiset e).card = 2 ∨ (G.toMultiset e).card = 0 := by
   by_cases he : e ∈ G.E
@@ -424,7 +416,7 @@ lemma toMultiset_card_or : (G.toMultiset e).card = 2 ∨ (G.toMultiset e).card =
 @[simp]
 lemma toMultiset_eq_pair_iff : G.toMultiset e = {x, y} ↔ G.Inc₂ e x y := by
   constructor <;> rintro h
-  · have he := toMultiset.edge_mem (by rw [h]; simp : x ∈ G.toMultiset e)
+  · have he := edge_mem_of_mem_toMultiset (by rw [h]; simp : x ∈ G.toMultiset e)
     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := by simpa only [toMultiset, he, ↓reduceDIte, Multiset.pair_eq_pair_iff] using h
     · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
     · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.symm
@@ -439,7 +431,7 @@ alias ⟨_, Inc₂.toMultiset⟩ := toMultiset_eq_pair_iff
 lemma inc_iff_mem_toMultiset : x ∈ G.toMultiset e ↔ G.Inc e x := by
   constructor
   · rintro h
-    obtain ⟨u, v, huv⟩ := G.exists_inc₂_of_mem_edgeSet (toMultiset.edge_mem_of_mem h)
+    obtain ⟨u, v, huv⟩ := G.exists_inc₂_of_mem_edgeSet (edge_mem_of_mem_toMultiset h)
     simp only [huv.toMultiset, Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at h
     obtain rfl | rfl := h
     · exact huv.inc_left
@@ -457,7 +449,7 @@ noncomputable def toSym2 (G : Graph α β) (e : β) (he : e ∈ G.E) : Sym2 α :
   s(G.exists_inc₂_of_mem_edgeSet he |>.choose, G.exists_inc₂_of_mem_edgeSet he |>.choose_spec.choose)
 
 @[simp]
-lemma toSym2.vx_mem (he : e ∈ G.E) (h : x ∈ G.toSym2 e he) : x ∈ G.V := by
+lemma vx_mem_of_toSym2 {he : e ∈ G.E} (h : x ∈ G.toSym2 e he) : x ∈ G.V := by
   have := (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
   obtain rfl | rfl := by simpa [toSym2] using h
   · exact this.vx_mem_left
@@ -821,5 +813,13 @@ lemma degree_eq_zero_iff_isolated (G : Graph α β) [Finite G.E] (v : α) :
     exact fun i _ ↦ h i
 
 end Isolated
+
+
+class IsLoopless (G : Graph α β) : Prop where
+  loopless x : ¬ G.Adj x x
+
+class IsSimple (G : Graph α β) : Prop extends IsLoopless G where
+  no_multi_edges e f he hf : G.toSym2 e he = G.toSym2 f hf → e = f
+
 
 end Graph
