@@ -1,19 +1,36 @@
 # ToDo - Kura
 
-## Tasks
+## Tasks - Goals with a clear plan
 
-Update commented-out lemma\theorems in Minor.lean
+- Take a Minimal Graph? [Prop721]
 
-Sorry-free Menger
+- GraphProperty/GraphFunction? [Isom]
 
-## Topics
+- Update commented-out lemma\theorems in Minor.lean [priMinor]
 
-Develop IsEdgeSetSep.
+- Sorry-free Menger [Menger]
 
-Make PathEnsemble.lean usable
+## Topics - Goals without a plan
 
-Fix Hom.lean
+- [Prop721] : Prove Prop 7.2.1 from the Diestel book
 
-## Thoughts
+  - [priMinor] : Expand IspMinor/IsrMinor/IsiMinor
+  
+  - [CMinor] : Expand Clique Minor
 
-distance function
+- [Isom] : Expand Hom/Emb/Isom
+
+- [Menger] : Prove Menger's theorem
+
+  - [PathEnsemble] Make PathEnsemble.lean usable
+
+  - [IsEdgeSetSep] Develop IsEdgeSetSep
+
+## Options - Actionables without a clear goal
+
+- Vertex identification using partition on the vxSet
+
+## Thoughts - Abstract thoughts
+
+- Distance function as a metric
+
