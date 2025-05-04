@@ -1,6 +1,30 @@
 import Kura.Connected
 
 
+lemma Set.finite_iff_finite_of_encard_eq_encard' {α α' : Type*} {S : Set α} {T : Set α'}
+    (h : S.encard = T.encard) : S.Finite ↔ T.Finite := by
+  rw [← encard_lt_top_iff, ← encard_lt_top_iff, h]
+
+lemma bijOn_encard {α α' : Type*} {f : α → α'} {S : Set α} {T : Set α'} (h : Set.BijOn f S T) :
+    S.encard = T.encard := by
+  rw [← h.injOn.encard_image, h.image_eq]
+
+lemma bijOn_ncard {α α' : Type*} {f : α → α'} {S : Set α} {T : Set α'} (h : Set.BijOn f S T) :
+    S.ncard = T.ncard := by
+  unfold Set.ncard
+  rw [← bijOn_encard h]
+
+lemma bijOn_finite {α α' : Type*} {f : α → α'} {S : Set α} {T : Set α'} (h : Set.BijOn f S T) :
+    S.Finite ↔ T.Finite := Set.finite_iff_finite_of_encard_eq_encard' (bijOn_encard h)
+
+lemma bijOn_nonempty {α α' : Type*} {f : α → α'} {S : Set α} {T : Set α'} (h : Set.BijOn f S T) :
+    S.Nonempty ↔ T.Nonempty := by
+  refine ⟨fun hS ↦ ?_, fun hT ↦ ?_⟩
+  · use f hS.some
+    exact h.mapsTo hS.some_mem
+  · obtain ⟨a, ha, heq⟩ := h.surjOn hT.some_mem
+    use a
+
 open Set Function
 variable {α ε α' ε' α'' ε'' : Type*} {G G' G₁ G₁' H : Graph α ε} {G₂ G₂' : Graph α' ε'}
   {G₃ G₃' : Graph α'' ε''} {a b c : α} {e f : ε} {u v w : α'} {x y z : ε''} {S S' T T' U U': Set α}
@@ -313,16 +337,26 @@ lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toI
     simp only [image_E, mem_image]
     use e
 
-variable {α' : Type u_1} {ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε'] {G' : Graph α' ε'}
+variable {α' : Type u_1} {ε' : Type u_2} {χ χ' χ'' χ''' : Type*} [Nonempty α] [Nonempty α']
+  [Nonempty ε] [Nonempty ε'] {G' : Graph α' ε'}
 
-class GraphicFunction (F : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Sort*) : Prop where
-  presv_isom {α α' : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε]
-    [Nonempty ε'] (G : Graph α ε) (G' : Graph α' ε') : G ≤↔ G' → F α ε G = F α' ε' G'
+class GraphicFunction  (F : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ) : Prop where
+  presv_isom {α α' : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
+    (G : Graph α ε) (G' : Graph α' ε') : G ≤↔ G' → F G = F G'
 
-lemma iff_exists_isom (P : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Prop)
-    [hP : GraphicFunction P] : P α ε G ↔
-    ∃ (α' : Type _) (_ :Nonempty α') (ε' : Type _) (_ :Nonempty ε') (G' : Graph α' ε'),
-      P α' ε' G' ∧ G ≤↔ G' := by
+variable {A B : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ}
+  {A' B' : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ'}
+  {A'' B'' : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ''}
+  {P P' Q Q' : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → Prop}
+  [hA : GraphicFunction A] [hA' : GraphicFunction A'] [hA'' : GraphicFunction A'']
+  [hB : GraphicFunction B] [hB' : GraphicFunction B'] [hB'' : GraphicFunction B'']
+  [hP : GraphicFunction P] [hP' : GraphicFunction P'] [hQ : GraphicFunction Q]
+  [hQ' : GraphicFunction Q']
+
+lemma iff_exists_isom (P : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → Prop)
+    [hP : GraphicFunction P] : P G ↔
+    ∃ (α' : Type _) (_ : Nonempty α') (ε' : Type _) (_ : Nonempty ε') (G' : Graph α' ε'),
+      P G' ∧ G ≤↔ G' := by
   constructor
   · rintro h
     use α, inferInstance, ε, inferInstance, G
@@ -330,20 +364,96 @@ lemma iff_exists_isom (P : (α : Type u_1) → (ε : Type u_2) → Graph α ε �
   · rintro ⟨α', _, ε', _, G', h, h'⟩
     rwa [hP.presv_isom G G' h']
 
-lemma eq_of_isom {F : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Sort*} [hF : GraphicFunction F]
-    {G G' : Graph α ε} (h : G ≤↔ G') : F α ε G = F α ε G' := hF.presv_isom G G' h
+lemma HasIsom.eq {G G' : Graph α ε} (h : G ≤↔ G') : A G = A G' := hA.presv_isom G G' h
 
-lemma iff_of_isom {P : (α : Type u_1) → (ε : Type u_2) → Graph α ε → Prop}
-    [hP : GraphicFunction P] (h : G ≤↔ G') : P α ε G ↔ P α' ε' G' := by
+lemma HasIsom.iff {G G' : Graph α ε} (h : G ≤↔ G') : P G ↔ P G' := by
   rw [← hP.presv_isom G G' h]
 
-instance : GraphicFunction (fun _ _ G ↦ G ≤↔ H) where
+instance instConstGraphic (c : χ) : GraphicFunction (fun _ ↦ c) where
+  presv_isom _ _ _ := rfl
+
+instance instCompGraphic (f : χ' → χ) : GraphicFunction (fun G ↦ f (A' G)) where
+  presv_isom G G' h := by rw [← hA'.presv_isom G G' h]
+
+instance instComp2Graphic (f : χ → χ' → χ'') : GraphicFunction (fun G ↦ f (A G) (A' G)) where
+  presv_isom G G' h := by rw [← hA.presv_isom G G' h, ← hA'.presv_isom G G' h]
+
+instance instComp3Graphic (f : χ → χ' → χ'' → χ''') : GraphicFunction (fun G ↦ f (A G) (A' G) (A'' G)) where
+  presv_isom G G' h := by
+    rw [← hA.presv_isom G G' h, ← hA'.presv_isom G G' h, ← hA''.presv_isom G G' h]
+
+instance instImpGraphic : GraphicFunction (fun G ↦ P G → Q G) := instComp2Graphic (· → ·)
+
+instance instHasIsomLeftGraphic : GraphicFunction (fun G ↦ G ≤↔ H) where
   presv_isom G G' h := by
     rw [eq_iff_iff]
     exact ⟨h.symm.trans, h.trans⟩
 
-instance : GraphicFunction (fun _ _ G ↦ H ≤↔ G) where
+instance instHasIsomRightGraphic : GraphicFunction (fun G ↦ H ≤↔ G) where
   presv_isom G G' h := by
     rw [eq_iff_iff]
     exact ⟨(HasIsom.trans · h), (HasIsom.trans · h.symm)⟩
 
+instance instHasEmbLeftGraphic : GraphicFunction (fun G ↦ G ≤↪ H) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    exact ⟨h.symm.toHasEmb.trans, h.toHasEmb.trans⟩
+
+instance instHasEmbRightGraphic : GraphicFunction (fun G ↦ H ≤↪ G) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    exact ⟨(HasEmb.trans · h.toHasEmb), (HasEmb.trans · h.symm.toHasEmb)⟩
+
+instance instHasHomLeftGraphic : GraphicFunction (fun G ↦ G ≤→ H) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    exact ⟨h.symm.toHasHom.trans, h.toHasHom.trans⟩
+
+instance instHasHomRightGraphic : GraphicFunction (fun G ↦ H ≤→ G) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    exact ⟨(HasHom.trans · h.toHasHom), (HasHom.trans · h.symm.toHasHom)⟩
+
+instance instVxSetFiniteGraphic : GraphicFunction (fun G ↦ Finite G.V) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_finite hf.bijOn_vx
+
+instance instEdgeSetFiniteGraphic : GraphicFunction (fun G ↦ Finite G.E) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_finite hf.bijOn_edge
+
+instance instVxSetNonemptyGraphic : GraphicFunction (fun G ↦ G.V.Nonempty) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_nonempty hf.bijOn_vx
+
+instance instEdgeSetNonemptyGraphic : GraphicFunction (fun G ↦ G.E.Nonempty) where
+  presv_isom G G' h := by
+    rw [eq_iff_iff]
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_nonempty hf.bijOn_edge
+
+instance instVxSetEncardGraphic : GraphicFunction (fun G ↦ G.V.encard) where
+  presv_isom G G' h := by
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_encard hf.bijOn_vx
+
+instance instEdgeSetEncardGraphic : GraphicFunction (fun G ↦ G.E.encard) where
+  presv_isom G G' h := by
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_encard hf.bijOn_edge
+
+instance instVxSetNcardGraphic : GraphicFunction (fun G ↦ G.V.ncard) where
+  presv_isom G G' h := by
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_ncard hf.bijOn_vx
+
+instance instEdgeSetNcardGraphic : GraphicFunction (fun G ↦ G.E.ncard) where
+  presv_isom G G' h := by
+    obtain ⟨f, hf⟩ := h
+    exact bijOn_ncard hf.bijOn_edge

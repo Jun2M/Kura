@@ -219,32 +219,44 @@ def IsiMinor (G : Graph α' ε') (H : Graph α ε) : Prop :=
 def HasCliqueMinor (G : Graph α ε) (n : ℕ) : Prop :=
   (CompleteGraph n).IsiMinor G
 
-lemma GraphicFunction.iff_exists_isom_Setify (P : (α : Type u_1) → (ε : Type u_4) → Graph α ε → Prop)
-    [hP : GraphicFunction P] : P α ε H ↔ ∃ G, P (Set α) ε G ∧ H ≤↔ G := by
+variable {α α' : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
+  {χ : Type*}{G H : Graph α ε} {G' H' : Graph α' ε'}
+
+lemma iff_exists_isom_Setify (P : {α : Type u_1} → {ε : Type u_2} → Graph α ε → Prop)
+    [hP : GraphicFunction P] : P G ↔ ∃ (G' : Graph (Set α) ε), P G' ∧ G ≤↔ G' := by
   constructor
   · rintro h
-    refine ⟨H.Setify, ?_, Setify.HasIsom H⟩
-    rwa [← hP.presv_isom H H.Setify (Setify.HasIsom H)]
+    refine ⟨G.Setify, ?_, Setify.HasIsom G⟩
+    rwa [hP.presv_isom G G.Setify (Setify.HasIsom G)] at h
   · rintro ⟨G', h, h'⟩
     rwa [hP.presv_isom _ _ h']
 
-instance : GraphicFunction (fun α ε G ↦ G.IsiMinor H) where
+lemma forall_Setify (F : {α : Type u_1} → {ε : Type u_2} → Graph α ε → Prop) [hF : GraphicFunction F]
+    (h : ∀ (G' : Graph (Set α) ε), F G') : ∀ (G : Graph α ε), F G :=
+  fun G => by
+    rw [hF.presv_isom G G.Setify (Setify.HasIsom G)]
+    exact h G.Setify
+
+instance instIsiMinorleftGraphic : GraphicFunction (fun G ↦ G.IsiMinor H) where
   presv_isom G G' h := by
     unfold IsiMinor
     rw [eq_iff_iff]
     constructor
     · rintro ⟨I, hI, hHI⟩
-      use I, hI, h.symm.trans hHI
+      exact ⟨I, hI, h.symm.trans hHI⟩
+    · rintro ⟨I, hI, hHI⟩
+      exact ⟨I, hI, h.trans hHI⟩
 
+instance instIsiMinorrightGraphic : GraphicFunction (fun G ↦ H.IsiMinor G) where
+  presv_isom G G' h := by
+    unfold IsiMinor
+    rw [eq_iff_iff]
+    constructor
+    · sorry
+    · sorry
 
--- instance : GraphicFunction (fun α ε G ↦ H.IsiMinor G) where
--- presv_isom G G' h := by
---   unfold IsiMinor
---   rw [eq_iff_iff]
---   constructor
---   · rintro ⟨I, hI, hHI⟩
+instance instHasCliqueMinorGraphic {n : ℕ} : GraphicFunction (fun G ↦ G.HasCliqueMinor n) where
+  presv_isom G G' h := instIsiMinorrightGraphic.presv_isom G G' h
 
-
---   sorry
 
 end Graph
