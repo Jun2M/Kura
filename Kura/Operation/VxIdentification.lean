@@ -2,23 +2,23 @@ import Kura.Operation.MapHom
 
 
 open Set Function
-variable {α α' α'' β β' : Type*} {G H : Graph (Set α) β} {a b c : α} {x y z : Set α} {e f : β}
+variable {α α' α'' ε ε' : Type*} {G H : Graph (Set α) ε} {a b c : α} {x y z : Set α} {e f : ε}
 
 namespace Graph
 
 /- I have been thinking about a way to `contract` without supplying the vx map but just the edge
 set I am contracting on. This is one way to do it using partitions. -/
 
-def IsPartitionGraph (G : Graph (Set α) β) : Prop :=
+def IsPartitionGraph (G : Graph (Set α) ε) : Prop :=
   ∃ P : Partition (Set α), P.parts = G.V
 
-def Setify (G : Graph α β) : Graph (Set α) β :=
+def Setify (G : Graph α ε) : Graph (Set α) ε :=
   vxMap G ({·})
 
-def Setify.HasIsom (G : Graph α β) : G ≤↔ G.Setify :=
+def Setify.HasIsom (G : Graph α ε) : G ≤↔ G.Setify :=
   vxMap.HasIsom ({·}) singleton_injective.injOn
 
-lemma Setify.IsPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := by
+lemma Setify.IsPartitionGraph (G : Graph α ε) : G.Setify.IsPartitionGraph := by
   use Partition.discrete G.V
   ext x
   simp [Partition.discrete, Setify]
@@ -28,8 +28,8 @@ lemma Setify.IsPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := b
   simp [ha]
 
 @[simps! vxSet edgeSet]
-def VxIdentification (G : Graph (Set α) β) (P : Partition (Set (Set α))) :
-    Graph (Set α) β :=
+def VxIdentification (G : Graph (Set α) ε) (P : Partition (Set (Set α))) :
+    Graph (Set α) ε :=
   G.vxMap (⋃₀ P.partOf ·)
 
 variable {P : Partition (Set (Set α))} (hP : ⋃₀ P.parts = G.V)
@@ -51,4 +51,3 @@ lemma vxIdentification_toMultiset :
 @[simp]
 lemma vxIdentification_inc : (G.VxIdentification P).Inc e x ↔ ∃ y, G.Inc e y ∧ ⋃₀ P.partOf y = x := by
   rw [VxIdentification, vxMap_inc]
-

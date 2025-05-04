@@ -2,8 +2,8 @@ import Kura.Operation.Hom
 
 
 open Set Function
-variable {α α' α'' β β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
-  {S S' T T' U U': Set α} {F F' R R' : Set β}
+variable {α α' α'' ε ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
+  {S S' T T' U U': Set α} {F F' R R' : Set ε}
 
 
 /-- The graph induced by a simple graph -/
@@ -41,13 +41,13 @@ lemma SimpleGraph.toGraph_inj : G'.toGraph = H'.toGraph ↔ G' = H' := by
 namespace Graph
 
 @[simps]
-def toSimpleGraph (G : Graph α β) : SimpleGraph G.V where
+def toSimpleGraph (G : Graph α ε) : SimpleGraph G.V where
   Adj a b := a ≠ b ∧ G.Adj a b
   symm a b hab := by simpa only [ne_eq, eq_comm, adj_comm] using hab
 
 @[simps!]
-def Simplify (G : Graph α β) : Graph α (Sym2 α) :=
-  oftoSym2 G.V {s | ∃ (e : β) (he : e ∈ G.E), G.toSym2 e he = s ∧ ¬ s.IsDiag}
+def Simplify (G : Graph α ε) : Graph α (Sym2 α) :=
+  oftoSym2 G.V {s | ∃ (e : ε) (he : e ∈ G.E), G.toSym2 e he = s ∧ ¬ s.IsDiag}
     (fun e _ ↦ e) (fun e x ⟨f, hf, h, hdiag⟩ hx ↦ by subst e; exact vx_mem_of_toSym2 hx)
 
 @[simp]

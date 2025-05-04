@@ -2,8 +2,8 @@ import Kura.Walk.Path
 
 namespace Graph
 open Set Function List Nat WList
-variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
-  {F F' : Set β} {w w1 w2 : WList α β}
+variable {α ε : Type*} {G H : Graph α ε} {u v x y z : α} {e e' f g : ε} {S T U: Set α}
+  {F F' : Set ε} {w w1 w2 : WList α ε}
 
 namespace WList
 section disjoint
@@ -11,27 +11,27 @@ section disjoint
 /-- A collection of paths is internally disjoint if no vertex appears in more than one path
   except for the special two vertices u and v. (i.e. the endpoints of the paths. But this is not
   enforced in the definition) -/
-def InternallyDisjoint (u v : α) (Ps : Set <| WList α β) : Prop :=
+def InternallyDisjoint (u v : α) (Ps : Set <| WList α ε) : Prop :=
   ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi ≠ pj → x = u ∨ x = v
 
 /-- A collection of paths is disjoint if no vertex appears in more than one path -/
-protected def Disjoint (Ps : Set <| WList α β) : Prop :=
+protected def Disjoint (Ps : Set <| WList α ε) : Prop :=
   ∀ x pi pj, pi ∈ Ps → pj ∈ Ps → x ∈ pi.vx → x ∈ pj.vx → pi = pj
 
 end disjoint
 end WList
 
-structure Ensemble (α β : Type*) where
-  walks : Set (WList α β)
+structure Ensemble (α ε : Type*) where
+  walks : Set (WList α ε)
   disj : WList.Disjoint walks
 
 namespace Ensemble
 
-def empty (α β : Type*) : Ensemble α β where
+def empty (α ε : Type*) : Ensemble α ε where
   walks := ∅
   disj _ _ _ hp _ _ := hp.elim
 
-def nil (U : Set α) (β : Type*) : Ensemble α β where
+def nil (U : Set α) (ε : Type*) : Ensemble α ε where
   walks := WList.nil '' U
   disj x p q hp hq hxp hxq := by
     simp only [mem_image] at hp hq
@@ -41,19 +41,19 @@ def nil (U : Set α) (β : Type*) : Ensemble α β where
     subst u v
     rfl
 
-def ValidIn (Ps : Ensemble α β) (G : Graph α β) := ∀ w ∈ Ps.walks, G.IsPath w
+def ValidIn (Ps : Ensemble α ε) (G : Graph α ε) := ∀ w ∈ Ps.walks, G.IsPath w
 
-def firstSet (Ps : Ensemble α β) : Set α := (·.first) '' Ps.walks
+def firstSet (Ps : Ensemble α ε) : Set α := (·.first) '' Ps.walks
 
-def lastSet (Ps : Ensemble α β) : Set α := (·.last) '' Ps.walks
+def lastSet (Ps : Ensemble α ε) : Set α := (·.last) '' Ps.walks
 
-def vxSet (Ps : Ensemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w}
+def vxSet (Ps : Ensemble α ε) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w}
 
-def edgeSet (Ps : Ensemble α β) : Set β := {e | ∃ w ∈ Ps.walks, e ∈ w.edge}
+def edgeSet (Ps : Ensemble α ε) : Set ε := {e | ∃ w ∈ Ps.walks, e ∈ w.edge}
 
-def InternalVsSet (Ps : Ensemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w.tail.dropLast}
+def InternalVsSet (Ps : Ensemble α ε) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w.tail.dropLast}
 
-def insert (w : WList α β) (Ps : Ensemble α β) (h : ∀ v ∈ w, v ∉ Ps.vxSet) : Ensemble α β where
+def insert (w : WList α ε) (Ps : Ensemble α ε) (h : ∀ v ∈ w, v ∉ Ps.vxSet) : Ensemble α ε where
   walks := Ps.walks ∪ {w}
   disj x p₁ p₂ hp1 hp2 hxp hxq := by
     simp only [union_singleton, Set.mem_insert_iff] at hp1 hp2
@@ -64,33 +64,33 @@ def insert (w : WList α β) (Ps : Ensemble α β) (h : ∀ v ∈ w, v ∉ Ps.vx
     · exact (h x hxq p₁ h1 hxp).elim
     · exact Ps.disj x p₁ p₂ h1 h2 hxp hxq
 
-lemma first_injOn (Ps : Ensemble α β) : InjOn (·.first) Ps.walks :=
+lemma first_injOn (Ps : Ensemble α ε) : InjOn (·.first) Ps.walks :=
   fun p₁ hp₁ p₂ hp₂ hfirst ↦ Ps.disj _ _ _ hp₁ hp₂ first_mem (by
     beta_reduce at hfirst
     exact hfirst ▸ first_mem)
 
-lemma last_injOn (Ps : Ensemble α β) : InjOn (·.last) Ps.walks :=
+lemma last_injOn (Ps : Ensemble α ε) : InjOn (·.last) Ps.walks :=
   fun p₁ hp₁ p₂ hp₂ hlast ↦ Ps.disj _ _ _ hp₁ hp₂ last_mem (by
     beta_reduce at hlast
     exact hlast ▸ last_mem)
 
-lemma unique_path_first (Ps : Ensemble α β)  :
+lemma unique_path_first (Ps : Ensemble α ε)  :
     ∀ x ∈ Ps.firstSet, ∃! p ∈ Ps.walks, p.first = x := by
   rintro x ⟨p, hp, rfl⟩
   use p, ⟨hp, rfl⟩, (fun q hq ↦ first_injOn Ps hq.1 hp hq.2)
 
-lemma unique_path_last (Ps : Ensemble α β) :
+lemma unique_path_last (Ps : Ensemble α ε) :
     ∀ x ∈ Ps.lastSet, ∃! p ∈ Ps.walks, p.last = x := by
   rintro x ⟨p, hp, rfl⟩
   use p, ⟨hp, rfl⟩, (fun q hq ↦ last_injOn Ps hq.1 hp hq.2)
 
-noncomputable def byFirst (Ps : Ensemble α β) (u : α) (hu : u ∈ Ps.firstSet) : WList α β :=
+noncomputable def byFirst (Ps : Ensemble α ε) (u : α) (hu : u ∈ Ps.firstSet) : WList α ε :=
   (Ps.unique_path_first u hu).choose
 
-noncomputable def byLast (Ps : Ensemble α β) (u : α) (hu : u ∈ Ps.lastSet) : WList α β :=
+noncomputable def byLast (Ps : Ensemble α ε) (u : α) (hu : u ∈ Ps.lastSet) : WList α ε :=
   (Ps.unique_path_last u hu).choose
 
-variable {Ps : Ensemble α β} {u : α}
+variable {Ps : Ensemble α ε} {u : α}
 
 @[simp]
 lemma byFirst_mem {hu : u ∈ Ps.firstSet} : Ps.byFirst u hu ∈ Ps.walks :=
@@ -108,30 +108,30 @@ lemma byFirst_first {hu : u ∈ Ps.firstSet} : (Ps.byFirst u hu).first = u :=
 lemma byLast_last {hu : u ∈ Ps.lastSet} : (Ps.byLast u hu).last = u :=
   (Ps.unique_path_last u hu).choose_spec.1.2
 
-lemma byFirst_injective (Ps : Ensemble α β) :
-    Injective (fun a ↦ Ps.byFirst a.val a.prop : Ps.firstSet → WList α β) := by
+lemma byFirst_injective (Ps : Ensemble α ε) :
+    Injective (fun a ↦ Ps.byFirst a.val a.prop : Ps.firstSet → WList α ε) := by
   rintro x y h
   beta_reduce at h
   rw [Subtype.ext_iff, ← byFirst_first (hu := x.prop), h, byFirst_first (hu := y.prop)]
 
-lemma byLast_injective (Ps : Ensemble α β) :
-    Injective (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α β) := by
+lemma byLast_injective (Ps : Ensemble α ε) :
+    Injective (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α ε) := by
   rintro x y h
   beta_reduce at h
   rw [Subtype.ext_iff, ← byLast_last (hu := x.prop), h, byLast_last (hu := y.prop)]
 
-variable {Ps Ps₁ Ps₂ : Ensemble α β} {u v x y : α} {p q : WList α β} {U S T : Set α}
+variable {Ps Ps₁ Ps₂ : Ensemble α ε} {u v x y : α} {p q : WList α ε} {U S T : Set α}
 
 @[simp]
 lemma byFirst_inj (hu : u ∈ Ps.firstSet) (hv : v ∈ Ps.firstSet) :
     Ps.byFirst u hu = Ps.byFirst v hv ↔ u = v := by
-  change (fun a ↦ Ps.byFirst a.val a.prop : Ps.firstSet → WList α β) ⟨u, hu⟩ = (fun a ↦ Ps.byFirst a.val a.prop : Ps.firstSet → WList α β) ⟨v, hv⟩ ↔ u = v
+  change (fun a ↦ Ps.byFirst a.val a.prop : Ps.firstSet → WList α ε) ⟨u, hu⟩ = (fun a ↦ Ps.byFirst a.val a.prop : Ps.firstSet → WList α ε) ⟨v, hv⟩ ↔ u = v
   rw [byFirst_injective Ps |>.eq_iff, Subtype.ext_iff]
 
 @[simp]
 lemma byLast_inj (hu : u ∈ Ps.lastSet) (hv : v ∈ Ps.lastSet) :
     Ps.byLast u hu = Ps.byLast v hv ↔ u = v := by
-  change (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α β) ⟨u, hu⟩ = (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α β) ⟨v, hv⟩ ↔ u = v
+  change (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α ε) ⟨u, hu⟩ = (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α ε) ⟨v, hv⟩ ↔ u = v
   rw [byLast_injective Ps |>.eq_iff, Subtype.ext_iff]
 
 lemma mem_vxSet_mem (hu : u ∈ p) (hp : p ∈ Ps.walks) : u ∈ Ps.vxSet := by
@@ -163,7 +163,7 @@ lemma byFirst_of_first (hp : p ∈ Ps.walks) : Ps.byFirst p.first (first_mem_fir
 lemma byLast_of_last (hp : p ∈ Ps.walks) : Ps.byLast p.last (last_mem_lastSet hp) = p :=
   ((Ps.unique_path_last p.last (last_mem_lastSet hp)).choose_spec.2 p ⟨hp, rfl⟩).symm
 
--- lemma append_aux {Ps₁ Ps₂ : Ensemble α β} (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+-- lemma append_aux {Ps₁ Ps₂ : Ensemble α ε} (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
 --     (hu : u ∈ Ps₁.lastSet) (hv : v ∈ Ps₂.firstSet)
 --     (hx1 : x ∈ (Ps₁.byLast u hu).vx.dropLast) (hx2 : x ∈ (Ps₂.byFirst v hv).vx) :
 --     False := by
@@ -175,10 +175,10 @@ lemma byLast_of_last (hp : p ∈ Ps.walks) : Ps.byLast p.last (last_mem_lastSet 
 --   have := last_not_mem_dropLast_of_isPath
 --   exact last_not_mem_vx_dropLast (this ▸ hx1)
 
-def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
-    (heq : Ps₁.lastSet = Ps₂.firstSet) : Ensemble α β where
+def append (Ps₁ Ps₂ : Ensemble α ε) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+    (heq : Ps₁.lastSet = Ps₂.firstSet) : Ensemble α ε where
   walks :=
-    let f : ↑(Ps₁.lastSet) → WList α β := fun ⟨a, ha⟩ ↦
+    let f : ↑(Ps₁.lastSet) → WList α ε := fun ⟨a, ha⟩ ↦
       Ps₁.byLast a ha|>.append (Ps₂.byFirst a (heq ▸ ha))
         -- fun b ↦ append_aux hsu ha (heq ▸ ha)
     Set.range f
@@ -205,8 +205,8 @@ def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆
       subst b
       rfl
 
--- def appendOnSep (Ps₁ Ps₂ : PathEnsemble α β) (heq : Ps₁.lastSet = Ps₂.firstSet)
---     (hsep : G.IsvxSetSeparator Ps₁.lastSet Ps₁.firstSet Ps₂.lastSet) : PathEnsemble α β :=
+-- def appendOnSep (Ps₁ Ps₂ : PathEnsemble α ε) (heq : Ps₁.lastSet = Ps₂.firstSet)
+--     (hsep : G.IsvxSetSeparator Ps₁.lastSet Ps₁.firstSet Ps₂.lastSet) : PathEnsemble α ε :=
 --   Ps₁.append Ps₂ (by
 --     rintro x ⟨⟨p, hp1, hxp⟩, q, hq2, hxq⟩
 
@@ -218,68 +218,68 @@ def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆
 --     exact hsep.2 hx)
 
 @[simp]
-lemma Empty_validIn : (empty α β).ValidIn G := by
+lemma Empty_validIn : (empty α ε).ValidIn G := by
   rintro p hp
   exact False.elim hp
 
 @[simp]
-lemma Empty_finite : (empty α β).walks.Finite := by
+lemma Empty_finite : (empty α ε).walks.Finite := by
   simp only [empty, finite_empty]
 
 @[simp]
-lemma Empty_ncard : (empty α β).walks.ncard = 0 := by
+lemma Empty_ncard : (empty α ε).walks.ncard = 0 := by
   simp only [empty, ncard_empty]
 
 @[simp]
-lemma Empty_vxSet : (empty α β).vxSet = ∅ := by
+lemma Empty_vxSet : (empty α ε).vxSet = ∅ := by
   simp only [vxSet, empty, mem_empty_iff_false, false_and, exists_false, setOf_false]
 
 @[simp]
-lemma Empty_edgeSet : (empty α β).edgeSet = ∅ := by
+lemma Empty_edgeSet : (empty α ε).edgeSet = ∅ := by
   simp only [edgeSet, empty, mem_empty_iff_false, false_and, exists_false, setOf_false]
 
 @[simp]
-lemma Empty_firstSet : (empty α β).firstSet = ∅ := by
+lemma Empty_firstSet : (empty α ε).firstSet = ∅ := by
   simp only [firstSet, empty, image_empty]
 
 @[simp]
-lemma Empty_lastSet : (empty α β).lastSet = ∅ := by
+lemma Empty_lastSet : (empty α ε).lastSet = ∅ := by
   simp only [lastSet, empty, image_empty]
 
 @[simp]
-lemma nil_validIn : (nil U β).ValidIn (G[U]) := by
+lemma nil_validIn : (nil U ε).ValidIn (G[U]) := by
   rintro p ⟨x, hx, rfl⟩
   simpa
 
 @[simp]
-lemma nil_validIn' (hUV : U ⊆ G.V) : (nil U β).ValidIn G := by
+lemma nil_validIn' (hUV : U ⊆ G.V) : (nil U ε).ValidIn G := by
   rintro p ⟨x, hx, rfl⟩
   simp only [nil_isPath_iff]
   exact hUV hx
 
 @[simp]
-lemma mem_nil_iff : p ∈ (nil U β).walks ↔ ∃ u ∈ U, WList.nil u = p := by
+lemma mem_nil_iff : p ∈ (nil U ε).walks ↔ ∃ u ∈ U, WList.nil u = p := by
   simp only [nil, mem_image]
 
 @[simp]
-lemma nil_vxSet : (nil U β).vxSet = U := by
+lemma nil_vxSet : (nil U ε).vxSet = U := by
   simp only [vxSet, mem_nil_iff, exists_exists_and_eq_and, WList.mem_nil_iff, exists_eq_right',
     setOf_mem_eq]
 
 @[simp]
-lemma nil_firstSet : (nil U β).firstSet = U := by
+lemma nil_firstSet : (nil U ε).firstSet = U := by
   simp only [firstSet, first, nil, image_image, image_id']
 
 @[simp]
-lemma nil_lastSet : (nil U β).lastSet = U := by
+lemma nil_lastSet : (nil U ε).lastSet = U := by
   simp only [lastSet, nil, image_image, last, image_id']
 
 @[simp]
-lemma nil_ncard : (nil U β).walks.ncard = U.ncard :=
+lemma nil_ncard : (nil U ε).walks.ncard = U.ncard :=
   ncard_image_of_injective U nil_injective
 
 @[simp]
-lemma nil_encard : (nil U β).walks.encard = U.encard :=
+lemma nil_encard : (nil U ε).walks.encard = U.encard :=
   nil_injective.encard_image _
 
 lemma firstSet_subset_vxSet : Ps.firstSet ⊆ Ps.vxSet := by
@@ -295,7 +295,7 @@ lemma ValidIn.vxSet_subset (hVd : Ps.ValidIn G) : Ps.vxSet ⊆ G.V := by
   exact (hVd p hp).isWalk.vx_mem_of_mem hx
 
 @[simp]
-lemma nil_validIn_iff : (nil U β).ValidIn G ↔ U ⊆ G.V :=
+lemma nil_validIn_iff : (nil U ε).ValidIn G ↔ U ⊆ G.V :=
   ⟨fun h ↦ by simpa using h.vxSet_subset, nil_validIn'⟩
 
 lemma ValidIn.firstSet_subset (hVd : Ps.ValidIn G) : Ps.firstSet ⊆ G.V :=
@@ -335,7 +335,7 @@ lemma lastSet_ncard : Ps.lastSet.ncard = Ps.walks.ncard := by
   · rintro x ⟨p, hp, rfl⟩
     use p
 
-lemma ValidIn.of_le {G' : Graph α β} (h : G ≤ G') (hVd : Ps.ValidIn G) :
+lemma ValidIn.of_le {G' : Graph α ε} (h : G ≤ G') (hVd : Ps.ValidIn G) :
     Ps.ValidIn G' := fun p hp ↦ (hVd p hp).of_le h
 
 lemma finite_of_finite_graph (h : G.Finite) (hVd : Ps.ValidIn G) : Ps.walks.Finite := by
@@ -411,13 +411,13 @@ lemma lastSep_of_lastSetSep (hsep : G.IsVxSetSeparator Ps.lastSet Ps.firstSet T)
   sorry
 
 lemma vx_subset_leftHalf_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet Ps.firstSet T)
-    (hVd : Ps.ValidIn G) (p : Path α β) (hp : p ∈ Ps.Paths) {x : α} (hx : x ∈ p.val.vx) :
+    (hVd : Ps.ValidIn G) (p : Path α ε) (hp : p ∈ Ps.Paths) {x : α} (hx : x ∈ p.val.vx) :
     x ∈ hsep.leftSet ∪ Ps.lastSet := by
   sorry
 
 
 lemma vx_dropLast_subset_leftSet_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet Ps.firstSet T)
-    (p : Path α β) (hp : p ∈ Ps.Paths) (hx : x ∈ p.val.vx.dropLast) : x ∈ hsep.leftSet := by
+    (p : Path α ε) (hp : p ∈ Ps.Paths) (hx : x ∈ p.val.vx.dropLast) : x ∈ hsep.leftSet := by
 
   sorry
 
@@ -427,7 +427,7 @@ lemma vxSet_subset_leftSet_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet P
 
   sorry
 
-variable {Ps₁ Ps₂ : Ensemble α β}
+variable {Ps₁ Ps₂ : Ensemble α ε}
 
 lemma append_validIn (hPs₁Vd : Ps₁.ValidIn G) (hPs₂Vd : Ps₂.ValidIn G)
     (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet) (heq : Ps₁.lastSet = Ps₂.firstSet) :

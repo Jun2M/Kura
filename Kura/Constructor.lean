@@ -4,17 +4,17 @@ import Kura.Dep.Sym2
 
 open Set Function
 
-variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v : α} {e f : β}
-  {S S' T T' U U': Set α} {F F' R R' : Set β}
+variable {α α' ε ε' : Type*} {G G' H H' : Graph α ε} {x y z u v : α} {e f : ε}
+  {S S' T T' U U': Set α} {F F' R R' : Set ε}
 namespace Graph
 
 section intro
 
 -- This is mk'
--- def ofInc₂ (V : Set α) (isBtw : β → α → α → Prop) (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
+-- def ofInc₂ (V : Set α) (isBtw : ε → α → α → Prop) (hsymm : ∀ e x y, isBtw e x y → isBtw e y x)
 --     (vx_mem_of_isBtw_left : ∀ e x y, isBtw e x y → x ∈ V)
 --     (left_eq_of_isBtw : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → x = u ∨ x = v) :
---     Graph α β where
+--     Graph α ε where
 --   V := V
 --   E := {e | ∃ x y, isBtw e x y}
 --   Inc₂ e x y := isBtw e x y
@@ -24,7 +24,7 @@ section intro
 --   exists_vx_inc₂ e he := mem_setOf_eq.mp he
 --   left_eq_of_inc₂ := left_eq_of_isBtw
 
--- variable {V : Set α} {isBtw : β → α → α → Prop} {h1 : ∀ e x y, isBtw e x y → isBtw e y x}
+-- variable {V : Set α} {isBtw : ε → α → α → Prop} {h1 : ∀ e x y, isBtw e x y → isBtw e y x}
 --     {h2 : ∀ e x y, isBtw e x y → x ∈ V}
 --     {h3 : ∀ ⦃x y u v e⦄, isBtw e x y → isBtw e u v → x = u ∨ x = v}
 
@@ -40,14 +40,14 @@ section intro
 -- @[simp]
 -- lemma ofInc₂_inc : (ofInc₂ V isBtw h1 h2 h3).Inc = (∃ x, isBtw · · x) := rfl
 
--- protected def mk' (V : Set α) (Inc₂ : β → α → α → Prop)
+-- protected def mk' (V : Set α) (Inc₂ : ε → α → α → Prop)
 --     (inc₂_symm : ∀ ⦃e x y⦄, Inc₂ e x y → Inc₂ e y x)
 --     (eq_or_eq_of_inc₂_of_inc₂ : ∀ ⦃e x y v w⦄, Inc₂ e x y → Inc₂ e v w → x = v ∨ x = w)
---     (vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ V) : Graph α β where
+--     (vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ V) : Graph α ε where
 
-def ofInc (V : Set α) (inc : β → α → Prop) (vx_mem : ∀ e v, inc e v → v ∈ V)
+def ofInc (V : Set α) (inc : ε → α → Prop) (vx_mem : ∀ e v, inc e v → v ∈ V)
     (not_hypergraph : ∀ ⦃x y z e⦄, inc e x → inc e y → inc e z → x = y ∨ x = z ∨ y = z) :
-    Graph α β := Graph.mk'
+    Graph α ε := Graph.mk'
   (V := V)
   (Inc₂ := fun e x y ↦ inc e x ∧ inc e y ∧ ∀ z, inc e z → z = x ∨ z = y)
   (inc₂_symm := fun e x y h ↦ by
@@ -63,7 +63,7 @@ def ofInc (V : Set α) (inc : β → α → Prop) (vx_mem : ∀ e v, inc e v →
     obtain ⟨hx, hy, h_unique⟩ := h
     exact vx_mem e x hx)
 
-variable {V : Set α} {inc : β → α → Prop} {vx_mem : ∀ e v, inc e v → v ∈ V}
+variable {V : Set α} {inc : ε → α → Prop} {vx_mem : ∀ e v, inc e v → v ∈ V}
     {not_hypergraph : ∀ ⦃x y z e⦄, inc e x → inc e y → inc e z → x = y ∨ x = z ∨ y = z}
 
 @[simp] lemma ofInc_V : (ofInc V inc vx_mem not_hypergraph).V = V := rfl
@@ -100,8 +100,8 @@ variable {V : Set α} {inc : β → α → Prop} {vx_mem : ∀ e v, inc e v → 
     tauto
 
 @[simps]
-def oftoMultiset (V : Set α) (toMultiset : β → Multiset α) (vx_mem : ∀ e v, v ∈ toMultiset e → v ∈ V) :
-    Graph α β where
+def oftoMultiset (V : Set α) (toMultiset : ε → Multiset α) (vx_mem : ∀ e v, v ∈ toMultiset e → v ∈ V) :
+    Graph α ε where
   V := V
   E := {e | (toMultiset e).card = 2}
   Inc₂ e x y := toMultiset e = {x, y}
@@ -120,7 +120,7 @@ def oftoMultiset (V : Set α) (toMultiset : β → Multiset α) (vx_mem : ∀ e 
     rw [h1, Multiset.pair_eq_pair_iff] at h2
     tauto
 
-variable {toMultiset : β → Multiset α} {vx_mem : ∀ e v, v ∈ toMultiset e → v ∈ V}
+variable {toMultiset : ε → Multiset α} {vx_mem : ∀ e v, v ∈ toMultiset e → v ∈ V}
 
 @[simp]
 lemma oftoMultiset_toMultiset (card_eq : ∀ e, (toMultiset e).card = 2 ∨ (toMultiset e).card = 0) :
@@ -132,8 +132,8 @@ lemma oftoMultiset_toMultiset (card_eq : ∀ e, (toMultiset e).card = 2 ∨ (toM
   · simp [Multiset.card_eq_zero.mp h]
 
 @[simps]
-def ofIncFun (V : Set α) (incFun : β → α →₀ ℕ) (vx_mem : ∀ e v, incFun e v ≠ 0 → v ∈ V) :
-    Graph α β where
+def ofIncFun (V : Set α) (incFun : ε → α →₀ ℕ) (vx_mem : ∀ e v, incFun e v ≠ 0 → v ∈ V) :
+    Graph α ε where
   V := V
   E := {e | (incFun e).sum (fun _ ↦ id) = 2}
   Inc₂ e x y := by
@@ -152,7 +152,7 @@ def ofIncFun (V : Set α) (incFun : β → α →₀ ℕ) (vx_mem : ∀ e v, inc
     rw [← h2, EmbeddingLike.apply_eq_iff_eq, Multiset.pair_eq_pair_iff] at h1
     tauto
 
-variable {incFun : β → α →₀ ℕ} {vx_mem : ∀ e v, incFun e v ≠ 0 → v ∈ V}
+variable {incFun : ε → α →₀ ℕ} {vx_mem : ∀ e v, incFun e v ≠ 0 → v ∈ V}
 
 @[simp]
 lemma ofIncFun_V : (ofIncFun V incFun vx_mem).V = V := rfl
@@ -168,8 +168,8 @@ lemma ofIncFun_incFun : (ofIncFun V incFun vx_mem).incFun = incFun := by
   sorry
 
 @[simps]
-def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α)
-    (vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V) : Graph α β where
+def oftoSym2 (V : Set α) (E : Set ε) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α)
+    (vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V) : Graph α ε where
   V := V
   E := E
   Inc₂ e x y := ∃ (he : e ∈ E), tosym2 e he = s(x, y)
@@ -190,7 +190,7 @@ def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 �
     simp [h1] at h2
     tauto
 
-variable {E : Set β} {tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α}
+variable {E : Set ε} {tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α}
   {vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V}
 
 @[simp]
@@ -206,7 +206,7 @@ end intro
 
 
 /-- The graph with vertex set `V` and no edges -/
-@[simps] protected def noEdge (V : Set α) (β : Type*) : Graph α β where
+@[simps] protected def noEdge (V : Set α) (ε : Type*) : Graph α ε where
   V := V
   E := ∅
   Inc₂ _ _ _ := False
@@ -216,7 +216,7 @@ end intro
   vx_mem_left_of_inc₂ := by simp
 
 @[simp]
-lemma edge_empty_iff_eq_noEdge (G : Graph α β) : G.E = ∅ ↔ G = Graph.noEdge G.V β := by
+lemma edge_empty_iff_eq_noEdge (G : Graph α ε) : G.E = ∅ ↔ G = Graph.noEdge G.V ε := by
   constructor <;> rintro h
   · refine Graph.ext rfl fun e x y ↦ ?_
     simp only [noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
@@ -227,14 +227,14 @@ lemma edge_empty_iff_eq_noEdge (G : Graph α β) : G.E = ∅ ↔ G = Graph.noEdg
   · rw [h, noEdge_edgeSet]
 
 @[simp]
-lemma not_adj_noEdge : ¬ (Graph.noEdge S β).Adj x y := by
+lemma not_adj_noEdge : ¬ (Graph.noEdge S ε).Adj x y := by
   rintro ⟨e, hbtw⟩
   revert hbtw
   simp
 
 /-- A graph with a single edge `e` from `u` to `v` -/
 @[simps]
-protected def singleEdge (u v : α) (e : β) : Graph α β where
+protected def singleEdge (u v : α) (e : ε) : Graph α ε where
   V := {u,v}
   E := {e}
   Inc₂ e' x y := e' = e ∧ ((x = u ∧ y = v) ∨ (x = v ∧ y = u))
@@ -243,7 +243,7 @@ protected def singleEdge (u v : α) (e : β) : Graph α β where
   edge_mem_iff_exists_inc₂ := by tauto
   vx_mem_left_of_inc₂ := by tauto
 
-lemma singleEdge_comm (u v : α) (e : β) : Graph.singleEdge u v e = Graph.singleEdge v u e := by
+lemma singleEdge_comm (u v : α) (e : ε) : Graph.singleEdge u v e = Graph.singleEdge v u e := by
   ext <;> simp [or_comm]
 
 lemma singleEdge_inc₂_iff : (Graph.singleEdge u v e).Inc₂ f x y ↔ (f = e) ∧ s(x,y) = s(u,v) := by

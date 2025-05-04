@@ -5,8 +5,8 @@ import Kura.Dep.SetPartitionTypeless
 
 open Set Function
 
-variable {α β : Type*} {G H : Graph α β} {u v x x₁ x₂ y y₁ y₂ z : α} {e e' f g : β}
-  {U V S T : Set α} {F F' R R': Set β} {C w P Q : WList α β}
+variable {α ε : Type*} {G H : Graph α ε} {u v x x₁ x₂ y y₁ y₂ z : α} {e e' f g : ε}
+  {U V S T : Set α} {F F' R R': Set ε} {C w P Q : WList α ε}
 
 open WList Graph
 
@@ -18,7 +18,7 @@ lemma Set.Subsingleton.elim {s : Set α} (hs : s.Subsingleton) (hxs : x ∈ s) (
 namespace Graph
 
 /-- `G.VxConnected v w` means that `G` contains a walk from `v` to `w`. -/
-def VxConnected (G : Graph α β) : α → α → Prop :=
+def VxConnected (G : Graph α ε) : α → α → Prop :=
     Relation.TransGen (fun x y ↦ G.Adj x y ∨ (x = y ∧ x ∈ G.V))
 
 lemma VxConnected.refl (h : v ∈ G.V) : G.VxConnected v v := by
@@ -205,7 +205,7 @@ lemma vxConnected_edgeRestrict_singleton :
 
 /-- A graph is `Connected` if it is nonempty, and every pair of vertices is `VxConnected`. -/
 @[mk_iff]
-structure Connected (G : Graph α β) : Prop where
+structure Connected (G : Graph α ε) : Prop where
   nonempty : G.V.Nonempty
   vxConnected : ∀ ⦃x y⦄, x ∈ G.V → y ∈ G.V → G.VxConnected x y
 
@@ -309,7 +309,7 @@ lemma Connected.exists_adj_of_mem (hG : G.Connected) (hV : G.V.Nontrivial) (hx :
 /- ### Separations -/
 
 /-- A partition of `G.V` into two parts with no edge between them. -/
-structure Separation (G : Graph α β) where
+structure Separation (G : Graph α ε) where
   left : Set α
   right : Set α
   nonempty_left : left.Nonempty
@@ -389,7 +389,7 @@ lemma nonempty_separation_of_not_connected (hne : G.V.Nonempty) (hG : ¬ G.Conne
 then there is an edge of `G` joining two vertices that are not connected in the restriction. -/
 lemma Connected.exists_of_edgeRestrict_not_connected (hG : G.Connected)
     (hF : ¬ (G.edgeRestrict F).Connected) :
-    ∃ (S : (G.edgeRestrict F).Separation) (e : β) (x : α) (y : α),
+    ∃ (S : (G.edgeRestrict F).Separation) (e : ε) (x : α) (y : α),
     e ∉ F ∧ x ∈ S.left ∧ y ∈ S.right ∧ G.Inc₂ e x y := by
   obtain ⟨S⟩ := nonempty_separation_of_not_connected (by simpa using hG.nonempty) hF
   obtain ⟨x₀, hx₀⟩ := S.nonempty_left
@@ -477,7 +477,7 @@ lemma IsCycle.vxConnected_deleteVx_of_mem_of_mem (hC : G.IsCycle C) (x : α) (hy
   exact IsWalk.vxConnected_of_mem_of_mem (w := C) (by simp [hxC, hC.isWalk]) hy₁ hy₂
 
  /-- Two vertices of a cycle are connected after deleting any edge. -/
-lemma IsCycle.vxConnected_deleteEdge_of_mem_of_mem (hC : G.IsCycle C) (e : β)
+lemma IsCycle.vxConnected_deleteEdge_of_mem_of_mem (hC : G.IsCycle C) (e : ε)
     (hx₁ : x₁ ∈ C) (hx₂ : x₂ ∈ C) : (G ＼ {e}).VxConnected x₁ x₂ := by
   obtain heC | heC := em' <| e ∈ C.edge
   · exact IsWalk.vxConnected_of_mem_of_mem (by simp [hC.isWalk, heC]) hx₁ hx₂
@@ -548,7 +548,7 @@ lemma Compatible.isCycle_union_iff_of_subsingleton_inter (hcompat : G.Compatible
 
 /-- A bridge is an edge in no cycle-/
 @[mk_iff]
-structure IsBridge (G : Graph α β) (e : β) : Prop where
+structure IsBridge (G : Graph α ε) (e : ε) : Prop where
   mem_edgeSet : e ∈ G.E
   not_mem_cycle : ∀ ⦃C⦄, G.IsCycle C → e ∉ C.edge
 
@@ -669,11 +669,11 @@ theorem twoPaths (hP : G.IsPath P) (hQ : G.IsPath Q) (hPQ : P ≠ Q) (h0 : P.fir
 
 open Partition
 
-def ConnectivityPartition (G : Graph α β) : Partition (Set α) := Partition.ofRel (G.VxConnected)
+def ConnectivityPartition (G : Graph α ε) : Partition (Set α) := Partition.ofRel (G.VxConnected)
 
-def Component (G : Graph α β) (v : α) := {u | G.VxConnected v u}
+def Component (G : Graph α ε) (v : α) := {u | G.VxConnected v u}
 
-def ComponentSets (G : Graph α β) (V : Set α) := Component G '' V
+def ComponentSets (G : Graph α ε) (V : Set α) := Component G '' V
 
 @[simp]
 lemma connectedPartition_supp : G.ConnectivityPartition.supp = G.V := by
@@ -768,10 +768,10 @@ lemma ConnectivityPartition.Rel : G.ConnectivityPartition.Rel = G.VxConnected :=
   unfold ConnectivityPartition
   rw [rel_ofRel_eq]
 
-def SetConnected (G : Graph α β) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.VxConnected s t
+def SetConnected (G : Graph α ε) (S T : Set α) : Prop := ∃ s ∈ S, ∃ t ∈ T, G.VxConnected s t
 
 namespace SetConnected
-variable {G : Graph α β} {S S' T T' U V : Set α}
+variable {G : Graph α ε} {S S' T T' U V : Set α}
 
 lemma refl (h : ∃ x ∈ S, x ∈ G.V) : G.SetConnected S S := by
   obtain ⟨x, hxS, hxV⟩ := h
@@ -836,7 +836,7 @@ lemma exists_mem_right (h : G.SetConnected S T) : ∃ x ∈ T, x ∈ G.V := by
 
 end SetConnected
 
-lemma setConnected_iff_exists_pathFrom : G.SetConnected S T ↔ ∃ W : WList α β, G.IsPathFrom S T W := by
+lemma setConnected_iff_exists_pathFrom : G.SetConnected S T ↔ ∃ W : WList α ε, G.IsPathFrom S T W := by
   classical
   refine ⟨fun ⟨s, hs, t, ht, h⟩ ↦ ?_, fun ⟨W, hW, hWfirst, hWlast, _, _⟩ ↦
     ⟨W.first, hWfirst, W.last, hWlast, hW.isWalk.vxConnected_first_last⟩⟩
@@ -863,7 +863,7 @@ lemma setConnected_iff_exists_pathFrom : G.SetConnected S T ↔ ∃ W : WList α
     exact suffixFromLast_not_prop (hpf.mem hx) hxfirst hxS
 
 
-@[simp] lemma noEdge_vxConnected : (Graph.noEdge U β).VxConnected x y ↔ x = y ∧ x ∈ U := by
+@[simp] lemma noEdge_vxConnected : (Graph.noEdge U ε).VxConnected x y ↔ x = y ∧ x ∈ U := by
   refine ⟨fun h ↦ ?_, fun ⟨rfl, hxU⟩ ↦ VxConnected.refl hxU⟩
   induction h with
   | single h =>
@@ -875,7 +875,7 @@ lemma setConnected_iff_exists_pathFrom : G.SetConnected S T ↔ ∃ W : WList α
     · simp at hadj
     · exact ⟨ih.1.trans h.1, ih.2⟩
 
-@[simp] lemma noEdge_setConnected : (Graph.noEdge U β).SetConnected S T ↔ (S ∩ T ∩ U).Nonempty := by
+@[simp] lemma noEdge_setConnected : (Graph.noEdge U ε).SetConnected S T ↔ (S ∩ T ∩ U).Nonempty := by
   refine ⟨fun ⟨s, hsS, t, htT, hst⟩ ↦ ?_,
   fun ⟨x, ⟨hxS, hxT⟩, hxU⟩ ↦ ⟨x, hxS, x, hxT, VxConnected.refl hxU⟩⟩
   · rw [noEdge_vxConnected] at hst
@@ -883,7 +883,7 @@ lemma setConnected_iff_exists_pathFrom : G.SetConnected S T ↔ ∃ W : WList α
     use s, ⟨hsS, htT⟩, hsU
 
 @[simp]
-lemma bot_setConnected : ¬ (⊥ : Graph α β).SetConnected S T := by
+lemma bot_setConnected : ¬ (⊥ : Graph α ε).SetConnected S T := by
   rw [SetConnected.supported]
   simp
 

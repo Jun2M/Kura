@@ -2,9 +2,9 @@ import Kura.Operation.Map
 import Kura.Operation.Hom
 
 open Set Function
-variable {α β α' β' γ δ ε ζ : Type*} {G G' G₁ G₁' H : Graph α β} {G₂ G₂' : Graph γ δ}
-  {G₃ G₃' : Graph ε ζ} {a b c : α} {e f : β} {u v w : γ} {x y z : δ} {S S' T T' U U': Set α}
-  {F F' R R' : Set β}
+variable {α ε α' ε' γ δ ε ζ : Type*} {G G' G₁ G₁' H : Graph α ε} {G₂ G₂' : Graph γ δ}
+  {G₃ G₃' : Graph ε ζ} {a b c : α} {e f : ε} {u v w : γ} {x y z : δ} {S S' T T' U U': Set α}
+  {F F' R R' : Set ε}
 namespace Graph
 
 
@@ -34,19 +34,19 @@ lemma vxMap.HasIsom (φ : α → α') (hφ : InjOn φ G.V) : G ≤↔ (vxMap G �
 
 
 
-def edgePreimg.HomSys (σ : β' → β) : HomSys α β' α β where
+def edgePreimg.HomSys (σ : ε' → ε) : HomSys α ε' α ε where
   toFun := id
   edgeFun := σ
 
-lemma edgePreimg.HomSys.IsHomOn (σ : β' → β) : (edgePreimg.HomSys σ).IsHomOn (edgePreimg G σ) G where
+lemma edgePreimg.HomSys.IsHomOn (σ : ε' → ε) : (edgePreimg.HomSys σ).IsHomOn (edgePreimg G σ) G where
   Mapsto_vx v hv := by simpa only [HomSys, id_eq] using hv
   inc₂ ⦃e x y⦄ h := by simpa only [HomSys, id_eq, Inc₂, exists_eq_left'] using h
 
-lemma edgePreimg.HasHom (σ : β' → β) : (edgePreimg G σ) ≤→ G :=
+lemma edgePreimg.HasHom (σ : ε' → ε) : (edgePreimg G σ) ≤→ G :=
   ⟨edgePreimg.HomSys σ, edgePreimg.HomSys.IsHomOn σ⟩
 
 -- TODO: Have some more think about what the appropriate assumptions should be.
--- lemma edgePreimg.HomSys.IsIsomOn (σ : β' → β) (hσ : BijOn σ univ G.E) :
+-- lemma edgePreimg.HomSys.IsIsomOn (σ : ε' → ε) (hσ : BijOn σ univ G.E) :
 --     (edgePreimg.HomSys σ).IsIsomOn (edgePreimg G σ) G where
 --   toIsHomOn := edgePreimg.HomSys.IsHomOn σ
 --   bijOn_vx := by
@@ -62,13 +62,13 @@ lemma edgePreimg.HasHom (σ : β' → β) : (edgePreimg G σ) ≤→ G :=
 --     · simpa? [edgePreimg, E, HomSys, id_eq] using he
 
 
-noncomputable def edgePreimg.HomSys' [h : Nonempty β'] (σ : β' → β) : Graph.HomSys α β α β' where
+noncomputable def edgePreimg.HomSys' [h : Nonempty ε'] (σ : ε' → ε) : Graph.HomSys α ε α ε' where
   toFun := id
   edgeFun e :=
     haveI : Decidable (∃ e', σ e' = e) := Classical.dec _
     if hex : ∃ e', σ e' = e then hex.choose else h.some
 
-lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ G.E) :
+lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty ε'] (σ : ε' → ε) (hσ : SurjOn σ univ G.E) :
     (edgePreimg.HomSys' σ).IsEmbOn G (edgePreimg G σ) where
   Mapsto_vx v hv := by simpa only [V, HomSys', id_eq] using hv
   inc₂ ⦃e x y⦄ hbtw := by
@@ -90,5 +90,5 @@ lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : Surj
     change hex₁.choose = hex₂.choose at heq
     rw [← hex₁.choose_spec, ← hex₂.choose_spec, heq]
 
-lemma edgePreimg.HasEmb [Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ G.E) :
+lemma edgePreimg.HasEmb [Nonempty ε'] (σ : ε' → ε) (hσ : SurjOn σ univ G.E) :
     G ≤↪ (edgePreimg G σ) := ⟨edgePreimg.HomSys' σ, edgePreimg.HomSys.IsEmbOn σ hσ⟩

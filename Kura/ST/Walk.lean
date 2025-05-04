@@ -2,8 +2,8 @@ import Kura.ST.Separator
 
 namespace Graph
 open Set Function List Nat WList
-variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S S' T T' U V : Set α}
-  {F F' R R' : Set β} {w w1 w2 : WList α β}
+variable {α ε : Type*} {G H : Graph α ε} {u v x y z : α} {e e' f g : ε} {S S' T T' U V : Set α}
+  {F F' R R' : Set ε} {w w1 w2 : WList α ε}
 
 
 namespace IsVxSetSeparator
@@ -27,7 +27,7 @@ lemma walk_validOn_right (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G 
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
 
-lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hP : G.IsPath w)
+lemma path_in_leftHalf_of_finishSep {w : Walk α ε} (hP : G.IsPath w)
     (hUsep : G.IsVxSetSeparator S T {w.last}) (hS : w.first ∈ hUsep.leftSet) (hx : x ∈ w.vx) :
     x ∈ hUsep.leftSet ∪ {w.last} := by
   obtain (h | h) := em (w.Nonempty) |>.symm

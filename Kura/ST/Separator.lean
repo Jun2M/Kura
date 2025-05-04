@@ -3,12 +3,12 @@ import Kura.Connected
 
 namespace Graph
 open Set Function Nat WList
-variable {α β : Type*} {G G' H H' : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
-  {F F' : Set β} {w w1 w2 : WList α β}
+variable {α ε : Type*} {G G' H H' : Graph α ε} {u v x y z : α} {e e' f g : ε} {S T U: Set α}
+  {F F' : Set ε} {w w1 w2 : WList α ε}
 
 
 @[mk_iff]
-structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
+structure IsVxSeparator (G : Graph α ε) (u v : α) (S : Set α) : Prop where
   not_mem_left : u ∉ S
   not_mem_right : v ∉ S
   not_connected : ¬ (G [G.V \ S]).VxConnected u v
@@ -35,7 +35,7 @@ lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u
 --       sorry
 --   · sorry
 
-def IsVxSetSeparator (G : Graph α β) (S T V : Set α) : Prop := ¬ (G - V).SetConnected S T
+def IsVxSetSeparator (G : Graph α ε) (S T V : Set α) : Prop := ¬ (G - V).SetConnected S T
 
 namespace IsVxSetSeparator
 variable {U V S S' T T' : Set α} (h : G.IsVxSetSeparator S T V)
@@ -236,7 +236,7 @@ lemma mem_of_inc₂_rightSet (hbtw : G.Inc₂ e u v) (hv : v ∈ h.rightSet) :
 
 /-- Given a set of edges, there is a separator that puts those edges on one side and the rest of
 the edges on the other side. -/
-def of_edges (G : Graph α β) (U : Set β) :
+def of_edges (G : Graph α ε) (U : Set ε) :
     G.IsVxSetSeparator {v | ∃ e ∈ U, G.Inc e v} {v | ∃ e ∉ U, G.Inc e v} {v | (∃ e ∈ U, G.Inc e v) ∧ ∃ e' ∉ U, G.Inc e' v} := by
   sorry
 
@@ -244,11 +244,11 @@ end IsVxSetSeparator
 
 
 
-def IsEdgeSetSeparator (G : Graph α β) (S T : Set α) (F : Set β) :=
+def IsEdgeSetSeparator (G : Graph α ε) (S T : Set α) (F : Set ε) :=
   ¬ (G ＼ F).SetConnected S T
 
 namespace IsEdgeSetSeparator
-variable {G G' : Graph α β} {S S' T T' : Set α} {F F' : Set β} {u v : α} {w : WList α β}
+variable {G G' : Graph α ε} {S S' T T' : Set α} {F F' : Set ε} {u v : α} {w : WList α ε}
 
 def leftSet (h : G.IsEdgeSetSeparator S T F) : Set α := {v | ∃ s ∈ S, (G ＼ F).VxConnected v s}
 
@@ -339,7 +339,7 @@ lemma subset_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) : F ⊆ G.E :
   fun _ ↦ mem_of_minimal h
 
 lemma exists_pathFrom_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) :
-    ∃ W : WList α β, (G ＼ (F \ {e})).IsPathFrom S T W ∧ e ∈ W.edge := by
+    ∃ W : WList α ε, (G ＼ (F \ {e})).IsPathFrom S T W ∧ e ∈ W.edge := by
   have : ¬ G.IsEdgeSetSeparator S T (F \ {e}) := h.not_prop_of_ssubset (by simp [heF])
   obtain ⟨W, hVd⟩ := by rwa [not_isEdgeSetSeparator_iff,
     setConnected_iff_exists_pathFrom] at this

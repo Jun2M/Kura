@@ -2,8 +2,8 @@ import Kura.Operation.Minor2
 
 
 open Set Function
-variable {α α' α'' β β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
-  {S S' T T' U U': Set α} {F F' R R' : Set β}
+variable {α α' α'' ε ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
+  {S S' T T' U U': Set α} {F F' R R' : Set ε}
 namespace Graph
 
 -- Define Simple graph

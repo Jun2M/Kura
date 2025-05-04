@@ -2,7 +2,7 @@ import Kura.WList.Sublist
 import Mathlib.Algebra.Order.Group.Nat
 import Mathlib.Data.List.Rotate
 
-variable {α β : Type*} {x y z u v : α} {e f : β} {w : WList α β} (m n : ℕ)
+variable {α ε : Type*} {x y z u v : α} {e f : ε} {w : WList α ε} (m n : ℕ)
 
 open Set WList
 
@@ -11,13 +11,13 @@ open Set WList
 namespace WList
 
 /-- A `WList` is closed if its first and last entries are equal. -/
-def IsClosed (w : WList α β) : Prop := w.first = w.last
+def IsClosed (w : WList α ε) : Prop := w.first = w.last
 
 lemma IsClosed.eq (h : w.IsClosed) : w.first = w.last :=
   h
 
 @[simp]
-lemma nil_isClosed (x : α) : (nil x (β := β)).IsClosed := rfl
+lemma nil_isClosed (x : α) : (nil x (ε := ε)).IsClosed := rfl
 
 @[simp]
 lemma cons_isClosed_iff : (cons x e w).IsClosed ↔ x = w.last := by
@@ -62,7 +62,7 @@ lemma IsClosed.length_eq_one_iff (hw : w.IsClosed) :
 
 /-- Rotate a WList `n` vertices to the left.
 This behaves badly (forgets the first vertex) if the list isn't closed. -/
-protected def rotate : WList α β → ℕ → WList α β
+protected def rotate : WList α ε → ℕ → WList α ε
   | w, 0 => w
   | nil x, _ => nil x
   | cons _ e w, n + 1 => (w.concat e w.first).rotate n
@@ -72,30 +72,30 @@ lemma cons_rotate_one : (cons x e w).rotate 1 = w.concat e w.first := by
   simp [WList.rotate]
 
 @[simp]
-lemma rotate_cons_succ (w : WList α β) (x e) (n : ℕ) :
+lemma rotate_cons_succ (w : WList α ε) (x e) (n : ℕ) :
   (cons x e w).rotate (n+1) = (w.concat e w.first).rotate n := rfl
 
 @[simp]
-lemma rotate_nil (x : α) (n : ℕ) : (nil x (β := β)).rotate n = nil x := by
+lemma rotate_nil (x : α) (n : ℕ) : (nil x (ε := ε)).rotate n = nil x := by
   unfold WList.rotate
   aesop
 
 @[simp]
-lemma rotate_zero (w : WList α β) : w.rotate 0 = w := by
+lemma rotate_zero (w : WList α ε) : w.rotate 0 = w := by
   simp [WList.rotate]
 
 @[simp]
-lemma rotate_rotate : ∀ (w : WList α β) (m n : ℕ), (w.rotate m).rotate n = w.rotate (m + n)
+lemma rotate_rotate : ∀ (w : WList α ε) (m n : ℕ), (w.rotate m).rotate n = w.rotate (m + n)
   | nil x, _, _=> by simp
   | cons x e w, 0, n => by simp
   | cons x e w, m+1, n => by
     rw [rotate_cons_succ, rotate_rotate, Nat.add_right_comm, ← rotate_cons_succ]
 
-lemma rotate_succ (w : WList α β) (n : ℕ) : w.rotate (n+1) = (w.rotate 1).rotate n := by
+lemma rotate_succ (w : WList α ε) (n : ℕ) : w.rotate (n+1) = (w.rotate 1).rotate n := by
   rw [rotate_rotate, Nat.add_comm]
 
 @[simp]
-lemma length_rotate (w : WList α β) (n : ℕ) : (w.rotate n).length = w.length := by
+lemma length_rotate (w : WList α ε) (n : ℕ) : (w.rotate n).length = w.length := by
   induction n generalizing w with
   | zero => simp
   | succ n IH =>
@@ -136,7 +136,7 @@ lemma rotate_firstEdge (n : ℕ) (hn : n < w.length) :
       rw [IH (hn.trans (by simp))]
       simp [cons_rotate_one, concat_edge, add_comm (a := 1), hn]
 
-lemma rotate_first (w : WList α β) (n : ℕ) (hn : n ≤ w.length) : (w.rotate n).first = w.get n := by
+lemma rotate_first (w : WList α ε) (n : ℕ) (hn : n ≤ w.length) : (w.rotate n).first = w.get n := by
   induction n generalizing w with
   | zero => simp
   | succ n IH => cases w with
@@ -145,7 +145,7 @@ lemma rotate_first (w : WList α β) (n : ℕ) (hn : n ≤ w.length) : (w.rotate
       simp only [cons_length, Nat.add_le_add_iff_right] at hn
       rwa [rotate_cons_succ, get_cons_add, IH _ (hn.trans (by simp)), get_concat]
 
-lemma rotate_induction {motive : WList α β → Prop} (h0 : motive w)
+lemma rotate_induction {motive : WList α ε → Prop} (h0 : motive w)
     (rotate : ∀ ⦃w⦄, motive w → motive (w.rotate 1)) (n : ℕ) : motive (w.rotate n) := by
   induction n with | zero => simpa | succ n IH => rw [← rotate_rotate]; exact rotate IH
 
@@ -153,14 +153,14 @@ lemma IsClosed.rotate (hw : w.IsClosed) (n : ℕ) : (w.rotate n).IsClosed :=
   rotate_induction hw (by rintro (x | ⟨u, e, w⟩) hw <;> simp) n
 
 @[simp]
-lemma rotate_edge (w : WList α β) (n : ℕ) : (w.rotate n).edge = w.edge.rotate n := by
-  suffices aux : ∀ (w : WList α β), (w.rotate 1).edge = w.edge.rotate 1 by induction n with
+lemma rotate_edge (w : WList α ε) (n : ℕ) : (w.rotate n).edge = w.edge.rotate n := by
+  suffices aux : ∀ (w : WList α ε), (w.rotate 1).edge = w.edge.rotate 1 by induction n with
     | zero => simp | succ n IH => rw [← rotate_rotate, aux, ← List.rotate_rotate, IH]
   rintro (w | ⟨x, e, w⟩) <;> simp
 
 @[simp]
-lemma rotate_vx_tail (w : WList α β) (n : ℕ) : (w.rotate n).tail.vx = w.tail.vx.rotate n := by
-  suffices aux : ∀ (w : WList α β), (w.rotate 1).tail.vx = w.tail.vx.rotate 1 by induction n with
+lemma rotate_vx_tail (w : WList α ε) (n : ℕ) : (w.rotate n).tail.vx = w.tail.vx.rotate n := by
+  suffices aux : ∀ (w : WList α ε), (w.rotate 1).tail.vx = w.tail.vx.rotate 1 by induction n with
     | zero => simp | succ n IH => rw [← rotate_rotate, aux, ← List.rotate_rotate, IH]
   rintro (w | ⟨x, e, (w | ⟨y, f, w⟩)⟩) <;> simp
 
@@ -191,7 +191,7 @@ lemma IsClosed.inc₂_rotate (hw : w.IsClosed) (h : w.Inc₂ e x y) (n) : (w.rot
   exact h.elim (fun h' ↦ .inl (hw.dInc_rotate h' n)) (fun h' ↦ .inr (hw.dInc_rotate h' n))
 
 @[simp]
-lemma rotate_edgeSet (w : WList α β) (n) : (w.rotate n).E = w.E := by
+lemma rotate_edgeSet (w : WList α ε) (n) : (w.rotate n).E = w.E := by
   simp [WList.E, rotate_edge]
 
 lemma IsClosed.rotate_length (hw : w.IsClosed) : w.rotate w.length = w := by
@@ -246,11 +246,11 @@ lemma IsClosed.rotate_one_dropLast (hw : w.IsClosed) : (w.rotate 1).dropLast = w
   cases w with simp
 
 /-- Rotate by an integer amount. -/
-def intRotate (w : WList α β) (n : ℤ) : WList α β :=
+def intRotate (w : WList α ε) (n : ℤ) : WList α ε :=
   w.rotate (n.natMod w.length)
 
 @[simp]
-lemma length_intRotate (w : WList α β) (m : ℤ) : (w.intRotate m).length = w.length :=
+lemma length_intRotate (w : WList α ε) (m : ℤ) : (w.intRotate m).length = w.length :=
   length_rotate ..
 
 @[simp]
@@ -258,7 +258,7 @@ lemma intRotate_zero : w.intRotate 0 = w := by
   cases w with simp [intRotate, Int.natMod]
 
 @[simp]
-lemma nil_intRotate (x : α) (n) : (nil x : WList α β).intRotate n = nil x := by
+lemma nil_intRotate (x : α) (n) : (nil x : WList α ε).intRotate n = nil x := by
   simp [intRotate]
 
 lemma IsClosed.intRotate_eq_rotate (hw : w.IsClosed) (n : ℕ) : w.intRotate n = w.rotate n := by

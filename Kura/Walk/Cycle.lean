@@ -2,8 +2,8 @@ import Kura.Walk.Path
 -- import Matroid.ForMathlib.Graph.Connected
 import Kura.WList.Cycle
 
-variable {α β : Type*} {x y z u v : α} {e f : β} {G H : Graph α β}
-  {w w₁ w₂ C C₁ C₂ : WList α β} {S T : Set α}
+variable {α ε : Type*} {x y z u v : α} {e f : ε} {G H : Graph α ε}
+  {w w₁ w₂ C C₁ C₂ : WList α ε} {S T : Set α}
 
 open WList
 
@@ -38,7 +38,7 @@ lemma IsClosed.isWalk_rotate_iff (hc : w.IsClosed) {n} : G.IsWalk (w.rotate n) �
 
 /-- `G.IsCycle C` means that `C` is a nonempty closed walk with no repeated vertices or edges. -/
 @[mk_iff]
-structure IsCycle (G : Graph α β) (C : WList α β) : Prop extends G.IsTrail C where
+structure IsCycle (G : Graph α ε) (C : WList α ε) : Prop extends G.IsTrail C where
   nonempty : C.Nonempty
   /-- The start and end vertex are the same -/
   isClosed : C.IsClosed
@@ -53,7 +53,7 @@ lemma IsCycle.rotate (hC : G.IsCycle C) (n : ℕ) : G.IsCycle (C.rotate n) where
   nodup := by simpa [rotate_vx_tail, List.nodup_rotate] using hC.nodup
 
 @[simp]
-lemma not_isCycle_nil (x : α) : ¬ G.IsCycle (nil x : WList α β) :=
+lemma not_isCycle_nil (x : α) : ¬ G.IsCycle (nil x : WList α ε) :=
   fun h ↦ by simpa using h.nonempty
 
 lemma IsCycle.intRotate (hC : G.IsCycle C) (n : ℤ) : G.IsCycle (C.intRotate n) :=
@@ -223,7 +223,7 @@ lemma IsCycle.exists_isPath_toGraph_eq_delete_edge (hC : G.IsCycle C) (heC : e �
   exact ⟨P, hP, hPC⟩
 
 
-lemma IsPath.cons_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.Inc₂ e P.first P.last)
+lemma IsPath.cons_isCycle {P : WList α ε} (hP : G.IsPath P) (he : G.Inc₂ e P.first P.last)
     (heP : e ∉ P.edge) : G.IsCycle (cons P.last e P) where
   isWalk := by simp [he.symm, hP.isWalk]
   edge_nodup := by simp [heP, hP.edge_nodup]
@@ -231,7 +231,7 @@ lemma IsPath.cons_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.Inc₂ e P
   isClosed := by simp
   nodup := by simp [hP.nodup]
 
-lemma IsPath.concat_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.Inc₂ e P.last P.first)
+lemma IsPath.concat_isCycle {P : WList α ε} (hP : G.IsPath P) (he : G.Inc₂ e P.last P.first)
     (heP : e ∉ P.edge) : G.IsCycle (P.concat e P.first) := by
   simpa using (hP.reverse.cons_isCycle (e := e) (by simpa using he) (by simpa)).reverse
 
@@ -239,7 +239,7 @@ namespace Inc₂
 
 /-- The walk corresponding to an incidence `G.Inc₂ e u v` and then backtracking to `u` using the
 same edge. -/
-def backtrack (_h : G.Inc₂ e u v) : WList α β := cons u e (cons v e (nil u))
+def backtrack (_h : G.Inc₂ e u v) : WList α ε := cons u e (cons v e (nil u))
 
 @[simp]
 lemma backtrack_first (h : G.Inc₂ e u v) : h.backtrack.first = u := rfl

@@ -5,15 +5,15 @@ import Kura.Subgraph
 This file defined predicates stating that an abstract walk `w` is a walk/trail/path of a graph `G`.
 -/
 
-variable {α β : Type*} {x y z u v : α} {e f : β} {G H : Graph α β} {F : Set β}
-  {W w w₁ w₂ : WList α β} {S T U : Set α}
+variable {α ε : Type*} {x y z u v : α} {e f : ε} {G H : Graph α ε} {F : Set ε}
+  {W w w₁ w₂ : WList α ε} {S T U : Set α}
 
 open Graph WList Set
 
 namespace Graph
 
-/-- `G.IsWalk w` means that `w : WList α β` is a walk of `G : Graph α β`. -/
-inductive IsWalk (G : Graph α β) : WList α β → Prop
+/-- `G.IsWalk w` means that `w : WList α ε` is a walk of `G : Graph α ε`. -/
+inductive IsWalk (G : Graph α ε) : WList α ε → Prop
   | nil {x} (hx : x ∈ G.V) : G.IsWalk (nil x)
   | cons {x e w} (hw : G.IsWalk w) (h : G.Inc₂ e x w.first) : G.IsWalk (cons x e w)
 
@@ -191,7 +191,7 @@ lemma IsWalk.inc₂_iff_inc₂_of_mem (h : G.IsWalk w) (hew : e ∈ w.edge) :
 
 /-- `G.IsWalkFrom S T w` means that `w` is a walk of `G` with one end in `S` and the other in `T`.-/
 @[mk_iff]
-structure IsWalkFrom (G : Graph α β) (S T : Set α) (w : WList α β) : Prop where
+structure IsWalkFrom (G : Graph α ε) (S T : Set α) (w : WList α ε) : Prop where
   isWalk : G.IsWalk w
   first_mem : w.first ∈ S
   last_mem : w.last ∈ T
@@ -202,7 +202,7 @@ lemma IsWalkFrom.reverse (h : G.IsWalkFrom S T w) : G.IsWalkFrom T S w.reverse w
   last_mem := by simp [h.first_mem]
 
 /-- The walk corresponding to an incidence `G.Inc₂ e u v`. -/
-def Inc₂.walk (_h : G.Inc₂ e u v) : WList α β := cons u e (nil v)
+def Inc₂.walk (_h : G.Inc₂ e u v) : WList α ε := cons u e (nil v)
 
 namespace Inc₂
 
@@ -285,12 +285,12 @@ lemma IsWalk.edgeRestrict (hw : G.IsWalk w) (hE : w.E ⊆ F) : (G ↾ F).IsWalk 
   induction hw with simp_all [insert_subset_iff]
 
 @[simp]
-lemma isWalk_edgeRestrict_iff {F : Set β} : (G ↾ F).IsWalk w ↔ G.IsWalk w ∧ w.E ⊆ F :=
+lemma isWalk_edgeRestrict_iff {F : Set ε} : (G ↾ F).IsWalk w ↔ G.IsWalk w ∧ w.E ⊆ F :=
   ⟨fun h ↦ ⟨h.of_le (by simp), h.edgeSet_subset.trans inter_subset_left⟩,
     fun h ↦ h.1.edgeRestrict h.2⟩
 
 @[simp]
-lemma isWalk_edgeDelete_iff {F : Set β} : (G ＼ F).IsWalk w ↔ G.IsWalk w ∧ Disjoint w.E F := by
+lemma isWalk_edgeDelete_iff {F : Set ε} : (G ＼ F).IsWalk w ↔ G.IsWalk w ∧ Disjoint w.E F := by
   simp only [edgeDelete_eq_edgeRestrict, isWalk_edgeRestrict_iff, subset_diff, and_congr_right_iff,
     and_iff_right_iff_imp]
   exact fun h _ ↦ h.edgeSet_subset
@@ -391,19 +391,19 @@ end Graph
 
 namespace WList
 
-/-- Turn `w : WList α β` into a `Graph α β`. If the list is not well-formed
+/-- Turn `w : WList α ε` into a `Graph α ε`. If the list is not well-formed
 (i.e. it contains an edge appearing twice with different ends),
 then the first occurence of the edge determines its ends in `w.toGraph`. -/
-protected def toGraph : WList α β → Graph α β
-  | nil u => Graph.noEdge {u} β
+protected def toGraph : WList α ε → Graph α ε
+  | nil u => Graph.noEdge {u} ε
   | cons u e w => w.toGraph ∪ (Graph.singleEdge u w.first e)
 
 @[simp]
-lemma toGraph_nil : (WList.nil u (β := β)).toGraph = Graph.noEdge {u} β := rfl
+lemma toGraph_nil : (WList.nil u (ε := ε)).toGraph = Graph.noEdge {u} ε := rfl
 
 lemma toGraph_cons : (w.cons u e).toGraph = w.toGraph ∪ (Graph.singleEdge u w.first e) := rfl
 
-lemma toGraph_concat (w : WList α β) (e u) :
+lemma toGraph_concat (w : WList α ε) (e u) :
     (w.concat e u).toGraph = (Graph.singleEdge u w.last e) ∪ w.toGraph := by
   induction w with
   | nil v =>
@@ -424,14 +424,14 @@ lemma toGraph_concat (w : WList α β) (e u) :
     tauto
 
 @[simp]
-lemma toGraph_vxSet (w : WList α β) : w.toGraph.V = w.V := by
+lemma toGraph_vxSet (w : WList α ε) : w.toGraph.V = w.V := by
   induction w with simp_all [toGraph_cons]
 
 @[simp]
-lemma toGraph_edgeSet (w : WList α β) : w.toGraph.E = w.E := by
+lemma toGraph_edgeSet (w : WList α ε) : w.toGraph.E = w.E := by
   induction w with simp_all [toGraph_cons]
 
-lemma toGraph_vxSet_nonempty (w : WList α β) : w.toGraph.V.Nonempty := by
+lemma toGraph_vxSet_nonempty (w : WList α ε) : w.toGraph.V.Nonempty := by
   simp
 
 lemma WellFormed.toGraph_inc₂ (h : w.WellFormed) : w.toGraph.Inc₂ = w.Inc₂ := by
