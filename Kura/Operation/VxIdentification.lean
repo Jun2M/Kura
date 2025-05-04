@@ -2,7 +2,7 @@ import Kura.Operation.MapHom
 
 
 open Set Function
-variable {α α' α'' ε ε' : Type*} {G H : Graph (Set α) ε} {a b c : α} {x y z : Set α} {e f : ε}
+variable {α ε α' α'' ε' : Type*} {G H : Graph (Set α) ε} {a b c : α} {x y z : Set α} {e f : ε}
 
 namespace Graph
 

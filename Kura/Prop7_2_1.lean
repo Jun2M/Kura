@@ -1,29 +1,31 @@
 import Kura.Operation.Minor2
+import Kura.Operation.Simple
 
 
 open Set Function
-variable {α α' α'' ε ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
+variable {α ε α' α'' ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
   {S S' T T' U U': Set α} {F F' R R' : Set ε} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
 namespace Graph
 
--- Define Simple graph
--- Define simplification
+theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [hV : Finite G.V] [hE : Finite G.E] [G.IsSimple]
+    (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph)
+    (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by
+  have hEnonempty : G.E.Nonempty := by
+    by_contra! hE
+    simp only [hE, ncard_empty, nonpos_iff_eq_zero, mul_eq_zero, Nat.pow_eq_zero,
+      OfNat.ofNat_ne_zero, ne_eq, false_and, false_or] at hcard
+    have := hVnonempty.ncard_pos
+    omega
 
+  let e := hEnonempty.some
+  obtain ⟨x, y, hxy : G.Inc₂ e x y⟩ := exists_inc₂_of_mem_edgeSet hEnonempty.some_mem
+  let G' := G / ({e} : Set ε) |>.Simplify
+  -- have := prop721' t (G := G')
+  sorry
 
-theorem prop7_2_1 (t : ℕ) [hV : Finite G.V] [hE : Finite G.E] (hVnonempty : G.V.Nonempty)
+theorem prop721 (t : ℕ) [hV : Finite G.V] [hE : Finite G.E] [G.IsSimple] (hVnonempty : G.V.Nonempty)
     (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by
   revert G
   apply forall_Setify
-  rintro G _ _ hVNonempty hcard
-  rw [iff_exists_isom_Setify (fun _ _ G ↦ G.HasCliqueMinor t)]
-
-  -- obtain hVempty | hVnonempty := G.V.eq_empty_or_nonempty
-  -- · obtain rfl := vxSet_empty_iff_eq_bot.mp hVempty
-  --   sorry
-
-  have hVpos : 0 < G.V.ncard := hVnonempty.ncard_pos hV
-  have hEpos : 0 < G.E.ncard := lt_of_lt_of_le (Nat.mul_pos (Nat.pow_pos (by linarith)) hVpos) hcard
-  have hEnonmepty : G.E.Nonempty := (natCard_pos hE).mp hEpos ; clear hEpos hVpos
-
-  let e := hEnonmepty.some
-  obtain ⟨x, y, hxy : G.Inc₂ e x y⟩ := exists_inc₂_of_mem_edgeSet hEnonmepty.some_mem
+  rintro G hGP _ _ _ hVnonempty hcard
+  exact prop721' t hVnonempty hGP hcard

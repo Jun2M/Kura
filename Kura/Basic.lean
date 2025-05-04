@@ -814,13 +814,4 @@ lemma degree_eq_zero_iff_isolated (G : Graph α ε) [Finite G.E] (v : α) :
     exact fun i _ ↦ h i
 
 end Isolated
-
-
-class IsLoopless (G : Graph α ε) : Prop where
-  loopless x : ¬ G.Adj x x
-
-class IsSimple (G : Graph α ε) : Prop extends IsLoopless G where
-  no_multi_edges e f he hf : G.toSym2 e he = G.toSym2 f hf → e = f
-
-
 end Graph

@@ -2,7 +2,7 @@ import Kura.Operation.VxIdentification
 import Kura.Connected
 
 open Set Function
-variable {α α' α'' ε ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
+variable {α ε α' α'' ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
   {S S' T T' U U': Set α} {F F' R R' : Set ε}
 namespace Graph
 
@@ -232,10 +232,10 @@ lemma iff_exists_isom_Setify (P : {α : Type u_1} → {ε : Type u_2} → Graph 
     rwa [hP.presv_isom _ _ h']
 
 lemma forall_Setify (F : {α : Type u_1} → {ε : Type u_2} → Graph α ε → Prop) [hF : GraphicFunction F]
-    (h : ∀ (G' : Graph (Set α) ε), F G') : ∀ (G : Graph α ε), F G :=
+    (h : ∀ (G' : Graph (Set α) ε), G'.IsPartitionGraph → F G') : ∀ (G : Graph α ε), F G :=
   fun G => by
     rw [hF.presv_isom G G.Setify (Setify.HasIsom G)]
-    exact h G.Setify
+    exact h G.Setify <| Setify.IsPartitionGraph G
 
 instance instIsiMinorleftGraphic : GraphicFunction (fun G ↦ G.IsiMinor H) where
   presv_isom G G' h := by

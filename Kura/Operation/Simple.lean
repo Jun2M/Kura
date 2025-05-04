@@ -2,9 +2,37 @@ import Kura.Operation.Hom
 
 
 open Set Function
-variable {α α' α'' ε ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
+variable {α ε α' α'' ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
   {S S' T T' U U': Set α} {F F' R R' : Set ε}
 
+
+class Graph.IsLoopless (G : Graph α ε) : Prop where
+  loopless x : ¬ G.Adj x x
+
+instance Graph.instLooplessGraphic : Graph.GraphicFunction IsLoopless where
+  presv_isom G G' h := by
+    ext
+    obtain ⟨g, hg⟩ := h.symm
+    obtain ⟨f, hf⟩ := h
+    refine ⟨fun hloop ↦ ⟨fun x ⟨e, hbtw⟩ ↦ ?_⟩, fun hloop ↦ ⟨fun x ⟨e, hbtw⟩ ↦ ?_⟩⟩
+    · exact hloop.loopless (g x) ⟨g.edgeFun e, hbtw.isIsomOn hg hbtw.edge_mem hbtw.vx_mem_left hbtw.vx_mem_right⟩
+    · exact hloop.loopless (f x) ⟨f.edgeFun e, hbtw.isIsomOn hf hbtw.edge_mem hbtw.vx_mem_left hbtw.vx_mem_right⟩
+
+class Graph.IsSimple (G : Graph α ε) : Prop extends IsLoopless G where
+  no_multi_edges e f he hf : G.toSym2 e he = G.toSym2 f hf → e = f
+
+instance Graph.instSimpleGraphic : Graph.GraphicFunction IsSimple where
+  presv_isom G G' h := by
+    ext
+    refine ⟨fun hsimple ↦ ?_, fun hsimple ↦ ?_⟩
+    · exact {
+        loopless := (instLooplessGraphic.presv_isom G G' h ▸ hsimple.toIsLoopless).loopless
+        no_multi_edges := fun e f he hf h ↦ by
+          sorry}
+    · exact {
+        loopless := (instLooplessGraphic.presv_isom G G' h ▸ hsimple.toIsLoopless).loopless
+        no_multi_edges := fun e f he hf h ↦ by
+          sorry}
 
 /-- The graph induced by a simple graph -/
 @[simps]
@@ -57,12 +85,19 @@ lemma simplify_adj : (Simplify G).Adj u v ↔ u ≠ v ∧ G.Adj u v := by
   rw [and_comm, and_congr_right_iff]
   exact fun hne ↦ exists_congr fun e ↦ and_iff_right_iff_imp.mpr (Inc₂.edge_mem ·)
 
-instance : IsSimple (Simplify G) where
+instance instSimpleSimplify : IsSimple (Simplify G) where
   loopless x := by
     simp only [Adj, Simplify, mem_setOf_eq, oftoSym2_inc₂, exists_and_right, exists_prop,
       exists_eq_right, toSym2_eq_pair_iff, Sym2.isDiag_iff_proj_eq, not_true_eq_false, and_false,
       not_false_eq_true]
   no_multi_edges e f he hf h := by
     simpa only [Simplify, mem_setOf_eq, oftoSym2_tosym2] using h
+
+lemma forall_Simplify {ε : Type u_1} (F : {α : Type u_1} → {ε : Type u_1} → Graph α ε → Prop)
+    [hF : GraphicFunction F] [Nonempty α] [Nonempty ε] [Nonempty (Sym2 α)]
+    (h : ∀ (G' : Graph α (Sym2 α)), G'.IsSimple → (∀ (e) (he : e ∈ G'.E), G'.toSym2 e he = e) → F G') :
+    ∀ (G : Graph α ε), F G := fun G => by
+    rw [hF.presv_isom G G.Simplify sorry]
+    exact h G.Simplify instSimpleSimplify sorry
 
 end Graph
