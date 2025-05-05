@@ -9,6 +9,11 @@ variable {α ε α' α'' ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e 
 class Graph.IsLoopless (G : Graph α ε) : Prop where
   loopless x : ¬ G.Adj x x
 
+lemma Graph.IsLoopless.of_le {G H : Graph α ε} [G.IsLoopless] (hle : H ≤ G) : H.IsLoopless where
+  loopless x := by
+    rintro ⟨e, hbtw⟩
+    exact IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
+
 instance Graph.instLooplessGraphic : Graph.GraphicFunction IsLoopless where
   presv_isom G G' h := by
     ext
@@ -20,6 +25,26 @@ instance Graph.instLooplessGraphic : Graph.GraphicFunction IsLoopless where
 
 class Graph.IsSimple (G : Graph α ε) : Prop extends IsLoopless G where
   no_multi_edges e f he hf : G.toSym2 e he = G.toSym2 f hf → e = f
+
+lemma Graph.IsSimple.of_le {G H : Graph α ε} [G.IsSimple] (hle : H ≤ G) : H.IsSimple where
+  loopless x := by
+    rintro ⟨e, hbtw⟩
+    exact IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
+  no_multi_edges e f he hf h := by
+    obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+    rw [← toSym2_eq_pair_iff he] at hxy
+    rw [hxy, eq_comm, toSym2_eq_of_le hle hf] at h
+    rw [toSym2_eq_of_le hle he] at hxy
+    refine IsSimple.no_multi_edges e f (edgeSet_subset_of_le hle he) (edgeSet_subset_of_le hle hf) ?_
+    rw [h, hxy]
+
+@[mk_iff]
+class Graph.IsSimpleCanonical (G : Graph α (Sym2 α)) : Prop extends IsSimple G where
+  canonical e he : G.toSym2 e he = e
+
+@[simp]
+lemma Graph.toSym2_eq_self {G : Graph α (Sym2 α)} [G.IsSimpleCanonical] {e : Sym2 α} {he : e ∈ G.E} :
+    G.toSym2 e he = e := IsSimpleCanonical.canonical e he
 
 instance Graph.instSimpleGraphic : Graph.GraphicFunction IsSimple where
   presv_isom G G' h := by
@@ -92,6 +117,27 @@ instance instSimpleSimplify : IsSimple (Simplify G) where
       not_false_eq_true]
   no_multi_edges e f he hf h := by
     simpa only [Simplify, mem_setOf_eq, oftoSym2_tosym2] using h
+
+lemma simplify_idOn_simpleCanonical {G : Graph α (Sym2 α)} [H : G.IsSimpleCanonical] :
+    G.Simplify = G := by
+  refine Graph.ext rfl fun e x y ↦ ?_
+  induction' e with x y
+  simp only [Simplify_inc₂, toSym2_eq_self, exists_prop, exists_eq_right, Sym2.isDiag_iff_proj_eq]
+  refine ⟨fun ⟨⟨A, B⟩, C⟩ ↦ ?_, fun h ↦ ?_⟩
+  · rwa [← toSym2_eq_pair_iff A, toSym2_eq_self]
+  · have := IsSimpleCanonical.canonical _ h.edge_mem
+    refine ⟨⟨h.edge_mem, ?_⟩, this.symm.trans h.toSym2⟩
+    rintro rfl
+    rw [toSym2_eq_pair_iff] at this
+    exact H.loopless x ⟨s(x, x), this⟩
+
+lemma IsSimpleCanonical.of_le {G H : Graph α (Sym2 α)} [G.IsSimpleCanonical] (hle : H ≤ G) :
+    H.IsSimpleCanonical where
+  toIsSimple := IsSimple.le hle
+  canonical e he := by
+
+    sorry
+
 
 lemma forall_Simplify {ε : Type u_1} (F : {α : Type u_1} → {ε : Type u_1} → Graph α ε → Prop)
     [hF : GraphicFunction F] [Nonempty α] [Nonempty ε] [Nonempty (Sym2 α)]

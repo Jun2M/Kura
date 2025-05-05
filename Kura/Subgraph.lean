@@ -78,6 +78,16 @@ lemma le_iff_inc : G ≤ H ↔ G.V ⊆ H.V ∧ G.E ⊆ H.E ∧ ∀ e ∈ G.E, �
       exact id
     · simp [he]
 
+lemma toMultiset_eq_of_le (hle : H ≤ G) (he : e ∈ H.E) : H.toMultiset e = G.toMultiset e := by
+  obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet he
+  rw [toMultiset_eq_pair_iff.mpr h, toMultiset_eq_pair_iff.mpr (h.of_le hle)]
+
+lemma toSym2_eq_of_le (hle : H ≤ G) (he : e ∈ H.E) :
+    H.toSym2 e he = G.toSym2 e (edgeSet_subset_of_le hle he) := by
+  obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet he
+  rw [(toSym2_eq_pair_iff he).mpr h,
+    (toSym2_eq_pair_iff (edgeSet_subset_of_le hle he)).mpr (h.of_le hle)]
+
 lemma le_of_le_le_subset_subset {H₁ H₂ : Graph α ε} (h₁ : H₁ ≤ G) (h₂ : H₂ ≤ G) (hV : H₁.V ⊆ H₂.V)
     (hE : H₁.E ⊆ H₂.E) : H₁ ≤ H₂ where
   vx_subset := hV
