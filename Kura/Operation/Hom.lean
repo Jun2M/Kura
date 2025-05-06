@@ -98,7 +98,8 @@ lemma HomSys.IsIsomOn.ofIsEmbOn (f : HomSys α ε α' ε') (h : f.IsEmbOn G₁ G
   bijOn_vx := ⟨h.Mapsto_vx, h.injOn_vx, hVsurj⟩
   bijOn_edge := ⟨h.Mapsto_edge, h.injOn_edge, hEsurj⟩
 
-def HasIsom (G₁ : Graph α ε) (G₂ : Graph α' ε') := ∃ f : HomSys α ε α' ε', f.IsIsomOn G₁ G₂
+inductive HasIsom (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
+  | intro (f : HomSys α ε α' ε') (h : f.IsIsomOn G₁ G₂)
 
 scoped infix:50 " ≤↔ " => HasIsom
 
