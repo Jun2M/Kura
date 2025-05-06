@@ -50,6 +50,8 @@ lemma eq_iff_out_eq_or_out_swap (x : Sym2 α) (v w : α) :
     exact Sym2.out_mk_eq_or_swap v w
   · rintro (h | h) <;> rw [Sym2.eq_mk_out x, Sym2.eq_iff] <;> simp [h]
 
+instance instNonemptySym2 [hα : Nonempty α] : Nonempty (Sym2 α) := ⟨s(hα.some, hα.some)⟩
+
 -- lemma CanLiftSym2Subtype (p : α → Prop) :
 --   ∀ (x : Sym2 α), (∀ i ∈ x, p i) → ∃ y : Sym2 (Subtype p), Sym2.map (fun x ↦ ↑x) y = x := by
 --   intro x h

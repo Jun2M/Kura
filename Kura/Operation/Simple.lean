@@ -196,12 +196,12 @@ lemma simplify_toSym2 {G : Graph α ε} {e : Sym2 α} (he : e ∈ (Simplify G).E
   obtain ⟨hdiag, e, he, h⟩ := he
   exact ⟨hdiag, e, h⟩
 
-instance instSimpleSimplify : IsSimple (Simplify G) where
+instance instSimpleCanonicalSimplify : IsSimpleCanonical (Simplify G) where
   loopless x := by
     simp only [Adj, Simplify, mem_setOf_eq, oftoSym2_inc₂, exists_prop, exists_eq_right,
       Sym2.isDiag_iff_proj_eq, not_true_eq_false, toSym2_eq_pair_iff, false_and, not_false_eq_true]
-  no_multi_edges e f he hf h := by
-    simpa only [Simplify, mem_setOf_eq, oftoSym2_tosym2] using h
+  no_multi_edges e f he hf h := by simpa only [Simplify, mem_setOf_eq, oftoSym2_tosym2] using h
+  canonical e he := by simp only [Simplify, mem_setOf_eq, oftoSym2_tosym2]
 
 lemma simplify_isom [hα : Nonempty α] {G : Graph α ε} [hG : G.IsSimple] : G ≤↔ G.Simplify := by
   classical
@@ -254,6 +254,6 @@ lemma forall_Simplify {ε : Type u_1} (F : {α : Type u_1} → {ε : Type u_1} �
     (h : ∀ (G' : Graph α (Sym2 α)), G'.IsSimple → (∀ (e) (he : e ∈ G'.E), G'.toSym2 e he = e) → F G') :
     ∀ (G : Graph α ε), G.IsSimple → F G := fun G hG => by
     rw [hF.presv_isom G G.Simplify simplify_isom]
-    exact h G.Simplify instSimpleSimplify fun e he ↦ simplify_toSym2 he
+    exact h G.Simplify inferInstance fun e he ↦ simplify_toSym2 he
 
 end Graph

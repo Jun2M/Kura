@@ -7,8 +7,8 @@ variable {α ε α' α'' ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e 
   {S S' T T' U U': Set α} {F F' R R' : Set ε} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
 namespace Graph
 
-theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [hV : Finite G.V] [hE : Finite G.E] [G.IsSimple]
-    (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph)
+theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite G.V] [hE : Finite G.E]
+    [G.IsSimpleCanonical] (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph)
     (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by
   have hEnonempty : G.E.Nonempty := by
     by_contra! hE
@@ -19,9 +19,19 @@ theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [hV : Finite G.V] [hE : Finit
 
   let e := hEnonempty.some
   obtain ⟨x, y, hxy : G.Inc₂ e x y⟩ := exists_inc₂_of_mem_edgeSet hEnonempty.some_mem
-  let G' := G / ({e} : Set ε) |>.Simplify
+  let G' := G / ({e} : Set _) |>.Simplify
   -- have := prop721' t (G := G')
   sorry
+
+theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [hV : Finite G.V] [hE : Finite G.E] [G.IsSimple]
+    (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph)
+    (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by
+  revert G
+  apply forall_Simplify
+  rintro G hGP _ _ _ hVnonempty hcard
+  exact prop721_rec t hVnonempty hGP hcard
+
+
 
 theorem prop721 (t : ℕ) [hV : Finite G.V] [hE : Finite G.E] [G.IsSimple] (hVnonempty : G.V.Nonempty)
     (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by

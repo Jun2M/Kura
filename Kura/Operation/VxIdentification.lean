@@ -9,8 +9,23 @@ namespace Graph
 /- I have been thinking about a way to `contract` without supplying the vx map but just the edge
 set I am contracting on. This is one way to do it using partitions. -/
 
-def IsPartitionGraph (G : Graph (Set α) ε) : Prop :=
-  ∃ P : Partition (Set α), P.parts = G.V
+def IsPartitionGraph [CompleteLattice α] (G : Graph α ε) : Prop :=
+  ∃ P : Partition α, P.parts = G.V
+
+instance instIsPartitionGraphGraphicVertex : GraphicVertexFunction (fun {α} {ε} (G : Graph α ε) ↦
+  ∀ (_ : CompleteLattice α), G.IsPartitionGraph) where
+  presv_isom G G' h := by
+    obtain ⟨f, hf⟩ := h
+    rw [eq_iff_iff]
+    refine ⟨fun h hα ↦ ?_, fun h hα ↦ ?_⟩
+    · obtain ⟨P, hP⟩ := h hα
+      use P
+      rw [hP]
+      simpa only [HomSys.ofEdgeFun, _root_.bijOn_id] using hf.bijOn_vx
+    · obtain ⟨P, hP⟩ := h hα
+      use P
+      rw [hP, eq_comm]
+      simpa only [HomSys.ofEdgeFun, _root_.bijOn_id] using hf.bijOn_vx
 
 def Setify (G : Graph α ε) : Graph (Set α) ε :=
   vxMap G ({·})
