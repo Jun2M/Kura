@@ -472,34 +472,43 @@ instance instEdgeSetNcardGraphic : GraphicFunction (fun G ↦ G.E.ncard) where
     obtain ⟨f, hf⟩ := h
     exact bijOn_ncard hf.bijOn_edge
 
-class GraphicVertexFunction {χ : ∀ _, Type*} (F : ∀ {α : Type u_1} {ε : Type u_2} (_G : Graph α ε), χ α) : Prop where
-  presv_isom {α : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty ε] [Nonempty ε']
+class GraphicVertexFunction {χ : Type*} (F : ∀ {ε : Type u_2} (_G : Graph α ε), χ) : Prop where
+  presv_isom {ε ε' : Type u_2} [Nonempty ε] [Nonempty ε']
     (G : Graph α ε) (G' : Graph α ε') (h : ∃ f : ε → ε', (HomSys.ofEdgeFun f).IsIsomOn G G') : F G = F G'
 
-instance instGraphicGraphicVertex {F : ∀ {α : Type u_1} {ε : Type u_2} (_ : Graph α ε), χ}
-    [hF : GraphicFunction F] : GraphicVertexFunction F where
+instance instGraphicGraphicVertex {F : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ}
+    [hF : GraphicFunction F] : GraphicVertexFunction (F (α := α)) where
   presv_isom G G' h := by
     obtain ⟨f, hf⟩ := h
     rw [← hF.presv_isom G G' ⟨HomSys.ofEdgeFun f, hf⟩]
 
+variable {A B : {ε : Type u_2} → (G : Graph α ε) → χ}
+  {A' B' : {ε : Type u_2} → (G : Graph α ε) → χ'}
+  {A'' B'' : {ε : Type u_2} → (G : Graph α ε) → χ''}
+  {P P' Q Q' : {ε : Type u_2} → (G : Graph α ε) → Prop}
+  [hA : GraphicVertexFunction A] [hA' : GraphicVertexFunction A'] [hA'' : GraphicVertexFunction A'']
+  [hB : GraphicVertexFunction B] [hB' : GraphicVertexFunction B'] [hB'' : GraphicVertexFunction B'']
+  [hP : GraphicVertexFunction P] [hP' : GraphicVertexFunction P'] [hQ : GraphicVertexFunction Q]
+  [hQ' : GraphicVertexFunction Q']
+
 instance instCompGraphicVertex (f : χ' → χ) : GraphicVertexFunction (fun G ↦ f (A' G)) where
-  presv_isom G G' h := by rw [← hA'.presv_isom G G' ⟨HomSys.ofEdgeFun h.choose, h.choose_spec⟩]
+  presv_isom G G' h := by rw [← hA'.presv_isom G G' ⟨h.choose, h.choose_spec⟩]
 
 instance instComp2GraphicVertex (f : χ → χ' → χ'') : GraphicVertexFunction (fun G ↦ f (A G) (A' G)) where
   presv_isom G G' h := by
-    rw [← hA.presv_isom G G' ⟨HomSys.ofEdgeFun h.choose, h.choose_spec⟩,
-      ← hA'.presv_isom G G' ⟨HomSys.ofEdgeFun h.choose, h.choose_spec⟩]
+    rw [← hA.presv_isom G G' ⟨h.choose, h.choose_spec⟩,
+      ← hA'.presv_isom G G' ⟨h.choose, h.choose_spec⟩]
 
 instance instComp3GraphicVertex (f : χ → χ' → χ'' → χ''') : GraphicVertexFunction (fun G ↦ f (A G) (A' G) (A'' G)) where
   presv_isom G G' h := by
-    rw [← hA.presv_isom G G' ⟨HomSys.ofEdgeFun h.choose, h.choose_spec⟩,
-      ← hA'.presv_isom G G' ⟨HomSys.ofEdgeFun h.choose, h.choose_spec⟩,
-      ← hA''.presv_isom G G' ⟨HomSys.ofEdgeFun h.choose, h.choose_spec⟩]
+    rw [← hA.presv_isom G G' ⟨h.choose, h.choose_spec⟩,
+      ← hA'.presv_isom G G' ⟨h.choose, h.choose_spec⟩,
+      ← hA''.presv_isom G G' ⟨h.choose, h.choose_spec⟩]
 
 instance instImpGraphicVertex : GraphicVertexFunction (fun G ↦ P G → Q G) :=
   instComp2GraphicVertex (· → ·)
 
-instance instVxSetGraphicVertex : GraphicVertexFunction (fun G ↦ G.V) where
+instance instVxSetGraphicVertex : GraphicVertexFunction (fun {ε : Type u_2} (G : Graph α ε) ↦ G.V) where
   presv_isom G G' h := by
     obtain ⟨f, hf⟩ := h
     simpa only [HomSys.ofEdgeFun, _root_.bijOn_id] using hf.bijOn_vx

@@ -23,7 +23,7 @@ theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite 
   -- have := prop721' t (G := G')
   sorry
 
-theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [hV : Finite G.V] [hE : Finite G.E] [G.IsSimple]
+theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [G.IsSimple] [hV : Finite G.V] [hE : Finite G.E]
     (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph)
     (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by
   revert G

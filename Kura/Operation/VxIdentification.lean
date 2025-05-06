@@ -12,17 +12,17 @@ set I am contracting on. This is one way to do it using partitions. -/
 def IsPartitionGraph [CompleteLattice α] (G : Graph α ε) : Prop :=
   ∃ P : Partition α, P.parts = G.V
 
-instance instIsPartitionGraphGraphicVertex : GraphicVertexFunction (fun {α} {ε} (G : Graph α ε) ↦
-  ∀ (_ : CompleteLattice α), G.IsPartitionGraph) where
+instance instIsPartitionGraphGraphicVertex : GraphicVertexFunction (fun {ε} (G : Graph (Set α) ε) ↦
+  G.IsPartitionGraph) where
   presv_isom G G' h := by
     obtain ⟨f, hf⟩ := h
     rw [eq_iff_iff]
-    refine ⟨fun h hα ↦ ?_, fun h hα ↦ ?_⟩
-    · obtain ⟨P, hP⟩ := h hα
+    refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+    · obtain ⟨P, hP⟩ := h
       use P
       rw [hP]
       simpa only [HomSys.ofEdgeFun, _root_.bijOn_id] using hf.bijOn_vx
-    · obtain ⟨P, hP⟩ := h hα
+    · obtain ⟨P, hP⟩ := h
       use P
       rw [hP, eq_comm]
       simpa only [HomSys.ofEdgeFun, _root_.bijOn_id] using hf.bijOn_vx

@@ -224,6 +224,28 @@ lemma simplify_isom [hα : Nonempty α] {G : Graph α ε} [hG : G.IsSimple] : G 
     · rintro s ⟨hdiag, e, he, rfl⟩
       use e, he, by simp [he]
 
+lemma simplify_vertexIsom [hα : Nonempty α] {G : Graph α ε} [hG : G.IsSimple] :
+    ∃ f : ε → Sym2 α, (HomSys.ofEdgeFun f).IsIsomOn G G.Simplify := by
+  classical
+  refine ⟨fun e ↦ if he : e ∈ G.E then G.toSym2 e he else s(hα.some, hα.some), ⟨?_, ?_, ?_⟩⟩
+  · refine {
+      Mapsto_vx := fun x ↦ by simp,
+      inc₂ := fun e x y hxy ↦ by
+        simp only [HomSys.ofEdgeFun_edgeFun, hxy.edge_mem, ↓reduceDIte, HomSys.ofEdgeFun_toFun,
+          id_eq, inc₂_iff_eq, toSym2_eq_pair_iff, hxy, simplify_edgeSet_adj, mem_setOf_eq, true_and]
+        use x, y, rfl, hxy.ne, e, hxy}
+  · rw [Simplify_vxSet]
+    exact bijOn_id G.V
+  · rw [Simplify_edgeSet]
+    refine ⟨?_, ?_, ?_⟩
+    · rintro e he
+      simp only [HomSys.ofEdgeFun_edgeFun, he, ↓reduceDIte, mem_setOf_eq, toSym2_not_isDiag,
+        not_false_eq_true, toSym2_inj, exists_prop, exists_eq_right, and_self]
+    · rintro e he f hf heq
+      simpa [he, ↓reduceDIte, hf] using heq
+    · rintro s ⟨hdiag, e, he, rfl⟩
+      use e, he, by simp [he]
+
 lemma simplify_idOn_simpleCanonical {G : Graph α (Sym2 α)} [H : G.IsSimpleCanonical] :
     G.Simplify = G := by
   refine Graph.ext rfl fun e x y ↦ ?_
@@ -249,11 +271,11 @@ lemma IsSimpleCanonical.of_le {G H : Graph α (Sym2 α)} [G.IsSimpleCanonical] (
     nth_rw 2 [← IsSimpleCanonical.canonical e (edgeSet_subset_of_le hle he)]
     rw [toSym2_eq_of_le hle he]
 
-lemma forall_Simplify {ε : Type u_1} (F : {α : Type u_1} → {ε : Type u_1} → Graph α ε → Prop)
-    [hF : GraphicFunction F] [Nonempty α] [Nonempty ε] [Nonempty (Sym2 α)]
-    (h : ∀ (G' : Graph α (Sym2 α)), G'.IsSimple → (∀ (e) (he : e ∈ G'.E), G'.toSym2 e he = e) → F G') :
-    ∀ (G : Graph α ε), G.IsSimple → F G := fun G hG => by
-    rw [hF.presv_isom G G.Simplify simplify_isom]
-    exact h G.Simplify inferInstance fun e he ↦ simplify_toSym2 he
+lemma forall_Simplify {ε : Type u_1} (F : {ε : Type u_1} → Graph α ε → Prop)
+    [hF : GraphicVertexFunction F] [Nonempty α] [Nonempty ε] [Nonempty (Sym2 α)]
+    (h : ∀ (G' : Graph α (Sym2 α)) [G'.IsSimple], (∀ (e) (he : e ∈ G'.E), G'.toSym2 e he = e) → F G') :
+    ∀ (G : Graph α ε) [G.IsSimple], F G := fun G hG => by
+    rw [hF.presv_isom G G.Simplify simplify_vertexIsom]
+    exact h G.Simplify fun e he ↦ simplify_toSym2 he
 
 end Graph
