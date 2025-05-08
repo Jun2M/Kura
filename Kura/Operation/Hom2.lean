@@ -34,34 +34,42 @@ lemma bijOn_id {α : Type*} {S T : Set α} : Set.BijOn id S T ↔ S = T := by
     exact Set.bijOn_id S
 
 open Set Function
-variable {α ε α' ε' α'' ε'' : Type*} {G G' G₁ G₁' H : Graph α ε} {G₂ G₂' : Graph α' ε'}
-  {G₃ G₃' : Graph α'' ε''} {a b c : α} {e f : ε} {u v w : α'} {x y z : ε''} {S S' T T' U U': Set α}
+variable {α ε α' ε' α'' ε'' : Type*} {G G₁ H : Graph α ε} {G' H' : Graph α' ε'}
+  {G'' H'' : Graph α'' ε''} {a b c : α} {e f : ε} {u v w : α'} {x y z : ε''} {S S' T T' U U': Set α}
   {F F' R R' : Set ε}
 namespace Graph
 
 
-structure HomSys (α ε α' ε' : Type*) where
-  toFun : α → α'
-  edgeFun : ε → ε'
+structure Funs (G : Graph α ε) (G' : Graph α' ε') where
+  toFun : G.V → G'.V
+  edgeFun : G.E → G'.E
 
-@[simps]
-def HomSys.ofVxFun (f : α → α') : HomSys α ε α' ε where
-  toFun := f
-  edgeFun := id
-
-@[simps]
-def HomSys.ofEdgeFun (f : ε → ε') : HomSys α ε α ε' where
-  toFun := id
-  edgeFun := f
-
-instance : CoeFun (HomSys α ε α' ε') fun (_ : HomSys α ε α' ε') ↦ α → α' where
+instance : CoeFun (Funs G G') fun (_ : Funs G G') ↦ G.V → G'.V where
   coe v := v.toFun
 
--- structure HomSys.IsLawful (G : Graph α ε) (f : HomSys α ε α' ε') : Prop where
---   forall_foo : ∀ e x y, G.Inc₂ e x y →
+@[simps]
+def Funs.ofVxFun {G' : Graph α' ε} (f : G.V → G'.V) (hE : G.E = G'.E) : Funs G G' where
+  toFun := f
+  edgeFun := fun ⟨e, he⟩ ↦ ⟨e, hE ▸ he⟩
 
--- instance : CoeFun (HomSys α ε α' ε') fun (_ : HomSys α ε α' ε') ↦ ε → ε' where
---   coe v := v.fₑ
+@[simps]
+def Funs.ofEdgeFun {G' : Graph α ε'} (f : G.E → G'.E) (hV : G.V = G'.V) : Funs G G' where
+  toFun := fun ⟨v, hv⟩ ↦ ⟨v, hV ▸ hv⟩
+  edgeFun := f
+
+structure Hom (G : Graph α ε) (G' : Graph α' ε') extends Funs G G' where
+  inc₂ ⦃e : G.E⦄ ⦃x y : G.V⦄ : G.Inc₂ e x y → G'.Inc₂ (edgeFun e) (toFun x) (toFun y)
+
+  -- inc ⦃e : G.E⦄ ⦃a : G.V⦄ : G.Inc e a → G'.Inc (edgeFun e) (toFun a) := fun hinc ↦
+  --   (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
+  -- toMultiset ⦃e : G.E⦄ : (G.toMultiset e).map toFun = G'.toMultiset (edgeFun e) := by
+  --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
+  --   rw [toMultiset_eq_pair_iff.mpr hbtw, toMultiset_eq_pair_iff.mpr (f.inc₂ hbtw)]
+  --   rfl
+  -- toSym2 ⦃e : _⦄ {he : e ∈ G.E} : (G.toSym2 e he).map toFun = G'.toSym2 (edgeFun e) (Mapsto_edge he) := by
+  --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
+  --   rw [hbtw.toSym2, (f.inc₂ hbtw).toSym2]
+  --   rfl
 
 structure HomSys.IsHomOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
   Mapsto_vx : MapsTo f G₁.V G₂.V
@@ -71,12 +79,6 @@ structure HomSys.IsHomOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ :
     fun _ he ↦ (inc₂ (exists_inc_of_mem_edgeSet he).choose_spec.choose_spec).edge_mem
   inc ⦃e : _⦄ ⦃a : _⦄ : G₁.Inc e a → G₂.Inc (f.edgeFun e) (f a) := fun hinc ↦
     (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
-  toMultiset ⦃e : _⦄ ⦃he : e ∈ G₁.E⦄ : (G₁.toMultiset e).map f.toFun = G₂.toMultiset (f.edgeFun e) :=
-    let hbtw := exists_inc_of_mem_edgeSet he |>.choose_spec.choose_spec
-    Eq.trans ((toMultiset_eq_pair_iff.mpr hbtw) ▸ rfl) (toMultiset_eq_pair_iff.mpr (inc₂ hbtw)).symm
-  toSym2 ⦃e : _⦄ {he : e ∈ G₁.E} : (G₁.toSym2 e he).map f.toFun = G₂.toSym2 (f.edgeFun e) (Mapsto_edge he) :=
-    let hbtw := exists_inc_of_mem_edgeSet he |>.choose_spec.choose_spec
-    Eq.trans ((toSym2_eq_pair_iff he |>.mpr hbtw) ▸ rfl) (toSym2_eq_pair_iff (Mapsto_edge he) |>.mpr (inc₂ hbtw)).symm
 
 def HomSys.IsHomOn.mk' (f : HomSys α ε α' ε') (hMap : MapsTo f G₁.V G₂.V)
     (hInc₂ : ∀ e x y, G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)) :
