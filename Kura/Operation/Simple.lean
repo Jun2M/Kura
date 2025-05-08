@@ -155,9 +155,30 @@ def Simplify (G : Graph α ε) : Graph α (Sym2 α) :=
 --     · exact hadj.mem_left
 --     · exact hadj.mem_right)
 
+instance instSimplifyVxSetFinite (G : Graph α ε) [Finite G.V] : Finite G.Simplify.V := by
+  rw [Simplify_vxSet]
+  infer_instance
+
 lemma Simplify_edgeSet : G.Simplify.E = {s | ¬s.IsDiag ∧ ∃ x, ∃ (x_1 : x ∈ G.E), G.toSym2 x x_1 = s} := by
   unfold Simplify
   simp only [mem_setOf_eq, oftoSym2_edgeSet, exists_and_right]
+
+lemma simplify_edgeSet_subset_image_toSym2 :
+    G.Simplify.E ⊆ Set.range (fun a ↦ G.toSym2 a.1 a.2 : G.E → _) := by
+  rintro s hs
+  simp only [Simplify_edgeSet, mem_setOf_eq] at hs
+  obtain ⟨hdiag, e, he, rfl⟩ := hs
+  use ⟨e, he⟩
+
+lemma card_simplify_edgeSet_le (G : Graph α ε) [Finite G.E] :
+    G.Simplify.E.ncard ≤ G.E.ncard := by
+  refine le_trans ?_ <| Finite.card_range_le (fun a ↦ G.toSym2 a.1 a.2)
+  rw [Set.Nat.card_coe_set_eq]
+  exact Set.ncard_le_ncard simplify_edgeSet_subset_image_toSym2
+
+instance instSimplifyFinite (G : Graph α ε) [Finite G.E] : Finite G.Simplify.E :=
+  Set.finite_range (fun a ↦ G.toSym2 a.1 a.2 : G.E → _)
+  |>.subset simplify_edgeSet_subset_image_toSym2
 
 @[simp]
 lemma simplify_edgeSet_adj {G : Graph α ε} : (G.Simplify).E = {s | ∃ u v, s(u, v) = s ∧ u ≠ v ∧ G.Adj u v} := by
@@ -274,11 +295,12 @@ lemma IsSimpleCanonical.of_le {G H : Graph α (Sym2 α)} [G.IsSimpleCanonical] (
     nth_rw 2 [← IsSimpleCanonical.canonical e (edgeSet_subset_of_le hle he)]
     rw [toSym2_eq_of_le hle he]
 
-lemma forall_Simplify {ε : Type u_1} (F : {ε : Type u_1} → Graph α ε → Prop)
-    [hF : GraphicVertexFunction F] [Nonempty α] [Nonempty ε] [Nonempty (Sym2 α)]
-    (h : ∀ (G' : Graph α (Sym2 α)) [G'.IsSimple], (∀ (e) (he : e ∈ G'.E), G'.toSym2 e he = e) → F G') :
+omit ε in
+lemma forall_Simplify (F : ∀ {ε : Type u_1}, Graph α ε → Prop)
+    [hF : GraphicVertexFunction (F := F)] [Nonempty α] [Nonempty (Sym2 α)] {ε : Type u_1} [Nonempty ε]
+    (h : ∀ (G' : Graph α (Sym2 α)) [G'.IsSimpleCanonical], F G') :
     ∀ (G : Graph α ε) [G.IsSimple], F G := fun G hG => by
     rw [hF.presv_isom G G.Simplify simplify_vertexIsom]
-    exact h G.Simplify fun e he ↦ simplify_toSym2 he
+    exact h G.Simplify
 
 end Graph

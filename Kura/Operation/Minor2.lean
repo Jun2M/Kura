@@ -22,9 +22,34 @@ lemma setContract_vxSet (G : Graph (Set α) ε) (C : Set ε) :
   rw [← connectivityPartition_partOf]
   rfl
 
+instance instvxSetSetContractFinite (G : Graph (Set α) ε) (C : Set ε) [Finite G.V] :
+    Finite (G / C).V := by
+  rw [setContract_vxSet]
+  infer_instance
+
 @[simp]
 lemma SetContract_edgeSet (G : Graph (Set α) ε) (C : Set ε) : (G / C).E = G.E \ C :=
   congrArg (· \ C) (VxIdentification_edgeSet G _)
+
+instance instedgeSetSetContractFinite (G : Graph (Set α) ε) (C : Set ε) [Finite G.E] :
+    Finite (G / C).E := by
+  rw [SetContract_edgeSet]
+  infer_instance
+
+lemma setContract_edgeSet_ncard_le (G : Graph (Set α) ε) (C : Set ε) [Finite G.E] :
+    (G / C).E.ncard ≤ G.E.ncard := by
+  rw [SetContract_edgeSet]
+  exact G.edgeDelete_edgeSet_ncard_le C
+
+lemma setContract_edgeSet_ncard_lt_iff (G : Graph (Set α) ε) (C : Set ε) [Finite G.E] :
+    (G / C).E.ncard < G.E.ncard ↔ (G.E ∩ C).Nonempty := by
+  rw [SetContract_edgeSet]
+  exact G.edgeDelete_edgeSet_ncard_lt_iff C
+
+lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) ε) (e : ε) [Finite G.E] :
+    (G / ({e} : Set ε )).E.ncard < G.E.ncard ↔ e ∈ G.E := by
+  rw [SetContract_edgeSet]
+  exact G.edgeDelete_singleton_edgeSet_ncard_lt_iff e
 
 @[simp]
 lemma SetContract_inc₂ (G : Graph (Set α) ε) (C : Set ε) (e : ε) (x y : Set α) :
@@ -258,11 +283,8 @@ instance instIsiMinorrightGraphic : GraphicFunction (fun G ↦ H.IsiMinor G) whe
 instance instHasCliqueMinorGraphic {n : ℕ} : GraphicFunction (fun G ↦ G.HasCliqueMinor n) where
   presv_isom G G' h := instIsiMinorrightGraphic.presv_isom G G' h
 
-lemma HasIsom.HasCliqueMinor {α α' ε ε' : Type*} [Nonempty α] [Nonempty α']
-    [Nonempty ε] [Nonempty ε'] {G : Graph α ε} {G' : Graph α' ε'} {n : ℕ} (hisom : G ≤↔ G') :
-    G.HasCliqueMinor n ↔ G'.HasCliqueMinor n := by
-  refine ⟨fun ⟨H, hiMinor, hKn⟩ ↦ ?_, fun ⟨H, hiMinor, hKn⟩ ↦ ?_⟩
-  · sorry
-  · sorry
+instance instHasCliqueMinorGraphicVertex {n : ℕ} :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G.HasCliqueMinor n) :=
+  instGraphicGraphicVertex (hF := instHasCliqueMinorGraphic)
 
 end Graph

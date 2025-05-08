@@ -197,6 +197,29 @@ def edgeDelete (G : Graph α ε) (F : Set ε) : Graph α ε :=
 
 scoped infixl:65 " ＼ " => Graph.edgeDelete
 
+@[simp]
+lemma edgeDelete_edgeSet_subset (G : Graph α ε) (F : Set ε) : (G ＼ F).E ⊆ G.E := by
+  simp [edgeDelete_edgeSet]
+  exact diff_subset
+
+@[simp]
+lemma edgeDelete_edgeSet_ncard_le (G : Graph α ε) (F : Set ε) [Finite G.E] :
+    (G ＼ F).E.ncard ≤ G.E.ncard := ncard_le_ncard <| G.edgeDelete_edgeSet_subset F
+
+@[simp↓]
+lemma edgeDelete_edgeSet_ncard_lt_iff (G : Graph α ε) (F : Set ε) [Finite G.E] :
+    (G ＼ F).E.ncard < G.E.ncard ↔ (G.E ∩ F).Nonempty := by
+  rw [edgeDelete_edgeSet]
+  refine ⟨fun h ↦ ?_, fun h ↦ ncard_lt_ncard <| diff_ssubset_left_iff.mpr h⟩
+  by_contra! h'
+  rw [← disjoint_iff_inter_eq_empty] at h'
+  simp only [h'.sdiff_eq_left, lt_self_iff_false] at h
+
+@[simp↓]
+lemma edgeDelete_singleton_edgeSet_ncard_lt_iff (G : Graph α ε) (e : ε) [Finite G.E] :
+    (G ＼ {e}).E.ncard < G.E.ncard ↔ e ∈ G.E := by
+  simp only [edgeDelete_edgeSet_ncard_lt_iff, inter_singleton_nonempty]
+
 lemma Inc₂.edgeDelete (hG : G.Inc₂ e x y) (he : e ∉ F) : (G ＼ F).Inc₂ e x y := by
   rw [edgeDelete_inc₂]
   exact ⟨he, hG⟩
