@@ -6,4 +6,6 @@ example : F 0 = 0 := rfl
 example : F ℕ = 0 := rfl
 example : F (0 : ℕ) = F (Type 1) := rfl
 
-example (F : ∀ {α : Type*}, α → ℕ) : F 0 = F (Type 1) := by sorry
+example (F : ∀ {α : _}, α → ℕ) : F (0 : ℕ) = 0 := by sorry
+example (F : ∀ {α : _}, α → ℕ) : F ℕ = 0 := by sorry
+example (F : ∀ {α : _}, α → ℕ) : F (0 : ℕ) = F (Type 1) := by sorry
