@@ -205,6 +205,12 @@ lemma HasHom.trans (h₁₂ : G₁ ≤→ G₂) (h₂₃ : G₂ ≤→ G₃) : G
   obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
   exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
 
+lemma Homsys.IsHomOn.toSym2 (hisom : f.IsHomOn G₁ G₂) (he : e ∈ G₁.E):
+    (G₁.toSym2 e he).map f = G₂.toSym2 (f.edgeFun e) (hisom.Mapsto_edge he) := by
+  obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
+  rw [hbtw.toSym2, (hisom.inc₂ hbtw).toSym2]
+  rfl
+
 def IsCore (G : Graph α ε) := ∀ f : HomSys α ε α ε, f.IsHomOn G G → f.IsIsomOn G G
 
 -- lemma core_foo : ∃! H : Graph α ε, H ≤ G ∧ G ≤→ H ∧ IsCore H := by
@@ -270,7 +276,7 @@ lemma HasIsom.trans (h₁₂ : G₁ ≤↔ G₂) (h₂₃ : G₂ ≤↔ G₃) : 
   obtain ⟨f₂₃, hf₂₃⟩ := h₂₃
   exact ⟨f₁₂.comp f₂₃, hf₁₂.comp hf₂₃⟩
 
-lemma IsIsomOn.inc₂ (hisom : f.IsIsomOn G₁ G₂) (he : e ∈ G₁.E) (ha : a ∈ G₁.V) (hb : b ∈ G₁.V) :
+lemma Homsys.IsIsomOn.inc₂_iff (hisom : f.IsIsomOn G₁ G₂) (he : e ∈ G₁.E) (ha : a ∈ G₁.V) (hb : b ∈ G₁.V) :
     G₁.Inc₂ e a b ↔ G₂.Inc₂ (f.edgeFun e) (f a) (f b) := by
   constructor <;> rintro hbtw
   · exact hisom.inc₂ hbtw
@@ -287,7 +293,7 @@ lemma IsIsomOn.inc₂ (hisom : f.IsIsomOn G₁ G₂) (he : e ∈ G₁.E) (ha : a
       subst a' b'
       exact hbtw'.symm
 
-alias ⟨Inc₂.isIsomOn, _⟩ := IsIsomOn.inc₂
+alias ⟨Inc₂.isIsomOn, _⟩ := Homsys.IsIsomOn.inc₂_iff
 
 end Isom
 

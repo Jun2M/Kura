@@ -24,12 +24,11 @@ theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite 
   sorry
 
 theorem prop721' (t : ℕ) {G : Graph (Set α) ε} [G.IsSimple] [hV : Finite G.V] [hE : Finite G.E]
-    (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph)
+    (hVnonempty : G.V.Nonempty) (hGP : G.IsPartitionGraph) [Nonempty (Set α)] [Nonempty (Sym2 (Set α))]
     (hcard : 2^(t - 1) * G.V.ncard ≤ G.E.ncard) : G.HasCliqueMinor t := by
-  revert G
-  apply forall_Simplify
-  rintro G hGP _ _ _ hVnonempty hcard
-  exact prop721_rec t hVnonempty hGP hcard
+  have hisom := simplify_isom (G := G)
+  have := @prop721_rec _ _ t (G := Simplify G) hV ?_ _ hVnonempty hGP ?_
+  exact hisom.HasCliqueMinor (α := Set α) (α' := Set α) (ε := ε) (ε' := Sym2 (Set α)) 
 
 
 

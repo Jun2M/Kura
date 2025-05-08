@@ -85,13 +85,16 @@ lemma Graph.inc₂_iff_eq {G : Graph α (Sym2 α)} [G.IsSimpleCanonical] {e : Sy
   rw [← toSym2_eq_pair_iff h.edge_mem, IsSimpleCanonical.canonical s(x, y)] at h
   exact ⟨h, h ▸ hxy⟩
 
+#print Graph.Homsys.IsHomOn.toSym2
+
 instance Graph.instSimpleGraphic : Graph.GraphicFunction IsSimple where
   presv_isom G G' h := by
     ext
     refine ⟨fun hsimple ↦ ?_, fun hsimple ↦ ?_⟩
     · exact {
         loopless := (instLooplessGraphic.presv_isom G G' h ▸ hsimple.toIsLoopless).loopless
-        no_multi_edges := fun e f he hf h ↦ by
+        no_multi_edges := fun e f he hf heq ↦ by
+          obtain ⟨f, hf⟩ := h.symm
           sorry}
     · exact {
         loopless := (instLooplessGraphic.presv_isom G G' h ▸ hsimple.toIsLoopless).loopless

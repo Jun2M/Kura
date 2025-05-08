@@ -258,5 +258,11 @@ instance instIsiMinorrightGraphic : GraphicFunction (fun G ↦ H.IsiMinor G) whe
 instance instHasCliqueMinorGraphic {n : ℕ} : GraphicFunction (fun G ↦ G.HasCliqueMinor n) where
   presv_isom G G' h := instIsiMinorrightGraphic.presv_isom G G' h
 
+lemma HasIsom.HasCliqueMinor {α α' ε ε' : Type*} [Nonempty α] [Nonempty α']
+    [Nonempty ε] [Nonempty ε'] {G : Graph α ε} {G' : Graph α' ε'} {n : ℕ} (hisom : G ≤↔ G') :
+    G.HasCliqueMinor n ↔ G'.HasCliqueMinor n := by
+  refine ⟨fun ⟨H, hiMinor, hKn⟩ ↦ ?_, fun ⟨H, hiMinor, hKn⟩ ↦ ?_⟩
+  · sorry
+  · sorry
 
 end Graph
