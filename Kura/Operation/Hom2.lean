@@ -57,6 +57,23 @@ def Funs.ofEdgeFun {G' : Graph α ε'} (f : G.E → G'.E) (hV : G.V = G'.V) : Fu
   toFun := fun ⟨v, hv⟩ ↦ ⟨v, hV ▸ hv⟩
   edgeFun := f
 
+@[simps]
+def Funs.id : Funs G G where
+  toFun := _root_.id
+  edgeFun := _root_.id
+
+@[simps]
+def Funs.comp {G' : Graph α' ε'} {G'' : Graph α'' ε''} (f : Funs G G') (g : Funs G' G'') : Funs G G'' where
+  toFun := g.toFun ∘ f.toFun
+  edgeFun := g.edgeFun ∘ f.edgeFun
+
+lemma exists_funs (hV : G'.V.Nonempty) (hE : G'.E.Nonempty) : ∃ _ : Funs G G', True := by
+  use {
+    toFun := fun _ ↦ ⟨hV.some, hV.some_mem⟩
+    edgeFun := fun _ ↦ ⟨hE.some, hE.some_mem⟩
+  }
+
+
 structure Hom (G : Graph α ε) (G' : Graph α' ε') extends Funs G G' where
   inc₂ ⦃e : G.E⦄ ⦃x y : G.V⦄ : G.Inc₂ e x y → G'.Inc₂ (edgeFun e) (toFun x) (toFun y)
 
@@ -66,119 +83,147 @@ structure Hom (G : Graph α ε) (G' : Graph α' ε') extends Funs G G' where
   --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
   --   rw [toMultiset_eq_pair_iff.mpr hbtw, toMultiset_eq_pair_iff.mpr (f.inc₂ hbtw)]
   --   rfl
-  -- toSym2 ⦃e : _⦄ {he : e ∈ G.E} : (G.toSym2 e he).map toFun = G'.toSym2 (edgeFun e) (Mapsto_edge he) := by
-  --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
-  --   rw [hbtw.toSym2, (f.inc₂ hbtw).toSym2]
-  --   rfl
+  func ⦃e : _⦄ : (G.func e).map toFun = G'.func (edgeFun e) :=
+    let h := exists_func_pair e |>.choose_spec.choose_spec
+    ((congrArg _ h).trans (Sym2.map_pair_eq toFun _ _)).trans (func_eq_pair_iff.mpr (inc₂ <| func_eq_pair_iff.mp h)).symm
 
-structure HomSys.IsHomOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
-  Mapsto_vx : MapsTo f G₁.V G₂.V
-  inc₂ ⦃e : _⦄ ⦃x y : _⦄ : G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)
+@[simps!]
+def Hom.id : Hom G G where
+  toFuns := Funs.id
+  inc₂ _ _ _ hbtw := hbtw
 
-  Mapsto_edge : MapsTo f.edgeFun G₁.E G₂.E :=
-    fun _ he ↦ (inc₂ (exists_inc_of_mem_edgeSet he).choose_spec.choose_spec).edge_mem
-  inc ⦃e : _⦄ ⦃a : _⦄ : G₁.Inc e a → G₂.Inc (f.edgeFun e) (f a) := fun hinc ↦
-    (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
+@[simps!]
+def Hom.comp {G' : Graph α' ε'} (f : Hom G G') (g : Hom G' G'') : Hom G G'' where
+  toFuns := Funs.comp f.toFuns g.toFuns
+  inc₂ _ _ _ hbtw := g.inc₂ (f.inc₂ hbtw)
 
-def HomSys.IsHomOn.mk' (f : HomSys α ε α' ε') (hMap : MapsTo f G₁.V G₂.V)
-    (hInc₂ : ∀ e x y, G₁.Inc₂ e x y → G₂.Inc₂ (f.edgeFun e) (f x) (f y)) :
-    f.IsHomOn G₁ G₂ where
-  Mapsto_vx := hMap
-  inc₂ := hInc₂
+inductive HasHom (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
+  | intro (f : Hom G₁ G₂)
 
-def HasHom (G₁ : Graph α ε) (G₂ : Graph α' ε') := ∃ f : HomSys α ε α' ε', f.IsHomOn G₁ G₂
+scoped infix:50 " →ᴳ " => HasHom
 
-scoped infix:50 " ≤→ " => HasHom
+lemma HasHom.rfl : G →ᴳ G := ⟨Hom.id⟩
 
-structure HomSys.IsEmbOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop extends
-  IsHomOn f G₁ G₂ where
-  injOn_vx : InjOn f G₁.V
-  injOn_edge : InjOn f.edgeFun G₁.E
+lemma HasHom.trans (h₁₂ : G →ᴳ G') (h₂₃ : G' →ᴳ G'') : G →ᴳ G'' := by
+  obtain ⟨f⟩ := h₁₂
+  obtain ⟨g⟩ := h₂₃
+  exact ⟨f.comp g⟩
 
-def HasEmb (G₁ : Graph α ε) (G₂ : Graph α' ε') := ∃ f : HomSys α ε α' ε', f.IsEmbOn G₁ G₂
+-- Todo: Add some stuff about cardinality
 
-scoped infix:50 " ≤↪ " => HasEmb
+structure Emb (G₁ : Graph α ε) (G₂ : Graph α' ε') extends Hom G₁ G₂ where
+  inj_vx : Injective toFun
+  inj_edge : Injective edgeFun
 
-def HasEmb.toHasHom (h : HasEmb G₁ G₂) : HasHom G₁ G₂ := by
+@[simps!]
+def Emb.id : Emb G G where
+  toHom := Hom.id
+  inj_vx ⦃_ _⦄ h := h
+  inj_edge ⦃_ _⦄ h := h
+
+@[simps!]
+def Emb.comp {G' : Graph α' ε'} (f : Emb G G') (g : Emb G' G'') : Emb G G'' where
+  toHom := Hom.comp f.toHom g.toHom
+  inj_vx ⦃_ _⦄ h := f.inj_vx (g.inj_vx h)
+  inj_edge ⦃_ _⦄ h := f.inj_edge (g.inj_edge h)
+
+inductive HasEmb (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
+  | intro (f : Emb G₁ G₂)
+
+scoped infix:50 " ↪ᴳ " => HasEmb
+
+def HasEmb.toHasHom (h : HasEmb G G') : HasHom G G' := by
   obtain ⟨f, hf⟩ := h
-  exact ⟨f, hf.1⟩
+  exact ⟨f⟩
 
-structure HomSys.IsIsomOn (f : HomSys α ε α' ε') (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop extends
-  IsHomOn f G₁ G₂ where
-  bijOn_vx : BijOn f G₁.V G₂.V
-  bijOn_edge : BijOn f.edgeFun G₁.E G₂.E
+lemma HasEmb.rfl : G ↪ᴳ G := ⟨Emb.id⟩
 
-lemma HomSys.IsIsomOn.toIsEmbOn (f : HomSys α ε α' ε') (h : f.IsIsomOn G₁ G₂) : f.IsEmbOn G₁ G₂ where
-  toIsHomOn := h.toIsHomOn
-  injOn_vx := h.bijOn_vx.injOn
-  injOn_edge := h.bijOn_edge.injOn
+lemma HasEmb.trans (h₁₂ : G ↪ᴳ G') (h₂₃ : G' ↪ᴳ G'') : G ↪ᴳ G'' := by
+  obtain ⟨f⟩ := h₁₂
+  obtain ⟨g⟩ := h₂₃
+  exact ⟨f.comp g⟩
 
-lemma HomSys.IsIsomOn.ofIsEmbOn (f : HomSys α ε α' ε') (h : f.IsEmbOn G₁ G₂)
-    (hVsurj : SurjOn f G₁.V G₂.V) (hEsurj : SurjOn f.edgeFun G₁.E G₂.E) : f.IsIsomOn G₁ G₂ where
-  toIsHomOn := h.toIsHomOn
-  bijOn_vx := ⟨h.Mapsto_vx, h.injOn_vx, hVsurj⟩
-  bijOn_edge := ⟨h.Mapsto_edge, h.injOn_edge, hEsurj⟩
+lemma HasEmb.of_le (hle : G ≤ G₁) : G ↪ᴳ G₁ := by
+  exact ⟨{
+    toFun v := ⟨v, vxSet_subset_of_le hle v.prop⟩
+    edgeFun e := ⟨e, edgeSet_subset_of_le hle e.prop⟩
+    inc₂ e x y hbtw := hbtw.of_le hle
+    inj_vx x y h := by
+      simp only [Subtype.mk.injEq] at h
+      exact SetCoe.ext h
+    inj_edge e f h := by
+      simp only [Subtype.mk.injEq] at h
+      exact SetCoe.ext h
+  }⟩
+
+lemma HasEmb.bot : (⊥ : Graph α ε) ↪ᴳ (⊥ : Graph α' ε') := ⟨{
+    toFun v := IsEmpty.elim (α := (∅ : Set α).Elem) inferInstance v
+    edgeFun e := IsEmpty.elim (α := (∅ : Set ε).Elem) inferInstance e
+    inc₂ e := IsEmpty.elim (α := (∅ : Set ε).Elem) inferInstance e
+    inj_vx v := IsEmpty.elim (α := (∅ : Set α).Elem) inferInstance v
+    inj_edge e := IsEmpty.elim (α := (∅ : Set ε).Elem) inferInstance e
+  }⟩
+
+
+structure Isom (G₁ : Graph α ε) (G₂ : Graph α' ε') extends Hom G₁ G₂ where
+  invFun : G₂.V → G₁.V
+  vx_right_inv : RightInverse toFun invFun
+  vx_left_inv : LeftInverse toFun invFun
+  edgeInvFun : G₂.E → G₁.E
+  edge_right_inv : RightInverse edgeFun edgeInvFun
+  edge_left_inv : LeftInverse edgeFun edgeInvFun
+
+def Isom.toEmb (f : Isom G G') : Emb G G' where
+  toHom := f.toHom
+  inj_vx := f.vx_right_inv.injective
+  inj_edge := f.edge_right_inv.injective
+
+-- ToDo: Isom.ofEmb
+-- ToDo: Isom.ofEquiv
+
+@[simps!]
+def Isom.id : Isom G G where
+  toHom := Hom.id
+  invFun := _root_.id
+  vx_right_inv := congrFun rfl
+  vx_left_inv := congrFun rfl
+  edgeInvFun := _root_.id
+  edge_right_inv := congrFun rfl
+  edge_left_inv := congrFun rfl
+
+@[simps!]
+def Isom.comp {G' : Graph α' ε'} (f : Isom G G') (g : Isom G' G'') : Isom G G'' where
+  toHom := Hom.comp f.toHom g.toHom
+  invFun := f.invFun ∘ g.invFun
+  vx_right_inv x := by
+    simp only [Hom.comp_toFun, comp_apply, g.vx_right_inv (f.toFun x), f.vx_right_inv x]
+  vx_left_inv x := by
+    simp only [Hom.comp_toFun, comp_apply, g.vx_left_inv x, f.vx_left_inv (g.invFun x)]
+  edgeInvFun := f.edgeInvFun ∘ g.edgeInvFun
+  edge_right_inv e := by
+    simp only [Hom.comp_edgeFun, comp_apply, g.edge_right_inv (f.edgeFun e), f.edge_right_inv e]
+  edge_left_inv e := by
+    simp only [Hom.comp_edgeFun, comp_apply, g.edge_left_inv e, f.edge_left_inv (g.edgeInvFun e)]
 
 inductive HasIsom (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
-  | intro (f : HomSys α ε α' ε') (h : f.IsIsomOn G₁ G₂)
+  | intro (f : Isom G₁ G₂)
 
-scoped infix:50 " ≤↔ " => HasIsom
+scoped infix:50 " ↔ᴳ " => HasIsom
 
-lemma HasIsom.toHasEmb (h : HasIsom G₁ G₂) : HasEmb G₁ G₂ := by
-  obtain ⟨f, hHomOn, ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
-  use f, hHomOn
+lemma HasIsom.toHasEmb (h : HasIsom G G') : HasEmb G G' := by
+  obtain ⟨f⟩ := h
+  exact ⟨f.toEmb⟩
 
-lemma HasIsom.toHasHom (h : HasIsom G₁ G₂) : HasHom G₁ G₂ := by
-  obtain ⟨f, hHomOn,  ⟨fvMps, fvInj, fvSurj⟩, feMps, heInj, feSurj⟩ := h
-  exact ⟨f, hHomOn⟩
+lemma HasIsom.toHasHom (h : HasIsom G G') : HasHom G G' := by
+  obtain ⟨f⟩ := h
+  exact ⟨f.toHom⟩
 
-@[simps]
-def HomSys.id : HomSys α ε α ε where
-  toFun := _root_.id
-  edgeFun := _root_.id
+lemma HasIsom.rfl : G ↔ᴳ G := ⟨Isom.id⟩
 
-lemma HomSys.IsHomOn.id : HomSys.id.IsHomOn G G where
-  Mapsto_vx := fun ⦃_⦄ a ↦ a
-  inc₂ := fun ⦃_ _ _⦄ a ↦ a
-
-lemma HomSys.IsEmbOn.id : HomSys.id.IsEmbOn G G :=
-  ⟨HomSys.IsHomOn.id, injOn_id G.V, injOn_id G.E⟩
-
-lemma HomSys.IsIsomOn.id : HomSys.id.IsIsomOn G G :=
-  ⟨HomSys.IsHomOn.id, bijOn_id G.V, bijOn_id G.E⟩
-
-@[simps]
-def HomSys.comp (g : HomSys α ε α' ε') (f : HomSys α' ε' α'' ε'') : HomSys α ε α'' ε'' where
-  toFun := f ∘ g
-  edgeFun := f.edgeFun ∘ g.edgeFun
-
-lemma HomSys.IsHomOn.comp {g : HomSys α ε α' ε'} {f : HomSys α' ε' α'' ε''} (hg : g.IsHomOn G₁ G₂)
-    (hf : f.IsHomOn G₂ G₃) : (g.comp f).IsHomOn G₁ G₃ where
-  Mapsto_vx := fun ⦃_⦄ a ↦ hf.Mapsto_vx (hg.Mapsto_vx a)
-  inc₂ := fun ⦃_ _ _⦄ a ↦ hf.inc₂ (hg.inc₂ a)
-
-lemma HomSys.IsEmbOn.comp {g : HomSys α ε α' ε'} {f : HomSys α' ε' α'' ε''} (hg : g.IsEmbOn G₁ G₂)
-    (hf : f.IsEmbOn G₂ G₃) : (g.comp f).IsEmbOn G₁ G₃ where
-  toIsHomOn := hg.toIsHomOn.comp hf.toIsHomOn
-  injOn_vx := hf.injOn_vx.comp hg.injOn_vx hg.Mapsto_vx
-  injOn_edge := hf.injOn_edge.comp hg.injOn_edge hg.Mapsto_edge
-
-lemma HomSys.IsIsomOn.comp {g : HomSys α ε α' ε'} {f : HomSys α' ε' α'' ε''} (hg : g.IsIsomOn G₁ G₂)
-    (hf : f.IsIsomOn G₂ G₃) : (g.comp f).IsIsomOn G₁ G₃ where
-  toIsHomOn := hg.toIsHomOn.comp hf.toIsHomOn
-  bijOn_vx := hf.bijOn_vx.comp hg.bijOn_vx
-  bijOn_edge := hf.bijOn_edge.comp hg.bijOn_edge
-
-lemma HomSys.IsHomOn.le {f : HomSys α ε α' ε'} (hle : G₂ ≤ G₂') (hf : f.IsHomOn G₁ G₂) :
-    f.IsHomOn G₁ G₂' where
-  Mapsto_vx _x hx := vxSet_subset_of_le hle (hf.Mapsto_vx hx)
-  inc₂ _e _x _y hbtw := (hf.inc₂ hbtw).of_le hle
-
-lemma HomSys.IsEmbOn.le {f : HomSys α ε α' ε'} (hle : G₂ ≤ G₂') (hf : f.IsEmbOn G₁ G₂) :
-    f.IsEmbOn G₁ G₂' where
-  toIsHomOn := hf.toIsHomOn.le hle
-  injOn_vx := hf.injOn_vx.mono subset_rfl
-  injOn_edge := hf.injOn_edge.mono subset_rfl
+lemma HasIsom.trans (h₁₂ : G ↔ᴳ G') (h₂₃ : G' ↔ᴳ G'') : G ↔ᴳ G'' := by
+  obtain ⟨f⟩ := h₁₂
+  obtain ⟨g⟩ := h₂₃
+  exact ⟨f.comp g⟩
 
 lemma HasEmb.bot [hg : Nonempty α'] [hd : Nonempty ε'] : (⊥ : Graph α ε) ≤↪ G₂ := by
   use ⟨fun _ ↦ hg.some, fun _ ↦ hd.some⟩

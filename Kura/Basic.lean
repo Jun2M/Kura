@@ -467,6 +467,37 @@ lemma toSym2_eq_pair_iff (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc₂
 lemma Inc₂.toSym2 (h : G.Inc₂ e x y) : G.toSym2 e h.edge_mem = s(x, y) := by
   rwa [toSym2_eq_pair_iff h.edge_mem]
 
+noncomputable def func (G : Graph α ε) (e : G.E): Sym2 G.V :=
+  let H := G.exists_inc₂_of_mem_edgeSet e.prop
+  s(⟨H.choose, H.choose_spec.choose_spec.vx_mem_left⟩,
+    ⟨H.choose_spec.choose, H.choose_spec.choose_spec.vx_mem_right⟩)
+
+@[simp] lemma func_eq_pair_iff {x y : G.V} {e : G.E} :
+    G.func e = s(x, y) ↔ G.Inc₂ e x y := by
+  let H := G.exists_inc₂_of_mem_edgeSet e.prop
+  let a := H.choose
+  let b := H.choose_spec.choose
+  let h := H.choose_spec.choose_spec
+  simp only [func]
+  change s(⟨a, h.vx_mem_left⟩, ⟨b, h.vx_mem_right⟩) = s(x, y) ↔ G.Inc₂ e x y
+  constructor <;> rintro hbtw
+  · simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at hbtw
+    obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw
+    · exact H.choose_spec.choose_spec
+    · exact H.choose_spec.choose_spec.symm
+  · simp [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk, Subtype.ext_iff]
+    exact h.eq_and_eq_or_eq_and_eq_of_inc₂ hbtw
+
+lemma Inc₂.func (h : G.Inc₂ e x y) :
+    G.func ⟨e, h.edge_mem⟩ = s(⟨x, h.vx_mem_left⟩, ⟨y, h.vx_mem_right⟩) := by simpa
+
+lemma exists_func_pair (e : G.E) : ∃ x y, G.func e = s(x, y) := by
+  let H := G.exists_inc₂_of_mem_edgeSet e.prop
+  let a := H.choose
+  let b := H.choose_spec.choose
+  let h := H.choose_spec.choose_spec
+  exact ⟨⟨a, h.vx_mem_left⟩, ⟨b, h.vx_mem_right⟩, H.choose_spec.choose_spec.func⟩
+
 end toSym2
 
 section incFun
