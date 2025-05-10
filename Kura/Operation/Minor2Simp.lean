@@ -2,7 +2,7 @@ import Kura.Operation.Minor2
 import Kura.Operation.Simple
 
 open Set Function
-variable {α ε α' α'' ε' : Type*} {u v w x y z : Set α} {e f : Sym2 (Set α)}
+variable {α β α' α'' β' : Type*} {u v w x y z : Set α} {e f : Sym2 (Set α)}
   {G H : Graph (Set α) (Sym2 (Set α))} {G' H' : Graph (Set α') (Sym2 (Set α'))} {u' v' w' : Set α'}
 
 namespace Graph

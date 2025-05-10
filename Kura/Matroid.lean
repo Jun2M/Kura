@@ -1,19 +1,19 @@
 import Matroid.Axioms.Circuit
 import Kura.Tree
 
-variable {α ε : Type*} {G H : Graph α ε} {u v x x₁ x₂ y y₁ y₂ z : α} {e e' f g : ε}
-  {U V S T : Set α} {F F' R R': Set ε} {C w P Q : WList α ε}
+variable {α β : Type*} {G H : Graph α β} {u v x x₁ x₂ y y₁ y₂ z : α} {e e' f g : β}
+  {U V S T : Set α} {F F' R R': Set β} {C w P Q : WList α β}
 
 open Set
 
 namespace Graph
 
-def IsCycleSet (G : Graph α ε) (C : Set ε) : Prop := ∃ C₀, G.IsCycle C₀ ∧ C₀.E = C
+def IsCycleSet (G : Graph α β) (C : Set β) : Prop := ∃ C₀, G.IsCycle C₀ ∧ C₀.E = C
 
-def IsAyclicSet (G : Graph α ε) (I : Set ε) : Prop := I ⊆ G.E ∧ ∀ C₀, G.IsCycle C₀ → ¬ (C₀.E ⊆ I)
+def IsAyclicSet (G : Graph α β) (I : Set β) : Prop := I ⊆ G.E ∧ ∀ C₀, G.IsCycle C₀ → ¬ (C₀.E ⊆ I)
 
 /-! The cycle matroid of a graph `G`. -/
-def cycleMatroid [DecidableEq ε] (G : Graph α ε) : Matroid ε :=
+def cycleMatroid [DecidableEq β] (G : Graph α β) : Matroid β :=
   FinsetCircuitMatroid.matroid <| FinsetCircuitMatroid.ofFinite G.E G.IsCycleSet
     (by
       simp only [IsCycleSet, not_exists, not_and]
@@ -55,7 +55,7 @@ def cycleMatroid [DecidableEq ε] (G : Graph α ε) : Matroid ε :=
       exact h C hC hss )
 
 -- @[simp]
--- protected lemma matroid_indep_iff [DecidableEq ε] {I : Set ε} :
+-- protected lemma matroid_indep_iff [DecidableEq β] {I : Set β} :
 --     G.matroid.Indep I ↔ G.IsAyclicSet I := by
 --   rw [Graph.matroid, FinsetCircuitMatroid.matroid_indep_iff',
 --     FinsetCircuitMatroid.ofFinite_E]

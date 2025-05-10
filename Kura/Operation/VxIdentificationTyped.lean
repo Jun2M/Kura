@@ -2,23 +2,23 @@ import Kura.Operation.MapHom
 import Matroid.ForMathlib.SetPartition
 
 open Set Function
-variable {α ε α' α'' ε' : Type*} {G H : Graph (Set α) ε} {a b c : α} {x y z : Set α} {e f : ε}
+variable {α β α' α'' β' : Type*} {G H : Graph (Set α) β} {a b c : α} {x y z : Set α} {e f : β}
 
 namespace Graph
 
 /- I have been thinking about a way to `contract` without supplying the vx map but just the edge
 set I am contracting on. This is one way to do it using partitions. -/
 
-def IsPartitionGraph (G : Graph (Set α) ε) : Prop :=
+def IsPartitionGraph (G : Graph (Set α) β) : Prop :=
   ∃ P : Partition (⋃₀ G.V), P.parts = G.V
 
-def Setify (G : Graph α ε) : Graph (Set α) ε :=
+def Setify (G : Graph α β) : Graph (Set α) β :=
   vxMap G ({·})
 
-def Setify.HasIsom (G : Graph α ε) : G ≤↔ G.Setify :=
+def Setify.HasIsom (G : Graph α β) : G ≤↔ G.Setify :=
   vxMap.HasIsom ({·}) singleton_injective.injOn
 
-lemma Setify.IsPartitionGraph (G : Graph α ε) : G.Setify.IsPartitionGraph := by
+lemma Setify.IsPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := by
   use (Partition.discrete G.V).congr (by simp [Setify])
   ext x
   simp [Partition.discrete, Setify]
@@ -28,7 +28,7 @@ lemma Setify.IsPartitionGraph (G : Graph α ε) : G.Setify.IsPartitionGraph := b
   simp [ha]
 
 @[simps! vxSet edgeSet]
-def VxIdentification (G : Graph (Set α) ε) (P : Partition G.V) : Graph (Set α) ε :=
+def VxIdentification (G : Graph (Set α) β) (P : Partition G.V) : Graph (Set α) β :=
   G.vxMap (⋃₀ P.partOf ·)
 
 variable {P : Partition G.V}
@@ -52,11 +52,11 @@ lemma vxIdentification_inc : (G.VxIdentification P).Inc e x ↔ ∃ y, G.Inc e y
   rw [VxIdentification, vxMap_inc]
 
 
-structure IdentifyingMap {G : Graph (Set α) ε} (P : Partition G.V) where
+structure IdentifyingMap {G : Graph (Set α) β} (P : Partition G.V) where
   toFun : Set α → Set α
   eq_preimg_sUnion : ∀ p ∈ G.V, toFun p = ⋃₀ (toFun ⁻¹' {toFun p})
 
-lemma IdentifyingMap.fiber {G : Graph (Set α) ε} (P : Partition G.V) (f : IdentifyingMap P) :
+lemma IdentifyingMap.fiber {G : Graph (Set α) β} (P : Partition G.V) (f : IdentifyingMap P) :
     G.vxMap f.toFun = G.VxIdentification P := by
   unfold VxIdentification
   sorry

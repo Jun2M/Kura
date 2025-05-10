@@ -3,13 +3,13 @@ import Kura.Subgraph
 import Mathlib.Data.Set.Subsingleton
 import Mathlib.Order.Minimal
 
-variable {α ε : Type*} {G H T : Graph α ε} {u v x y z : α} {e e' f g : ε} {X : Set α} {F : Set ε}
-{P C : WList α ε}
+variable {α β : Type*} {G H T : Graph α β} {u v x y z : α} {e e' f g : β} {X : Set α} {F : Set β}
+{P C : WList α β}
 open Set
 
 namespace Graph
 
-def Acyclic (G : Graph α ε) : Prop := ∀ C, ¬ G.IsCycle C
+def Acyclic (G : Graph α β) : Prop := ∀ C, ¬ G.IsCycle C
 
 lemma acyclic_iff_forall_isBridge : G.Acyclic ↔ ∀ e ∈ G.E, G.IsBridge e := by
   simp only [Acyclic, isBridge_iff, forall_and, imp_self, true_and]
@@ -36,7 +36,7 @@ lemma IsCycle.toGraph_not_acyclic (hC : G.IsCycle C) : ¬ C.toGraph.Acyclic :=
   fun h ↦ h C hC.isCycle_toGraph
 
 @[simp]
-lemma singleEdge_acyclic (hxy : x ≠ y) (e : ε) : (Graph.singleEdge x y e).Acyclic := by
+lemma singleEdge_acyclic (hxy : x ≠ y) (e : β) : (Graph.singleEdge x y e).Acyclic := by
   intro C hC
   obtain ⟨u, f, rfl⟩ | hnt := hC.loop_or_nontrivial
   · obtain ⟨z,z', h⟩ := WList.exists_dInc_of_mem_edge (e := f) (w := .cons u f (.nil u)) (by simp)
@@ -47,7 +47,7 @@ lemma singleEdge_acyclic (hxy : x ≠ y) (e : ε) : (Graph.singleEdge x y e).Acy
   simp only [singleEdge_edgeSet, subset_singleton_iff, WList.mem_edgeSet_iff] at h_const
   rw [h_const hnt.nonempty.firstEdge (by simp), h_const hnt.nonempty.lastEdge (by simp)]
 
-lemma edgeRestrict_acyclic_iff : (G ↾ F).Acyclic ↔ ∀ (C : WList α ε), C.E ⊆ F → ¬ G.IsCycle C := by
+lemma edgeRestrict_acyclic_iff : (G ↾ F).Acyclic ↔ ∀ (C : WList α β), C.E ⊆ F → ¬ G.IsCycle C := by
   refine ⟨fun h C hCF hC ↦ h C ?_, fun h C hC ↦ h C ?_ (hC.isCycle_of_ge <| by simp)⟩
   · exact hC.isCycle_of_le (by simp) <| by simp [hCF, hC.isWalk.edgeSet_subset]
   exact hC.isWalk.edgeSet_subset.trans inter_subset_left
@@ -55,7 +55,7 @@ lemma edgeRestrict_acyclic_iff : (G ↾ F).Acyclic ↔ ∀ (C : WList α ε), C.
 /-- If `G` is connected, then a maximally acylic subgraph of `G` is connected.
 The correct statement is that any two vertices connected in the big graph are
 connected in the small one-/
-lemma Connected.connected_of_maximal_acyclic_edgeRestrict (hG : G.Connected) {F : Set ε}
+lemma Connected.connected_of_maximal_acyclic_edgeRestrict (hG : G.Connected) {F : Set β}
     (hF : Maximal (fun F ↦ F ⊆ G.E ∧ (G ↾ F).Acyclic) F) : (G ↾ F).Connected := by
   by_contra hcon
   obtain ⟨S, e, x, y, heF, hx, hy, hxy⟩ := hG.exists_of_edgeRestrict_not_connected hcon
@@ -79,7 +79,7 @@ lemma Connected.connected_of_maximal_acyclic_edgeRestrict (hG : G.Connected) {F 
   refine le_of_le_le_subset_subset (G := G) (by simp) (union_le (by simpa) (by simp)) (by simp) ?_
   simp [inter_eq_self_of_subset_left hins, inter_eq_self_of_subset_left hF.prop.1]
 
-lemma IsCycle.toGraph_eq_of_le {C C₀ : WList α ε} (hC : G.IsCycle C) (hC₀ : G.IsCycle C₀)
+lemma IsCycle.toGraph_eq_of_le {C C₀ : WList α β} (hC : G.IsCycle C) (hC₀ : G.IsCycle C₀)
     (hle : C₀.toGraph ≤ C.toGraph) : C₀.toGraph = C.toGraph := by
   have hCE : C₀.E ⊆ C.E := by simpa using edgeSet_subset_of_le hle
   have hCV : C₀.V ⊆ C.V := by simpa using vxSet_subset_of_le hle
@@ -129,7 +129,7 @@ lemma acyclic_of_minimal_connected (hF : Minimal (fun F ↦ (G ↾ F).Connected)
 
 
 
--- structure IsTree (T : Graph α ε) : Prop where
+-- structure IsTree (T : Graph α β) : Prop where
 --   acyclic : T.Acyclic
 --   connected : T.Connected
 

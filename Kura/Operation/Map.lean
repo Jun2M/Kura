@@ -3,27 +3,27 @@ import Kura.Dep.Finset
 
 
 open Set Function
-variable {α α' ε : Type*} {G H : Graph α ε} {u v w : α} {e f g : ε} {φ φ': α → α'} {x y z : α'}
+variable {α α' β : Type*} {G H : Graph α β} {u v w : α} {e f g : β} {φ φ': α → α'} {x y z : α'}
 namespace Graph
 
 
--- lemma vxMap_aux (G : Graph α ε) {f : α → α'} {x : α'} :
+-- lemma vxMap_aux (G : Graph α β) {f : α → α'} {x : α'} :
 --     (G.IncFun e).mapDomain f x ≠ 0 ↔ ∃ v, f v = x ∧ G.Inc e v := by
 --   classical
 --   simp +contextual [← incFun_eq_zero, Finsupp.mapDomain, Finsupp.sum,
 --     Finsupp.single_apply, and_comm, ← incFun_ne_zero]
 
--- def vxMap {α' : Type*} (G : Graph α ε) (f : α → α') : Graph α' ε :=
+-- def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
 --   oftoMultiset (f '' G.V) (fun e ↦ (G.toMultiset e).map f) fun e v h ↦ (by
 --     simp only [Multiset.mem_map, inc_iff_mem_toMultiset, mem_image] at h ⊢
 --     obtain ⟨v, hv, rfl⟩ := h
 --     use v, hv.vx_mem)
 
--- /-- Map `G : Graph α ε` to a `Graph α' ε` with the same edge set
+-- /-- Map `G : Graph α β` to a `Graph α' β` with the same edge set
 -- by applying a function `f : α → α'` to each vertex.
 -- Edges between identified vertices become loops. -/
 -- @[simps]
--- def vxMap {α' : Type*} (G : Graph α ε) (f : α → α') : Graph α' ε where
+-- def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β where
 --   V := f '' G.V
 --   E := G.E
 --   Inc₂ e x' y' := ∃ x y, G.Inc₂ e x y ∧ x' = f x ∧ y' = f y
@@ -44,7 +44,7 @@ namespace Graph
 --     exact Set.mem_image_of_mem _ h.vx_mem_left
 
 @[simps! vxSet edgeSet]
-def vxMap {α' : Type*} (G : Graph α ε) (f : α → α') : Graph α' ε :=
+def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
   oftoMultiset (f '' G.V) (fun e ↦ (G.toMultiset e).map f) fun e v h ↦ (by
     simp only [Multiset.mem_map, inc_iff_mem_toMultiset, mem_image] at h ⊢
     obtain ⟨v, hv, rfl⟩ := h
@@ -81,12 +81,12 @@ lemma vxMap_eq_vxMap_of_eqOn (h : EqOn φ φ' G.V) : (φ '' G) = (φ' '' G) := b
 
 
 
-def edgePreimg {ε' : Type*} (G : Graph α ε) (σ : ε' → ε) : Graph α ε' :=
+def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' :=
   oftoMultiset G.V (G.toMultiset <| σ ·) (fun e v hv ↦ by
     simp only [inc_iff_mem_toMultiset] at hv
     exact hv.vx_mem)
 
-variable {ε' : Type*} {σ : ε' → ε}
+variable {β' : Type*} {σ : β' → β}
 
 @[simp] lemma edgePreimg.V : (G.edgePreimg σ).V = G.V := rfl
 
@@ -95,24 +95,24 @@ variable {ε' : Type*} {σ : ε' → ε}
   simp only [edgePreimg, oftoMultiset_edgeSet, toMultiset_card_eq_two_iff, mem_setOf_eq, mem_preimage]
 
 @[simp]
-lemma edgePreimg.Inc {e' : ε'} : (G.edgePreimg σ).Inc e' u ↔ ∃ e, σ e' = e ∧ G.Inc e u := by
+lemma edgePreimg.Inc {e' : β'} : (G.edgePreimg σ).Inc e' u ↔ ∃ e, σ e' = e ∧ G.Inc e u := by
   simp only [edgePreimg, exists_eq_left']
   rw [← inc_iff_mem_toMultiset, oftoMultiset_toMultiset, inc_iff_mem_toMultiset]
   rintro e
   apply toMultiset_card_or
 
 @[simp]
-lemma edgePreimg.Inc₂ {e' : ε'} : (G.edgePreimg σ).Inc₂ e' u v ↔ ∃ e, σ e' = e ∧ G.Inc₂ e u v := by
+lemma edgePreimg.Inc₂ {e' : β'} : (G.edgePreimg σ).Inc₂ e' u v ↔ ∃ e, σ e' = e ∧ G.Inc₂ e u v := by
   simp only [edgePreimg, exists_eq_left']
   rw [← toMultiset_eq_pair_iff, oftoMultiset_toMultiset, toMultiset_eq_pair_iff]
   rintro e
   apply toMultiset_card_or
 
 
-variable {ε' : Type*} {σ : ε → ε'}
+variable {β' : Type*} {σ : β → β'}
 
 @[simps!]
-def edgeMap (G : Graph α ε) (σ : ε → ε') (hσ : InjOn σ G.E) : Graph α ε' :=
+def edgeMap (G : Graph α β) (σ : β → β') (hσ : InjOn σ G.E) : Graph α β' :=
   Graph.ofInc G.V (fun e' x ↦ ∃ e, σ e = e' ∧ G.Inc e x) (fun e' x ⟨e, heq, hinc⟩ ↦ hinc.vx_mem)
   (fun x y z e' ⟨e₁, heq₁, hinc₁⟩ ⟨e₂, heq₂, hinc₂⟩ ⟨e₃, heq₃, hinc₃⟩ ↦ by
     obtain rfl := hσ hinc₁.edge_mem hinc₂.edge_mem <| heq₁.trans heq₂.symm

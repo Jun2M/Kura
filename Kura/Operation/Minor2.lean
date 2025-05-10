@@ -2,62 +2,62 @@ import Kura.Operation.VxIdentification
 import Kura.Connected
 
 open Set Function
-variable {α ε α' α'' ε' : Type*} {G G' H H' : Graph α ε} {u v w : α} {e f : ε} {x y z : α'}
-  {S S' T T' U U': Set α} {F F' R R' : Set ε}
+variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
+  {S S' T T' U U': Set α} {F F' R R' : Set β}
 namespace Graph
 
-def SetContract (G : Graph (Set α) ε) (C : Set ε) : Graph (Set α) ε :=
+def SetContract (G : Graph (Set α) β) (C : Set β) : Graph (Set α) β :=
   G.VxIdentification (G ↾ C).ConnectivityPartition ＼ C
 
 -- scoped infix:70 " / " => Graph.SetContract
 
-instance : HDiv (Graph (Set α) ε) (Set ε) (Graph (Set α) ε) where
+instance : HDiv (Graph (Set α) β) (Set β) (Graph (Set α) β) where
   hDiv := SetContract
 
-def setContract_def (G : Graph (Set α) ε) (C : Set ε) : G / C = G.SetContract C := rfl
+def setContract_def (G : Graph (Set α) β) (C : Set β) : G / C = G.SetContract C := rfl
 
 @[simp]
-lemma setContract_vxSet (G : Graph (Set α) ε) (C : Set ε) :
+lemma setContract_vxSet (G : Graph (Set α) β) (C : Set β) :
   (G / C).V = (⋃₀ (G ↾ C).Component · ) '' G.V := by
   rw [← connectivityPartition_partOf]
   rfl
 
-instance instvxSetSetContractFinite (G : Graph (Set α) ε) (C : Set ε) [Finite G.V] :
+instance instvxSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite G.V] :
     Finite (G / C).V := by
   rw [setContract_vxSet]
   infer_instance
 
 @[simp]
-lemma SetContract_edgeSet (G : Graph (Set α) ε) (C : Set ε) : (G / C).E = G.E \ C :=
+lemma SetContract_edgeSet (G : Graph (Set α) β) (C : Set β) : (G / C).E = G.E \ C :=
   congrArg (· \ C) (VxIdentification_edgeSet G _)
 
-instance instedgeSetSetContractFinite (G : Graph (Set α) ε) (C : Set ε) [Finite G.E] :
+instance instedgeSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite G.E] :
     Finite (G / C).E := by
   rw [SetContract_edgeSet]
   infer_instance
 
-lemma setContract_edgeSet_ncard_le (G : Graph (Set α) ε) (C : Set ε) [Finite G.E] :
+lemma setContract_edgeSet_ncard_le (G : Graph (Set α) β) (C : Set β) [Finite G.E] :
     (G / C).E.ncard ≤ G.E.ncard := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_edgeSet_ncard_le C
 
-lemma setContract_edgeSet_ncard_lt_iff (G : Graph (Set α) ε) (C : Set ε) [Finite G.E] :
+lemma setContract_edgeSet_ncard_lt_iff (G : Graph (Set α) β) (C : Set β) [Finite G.E] :
     (G / C).E.ncard < G.E.ncard ↔ (G.E ∩ C).Nonempty := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_edgeSet_ncard_lt_iff C
 
-lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) ε) (e : ε) [Finite G.E] :
-    (G / ({e} : Set ε )).E.ncard < G.E.ncard ↔ e ∈ G.E := by
+lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) β) (e : β) [Finite G.E] :
+    (G / ({e} : Set β )).E.ncard < G.E.ncard ↔ e ∈ G.E := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_singleton_edgeSet_ncard_lt_iff e
 
 @[simp]
-lemma SetContract_inc₂ (G : Graph (Set α) ε) (C : Set ε) (e : ε) (x y : Set α) :
+lemma SetContract_inc₂ (G : Graph (Set α) β) (C : Set β) (e : β) (x y : Set α) :
     (G / C).Inc₂ e x y ↔ (e ∉ C ∧ ∃ x' y', G.Inc₂ e x' y' ∧ ⋃₀ (G ↾ C).Component x' = x ∧ ⋃₀ (G ↾ C).Component y' = y) := by
   rw [← connectivityPartition_partOf, setContract_def, SetContract, edgeDelete_inc₂,
     vxIdentification_inc₂]
 
-variable {G : Graph (Set α) ε} {C D : Set ε}
+variable {G : Graph (Set α) β} {C D : Set β}
 
 @[simp]
 lemma setContract_toMultiset (heC : e ∉ C) :
@@ -79,7 +79,7 @@ lemma setContract_inc₂ {u v : Set α} : (G / C).Inc₂ e u v ↔
   simp_rw [setContract_def, SetContract, ← connectivityPartition_partOf, edgeDelete_inc₂,
     vxIdentification_inc₂]
 
-lemma SetContract.subset_map (C : Set ε) {u : Set α} (hu : u ∈ G.V) : u ⊆ ⋃₀ (G ↾ C).Component u :=
+lemma SetContract.subset_map (C : Set β) {u : Set α} (hu : u ∈ G.V) : u ⊆ ⋃₀ (G ↾ C).Component u :=
   subset_sUnion_of_subset ((G ↾ C).Component u) u (fun _ a ↦ a) (VxConnected.refl hu)
 
 lemma SetContract.map_eq_iff' {u v : Set α} (hP : G.IsPartitionGraph) (hv : v ∈ G.V) :
@@ -128,7 +128,7 @@ lemma SetContract.map_mem_iff {u : Set α} (hP : G.IsPartitionGraph) :
 --     · exact subset_sUnion_of_subset ((G ↾ C).Component u) v (fun ⦃a⦄ a ↦ a) h
 --     · exact subset_sUnion_of_subset ((G ↾ C).Component u) u (fun ⦃a⦄ a ↦ a) (Connected.refl hu)
 
-lemma SetContract.IsPartitionGraph (C : Set ε) (hP : G.IsPartitionGraph) :
+lemma SetContract.IsPartitionGraph (C : Set β) (hP : G.IsPartitionGraph) :
     (G / C).IsPartitionGraph := by
   obtain ⟨P, hP⟩ := hP
   use (G ↾ C).ConnectivityPartition.flatten (by use P; simp [hP])
@@ -136,7 +136,7 @@ lemma SetContract.IsPartitionGraph (C : Set ε) (hP : G.IsPartitionGraph) :
     edgeRestrict_vxSet, setContract_vxSet, connectivityPartition_partOf]
   rw [image_image]
 
-lemma setContract_edgeDel_comm (G : Graph (Set α) ε) (hCD : Disjoint C D) :
+lemma setContract_edgeDel_comm (G : Graph (Set α) β) (hCD : Disjoint C D) :
     G / C ＼ D = (G ＼ D) / C := by
   have heq : (G ↾ C) = (G ＼ D) ↾ C := by
     rw [edgeDelete_eq_edgeRestrict, edgeRestrict_edgeRestrict, edgeRestrict_eq_edgeRestrict_iff]
@@ -191,7 +191,7 @@ lemma SetContract.foo2 {u v : Set α} (hP : G.IsPartitionGraph) (h : (G ↾ (C �
       simp only [edgeRestrict_inc₂, he, setContract_inc₂, heC, not_false_eq_true, true_and]
       use a, w.first
 
-lemma SetContract.map_map (C D : Set ε) (hP : G.IsPartitionGraph) {v : Set α}  :
+lemma SetContract.map_map (C D : Set β) (hP : G.IsPartitionGraph) {v : Set α}  :
     ⋃₀ (G / C ↾ D).Component (⋃₀ (G ↾ C).Component v) = ⋃₀ (G ↾ (C ∪ D)).Component v := by
   ext x
   simp only [mem_sUnion, mem_component_iff]
@@ -206,7 +206,7 @@ lemma SetContract.map_map (C D : Set ε) (hP : G.IsPartitionGraph) {v : Set α} 
     refine subset_map C ?_ hxu
     exact huconn.mem_right
 
-lemma SetContract.contract_contract (C D : Set ε) (hP : G.IsPartitionGraph) :
+lemma SetContract.contract_contract (C D : Set β) (hP : G.IsPartitionGraph) :
     (G / C) / D = G / (C ∪ D) := by
   refine Graph.ext ?_ fun e x y ↦ ?_
   · ext u
@@ -226,29 +226,29 @@ lemma setContract_comm (hP : G.IsPartitionGraph) : (G / C) / D = (G / D) / C := 
 
 /-- Many different definitions of minor. -/
 
-inductive IspMinor : Graph (Set α) ε → Graph (Set α) ε → Prop
+inductive IspMinor : Graph (Set α) β → Graph (Set α) β → Prop
   | refl G : IspMinor G G
-  | contract G H (C : Set ε) : IspMinor G H → IspMinor (G / C) H
+  | contract G H (C : Set β) : IspMinor G H → IspMinor (G / C) H
   | vxDelete G H (S : Set (Set α)) : IspMinor G H → IspMinor (G - S) H
-  | edgeDelete G H (D : Set ε) : IspMinor G H → IspMinor (G ＼ D) H
+  | edgeDelete G H (D : Set β) : IspMinor G H → IspMinor (G ＼ D) H
 
-  -- ∃ (S : Set (Set α)) (C D : Set ε), G = (H - S) / C ＼ D
+  -- ∃ (S : Set (Set α)) (C D : Set β), G = (H - S) / C ＼ D
 
-inductive IsrMinor : Graph α ε → Graph α ε → Prop
-  | repFun G H (G' : Graph (Set α) ε) (f : Set α → α) :
+inductive IsrMinor : Graph α β → Graph α β → Prop
+  | repFun G H (G' : Graph (Set α) β) (f : Set α → α) :
     G'.IspMinor H.Setify → (∀ s ∈ G'.V, f s ∈ s) → G = G'.vxMap f → IsrMinor G H
 
-def IsiMinor (G : Graph α' ε') (H : Graph α ε) : Prop :=
-  ∃ (G' : Graph (Set α) ε), G'.IspMinor (H.Setify) ∧ G ≤↔ G'
+def IsiMinor (G : Graph α' β') (H : Graph α β) : Prop :=
+  ∃ (G' : Graph (Set α) β), G'.IspMinor (H.Setify) ∧ G ≤↔ G'
 
-def HasCliqueMinor (G : Graph α ε) (n : ℕ) : Prop :=
+def HasCliqueMinor (G : Graph α β) (n : ℕ) : Prop :=
   (CompleteGraph n).IsiMinor G
 
-variable {α α' : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
-  {χ : Type*}{G H : Graph α ε} {G' H' : Graph α' ε'}
+variable {α α' : Type u_1} {β β' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty β] [Nonempty β']
+  {χ : Type*}{G H : Graph α β} {G' H' : Graph α' β'}
 
-lemma iff_exists_isom_Setify (P : {α : Type u_1} → {ε : Type u_2} → Graph α ε → Prop)
-    [hP : GraphicFunction P] : P G ↔ ∃ (G' : Graph (Set α) ε), P G' ∧ G ≤↔ G' := by
+lemma iff_exists_isom_Setify (P : {α : Type u_1} → {β : Type u_2} → Graph α β → Prop)
+    [hP : GraphicFunction P] : P G ↔ ∃ (G' : Graph (Set α) β), P G' ∧ G ≤↔ G' := by
   constructor
   · rintro h
     refine ⟨G.Setify, ?_, Setify.HasIsom G⟩
@@ -256,8 +256,8 @@ lemma iff_exists_isom_Setify (P : {α : Type u_1} → {ε : Type u_2} → Graph 
   · rintro ⟨G', h, h'⟩
     rwa [hP.presv_isom _ _ h']
 
-lemma forall_Setify (F : {α : Type u_1} → {ε : Type u_2} → Graph α ε → Prop) [hF : GraphicFunction F]
-    (h : ∀ (G' : Graph (Set α) ε), G'.IsPartitionGraph → F G') : ∀ (G : Graph α ε), F G :=
+lemma forall_Setify (F : {α : Type u_1} → {β : Type u_2} → Graph α β → Prop) [hF : GraphicFunction F]
+    (h : ∀ (G' : Graph (Set α) β), G'.IsPartitionGraph → F G') : ∀ (G : Graph α β), F G :=
   fun G => by
     rw [hF.presv_isom G G.Setify (Setify.HasIsom G)]
     exact h G.Setify <| Setify.IsPartitionGraph G

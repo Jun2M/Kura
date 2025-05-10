@@ -3,8 +3,8 @@ import Mathlib.Data.Set.Disjoint
 
 namespace Graph
 open Set Function List Nat Walk Path PathEnsemble
-variable {α ε : Type*} {G H : Graph α ε} {u v x y z : α} {e e' f g : ε} {S T U: Set α}
-  {F F' : Set ε} {w w1 w2 : Walk α ε}
+variable {α β : Type*} {G H : Graph α β} {u v x y z : α} {e e' f g : β} {S T U: Set α}
+  {F F' : Set β} {w w1 w2 : Walk α β}
 
 namespace Graph
 
@@ -19,20 +19,20 @@ lemma foo1 (h : G.SetConnected S T) (hsep : G.IsEdgeSetSeparator S T F) :
     ∃ e x y, G.Inc₂ e x y ∧ e ∈ F ∧
       (G -ₑ {e}).SetConnected S {x} ∧ (G -ₑ {e}).SetConnected {y} T := sorry
 
--- lemma foo1 (G : Graph α ε) (S T : Set α) (F : Set ε) (hST : (G.edgeDel F).Connected S T) : sorry
+-- lemma foo1 (G : Graph α β) (S T : Set α) (F : Set β) (hST : (G.edgeDel F).Connected S T) : sorry
 
 open Path
 
 set_option maxHeartbeats 1000000 in
-theorem Menger_VxSet {α ε : Type*} (G : Graph α ε) [hfin : G.Finite] (S T : Set α)
+theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : Set α)
     (k : ℕ)
     -- (hsep : ∀ U : Set α, U.Finite → G.IsVxSetSeparator U S T → k ≤ U.ncard)  :
     (hsep' : ∀ U, G.IsVxSetSeparator U S T → k ≤ U.encard) :
-    ∃ (Ps : PathEnsemble α ε), k ≤ Ps.Paths.encard ∧ Ps.ValidIn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
+    ∃ (Ps : PathEnsemble α β), k ≤ Ps.Paths.encard ∧ Ps.ValidIn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
   classical
 
   obtain hE | ⟨e, hE⟩ := G.E.eq_empty_or_nonempty
-  · use PathEnsemble.nil (G.V ∩ S ∩ T) ε
+  · use PathEnsemble.nil (G.V ∩ S ∩ T) β
     simp only [nil_encard, nil_validOn_iff, nil_firstSet, nil_lastSet, Set.inter_subset_right,
       and_true]
     refine ⟨hsep' _ ?_, by tauto_set⟩
@@ -223,7 +223,7 @@ theorem Menger_VxSet {α ε : Type*} (G : Graph α ε) [hfin : G.Finite] (S T : 
       (G[R ∪ (U ∪ {y})]) (U ∪ {y}) T k (fun V hVFin hVsep ↦
       hsep V hVFin (IsVxSetSeparator.IsPreorder.trans V (U ∪ {y}) S ((hUySep.symm.leftSetV_iff hUy _).mp hVsep.symm) hUySep.symm).symm)
 
-  let PU : PathEnsemble α ε := PathEnsemble.insert (hxy.path hxney) (PathEnsemble.nil U ε) (by
+  let PU : PathEnsemble α β := PathEnsemble.insert (hxy.path hxney) (PathEnsemble.nil U β) (by
     rintro z hz
     simp only [hxy.path_vx, mem_cons, not_mem_nil, or_false] at hz
     obtain rfl | rfl := hz <;> simp only [PathEnsemble.nil_VxSet, hxU, hyU, not_false_eq_true])

@@ -1,7 +1,7 @@
 import Kura.Walk.Basic
 
-variable {α ε : Type*} {x y z u v : α} {e f : ε} {G H : Graph α ε}
-  {W w w₀ w₁ w₂ P P₀ P₁ P₂ : WList α ε} {S T X : Set α}
+variable {α β : Type*} {x y z u v : α} {e f : β} {G H : Graph α β}
+  {W w w₀ w₁ w₂ P P₀ P₁ P₂ : WList α β} {S T X : Set α}
 
 open WList Set
 
@@ -11,7 +11,7 @@ namespace Graph
 
 /-- `G.IsTrail w` means that `w` is a walk of `G` with no repeated edges. -/
 @[mk_iff]
-structure IsTrail (G : Graph α ε) (W : WList α ε) : Prop where
+structure IsTrail (G : Graph α β) (W : WList α β) : Prop where
   isWalk : G.IsWalk W
   edge_nodup : W.edge.Nodup
 
@@ -107,7 +107,7 @@ lemma IsTrail.dInc_iff_eq_of_dInc (hW : G.IsTrail W) (he : W.DInc e u v) :
 /-- `G.IsPath P` means that `w` is a walk of `G` with no repeated vertices
 (and therefore no repeated edges). -/
 @[mk_iff]
-structure IsPath (G : Graph α ε) (w : WList α ε) : Prop where
+structure IsPath (G : Graph α β) (w : WList α β) : Prop where
   isWalk : G.IsWalk w
   nodup : w.vx.Nodup
 
@@ -199,14 +199,14 @@ lemma IsPath.isPath_le_of_nonempty (h : G.IsPath w) (hle : H ≤ G) (hE : w.E �
   nodup := h.nodup
 
 @[simp]
-lemma isPath_edgeRestrict_iff {F : Set ε} : (G ↾ F).IsPath P ↔ G.IsPath P ∧ P.E ⊆ F := by
+lemma isPath_edgeRestrict_iff {F : Set β} : (G ↾ F).IsPath P ↔ G.IsPath P ∧ P.E ⊆ F := by
   simp [isPath_iff, and_right_comm]
 
 @[simp]
-lemma isPath_edgeDelete_iff {F : Set ε} : (G ＼ F).IsPath P ↔ G.IsPath P ∧ Disjoint P.E F := by
+lemma isPath_edgeDelete_iff {F : Set β} : (G ＼ F).IsPath P ↔ G.IsPath P ∧ Disjoint P.E F := by
   rw [isPath_iff, isWalk_edgeDelete_iff, isPath_iff, and_right_comm]
 
-lemma IsPath.append {P Q : WList α ε} (hP : G.IsPath P) (hQ : G.IsPath Q) (hPQ : P.last = Q.first)
+lemma IsPath.append {P Q : WList α β} (hP : G.IsPath P) (hQ : G.IsPath Q) (hPQ : P.last = Q.first)
     (h_inter : ∀ x, x ∈ P → x ∈ Q → x = P.last) : G.IsPath (P ++ Q) := by
   induction P with
   | nil u => simpa
@@ -242,11 +242,11 @@ lemma IsPath.eq_firstEdge_of_inc₂_first (hP : G.IsPath P) (heP : e ∈ P.edge)
 /-! ### Fixed ends. (To be cleaned up) -/
 
 @[mk_iff]
-structure IsTrailFrom (G : Graph α ε) (S T : Set α) (W : WList α ε) : Prop extends
+structure IsTrailFrom (G : Graph α β) (S T : Set α) (W : WList α β) : Prop extends
   G.IsTrail W, G.IsWalkFrom S T W
 
 @[mk_iff]
-structure IsPathFrom (G : Graph α ε) (S T : Set α) (P : WList α ε) :
+structure IsPathFrom (G : Graph α β) (S T : Set α) (P : WList α β) :
   Prop extends G.IsPath P, G.IsWalkFrom S T P where
   eq_first_of_mem : ∀ ⦃x⦄, x ∈ P → x ∈ S → x = P.first
   eq_last_of_mem : ∀ ⦃y⦄, y ∈ P → y ∈ T → y = P.last
@@ -378,7 +378,7 @@ lemma nil_isTrailFrom : G.IsTrailFrom S T (nil x) ↔ x ∈ G.V ∧ x ∈ S ∧ 
   simp [isTrailFrom_iff]
 
 @[simp]
-lemma IsPath.dropLast_vxSet {w : WList α ε} (hP : G.IsPath w) (hn : w.Nonempty) :
+lemma IsPath.dropLast_vxSet {w : WList α β} (hP : G.IsPath w) (hn : w.Nonempty) :
     w.dropLast.V = w.V \ {w.last} := by
   match w with
   | .nil x => simp at hn
