@@ -307,6 +307,12 @@ def Isom.comp {G' : Graph α' ε'} (f : Isom G G') (g : Isom G' G'') : Isom G G'
   edge_left_inv e := by
     simp only [Hom.comp_edgeFun, comp_apply, g.edge_left_inv e, f.edge_left_inv (g.edgeInvFun e)]
 
+def vxMap_inj_isom {G' : Graph α' ε} (f : α → α') (hinj : InjOn f G.V) (heq : G.vxMap f = G') :
+    Isom G G' := sorry
+
+def edgeMap_isom {G' : Graph α ε'} (f : ε → ε') (hf : InjOn f G.E) (heq : G.edgeMap f hf = G') :
+    Isom G G' := sorry
+
 inductive HasIsom (G₁ : Graph α ε) (G₂ : Graph α' ε') : Prop where
   | intro (f : Isom G₁ G₂)
 
@@ -336,11 +342,14 @@ lemma HasIsom.ofEmbCard [Finite G'.V] [Finite G'.E] (f : G ↪ᴳ G')
   let ⟨f⟩ := f
   ⟨Isom.ofEmbCard f hVcard hedgeCard⟩
 
-lemma vxMap_hasIsom (f : α → α') : G ↔ᴳ G.vxMap f := by
-  sorry
+lemma vxMap_hasIsom {f : α → α'} (hinj : InjOn f G.V) : G ↔ᴳ G.vxMap f :=
+  ⟨vxMap_inj_isom f hinj rfl⟩
 
-lemma edgeMap_hasIsom {f : ε → ε'} (hf : InjOn f G.E) : G ↔ᴳ G.edgeMap f hf := by
-  sorry
+lemma edgeMap_hasIsom {f : ε → ε'} (hf : InjOn f G.E) : G ↔ᴳ G.edgeMap f hf :=
+  ⟨edgeMap_isom f hf rfl⟩
+
+-- lemma isom_iff : G ↔ᴳ G' ↔ ∃ (fα : α → α') (fε : ε → ε') (hinjα : InjOn fα G.V)
+--     (hinjε : InjOn fε G.E),
 
 lemma bot_hasIsom_bot : (⊥ : Graph α ε) ↔ᴳ (⊥ : Graph α' ε') := HasIsom.ofEmbCard HasEmb.bot
   (by simp) (by simp)
@@ -559,6 +568,101 @@ instance instGraphicGraphicVertex {f : ∀ {α : Type u_7} {ε : Type v₀}, Gra
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
     rw [← hF.invariant (edgeMap_hasIsom hinj)]
+
+example : GraphicVertexFunction (fun (G : Graph α _) ↦ G.V.ncard) (fun (G : Graph α _) ↦ G.V.ncard) :=
+  -- inferInstance
+  instGraphicGraphicVertex (hF := instVxSetNcardGraphic)
+
+variable {A : {ε : Type u_11} → (G : Graph α ε) → χ}
+  {A₁ : {ε : Type u_12} → (G : Graph α ε) → χ}
+  {A' : {ε : Type u_11} → (G : Graph α ε) → χ'}
+  {A'₁ : {ε : Type u_12} → (G : Graph α ε) → χ'}
+  {A'' : {ε : Type u_11} → (G : Graph α ε) → χ''}
+  {A''₁ : {ε : Type u_12} → (G : Graph α ε) → χ''}
+  {P Q : {ε : Type u_11} → (G : Graph α ε) → Prop}
+  {P₁ Q₁ : {ε : Type u_12} → (G : Graph α ε) → Prop}
+  [hA : GraphicVertexFunction A A₁] [hA' : GraphicVertexFunction A' A'₁] [hA'' : GraphicVertexFunction A'' A''₁]
+  [hP : GraphicVertexFunction P P₁] [hQ : GraphicVertexFunction Q Q₁]
+
+instance instConstGraphicVertex (c : χ) : GraphicVertexFunction (fun (_ : Graph α _) ↦ c) (fun (_ : Graph α _) ↦ c) :=
+  instGraphicGraphicVertex (hF := instConstGraphic c)
+
+instance instCompGraphicVertex (f : χ' → χ) :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ f (A' G)) (fun (G : Graph α _) ↦ f (A'₁ G)) where
+  invariant h := by rw [← hA'.invariant h]
+
+instance instComp2GraphicVertex (f : χ → χ' → χ'') :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ f (A G) (A' G)) (fun (G : Graph α _) ↦ f (A₁ G) (A'₁ G)) where
+  invariant h := by rw [← hA.invariant h, ← hA'.invariant h]
+
+instance instComp3GraphicVertex (f : χ → χ' → χ'' → χ''') :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ f (A G) (A' G) (A'' G)) (fun (G : Graph α _) ↦ f (A₁ G) (A'₁ G) (A''₁ G)) where
+  invariant h := by rw [← hA.invariant h, ← hA'.invariant h, ← hA''.invariant h]
+
+instance instImpGraphicVertex :
+  GraphicVertexFunction (fun (G : Graph α _) ↦ P G → Q G) (fun (G : Graph α _) ↦ P₁ G → Q₁ G) :=
+  instComp2GraphicVertex (· → ·)
+
+instance instHasIsomLeftGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G ↔ᴳ H) (fun (G : Graph α _) ↦ G ↔ᴳ H) :=
+  instGraphicGraphicVertex (hF := instHasIsomLeftGraphic)
+
+instance instHasIsomRightGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ H ↔ᴳ G) (fun (G : Graph α _) ↦ H ↔ᴳ G) :=
+  instGraphicGraphicVertex (hF := instHasIsomRightGraphic)
+
+instance instHasEmbLeftGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G ↪ᴳ H) (fun (G : Graph α _) ↦ G ↪ᴳ H) :=
+  instGraphicGraphicVertex (hF := instHasEmbLeftGraphic)
+
+instance instHasEmbRightGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ H ↪ᴳ G) (fun (G : Graph α _) ↦ H ↪ᴳ G) :=
+  instGraphicGraphicVertex (hF := instHasEmbRightGraphic)
+
+instance instHasHomLeftGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G →ᴳ H) (fun (G : Graph α _) ↦ G →ᴳ H) :=
+  instGraphicGraphicVertex (hF := instHasHomLeftGraphic)
+
+instance instHasHomRightGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ H →ᴳ G) (fun (G : Graph α _) ↦ H →ᴳ G) :=
+  instGraphicGraphicVertex (hF := instHasHomRightGraphic)
+
+instance instVxSetGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G.V) (fun (G : Graph α _) ↦ G.V) where
+  invariant h := by
+    obtain ⟨f, hinj, rfl⟩ := h
+    simp only [edgeMap_vxSet]
+
+instance instEdgeSetFiniteGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ Finite G.E) (fun (G : Graph α _) ↦ Finite G.E) :=
+  instGraphicGraphicVertex (hF := instEdgeSetFiniteGraphic)
+
+instance instEdgeSetNonemptyGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.Nonempty) (fun (G : Graph α _) ↦ G.E.Nonempty) :=
+  instGraphicGraphicVertex (hF := instEdgeSetNonemptyGraphic)
+
+instance instEdgeSetEncardGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.encard) (fun (G : Graph α _) ↦ G.E.encard) :=
+  instGraphicGraphicVertex (hF := instEdgeSetEncardGraphic)
+
+instance instEdgeSetNcardGraphicVertex :
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.ncard) (fun (G : Graph α _) ↦ G.E.ncard) :=
+  instGraphicGraphicVertex (hF := instEdgeSetNcardGraphic)
+
+
+
+class GraphicEdgeFunction (f : outParam <| ∀ {α : Type u₀}, Graph α ε → χ)
+    (g : ∀ {α : Type u₁}, Graph α ε → χ) : Prop where
+  invariant {α : Type _} {α' : Type _} {G : Graph α ε} {G' : Graph α' ε} :
+    (∃ (F : α → α') (_ : Injective F), G.vxMap F = G') → f G = g G'
+
+-- WHY IS THIS NOT WORKING?
+instance instGraphicGraphicEdge {ε : Type v₀} {f : ∀ {α : Type u_7} {ε : Type v₀}, Graph α ε → χ}
+    {g : ∀ {α : Type u_7} {ε : Type v₀}, Graph α ε → χ}
+    [hF : GraphicFunction f g] : GraphicEdgeFunction (fun G ↦ f (ε := ε) G) (fun G ↦ g (ε := ε) G) where
+  invariant h := by
+    obtain ⟨f, hinj, rfl⟩ := h
+    rw [← hF.invariant (vxMap_hasIsom hinj)]
 
 example : GraphicVertexFunction (fun (G : Graph α _) ↦ G.V.ncard) (fun (G : Graph α _) ↦ G.V.ncard) :=
   -- inferInstance

@@ -50,26 +50,28 @@ def vxMap {α' : Type*} (G : Graph α ε) (f : α → α') : Graph α' ε :=
     obtain ⟨v, hv, rfl⟩ := h
     use v, hv.vx_mem)
 
+scoped infix:50 " '' " => fun f G ↦ vxMap G f
+
 /-- `vxMap` has the expected incidence predicate. -/
 @[simp]
-lemma vxMap_inc : (G.vxMap φ).Inc e x ↔ ∃ v, G.Inc e v ∧ φ v = x := by
+lemma vxMap_inc : (φ '' G).Inc e x ↔ ∃ v, G.Inc e v ∧ φ v = x := by
   rw [← inc_iff_mem_toMultiset]
   unfold vxMap
   rw [oftoMultiset_toMultiset (by simp [em])]
   simp
 
 @[simp]
-lemma vxMap_toMultiset : (G.vxMap φ).toMultiset e = (G.toMultiset e).map φ := by
+lemma vxMap_toMultiset : (φ '' G).toMultiset e = (G.toMultiset e).map φ := by
   unfold vxMap
   rw [oftoMultiset_toMultiset (by simp [em])]
 
 @[simp]
-lemma vxMap_inc₂ : (G.vxMap φ).Inc₂ e x y ↔ ∃ v w, G.Inc₂ e v w ∧ φ v = x ∧ φ w = y := by
+lemma vxMap_inc₂ : (φ '' G).Inc₂ e x y ↔ ∃ v w, G.Inc₂ e v w ∧ φ v = x ∧ φ w = y := by
   simp_rw [← toMultiset_eq_pair_iff, vxMap_toMultiset, Multiset.map_eq_pair_iff]
 
-lemma vxMap_inc₂_toMultiset : (G.vxMap φ).Inc₂ e x y ↔ (G.toMultiset e).map φ = {x, y} := Iff.rfl
+lemma vxMap_inc₂_toMultiset : (φ '' G).Inc₂ e x y ↔ (G.toMultiset e).map φ = {x, y} := Iff.rfl
 
-lemma vxMap_eq_vxMap_of_eqOn (h : EqOn φ φ' G.V) : G.vxMap φ = G.vxMap φ' := by
+lemma vxMap_eq_vxMap_of_eqOn (h : EqOn φ φ' G.V) : (φ '' G) = (φ' '' G) := by
   apply Graph.ext ?_ fun e x y ↦ ?_
   · rw [vxMap_vxSet, vxMap_vxSet]
     exact image_congr h
