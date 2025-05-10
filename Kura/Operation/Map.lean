@@ -105,3 +105,14 @@ lemma edgePreimg.Inc₂ {e' : ε'} : (G.edgePreimg σ).Inc₂ e' u v ↔ ∃ e, 
   rw [← toMultiset_eq_pair_iff, oftoMultiset_toMultiset, toMultiset_eq_pair_iff]
   rintro e
   apply toMultiset_card_or
+
+
+variable {ε' : Type*} {σ : ε → ε'}
+
+@[simps!]
+def edgeMap (G : Graph α ε) (σ : ε → ε') (hσ : InjOn σ G.E) : Graph α ε' :=
+  Graph.ofInc G.V (fun e' x ↦ ∃ e, σ e = e' ∧ G.Inc e x) (fun e' x ⟨e, heq, hinc⟩ ↦ hinc.vx_mem)
+  (fun x y z e' ⟨e₁, heq₁, hinc₁⟩ ⟨e₂, heq₂, hinc₂⟩ ⟨e₃, heq₃, hinc₃⟩ ↦ by
+    obtain rfl := hσ hinc₁.edge_mem hinc₂.edge_mem <| heq₁.trans heq₂.symm
+    obtain rfl := hσ hinc₂.edge_mem hinc₃.edge_mem <| heq₂.trans heq₃.symm
+    exact hinc₁.eq_or_eq_or_eq_of_inc_of_inc hinc₂ hinc₃)

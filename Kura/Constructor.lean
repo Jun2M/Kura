@@ -215,6 +215,14 @@ end intro
   edge_mem_iff_exists_inc₂ := by simp
   vx_mem_left_of_inc₂ := by simp
 
+instance instVxSetFiniteNoEdge (V : Set α) (ε : Type*) [hV : Finite V] :
+    Finite (Graph.noEdge V ε).V :=
+  hV
+
+instance instESetIsEmptyNoEdge (V : Set α) (ε : Type*) : IsEmpty (Graph.noEdge V ε).E := by
+  simp only [noEdge_edgeSet]
+  infer_instance
+
 @[simp]
 lemma edge_empty_iff_eq_noEdge (G : Graph α ε) : G.E = ∅ ↔ G = Graph.noEdge G.V ε := by
   constructor <;> rintro h
@@ -242,6 +250,14 @@ protected def singleEdge (u v : α) (e : ε) : Graph α ε where
   eq_or_eq_of_inc₂_of_inc₂ := by aesop
   edge_mem_iff_exists_inc₂ := by tauto
   vx_mem_left_of_inc₂ := by tauto
+
+instance instVxSetFiniteSingleEdge (u v : α) (e : ε) : Finite (Graph.singleEdge u v e).V := by
+  simp only [singleEdge_vxSet]
+  infer_instance
+
+instance instESetSubsingletonSingleEdge (u v : α) (e : ε) : Subsingleton (Graph.singleEdge u v e).E := by
+  simp only [singleEdge_edgeSet]
+  infer_instance
 
 lemma singleEdge_comm (u v : α) (e : ε) : Graph.singleEdge u v e = Graph.singleEdge v u e := by
   ext <;> simp [or_comm]

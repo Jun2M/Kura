@@ -1,4 +1,5 @@
 import Kura.Connected
+import Mathlib.Control.ULiftable
 
 
 lemma Set.finite_iff_finite_of_encard_eq_encard' {α α' : Type*} {S : Set α} {T : Set α'}
@@ -363,43 +364,49 @@ lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toI
     simp only [image_E, mem_image]
     use e
 
-variable {α' : Type u_1} {ε' : Type u_2} {χ χ' χ'' χ''' : Type*} [Nonempty α] [Nonempty α']
-  [Nonempty ε] [Nonempty ε'] {G' : Graph α' ε'}
+universe u₀ u₁ u₂ v₀ v₁ v₂
+variable {α : Type u₀} {α' : Type u₁} {ε : Type v₀} {ε' : Type v₁} {χ χ' χ'' χ''' : Type*}
+  [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε'] {G : Graph α ε} {G' : Graph α' ε'}
 
-class GraphicFunction  (F : ∀ {α : Type u_1} {ε : Type u_2} (_G : Graph α ε), χ) : Prop where
-  presv_isom {α α' : Type u_1} {ε ε' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
-    (G : Graph α ε) (G' : Graph α' ε') : G ≤↔ G' → F G = F G'
+class GraphicFunction (f : outParam <| ∀ {α : Type u₀} {ε : Type v₀}, Graph α ε → χ)
+    (g : ∀ {α : Type u₁} {ε : Type v₁}, Graph α ε → χ) where
+  invariant {α β α' β'} {G : Graph α β} {G' : Graph α' β'} : G ≤↔ G' → f G = g G'
 
-variable {A B : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ}
-  {A' B' : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ'}
-  {A'' B'' : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → χ''}
-  {P P' Q Q' : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → Prop}
-  [hA : GraphicFunction A] [hA' : GraphicFunction A'] [hA'' : GraphicFunction A'']
-  [hB : GraphicFunction B] [hB' : GraphicFunction B'] [hB'' : GraphicFunction B'']
-  [hP : GraphicFunction P] [hP' : GraphicFunction P'] [hQ : GraphicFunction Q]
-  [hQ' : GraphicFunction Q']
+-- class GraphicFunction  (F : ∀ {α : Type u_1} {ε : Type u_2} (_G : Graph α ε), χ) : Prop where
+--   presv_isom {α α' ε ε'} [Nonempty α] [Nonempty α'] [Nonempty ε] [Nonempty ε']
+--     (G : Graph α ε) (G' : Graph α' ε') : G ≤↔ G' → F G = F G'
 
-lemma iff_exists_isom (P : {α : Type u_1} → {ε : Type u_2} → (G : Graph α ε) → Prop)
-    [hP : GraphicFunction P] : P G ↔
-    ∃ (α' : Type _) (_ : Nonempty α') (ε' : Type _) (_ : Nonempty ε') (G' : Graph α' ε'),
-      P G' ∧ G ≤↔ G' := by
+-- variable {A B : {α : Type u₀} → {ε : Type v₀} → (G : Graph α ε) → χ}
+--   {A' B' : {α : Type u₁} → {ε : Type v₁} → (G : Graph α ε) → χ'}
+--   {A'' B'' : {α : Type u₂} → {ε : Type v₂} → (G : Graph α ε) → χ''}
+--   {P P' Q Q' : {α : Type u₀} → {ε : Type v₀} → (G : Graph α ε) → Prop}
+  -- [hA : GraphicFunction A A] [hA' : GraphicFunction A'] [hA'' : GraphicFunction A'']
+  -- [hB : GraphicFunction B] [hB' : GraphicFunction B'] [hB'' : GraphicFunction B'']
+  -- [hP : GraphicFunction P] [hP' : GraphicFunction P'] [hQ : GraphicFunction Q]
+  -- [hQ' : GraphicFunction Q']
+
+lemma iff_exists_isom (f : ∀ {α : Type u₀} {ε : Type v₀}, Graph α ε → Prop)
+    (g : ∀ {α : Type (max u₀ u₁)} {ε : Type (max v₀ v₁)}, Graph α ε → Prop)
+    [hP : GraphicFunction f g] : f G ↔ ∃ (α' : Type (max u₀ u₁)) (_ : Nonempty α')
+    (ε' : Type (max v₀ v₁)) (_ : Nonempty ε') (G' : Graph α' ε'), g G' ∧ G ≤↔ G' := by
   constructor
   · rintro h
-    use α, inferInstance, ε, inferInstance, G
-    exact ⟨h, HasIsom.rfl⟩
-  · rintro ⟨α', _, ε', _, G', h, h'⟩
-    rwa [hP.presv_isom G G' h']
+    use ULift α, inferInstance, ULift ε, inferInstance
+    sorry
+    -- exact ⟨h, HasIsom.rfl⟩
+  · rintro ⟨α', _, ε', _, G', hg, h'⟩
+    rwa [hP.invariant h']
 
-lemma HasIsom.eq {G G' : Graph α ε} (h : G ≤↔ G') : A G = A G' := hA.presv_isom G G' h
+-- lemma HasIsom.eq {G G' : Graph α ε} (h : G ≤↔ G') : A G = A G' := hA.presv_isom G G' h
 
-lemma HasIsom.iff {G G' : Graph α ε} (h : G ≤↔ G') : P G ↔ P G' := by
-  rw [← hP.presv_isom G G' h]
+-- lemma HasIsom.iff {G G' : Graph α ε} (h : G ≤↔ G') : P G ↔ P G' := by
+--   rw [← hP.presv_isom G G' h]
 
-instance instConstGraphic (c : χ) : GraphicFunction (fun _ ↦ c) where
-  presv_isom _ _ _ := rfl
+instance instConstGraphic (c : χ) : GraphicFunction (fun _ ↦ c) (fun _ ↦ c) where
+  invariant _ := rfl
 
 instance instCompGraphic (f : χ' → χ) : GraphicFunction (fun G ↦ f (A' G)) where
-  presv_isom G G' h := by rw [← hA'.presv_isom G G' h]
+  invariant G G' h := by rw [← hA'.presv_isom G G' h]
 
 instance instComp2Graphic (f : χ → χ' → χ'') : GraphicFunction (fun G ↦ f (A G) (A' G)) where
   presv_isom G G' h := by rw [← hA.presv_isom G G' h, ← hA'.presv_isom G G' h]

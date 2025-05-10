@@ -305,6 +305,12 @@ instance instInhabitedGraph : Inhabited (Graph α ε) where
 
 @[simp] lemma bot_E : (⊥ : Graph α ε).E = ∅ := rfl
 
+instance instVxSetIsEmptyBot : IsEmpty (⊥ : Graph α ε).V := by
+  simp
+
+instance instESetIsEmptyBot : IsEmpty (⊥ : Graph α ε).E := by
+  simp
+
 @[simp]
 lemma vxSet_empty_iff_eq_bot : G.V = ∅ ↔ G = ⊥ := by
   constructor <;> rintro h
