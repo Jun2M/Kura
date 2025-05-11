@@ -1,4 +1,4 @@
-import Kura.Operation.Hom
+import Kura.Operation.Hom2
 
 
 open Set Function
@@ -14,13 +14,13 @@ lemma Graph.IsLoopless.of_le {G H : Graph α β} [G.IsLoopless] (hle : H ≤ G) 
     rintro ⟨e, hbtw⟩
     exact IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
 
-instance Graph.instLooplessGraphic : Graph.GraphicFunction IsLoopless where
-  presv_isom G G' h := by
+instance Graph.instLooplessGraphic : Graph.GraphicFunction IsLoopless IsLoopless where
+  invariant h := by
     ext
-    obtain ⟨g, hg⟩ := h.symm
-    obtain ⟨f, hf⟩ := h
+    obtain ⟨g⟩ := h.symm
+    obtain ⟨f⟩ := h
     refine ⟨fun hloop ↦ ⟨fun x ⟨e, hbtw⟩ ↦ ?_⟩, fun hloop ↦ ⟨fun x ⟨e, hbtw⟩ ↦ ?_⟩⟩
-    · exact hloop.loopless (g x) ⟨g.edgeFun e, hbtw.isIsomOn hg hbtw.edge_mem hbtw.vx_mem_left hbtw.vx_mem_right⟩
+    · exact hloop.loopless (g.toFun x) ⟨g.edgeFun e, hbtw.isIsomOn hg hbtw.edge_mem hbtw.vx_mem_left hbtw.vx_mem_right⟩
     · exact hloop.loopless (f x) ⟨f.edgeFun e, hbtw.isIsomOn hf hbtw.edge_mem hbtw.vx_mem_left hbtw.vx_mem_right⟩
 
 lemma Graph.Inc₂.ne [hG : G.IsLoopless] (hbtw : G.Inc₂ e u v) : u ≠ v := by

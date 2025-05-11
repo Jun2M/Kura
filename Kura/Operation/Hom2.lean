@@ -743,3 +743,34 @@ instance instVertexSetEncardGraphicEdge :
 instance instVertexSetNcardGraphicEdge :
     GraphicEdgeFunction (fun (G : Graph _ β) ↦ V(G).ncard) (fun (G : Graph _ β) ↦ V(G).ncard) :=
   instGraphicGraphicEdge (hF := instVxSetNcardGraphic)
+
+
+lemma hasIsom_iff {G : Graph α β} {G' : Graph α' β'} : G ↔ᴳ G' ↔
+    (G = Graph.noEdge V(G) β ∧ Nonempty (↑V(G) ≃ ↑V(G')) ∧ G' = Graph.noEdge V(G') β') ∨
+    (∃ (f : α → α') (_ : InjOn f V(G)) (g : β → β') (hg : InjOn g E(G)),
+    G' = (f '' G).edgeMap g (by simpa)) := by
+  refine ⟨fun hisom => ?_, fun h => ?_⟩
+  · let ⟨F⟩ := hisom
+    obtain hβ | hβ := isEmpty_or_nonempty β
+    · have : Nonempty (E(G') → E(G)) := ⟨F.edgeInvFun⟩
+      left
+      simp only [nonempty_fun, isEmpty_coe_sort, edge_empty_iff_eq_noEdge, nonempty_subtype,
+        IsEmpty.exists_iff, or_false] at this
+      simp? 
+      simp?
+
+
+
+
+    obtain hα | hα := isEmpty_or_nonempty α
+    · have : Nonempty (V(G') → V(G)) := ⟨F.symm.toFun⟩
+      left
+      simpa using this
+    right
+    use (extend Subtype.val (Subtype.val ∘ F.toFun) (Classical.arbitrary _)), ?_,
+      (extend Subtype.val (Subtype.val ∘ F.edgeFun) (Classical.arbitrary _))
+    obtain ⟨f, hf, g, hg, rfl⟩ := h
+    sorry
+  · obtain (⟨hG, hG'⟩ | ⟨f, hf, g, hg, rfl⟩) := h
+    · sorry
+    sorry
