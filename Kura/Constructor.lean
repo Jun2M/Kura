@@ -224,7 +224,7 @@ instance instESetIsEmptyNoEdge (V : Set α) (β : Type*) : IsEmpty E(Graph.noEdg
   infer_instance
 
 @[simp]
-lemma edge_empty_iff_eq_noEdge (G : Graph α β) : E(G) = ∅ ↔ G = Graph.noEdge V(G) β := by
+lemma edgeSet_empty_iff_eq_noEdge (G : Graph α β) : E(G) = ∅ ↔ G = Graph.noEdge V(G) β := by
   constructor <;> rintro h
   · refine Graph.ext rfl fun e x y ↦ ?_
     simp only [noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
@@ -233,6 +233,10 @@ lemma edge_empty_iff_eq_noEdge (G : Graph α β) : E(G) = ∅ ↔ G = Graph.noEd
     have := h ▸ hinc.edge_mem
     simp at this
   · rw [h, noEdge_edgeSet]
+
+-- @[simp]
+lemma eq_noEdge_of_isEmpty [IsEmpty β] : G = Graph.noEdge V(G) _ := by
+  simpa only [edgeSet_empty_iff_eq_noEdge] using eq_empty_of_isEmpty E(G)
 
 @[simp]
 lemma not_adj_noEdge : ¬ (Graph.noEdge S β).Adj x y := by

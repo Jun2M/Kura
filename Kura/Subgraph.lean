@@ -298,6 +298,8 @@ instance instOrderBotGraph : OrderBot (Graph α β) where
     refine ⟨?_, ?_⟩ <;> simp [Graph.noEdge, empty_subset, mem_empty_iff_false,
     false_iff, IsEmpty.forall_iff, implies_true]
 
+@[simp] lemma noEdge_empty_eq_bot : Graph.noEdge (∅ : Set α) β = ⊥ := rfl
+
 instance instInhabitedGraph : Inhabited (Graph α β) where
   default := ⊥
 
