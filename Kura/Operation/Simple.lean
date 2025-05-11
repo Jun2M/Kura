@@ -28,7 +28,7 @@ lemma Graph.Inc₂.ne [hG : G.IsLoopless] (hbtw : G.Inc₂ e u v) : u ≠ v := b
   exact hG.loopless u ⟨e, hbtw⟩
 
 @[simp]
-lemma Graph.toSym2_not_isDiag {G : Graph α β} [G.IsLoopless] {e : β} {he : e ∈ G.E} :
+lemma Graph.toSym2_not_isDiag {G : Graph α β} [G.IsLoopless] {e : β} {he : e ∈ E(G)} :
     ¬ (G.toSym2 e he).IsDiag := by
   obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
   have := hxy.ne
@@ -50,7 +50,7 @@ lemma Graph.IsSimple.of_le {G H : Graph α β} [G.IsSimple] (hle : H ≤ G) : H.
     rw [h, hxy]
 
 @[simp]
-lemma Graph.toSym2_inj [hG : G.IsSimple] (he : e ∈ G.E) (hf : f ∈ G.E) :
+lemma Graph.toSym2_inj [hG : G.IsSimple] (he : e ∈ E(G)) (hf : f ∈ E(G)) :
     G.toSym2 e he = G.toSym2 f hf ↔ e = f :=
   ⟨fun h ↦ hG.no_multi_edges e f he hf h, fun h ↦ h ▸ rfl⟩
 
@@ -66,19 +66,19 @@ class Graph.IsSimpleCanonical (G : Graph α (Sym2 α)) : Prop extends IsSimple G
   canonical e he : G.toSym2 e he = e
 
 @[simp]
-lemma Graph.toSym2_eq_self {G : Graph α (Sym2 α)} [G.IsSimpleCanonical] {e : Sym2 α} {he : e ∈ G.E} :
+lemma Graph.toSym2_eq_self {G : Graph α (Sym2 α)} [G.IsSimpleCanonical] {e : Sym2 α} {he : e ∈ E(G)} :
     G.toSym2 e he = e := IsSimpleCanonical.canonical e he
 
 @[simp]
 lemma Graph.inc₂_iff_mem_edgeSet {G : Graph α (Sym2 α)} [G.IsSimpleCanonical] :
-    G.Inc₂ s(u, v) u v ↔ s(u, v) ∈ G.E := by
+    G.Inc₂ s(u, v) u v ↔ s(u, v) ∈ E(G) := by
   refine ⟨Inc₂.edge_mem, fun h ↦ ?_⟩
   rw [← toSym2_eq_pair_iff h]
   exact IsSimpleCanonical.canonical s(u, v) h
 
 @[simp]
 lemma Graph.inc₂_iff_eq {G : Graph α (Sym2 α)} [G.IsSimpleCanonical] {e : Sym2 α} :
-    G.Inc₂ e u v ↔ e = s(u, v) ∧ s(u, v) ∈ G.E := by
+    G.Inc₂ e u v ↔ e = s(u, v) ∧ s(u, v) ∈ E(G) := by
   refine ⟨fun h ↦ ?_, fun ⟨he, h⟩ ↦ he ▸ inc₂_iff_mem_edgeSet.mpr h⟩
   induction' e with x y
   have hxy := h.edge_mem
@@ -136,18 +136,18 @@ lemma SimpleGraph.toGraph_inj : G'.toGraph = H'.toGraph ↔ G' = H' := by
 namespace Graph
 
 @[simps]
-def toSimpleGraph (G : Graph α β) : SimpleGraph G.V where
+def toSimpleGraph (G : Graph α β) : SimpleGraph V(G) where
   Adj a b := a ≠ b ∧ G.Adj a b
   symm a b hab := by simpa only [ne_eq, eq_comm, adj_comm] using hab
 
-@[simps! vxSet]
+@[simps! vertexSet]
 def Simplify (G : Graph α β) : Graph α (Sym2 α) :=
-  oftoSym2 G.V {s | ¬ s.IsDiag ∧ ∃ (e : β) (he : e ∈ G.E), G.toSym2 e he = s}
+  oftoSym2 V(G) {s | ¬ s.IsDiag ∧ ∃ (e : β) (he : e ∈ E(G)), G.toSym2 e he = s}
     (fun e _ ↦ e) (fun e x ⟨f, hf, h, hdiag⟩ hx ↦ by subst e; exact vx_mem_of_toSym2 hx)
 
--- @[simps! vxSet edgeSet]
+-- @[simps! vertexSet edgeSet]
 -- def Simplify (G : Graph α β) : Graph α (Sym2 α) :=
---   oftoSym2 G.V {s | ∃ u v, s(u, v) = s ∧ u ≠ v ∧ G.Adj u v}
+--   oftoSym2 V(G) {s | ∃ u v, s(u, v) = s ∧ u ≠ v ∧ G.Adj u v}
 --     (fun e _ ↦ e) (fun e x ⟨u, v, h, hne, hadj⟩ hx ↦ by
 --     subst e
 --     simp at hx
@@ -155,29 +155,29 @@ def Simplify (G : Graph α β) : Graph α (Sym2 α) :=
 --     · exact hadj.mem_left
 --     · exact hadj.mem_right)
 
-instance instSimplifyVxSetFinite (G : Graph α β) [Finite G.V] : Finite G.Simplify.V := by
-  rw [Simplify_vxSet]
+instance instSimplifyVxSetFinite (G : Graph α β) [Finite V(G)] : Finite G.Simplify.V := by
+  rw [Simplify_vertexSet]
   infer_instance
 
-lemma Simplify_edgeSet : G.Simplify.E = {s | ¬s.IsDiag ∧ ∃ x, ∃ (x_1 : x ∈ G.E), G.toSym2 x x_1 = s} := by
+lemma Simplify_edgeSet : G.Simplify.E = {s | ¬s.IsDiag ∧ ∃ x, ∃ (x_1 : x ∈ E(G)), G.toSym2 x x_1 = s} := by
   unfold Simplify
   simp only [mem_setOf_eq, oftoSym2_edgeSet, exists_and_right]
 
 lemma simplify_edgeSet_subset_image_toSym2 :
-    G.Simplify.E ⊆ Set.range (fun a ↦ G.toSym2 a.1 a.2 : G.E → _) := by
+    G.Simplify.E ⊆ Set.range (fun a ↦ G.toSym2 a.1 a.2 : E(G) → _) := by
   rintro s hs
   simp only [Simplify_edgeSet, mem_setOf_eq] at hs
   obtain ⟨hdiag, e, he, rfl⟩ := hs
   use ⟨e, he⟩
 
-lemma card_simplify_edgeSet_le (G : Graph α β) [Finite G.E] :
-    G.Simplify.E.ncard ≤ G.E.ncard := by
+lemma card_simplify_edgeSet_le (G : Graph α β) [Finite E(G)] :
+    G.Simplify.E.ncard ≤ E(G).ncard := by
   refine le_trans ?_ <| Finite.card_range_le (fun a ↦ G.toSym2 a.1 a.2)
   rw [Set.Nat.card_coe_set_eq]
   exact Set.ncard_le_ncard simplify_edgeSet_subset_image_toSym2
 
-instance instSimplifyFinite (G : Graph α β) [Finite G.E] : Finite G.Simplify.E :=
-  Set.finite_range (fun a ↦ G.toSym2 a.1 a.2 : G.E → _)
+instance instSimplifyFinite (G : Graph α β) [Finite E(G)] : Finite G.Simplify.E :=
+  Set.finite_range (fun a ↦ G.toSym2 a.1 a.2 : E(G) → _)
   |>.subset simplify_edgeSet_subset_image_toSym2
 
 @[simp]
@@ -229,14 +229,14 @@ instance instSimpleCanonicalSimplify : IsSimpleCanonical (Simplify G) where
 
 lemma simplify_isom [hα : Nonempty α] {G : Graph α β} [hG : G.IsSimple] : G ≤↔ G.Simplify := by
   classical
-  refine ⟨⟨id, fun e ↦ if he : e ∈ G.E then G.toSym2 e he else s(hα.some, hα.some)⟩, ⟨?_, ?_, ?_⟩⟩
+  refine ⟨⟨id, fun e ↦ if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some)⟩, ⟨?_, ?_, ?_⟩⟩
   · refine {
       Mapsto_vx := fun x ↦ by simp,
       inc₂ := fun e x y hxy ↦ by
         simp only [hxy.edge_mem, ↓reduceDIte, id_eq, simplify_inc₂, toSym2_eq_pair_iff]
         use hxy.ne, ⟨e, hxy⟩}
-  · rw [Simplify_vxSet]
-    exact bijOn_id G.V
+  · rw [Simplify_vertexSet]
+    exact bijOn_id V(G)
   · rw [Simplify_edgeSet]
     refine ⟨?_, ?_, ?_⟩
     · rintro e he
@@ -251,15 +251,15 @@ lemma simplify_isom [hα : Nonempty α] {G : Graph α β} [hG : G.IsSimple] : G 
 lemma simplify_vertexIsom [hα : Nonempty α] {G : Graph α β} [hG : G.IsSimple] :
     ∃ f : β → Sym2 α, (HomSys.ofEdgeFun f).IsIsomOn G G.Simplify := by
   classical
-  refine ⟨fun e ↦ if he : e ∈ G.E then G.toSym2 e he else s(hα.some, hα.some), ⟨?_, ?_, ?_⟩⟩
+  refine ⟨fun e ↦ if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some), ⟨?_, ?_, ?_⟩⟩
   · refine {
       Mapsto_vx := fun x ↦ by simp,
       inc₂ := fun e x y hxy ↦ by
         simp only [HomSys.ofEdgeFun_edgeFun, hxy.edge_mem, ↓reduceDIte, HomSys.ofEdgeFun_toFun,
           id_eq, inc₂_iff_eq, toSym2_eq_pair_iff, hxy, simplify_edgeSet_adj, mem_setOf_eq, true_and]
         use x, y, rfl, hxy.ne, e, hxy}
-  · rw [Simplify_vxSet]
-    exact bijOn_id G.V
+  · rw [Simplify_vertexSet]
+    exact bijOn_id V(G)
   · rw [Simplify_edgeSet]
     refine ⟨?_, ?_, ?_⟩
     · rintro e he

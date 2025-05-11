@@ -26,12 +26,12 @@ lemma Inc₂.endSet_eq (h : G.Inc₂ e x y) : G.endSet e = {x,y} := by
 lemma IsLoopAt.endSet_eq (h : G.IsLoopAt e x) : G.endSet e = {x} := by
   rw [Inc₂.endSet_eq h, pair_eq_singleton]
 
-lemma endSet_eq_of_not_mem_edgeSet (he : e ∉ G.E) : G.endSet e = ∅ := by
+lemma endSet_eq_of_not_mem_edgeSet (he : e ∉ E(G)) : G.endSet e = ∅ := by
   simp only [endSet, eq_empty_iff_forall_not_mem, mem_setOf_eq]
   exact fun x hx ↦ he hx.edge_mem
 
 lemma endSet_encard_le (G : Graph α β) (e : β) : (G.endSet e).encard ≤ 2 := by
-  by_cases heE : e ∈ G.E
+  by_cases heE : e ∈ E(G)
   · obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet heE
     rw [h.endSet_eq]
     exact encard_pair_le x y

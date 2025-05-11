@@ -47,17 +47,17 @@ def firstSet (Ps : Ensemble α β) : Set α := (·.first) '' Ps.walks
 
 def lastSet (Ps : Ensemble α β) : Set α := (·.last) '' Ps.walks
 
-def vxSet (Ps : Ensemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w}
+def vertexSet (Ps : Ensemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w}
 
 def edgeSet (Ps : Ensemble α β) : Set β := {e | ∃ w ∈ Ps.walks, e ∈ w.edge}
 
 def InternalVsSet (Ps : Ensemble α β) : Set α := {x | ∃ w ∈ Ps.walks, x ∈ w.tail.dropLast}
 
-def insert (w : WList α β) (Ps : Ensemble α β) (h : ∀ v ∈ w, v ∉ Ps.vxSet) : Ensemble α β where
+def insert (w : WList α β) (Ps : Ensemble α β) (h : ∀ v ∈ w, v ∉ Ps.vertexSet) : Ensemble α β where
   walks := Ps.walks ∪ {w}
   disj x p₁ p₂ hp1 hp2 hxp hxq := by
     simp only [union_singleton, Set.mem_insert_iff] at hp1 hp2
-    simp only [vxSet, mem_setOf_eq, not_exists, not_and] at h
+    simp only [vertexSet, mem_setOf_eq, not_exists, not_and] at h
     obtain (rfl | h1) := hp1 <;> obtain (rfl | h2) := hp2
     · rfl
     · exact (h x hxp p₂ h2 hxq).elim
@@ -134,7 +134,7 @@ lemma byLast_inj (hu : u ∈ Ps.lastSet) (hv : v ∈ Ps.lastSet) :
   change (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α β) ⟨u, hu⟩ = (fun a ↦ Ps.byLast a.val a.prop : Ps.lastSet → WList α β) ⟨v, hv⟩ ↔ u = v
   rw [byLast_injective Ps |>.eq_iff, Subtype.ext_iff]
 
-lemma mem_vxSet_mem (hu : u ∈ p) (hp : p ∈ Ps.walks) : u ∈ Ps.vxSet := by
+lemma mem_vertexSet_mem (hu : u ∈ p) (hp : p ∈ Ps.walks) : u ∈ Ps.vertexSet := by
   use p, hp, hu
 
 lemma mem_lastSet_mem (hu : u ∈ Ps.lastSet) (hup : u ∈ p) (hp : p ∈ Ps.walks) :
@@ -163,19 +163,19 @@ lemma byFirst_of_first (hp : p ∈ Ps.walks) : Ps.byFirst p.first (first_mem_fir
 lemma byLast_of_last (hp : p ∈ Ps.walks) : Ps.byLast p.last (last_mem_lastSet hp) = p :=
   ((Ps.unique_path_last p.last (last_mem_lastSet hp)).choose_spec.2 p ⟨hp, rfl⟩).symm
 
--- lemma append_aux {Ps₁ Ps₂ : Ensemble α β} (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+-- lemma append_aux {Ps₁ Ps₂ : Ensemble α β} (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
 --     (hu : u ∈ Ps₁.lastSet) (hv : v ∈ Ps₂.firstSet)
 --     (hx1 : x ∈ (Ps₁.byLast u hu).vx.dropLast) (hx2 : x ∈ (Ps₂.byFirst v hv).vx) :
 --     False := by
---   have hx1' : x ∈ Ps₁.vxSet := by
+--   have hx1' : x ∈ Ps₁.vertexSet := by
 --     use Ps₁.byLast u hu, byLast_mem hu, List.mem_of_mem_dropLast hx1
---   have hx2' : x ∈ Ps₂.vxSet := by
+--   have hx2' : x ∈ Ps₂.vertexSet := by
 --     use Ps₂.byFirst v hv, byFirst_mem hv, hx2
 --   have := mem_lastSet_mem (hsu ⟨hx1', hx2'⟩) (List.mem_of_mem_dropLast hx1) (byLast_mem hu)
 --   have := last_not_mem_dropLast_of_isPath
 --   exact last_not_mem_vx_dropLast (this ▸ hx1)
 
-def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) : Ensemble α β where
   walks :=
     let f : ↑(Ps₁.lastSet) → WList α β := fun ⟨a, ha⟩ ↦
@@ -192,11 +192,11 @@ def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆
       rw [byLast_inj] at this
       subst b
       rfl
-    · have := hsu ⟨mem_vxSet_mem (dropLast_subset _ hxp1) byLast_mem, mem_vxSet_mem hxq2 byFirst_mem⟩
+    · have := hsu ⟨mem_vertexSet_mem (dropLast_subset _ hxp1) byLast_mem, mem_vertexSet_mem hxq2 byFirst_mem⟩
       obtain rfl := byFirst_first ▸ mem_firstSet_mem (heq ▸ this) hxq2 byFirst_mem
       obtain rfl := byLast_last ▸ mem_lastSet_mem this (dropLast_subset _ hxp1) byLast_mem
       rfl
-    · have := hsu ⟨mem_vxSet_mem (dropLast_subset _ hxq1) byLast_mem, mem_vxSet_mem hxp2 byFirst_mem⟩
+    · have := hsu ⟨mem_vertexSet_mem (dropLast_subset _ hxq1) byLast_mem, mem_vertexSet_mem hxp2 byFirst_mem⟩
       obtain rfl := byLast_last ▸ mem_lastSet_mem this (dropLast_subset _ hxq1) byLast_mem
       obtain rfl := byFirst_first ▸ mem_firstSet_mem (heq ▸ this) hxp2 byFirst_mem
       rfl
@@ -206,7 +206,7 @@ def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆
       rfl
 
 -- def appendOnSep (Ps₁ Ps₂ : PathEnsemble α β) (heq : Ps₁.lastSet = Ps₂.firstSet)
---     (hsep : G.IsvxSetSeparator Ps₁.lastSet Ps₁.firstSet Ps₂.lastSet) : PathEnsemble α β :=
+--     (hsep : G.IsvertexSetSeparator Ps₁.lastSet Ps₁.firstSet Ps₂.lastSet) : PathEnsemble α β :=
 --   Ps₁.append Ps₂ (by
 --     rintro x ⟨⟨p, hp1, hxp⟩, q, hq2, hxq⟩
 
@@ -231,8 +231,8 @@ lemma Empty_ncard : (empty α β).walks.ncard = 0 := by
   simp only [empty, ncard_empty]
 
 @[simp]
-lemma Empty_vxSet : (empty α β).vxSet = ∅ := by
-  simp only [vxSet, empty, mem_empty_iff_false, false_and, exists_false, setOf_false]
+lemma Empty_vertexSet : (empty α β).vertexSet = ∅ := by
+  simp only [vertexSet, empty, mem_empty_iff_false, false_and, exists_false, setOf_false]
 
 @[simp]
 lemma Empty_edgeSet : (empty α β).edgeSet = ∅ := by
@@ -252,7 +252,7 @@ lemma nil_validIn : (nil U β).ValidIn (G[U]) := by
   simpa
 
 @[simp]
-lemma nil_validIn' (hUV : U ⊆ G.V) : (nil U β).ValidIn G := by
+lemma nil_validIn' (hUV : U ⊆ V(G)) : (nil U β).ValidIn G := by
   rintro p ⟨x, hx, rfl⟩
   simp only [nil_isPath_iff]
   exact hUV hx
@@ -262,8 +262,8 @@ lemma mem_nil_iff : p ∈ (nil U β).walks ↔ ∃ u ∈ U, WList.nil u = p := b
   simp only [nil, mem_image]
 
 @[simp]
-lemma nil_vxSet : (nil U β).vxSet = U := by
-  simp only [vxSet, mem_nil_iff, exists_exists_and_eq_and, WList.mem_nil_iff, exists_eq_right',
+lemma nil_vertexSet : (nil U β).vertexSet = U := by
+  simp only [vertexSet, mem_nil_iff, exists_exists_and_eq_and, WList.mem_nil_iff, exists_eq_right',
     setOf_mem_eq]
 
 @[simp]
@@ -282,27 +282,27 @@ lemma nil_ncard : (nil U β).walks.ncard = U.ncard :=
 lemma nil_encard : (nil U β).walks.encard = U.encard :=
   nil_injective.encard_image _
 
-lemma firstSet_subset_vxSet : Ps.firstSet ⊆ Ps.vxSet := by
+lemma firstSet_subset_vertexSet : Ps.firstSet ⊆ Ps.vertexSet := by
   rintro x ⟨p, hp, rfl⟩
   use p, hp, first_mem
 
-lemma lastSet_subset_vxSet : Ps.lastSet ⊆ Ps.vxSet := by
+lemma lastSet_subset_vertexSet : Ps.lastSet ⊆ Ps.vertexSet := by
   rintro x ⟨p, hp, rfl⟩
   use p, hp, last_mem
 
-lemma ValidIn.vxSet_subset (hVd : Ps.ValidIn G) : Ps.vxSet ⊆ G.V := by
+lemma ValidIn.vertexSet_subset (hVd : Ps.ValidIn G) : Ps.vertexSet ⊆ V(G) := by
   rintro x ⟨p, hp, hx⟩
   exact (hVd p hp).isWalk.vx_mem_of_mem hx
 
 @[simp]
-lemma nil_validIn_iff : (nil U β).ValidIn G ↔ U ⊆ G.V :=
-  ⟨fun h ↦ by simpa using h.vxSet_subset, nil_validIn'⟩
+lemma nil_validIn_iff : (nil U β).ValidIn G ↔ U ⊆ V(G) :=
+  ⟨fun h ↦ by simpa using h.vertexSet_subset, nil_validIn'⟩
 
-lemma ValidIn.firstSet_subset (hVd : Ps.ValidIn G) : Ps.firstSet ⊆ G.V :=
-  firstSet_subset_vxSet.trans hVd.vxSet_subset
+lemma ValidIn.firstSet_subset (hVd : Ps.ValidIn G) : Ps.firstSet ⊆ V(G) :=
+  firstSet_subset_vertexSet.trans hVd.vertexSet_subset
 
-lemma ValidIn.lastSet_subset (hVd : Ps.ValidIn G) : Ps.lastSet ⊆ G.V :=
-  lastSet_subset_vxSet.trans hVd.vxSet_subset
+lemma ValidIn.lastSet_subset (hVd : Ps.ValidIn G) : Ps.lastSet ⊆ V(G) :=
+  lastSet_subset_vertexSet.trans hVd.vertexSet_subset
 
 lemma ValidIn.mem_firstSet_lastSet (hVd : Ps.ValidIn G) (hfirst : x ∈ Ps.firstSet)
     (hlast : x ∈ Ps.lastSet) : ∃ p ∈ Ps.walks, p = WList.nil x := by
@@ -339,16 +339,16 @@ lemma ValidIn.of_le {G' : Graph α β} (h : G ≤ G') (hVd : Ps.ValidIn G) :
     Ps.ValidIn G' := fun p hp ↦ (hVd p hp).of_le h
 
 lemma finite_of_finite_graph (h : G.Finite) (hVd : Ps.ValidIn G) : Ps.walks.Finite := by
-  have hle := (Ps.firstSet_subset_vxSet).trans hVd.vxSet_subset
+  have hle := (Ps.firstSet_subset_vertexSet).trans hVd.vertexSet_subset
   have hst : Ps.firstSet.Finite := Finite.subset h.1 hle
   exact (finite_image_iff Ps.first_injOn).mp hst
 
 @[simp]
-lemma mem_insert_iff (h : ∀ v ∈ p, v ∉ Ps.vxSet) :
+lemma mem_insert_iff (h : ∀ v ∈ p, v ∉ Ps.vertexSet) :
     q ∈ (Ps.insert p h).walks ↔ q = p ∨ q ∈ Ps.walks := by
   simp only [insert, union_singleton, Set.mem_insert_iff]
 
-lemma insert_validIn (h : ∀ v ∈ p, v ∉ Ps.vxSet) (hVd : Ps.ValidIn G)
+lemma insert_validIn (h : ∀ v ∈ p, v ∉ Ps.vertexSet) (hVd : Ps.ValidIn G)
     (hpVd : G.IsPath p) : (Ps.insert p h).ValidIn G := by
   rintro q hq
   rw [mem_insert_iff] at hq
@@ -357,31 +357,31 @@ lemma insert_validIn (h : ∀ v ∈ p, v ∉ Ps.vxSet) (hVd : Ps.ValidIn G)
   · exact hVd q hq
 
 @[simp]
-lemma insert_ncard (h : ∀ v ∈ p, v ∉ Ps.vxSet) (hFin : Ps.walks.Finite) :
+lemma insert_ncard (h : ∀ v ∈ p, v ∉ Ps.vertexSet) (hFin : Ps.walks.Finite) :
     (Ps.insert p h).walks.ncard = Ps.walks.ncard + 1 := by
-  simp only [vxSet, mem_setOf_eq, not_exists, not_and, insert, union_singleton] at h ⊢
+  simp only [vertexSet, mem_setOf_eq, not_exists, not_and, insert, union_singleton] at h ⊢
   refine Set.ncard_insert_of_not_mem (fun hp ↦ ?_) hFin
   obtain ⟨a, as, has⟩ := List.ne_nil_iff_exists_cons.mp (vx_ne_nil (w := p))
   specialize h a (by simp [← mem_vx, has]) p hp
   simp [← mem_vx, has] at h
 
 @[simp]
-lemma insert_firstSet (h : ∀ v ∈ p, v ∉ Ps.vxSet) :
+lemma insert_firstSet (h : ∀ v ∈ p, v ∉ Ps.vertexSet) :
     (Ps.insert p h).firstSet = Ps.firstSet ∪ {p.first} := by
   simp only [firstSet, insert, union_singleton]
   exact image_insert_eq
 
 @[simp]
-lemma insert_lastSet (h : ∀ v ∈ p, v ∉ Ps.vxSet) :
+lemma insert_lastSet (h : ∀ v ∈ p, v ∉ Ps.vertexSet) :
     (Ps.insert p h).lastSet = Ps.lastSet ∪ {p.last} := by
   simp only [lastSet, insert, union_singleton]
   exact image_insert_eq
 
 @[simp]
-lemma insert_vxSet (h : ∀ v ∈ p, v ∉ Ps.vxSet) :
-    (Ps.insert p h).vxSet = {u | u ∈ p} ∪ Ps.vxSet := by
+lemma insert_vertexSet (h : ∀ v ∈ p, v ∉ Ps.vertexSet) :
+    (Ps.insert p h).vertexSet = {u | u ∈ p} ∪ Ps.vertexSet := by
   ext x
-  simp +contextual only [vxSet, insert, union_singleton, Set.mem_insert_iff, exists_eq_or_imp,
+  simp +contextual only [vertexSet, insert, union_singleton, Set.mem_insert_iff, exists_eq_or_imp,
     mem_setOf_eq, mem_vx, mem_union]
 
 lemma vx_dropLast_disjoint_lastSet (hp : p ∈ Ps.walks) (hP : G.IsPath p) :
@@ -406,23 +406,23 @@ lemma validIn_induce_diff (hVd : Ps.ValidIn G) (hp : p ∈ Ps.walks) :
 
 lemma lastSep_of_lastSetSep (hsep : G.IsVxSetSeparator Ps.lastSet Ps.firstSet T)
     (hp : p ∈ Ps.walks) (hVd : G.IsPath p) :
-    (G - {x | ∃ p ∈ Ps.Paths \ {p}, x ∈ p.val.vx}).IsvxSetSeparator {p.val.last} Ps.firstSet T := by
+    (G - {x | ∃ p ∈ Ps.Paths \ {p}, x ∈ p.val.vx}).IsvertexSetSeparator {p.val.last} Ps.firstSet T := by
 
   sorry
 
-lemma vx_subset_leftHalf_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet Ps.firstSet T)
+lemma vx_subset_leftHalf_of_lastSetSep (hsep : G.IsvertexSetSeparator Ps.lastSet Ps.firstSet T)
     (hVd : Ps.ValidIn G) (p : Path α β) (hp : p ∈ Ps.Paths) {x : α} (hx : x ∈ p.val.vx) :
     x ∈ hsep.leftSet ∪ Ps.lastSet := by
   sorry
 
 
-lemma vx_dropLast_subset_leftSet_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet Ps.firstSet T)
+lemma vx_dropLast_subset_leftSet_of_lastSetSep (hsep : G.IsvertexSetSeparator Ps.lastSet Ps.firstSet T)
     (p : Path α β) (hp : p ∈ Ps.Paths) (hx : x ∈ p.val.vx.dropLast) : x ∈ hsep.leftSet := by
 
   sorry
 
-lemma vxSet_subset_leftSet_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet Ps.firstSet T) :
-  Ps.vxSet ⊆ hsep.leftSet ∪ Ps.lastSet := by
+lemma vertexSet_subset_leftSet_of_lastSetSep (hsep : G.IsvertexSetSeparator Ps.lastSet Ps.firstSet T) :
+  Ps.vertexSet ⊆ hsep.leftSet ∪ Ps.lastSet := by
   rintro x ⟨p, hp, hx⟩
 
   sorry
@@ -430,7 +430,7 @@ lemma vxSet_subset_leftSet_of_lastSetSep (hsep : G.IsvxSetSeparator Ps.lastSet P
 variable {Ps₁ Ps₂ : Ensemble α β}
 
 lemma append_validIn (hPs₁Vd : Ps₁.ValidIn G) (hPs₂Vd : Ps₂.ValidIn G)
-    (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet) (heq : Ps₁.lastSet = Ps₂.firstSet) :
+    (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet) (heq : Ps₁.lastSet = Ps₂.firstSet) :
     (Ps₁.append Ps₂ hsu heq).ValidIn G := by
   rintro p ⟨⟨a, ha⟩, _, rfl⟩
   have := hPs₁Vd (byLast Ps₁ a ha) byLast_mem
@@ -439,7 +439,7 @@ lemma append_validIn (hPs₁Vd : Ps₁.ValidIn G) (hPs₂Vd : Ps₂.ValidIn G)
   simp only [byLast_last, byFirst_first]
 
 @[simp]
-lemma append_firstSet (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+lemma append_firstSet (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) : (Ps₁.append Ps₂ hsu heq).firstSet = Ps₁.firstSet := by
   ext x
   simp +contextual only [firstSet, append, mem_image, Set.mem_range, Subtype.exists, iff_def,
@@ -455,7 +455,7 @@ lemma append_firstSet (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
     use p.val.last, last_mem_lastSet hp1
 
 @[simp]
-lemma append_lastSet (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+lemma append_lastSet (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) : (Ps₁.append Ps₂ hsu heq).lastSet = Ps₂.lastSet := by
   ext x
   simp +contextual only [lastSet, append, mem_image, Set.mem_range, Subtype.exists, iff_def,
@@ -472,22 +472,22 @@ lemma append_lastSet (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
     use Ps₁.byLast p.val.first (heq ▸ first_mem_firstSet hp), byLast_mem _, by simp only [byLast_last]
 
 @[simp]
-lemma append_ncard_eq_left (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+lemma append_ncard_eq_left (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) :
     (Ps₁.append Ps₂ hsu heq).Paths.ncard = Ps₁.Paths.ncard := by
   rw [← firstSet_ncard, append_firstSet hsu heq, ← firstSet_ncard]
 
 @[simp]
-lemma append_ncard_eq_right (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+lemma append_ncard_eq_right (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) :
     (Ps₁.append Ps₂ hsu heq).Paths.ncard = Ps₂.Paths.ncard := by
   rw [← lastSet_ncard, append_lastSet hsu heq, ← lastSet_ncard]
 
-lemma append_vxSet (hsu : Ps₁.vxSet ∩ Ps₂.vxSet ⊆ Ps₁.lastSet)
+lemma append_vertexSet (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) :
-  (Ps₁.append Ps₂ hsu heq).vxSet = Ps₁.vxSet ∪ Ps₂.vxSet := by
+  (Ps₁.append Ps₂ hsu heq).vertexSet = Ps₁.vertexSet ∪ Ps₂.vertexSet := by
   ext x
-  simp +contextual only [vxSet, append, Set.mem_range, Subtype.exists, mem_setOf_eq, mem_union]
+  simp +contextual only [vertexSet, append, Set.mem_range, Subtype.exists, mem_setOf_eq, mem_union]
   constructor
   · rintro ⟨p, ⟨u, hu, rfl⟩, hx⟩
     simp only [append_vx, mem_append] at hx

@@ -9,7 +9,7 @@ open WList
 
 lemma WList.WellFormed.rotate_toGraph (hw : w.WellFormed) (h_closed : w.IsClosed) (n : ℕ) :
     (w.rotate n).toGraph = w.toGraph := by
-  refine Graph.ext (by simp [h_closed.rotate_vxSet]) fun e x y ↦ ?_
+  refine Graph.ext (by simp [h_closed.rotate_vertexSet]) fun e x y ↦ ?_
   rw [(hw.rotate h_closed n).toGraph_inc₂, h_closed.inc₂_rotate_iff, hw.toGraph_inc₂]
 
 namespace Graph
@@ -79,13 +79,13 @@ lemma IsCycle.mem_tail_dropLast_of_ne_first (hC : G.IsCycle C) (hxC : x ∈ C) (
   rwa [mem_iff_eq_first_or_mem_tail, or_iff_right hx, mem_iff_eq_mem_dropLast_or_eq_last,
     tail_last, ← hC.isClosed, or_iff_left hx] at hxC
 
-lemma IsCycle.tail_dropLast_vxSet (hC : G.IsCycle C) (hnt : C.Nontrivial) :
-    C.tail.dropLast.V = C.V \ {C.first} := by
+lemma IsCycle.tail_dropLast_vertexSet (hC : G.IsCycle C) (hnt : C.Nontrivial) :
+    V(C.tail.dropLast) = V(C) \ {C.first} := by
   cases C with
   | nil => simp at hC
   | cons u e w =>
-    simp only [tail_cons, cons_vxSet, first_cons, Set.mem_singleton_iff, Set.insert_diff_of_mem]
-    rw [dropLast_vxSet_of_nodup (by simpa using hC.tail_isPath.nodup) (by simpa using hnt),
+    simp only [tail_cons, cons_vertexSet, first_cons, Set.mem_singleton_iff, Set.insert_diff_of_mem]
+    rw [dropLast_vertexSet_of_nodup (by simpa using hC.tail_isPath.nodup) (by simpa using hnt),
       show u = w.last from hC.isClosed]
 
 lemma IsCycle.reverse (hC : G.IsCycle C) : G.IsCycle C.reverse where
@@ -102,7 +102,7 @@ lemma IsCycle.isCycle_of_ge (h : H.IsCycle w) (hle : H ≤ G) : G.IsCycle w wher
   isClosed := h.isClosed
   nodup := h.nodup
 
-lemma IsCycle.isCycle_of_le (h : G.IsCycle w) (hle : H ≤ G) (hE : w.E ⊆ H.E) :
+lemma IsCycle.isCycle_of_le (h : G.IsCycle w) (hle : H ≤ G) (hE : E(w) ⊆ E(H)) :
     H.IsCycle w where
   isWalk := h.isWalk.isWalk_le_of_nonempty hle hE h.nonempty
   edge_nodup := h.edge_nodup
@@ -209,7 +209,7 @@ lemma IsCycle.exists_isPath_toGraph_eq_delete_edge_of_inc₂ (hC : G.IsCycle C) 
   · obtain ⟨n, -, _, rfl⟩ := exists_rotate_firstEdge_eq he'.edge_mem
     simpa [hC.isWalk.wellFormed.rotate_toGraph hC.isClosed] using
       aux (hC.rotate n) (hC.isClosed.dInc_rotate he' n) rfl
-  refine ⟨C.tail, hC.tail_isPath, Graph.ext (by simp [hC.isClosed.vxSet_tail]) fun f z z' ↦ ?_, ?_⟩
+  refine ⟨C.tail, hC.tail_isPath, Graph.ext (by simp [hC.isClosed.vertexSet_tail]) fun f z z' ↦ ?_, ?_⟩
   · rw [hC.tail_isPath.isWalk.wellFormed.toGraph_inc₂, edgeDelete_inc₂, Set.mem_singleton_iff,
       hC.isWalk.wellFormed.toGraph_inc₂, hC.nonempty.tail_inc₂_iff hC.edge_nodup, ← hxC, and_comm]
   rw [tail_last, ← hC.isClosed.eq, and_comm, ← hC.toIsTrail.dInc_iff_eq_of_dInc he', hxC]
@@ -260,14 +260,14 @@ lemma mem_backtrack_iff (h : G.Inc₂ e u v) (x : α) : x ∈ h.backtrack ↔ x 
   tauto
 
 @[simp]
-lemma backtrack_vxSet (h : G.Inc₂ e u v) : h.backtrack.V = {u, v} := by
+lemma backtrack_vertexSet (h : G.Inc₂ e u v) : V(h.backtrack) = {u, v} := by
   simp [backtrack, Set.pair_comm]
 
 @[simp]
 lemma backtrack_edge (h : G.Inc₂ e u v) : h.backtrack.edge = [e, e] := by simp [backtrack]
 
 @[simp]
-lemma backtrack_edgeSet (h : G.Inc₂ e u v) : h.backtrack.E = {e} := by
+lemma backtrack_edgeSet (h : G.Inc₂ e u v) : E(h.backtrack) = {e} := by
   simp [backtrack, Set.pair_comm]
 
 @[simp]

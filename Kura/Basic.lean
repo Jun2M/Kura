@@ -25,8 +25,8 @@ and gives basic API for incidence and adjacency.
 
 For `G : Graph α β`, ...
 
-* `G.V` denotes the vertex set of `G` as a term in `Set α`.
-* `G.E` denotes the edge set of `G` as a term in `Set β`.
+* `V(G)` denotes the vertex set of `G` as a term in `Set α`.
+* `E(G)` denotes the edge set of `G` as a term in `Set β`.
 * `G.Inc₂ e x y` means that the edge `e : β` has vertices `x : α` and `y : α` as its ends.
 * `G.Inc e x` means that the edge `e : β` has `x` as one of its ends.
 * `G.Adj x y` means that there is an edge `e` having `x` and `y` as its ends.
@@ -36,7 +36,7 @@ For `G : Graph α β`, ...
 ## Implementation notes
 
 Unlike the design of `SimpleGraph`, the vertex and edge sets of `G` are modelled as sets
-`G.V : Set α` and `G.E : Set β`, within ambient types, rather than being types themselves.
+`V(G) : Set α` and `E(G) : Set β`, within ambient types, rather than being types themselves.
 This mimics the 'embedded set' design used in `Matroid`, which seems to be more amenable to
 formalizing real-world proofs in combinatorics.
 
@@ -51,8 +51,8 @@ the vertex or edge set. This is an issue, but is likely quite amenable to automa
 
 ## Notation
 
-Relecting written mathematics, we use the compact notations `G.V` and `G.E` to describe
-vertex and edge sets formally, but use the longer terms `vxSet` and `edgeSet` within
+Relecting written mathematics, we use the compact notations `V(G)` and `E(G)` to describe
+vertex and edge sets formally, but use the longer terms `vertexSet` and `edgeSet` within
 lemma names to refer to the same objects.
 
 -/
@@ -65,9 +65,9 @@ open Set
 as described by a predicate describing whether an edge `e : β` has ends `x` and `y`. -/
 structure Graph (α β : Type*) where
   /-- The vertex set. -/
-  V : Set α
+  vertexSet : Set α
   /-- The edge set. -/
-  E : Set β
+  edgeSet : Set β
   /-- The predicate that an edge `e` goes from `x` to `y`. -/
   Inc₂ : β → α → α → Prop
   /-- If `e` goes from `x` to `y`, it goes from `y` to `x`. -/
@@ -75,13 +75,16 @@ structure Graph (α β : Type*) where
   /-- An edge is incident with at most one pair of vertices. -/
   eq_or_eq_of_inc₂_of_inc₂ : ∀ ⦃e x y v w⦄, Inc₂ e x y → Inc₂ e v w → x = v ∨ x = w
   /-- If `e` is incident to something, then `e` is in the edge set -/
-  edge_mem_iff_exists_inc₂ : ∀ e, e ∈ E ↔ ∃ x y, Inc₂ e x y
+  edge_mem_iff_exists_inc₂ : ∀ e, e ∈ edgeSet ↔ ∃ x y, Inc₂ e x y
   /-- If some edge `e` is incident to `x`, then `x ∈ V`. -/
-  vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ V
+  vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ vertexSet
 
-initialize_simps_projections Graph (V → vxSet, E → edgeSet, Inc₂ → inc₂)
+initialize_simps_projections Graph (vertexSet → vertexSet, edgeSet → edgeSet, Inc₂ → inc₂)
 
 namespace Graph
+
+scoped notation "V(" G ")" => Graph.vertexSet G
+scoped notation "E(" G ")" => Graph.edgeSet G
 
 variable {G H : Graph α β}
 
@@ -93,16 +96,16 @@ lemma Inc₂.symm (h : G.Inc₂ e x y) : G.Inc₂ e y x :=
 lemma inc₂_comm : G.Inc₂ e x y ↔ G.Inc₂ e y x :=
   ⟨Inc₂.symm, Inc₂.symm⟩
 
-lemma Inc₂.edge_mem (h : G.Inc₂ e x y) : e ∈ G.E :=
+lemma Inc₂.edge_mem (h : G.Inc₂ e x y) : e ∈ E(G) :=
   (edge_mem_iff_exists_inc₂ ..).2 ⟨x, y, h⟩
 
-lemma Inc₂.vx_mem_left (h : G.Inc₂ e x y) : x ∈ G.V :=
+lemma Inc₂.vx_mem_left (h : G.Inc₂ e x y) : x ∈ V(G) :=
   G.vx_mem_left_of_inc₂ h
 
-lemma Inc₂.vx_mem_right (h : G.Inc₂ e x y) : y ∈ G.V :=
+lemma Inc₂.vx_mem_right (h : G.Inc₂ e x y) : y ∈ V(G) :=
   h.symm.vx_mem_left
 
-lemma exists_inc₂_of_mem_edgeSet (h : e ∈ G.E) : ∃ x y, G.Inc₂ e x y :=
+lemma exists_inc₂_of_mem_edgeSet (h : e ∈ E(G)) : ∃ x y, G.Inc₂ e x y :=
   (edge_mem_iff_exists_inc₂ ..).1 h
 
 lemma Inc₂.left_eq_or_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e z w) : x = z ∨ x = w :=
@@ -118,21 +121,21 @@ lemma Inc₂.eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e x z) : y = z := 
 lemma Inc₂.inc₂_iff_eq (h : G.Inc₂ e x y) : G.Inc₂ e x z ↔ z = y :=
   ⟨fun h' ↦ h'.eq_of_inc₂ h, fun h' ↦ h' ▸ h⟩
 
-lemma edgeSet_eq_setOf_exists_inc₂ : G.E = {e | ∃ x y, G.Inc₂ e x y} :=
+lemma edgeSet_eq_setOf_exists_inc₂ : E(G) = {e | ∃ x y, G.Inc₂ e x y} :=
   Set.ext fun e ↦ G.edge_mem_iff_exists_inc₂ e
 
 @[simp]
-lemma not_inc₂_of_not_mem_edgeSet (he : e ∉ G.E) (x y : α) : ¬ G.Inc₂ e x y := by
+lemma not_inc₂_of_not_mem_edgeSet (he : e ∉ E(G)) (x y : α) : ¬ G.Inc₂ e x y := by
   contrapose! he
   exact he.edge_mem
 
 @[simp]
-lemma not_inc₂_of_left_not_mem_vxSet (x : α) (hx : x ∉ G.V) : ¬ G.Inc₂ e x y := by
+lemma not_inc₂_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Inc₂ e x y := by
   contrapose! hx
   exact hx.vx_mem_left
 
 @[simp]
-lemma not_inc₂_of_right_not_mem_vxSet (y : α) (hy : y ∉ G.V) : ¬ G.Inc₂ e x y := by
+lemma not_inc₂_of_right_not_mem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.Inc₂ e x y := by
   contrapose! hy
   exact hy.vx_mem_right
 
@@ -175,11 +178,11 @@ lemma inc_iff_exists_inc₂ : G.Inc e x ↔ ∃ y, G.Inc₂ e x y := Iff.rfl
 alias ⟨Inc.exists_vx_inc₂, _⟩ := inc_iff_exists_inc₂
 
 @[simp]
-lemma Inc.edge_mem (h : G.Inc e x) : e ∈ G.E :=
+lemma Inc.edge_mem (h : G.Inc e x) : e ∈ E(G) :=
   h.choose_spec.edge_mem
 
 @[simp]
-lemma Inc.vx_mem (h : G.Inc e x) : x ∈ G.V :=
+lemma Inc.vx_mem (h : G.Inc e x) : x ∈ V(G) :=
   h.choose_spec.vx_mem_left
 
 @[simp]
@@ -201,15 +204,15 @@ lemma Inc.eq_of_inc₂_of_ne_left (h : G.Inc e x) (h' : G.Inc₂ e y z) (hxy : x
   (h.eq_or_eq_of_inc₂ h').elim (False.elim ∘ hxy) id
 
 @[simp]
-lemma not_inc_of_not_mem_edgeSet (he : e ∉ G.E) (x : α) : ¬ G.Inc e x :=
+lemma not_inc_of_not_mem_edgeSet (he : e ∉ E(G)) (x : α) : ¬ G.Inc e x :=
   (he ·.edge_mem)
 
 @[simp]
-lemma not_inc_of_not_mem_vxSet (x : α) (hx : x ∉ G.V) : ¬ G.Inc e x := by
+lemma not_inc_of_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Inc e x := by
   contrapose! hx
   exact hx.vx_mem
 
-lemma exists_inc_of_mem_edgeSet (he : e ∈ G.E) : ∃ x, G.Inc e x := by
+lemma exists_inc_of_mem_edgeSet (he : e ∈ E(G)) : ∃ x, G.Inc e x := by
   obtain ⟨y, z, h⟩ := exists_inc₂_of_mem_edgeSet he
   exact ⟨y, h.inc_left⟩
 
@@ -266,11 +269,11 @@ lemma IsLoopAt.inc₂_iff_eq (h : G.IsLoopAt e x) : G.Inc₂ e x y ↔ x = y :=
   ⟨h.eq_of_inc₂, fun h' ↦ by rwa [← h']⟩
 
 @[simp]
-lemma IsLoopAt.edge_mem (h : G.IsLoopAt e x) : e ∈ G.E :=
+lemma IsLoopAt.edge_mem (h : G.IsLoopAt e x) : e ∈ E(G) :=
   h.inc.edge_mem
 
 @[simp]
-lemma IsLoopAt.vx_mem (h : G.IsLoopAt e x) : x ∈ G.V :=
+lemma IsLoopAt.vx_mem (h : G.IsLoopAt e x) : x ∈ V(G) :=
   h.inc.vx_mem
 
 /-- `G.IsNonloopAt e x` means that `e` is an edge from `x` to some `y ≠ x`. -/
@@ -280,11 +283,11 @@ structure IsNonloopAt (G : Graph α β) (e : β) (x : α) : Prop where
   exists_inc₂_ne : ∃ y ≠ x, G.Inc₂ e x y
 
 @[simp]
-lemma IsNonloopAt.edge_mem (h : G.IsNonloopAt e x) : e ∈ G.E :=
+lemma IsNonloopAt.edge_mem (h : G.IsNonloopAt e x) : e ∈ E(G) :=
   h.inc.edge_mem
 
 @[simp]
-lemma IsNonloopAt.vx_mem (h : G.IsNonloopAt e x) : x ∈ G.V :=
+lemma IsNonloopAt.vx_mem (h : G.IsNonloopAt e x) : x ∈ V(G) :=
   h.inc.vx_mem
 
 lemma IsLoopAt.not_isNonloop_at (h : G.IsLoopAt e x) (y : α) : ¬ G.IsNonloopAt e y := by
@@ -320,7 +323,7 @@ lemma Inc₂.isNonloopAt_of_ne (h : G.Inc₂ e x y) (hxy : x ≠ y) : G.IsNonloo
 lemma Inc₂.isNonloopAt_right_of_ne (h : G.Inc₂ e x y) (hxy : x ≠ y) : G.IsNonloopAt e y :=
   h.symm.isNonloopAt_iff_ne.2 hxy.symm
 
-lemma exists_isLoopAt_or_inc₂_of_mem_edgeSet (h : e ∈ G.E) :
+lemma exists_isLoopAt_or_inc₂_of_mem_edgeSet (h : e ∈ E(G)) :
     (∃ x, G.IsLoopAt e x) ∨ ∃ x y, G.Inc₂ e x y ∧ x ≠ y := by
   obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet h
   obtain rfl | hne := eq_or_ne x y
@@ -339,21 +342,21 @@ lemma adj_comm : G.Adj x y ↔ G.Adj y x :=
   ⟨Adj.symm, Adj.symm⟩
 
 @[simp]
-lemma Adj.mem_left (h : G.Adj x y) : x ∈ G.V :=
+lemma Adj.mem_left (h : G.Adj x y) : x ∈ V(G) :=
   h.choose_spec.vx_mem_left
 
 @[simp]
-lemma Adj.mem_right (h : G.Adj x y) : y ∈ G.V :=
+lemma Adj.mem_right (h : G.Adj x y) : y ∈ V(G) :=
   h.symm.mem_left
 
 lemma Inc₂.adj (h : G.Inc₂ e x y) : G.Adj x y :=
   ⟨e, h⟩
 
-lemma not_adj_of_left_not_mem_vxSet (x : α) (hx : x ∉ G.V) : ¬ G.Adj x y := by
+lemma not_adj_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Adj x y := by
   contrapose! hx
   exact hx.mem_left
 
-lemma not_adj_of_right_not_mem_vxSet (y : α) (hy : y ∉ G.V) : ¬ G.Adj x y := by
+lemma not_adj_of_right_not_mem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.Adj x y := by
   contrapose! hy
   exact hy.mem_right
 
@@ -363,13 +366,13 @@ section toMultiset
 
 noncomputable def toMultiset (G : Graph α β) (e : β) : Multiset α := by
   classical
-  exact if he : e ∈ G.E
+  exact if he : e ∈ E(G)
     then {G.exists_inc₂_of_mem_edgeSet he |>.choose,
           G.exists_inc₂_of_mem_edgeSet he |>.choose_spec.choose}
     else 0
 
 @[simp]
-lemma vx_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : x ∈ G.V := by
+lemma vx_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : x ∈ V(G) := by
   simp only [toMultiset] at hxe
   split_ifs at hxe with he
   · simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hxe
@@ -379,29 +382,29 @@ lemma vx_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : x ∈ G.V := by
   · exact (Multiset.not_mem_zero _ hxe).elim
 
 @[simp]
-lemma edge_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : e ∈ G.E := by
+lemma edge_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : e ∈ E(G) := by
   simp only [toMultiset] at hxe
   split_ifs at hxe with he
   · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.edge_mem
   · exact (Multiset.not_mem_zero _ hxe).elim
 
 @[simp]
-lemma toMultiset_card_eq_two (he : e ∈ G.E) : (G.toMultiset e).card = 2 := by
+lemma toMultiset_card_eq_two (he : e ∈ E(G)) : (G.toMultiset e).card = 2 := by
   simp only [toMultiset, he, ↓reduceDIte, Multiset.insert_eq_cons, Multiset.card_cons,
     Multiset.card_singleton, Nat.reduceAdd]
 
 @[simp]
-lemma toMultiset_eq_zero (he : e ∉ G.E) : G.toMultiset e = 0 := by
+lemma toMultiset_eq_zero (he : e ∉ E(G)) : G.toMultiset e = 0 := by
   simp only [toMultiset, he, ↓reduceDIte]
 
 @[simp]
-lemma toMultiset_eq_zero_iff : G.toMultiset e = 0 ↔ e ∉ G.E := by
+lemma toMultiset_eq_zero_iff : G.toMultiset e = 0 ↔ e ∉ E(G) := by
   refine ⟨fun h he ↦ ?_, toMultiset_eq_zero⟩
   have := h ▸ toMultiset_card_eq_two he
   simp at this
 
 @[simp]
-lemma toMultiset_card_eq_two_iff : (G.toMultiset e).card = 2 ↔ e ∈ G.E := by
+lemma toMultiset_card_eq_two_iff : (G.toMultiset e).card = 2 ↔ e ∈ E(G) := by
   refine ⟨fun h ↦ ?_, fun he ↦ ?_⟩
   · rw [Multiset.card_eq_two] at h
     obtain ⟨x, y, hxy⟩ := h
@@ -409,7 +412,7 @@ lemma toMultiset_card_eq_two_iff : (G.toMultiset e).card = 2 ↔ e ∈ G.E := by
   · rw [toMultiset_card_eq_two he]
 
 lemma toMultiset_card_or : (G.toMultiset e).card = 2 ∨ (G.toMultiset e).card = 0 := by
-  by_cases he : e ∈ G.E
+  by_cases he : e ∈ E(G)
   · exact Or.inl (toMultiset_card_eq_two_iff.mpr he)
   · exact Or.inr (Multiset.card_eq_zero.mpr (toMultiset_eq_zero_iff.mpr he))
 
@@ -445,18 +448,18 @@ end toMultiset
 
 section toSym2
 
-noncomputable def toSym2 (G : Graph α β) (e : β) (he : e ∈ G.E) : Sym2 α :=
+noncomputable def toSym2 (G : Graph α β) (e : β) (he : e ∈ E(G)) : Sym2 α :=
   s(G.exists_inc₂_of_mem_edgeSet he |>.choose, G.exists_inc₂_of_mem_edgeSet he |>.choose_spec.choose)
 
 @[simp]
-lemma vx_mem_of_toSym2 {he : e ∈ G.E} (h : x ∈ G.toSym2 e he) : x ∈ G.V := by
+lemma vx_mem_of_toSym2 {he : e ∈ E(G)} (h : x ∈ G.toSym2 e he) : x ∈ V(G) := by
   have := (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
   obtain rfl | rfl := by simpa [toSym2] using h
   · exact this.vx_mem_left
   · exact this.vx_mem_right
 
 @[simp]
-lemma toSym2_eq_pair_iff (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc₂ e x y := by
+lemma toSym2_eq_pair_iff (he : e ∈ E(G)) : G.toSym2 e he = s(x, y) ↔ G.Inc₂ e x y := by
   have := (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
   constructor <;> rintro h
   · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := by simpa [toSym2] using h
@@ -467,12 +470,12 @@ lemma toSym2_eq_pair_iff (he : e ∈ G.E) : G.toSym2 e he = s(x, y) ↔ G.Inc₂
 lemma Inc₂.toSym2 (h : G.Inc₂ e x y) : G.toSym2 e h.edge_mem = s(x, y) := by
   rwa [toSym2_eq_pair_iff h.edge_mem]
 
-noncomputable def func (G : Graph α β) (e : G.E): Sym2 G.V :=
+noncomputable def func (G : Graph α β) (e : E(G)): Sym2 V(G) :=
   let H := G.exists_inc₂_of_mem_edgeSet e.prop
   s(⟨H.choose, H.choose_spec.choose_spec.vx_mem_left⟩,
     ⟨H.choose_spec.choose, H.choose_spec.choose_spec.vx_mem_right⟩)
 
-@[simp] lemma func_eq_pair_iff {x y : G.V} {e : G.E} :
+@[simp] lemma func_eq_pair_iff {x y : V(G)} {e : E(G)} :
     G.func e = s(x, y) ↔ G.Inc₂ e x y := by
   let H := G.exists_inc₂_of_mem_edgeSet e.prop
   let a := H.choose
@@ -491,7 +494,7 @@ noncomputable def func (G : Graph α β) (e : G.E): Sym2 G.V :=
 lemma Inc₂.func (h : G.Inc₂ e x y) :
     G.func ⟨e, h.edge_mem⟩ = s(⟨x, h.vx_mem_left⟩, ⟨y, h.vx_mem_right⟩) := by simpa
 
-lemma exists_func_pair (e : G.E) : ∃ x y, G.func e = s(x, y) := by
+lemma exists_func_pair (e : E(G)) : ∃ x y, G.func e = s(x, y) := by
   let H := G.exists_inc₂_of_mem_edgeSet e.prop
   let a := H.choose
   let b := H.choose_spec.choose
@@ -520,7 +523,7 @@ lemma Inc₂.incFun_support_eq [DecidableEq α] (h : G.Inc₂ e x y) :
 --     s ∩ {x} = if x ∈ s then {x} else ∅ := by
 --   split_ifs <;> simpa
 
-lemma incFun_eq_zero_of_not_mem (he : e ∉ G.E) : G.incFun e = 0 := by
+lemma incFun_eq_zero_of_not_mem (he : e ∉ E(G)) : G.incFun e = 0 := by
   simp [DFunLike.ext_iff, incFun, inc_iff_exists_inc₂, not_inc₂_of_not_mem_edgeSet he]
 
 lemma incFun_le_two (G : Graph α β) (e : β) (x : α) : G.incFun e x ≤ 2 := by
@@ -560,7 +563,7 @@ lemma IsLoopAt.incFun_eq_two (h : G.IsLoopAt e x) : G.incFun e x = 2 :=
   incFun_eq_two_iff.2 h
 
 @[simp]
-lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ G.E := by
+lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ E(G) := by
   refine ⟨fun h he ↦ ?_, incFun_eq_zero_of_not_mem⟩
   obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
   obtain hx | hx := hxy.inc_left.isLoopAt_or_isNonloopAt
@@ -569,7 +572,7 @@ lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ G.E := by
   have := h ▸ hx.incFun_eq_one
   simp at this
 
-lemma sum_incFun_eq_two (he : e ∈ G.E) : (G.incFun e).sum (fun _ x ↦ x) = 2 := by
+lemma sum_incFun_eq_two (he : e ∈ E(G)) : (G.incFun e).sum (fun _ x ↦ x) = 2 := by
   classical
   obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
   obtain rfl | hne := eq_or_ne x y
@@ -580,7 +583,7 @@ lemma sum_incFun_eq_two (he : e ∈ G.E) : (G.incFun e).sum (fun _ x ↦ x) = 2 
 @[simp]
 lemma toMultiset_count [DecidableEq α] (x : α) : (G.toMultiset e).count x = G.incFun e x := by
   classical
-  by_cases he : e ∈ G.E
+  by_cases he : e ∈ E(G)
   · simp only [toMultiset, he, ↓reduceDIte, incFun]
     convert (Multiset.toFinsupp_apply _ x).symm
   · simp only [toMultiset, he, ↓reduceDIte, Multiset.not_mem_zero, not_false_eq_true,
@@ -610,8 +613,8 @@ protected def mk' (V : Set α) (Inc₂ : β → α → α → Prop)
     (inc₂_symm : ∀ ⦃e x y⦄, Inc₂ e x y → Inc₂ e y x)
     (eq_or_eq_of_inc₂_of_inc₂ : ∀ ⦃e x y v w⦄, Inc₂ e x y → Inc₂ e v w → x = v ∨ x = w)
     (vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ V) : Graph α β where
-  V := V
-  E := {e | ∃ x y, Inc₂ e x y}
+  vertexSet := V
+  edgeSet := {e | ∃ x y, Inc₂ e x y}
   Inc₂ := Inc₂
   inc₂_symm := inc₂_symm
   eq_or_eq_of_inc₂_of_inc₂ := eq_or_eq_of_inc₂_of_inc₂
@@ -619,7 +622,7 @@ protected def mk' (V : Set α) (Inc₂ : β → α → α → Prop)
   vx_mem_left_of_inc₂ := vx_mem_left_of_inc₂
 
 @[simp]
-lemma mk'_eq_self (G : Graph α β) : Graph.mk' G.V G.Inc₂ (fun _ _ _ ↦ Inc₂.symm)
+lemma mk'_eq_self (G : Graph α β) : Graph.mk' V(G) G.Inc₂ (fun _ _ _ ↦ Inc₂.symm)
   (fun _ _ _ _ _ h h' ↦ h.left_eq_or_eq_of_inc₂ h') (fun _ _ _ ↦ Inc₂.vx_mem_left) = G := by
   have h := G.edgeSet_eq_setOf_exists_inc₂
   cases G with | mk V E Inc₂ _ _ _ => simpa [Graph.mk'] using h.symm
@@ -640,10 +643,10 @@ lemma toMultiset_eq_toMultiset_iff {G' : Graph α β} :
   constructor <;> rintro h
   · ext x y
     rw [← toMultiset_eq_pair_iff, h, toMultiset_eq_pair_iff]
-  · by_cases he : e ∈ G.E
+  · by_cases he : e ∈ E(G)
     · obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
       rw [hxy.toMultiset, Inc₂.toMultiset (h ▸ hxy)]
-    · have : f ∉ G'.E := fun h' ↦ by
+    · have : f ∉ E(G') := fun h' ↦ by
         obtain ⟨x, y, hxy⟩ := G'.exists_inc₂_of_mem_edgeSet h'
         exact he (h ▸ hxy).edge_mem |>.elim
       simp [he, this]
@@ -653,7 +656,7 @@ lemma toMultiset_eq_toMultiset_iff' {G' : Graph α β} :
   convert toMultiset_eq_toMultiset_iff (G := G) (G' := G') using 1
   simp_rw [funext_iff, eq_iff_iff]
 
-lemma toSym2_eq_toSym2_iff {G' : Graph α β} (he : e ∈ G.E) (hf : f ∈ G'.E) :
+lemma toSym2_eq_toSym2_iff {G' : Graph α β} (he : e ∈ E(G)) (hf : f ∈ E(G')) :
     G.toSym2 e he = G'.toSym2 f hf ↔ G.Inc₂ e = G'.Inc₂ f := by
   obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
   obtain ⟨x', y', hx'y'⟩ := G'.exists_inc₂_of_mem_edgeSet hf
@@ -663,14 +666,14 @@ lemma toSym2_eq_toSym2_iff {G' : Graph α β} (he : e ∈ G.E) (hf : f ∈ G'.E)
     rw [hxy.inc₂_iff_sym2_eq, h, hx'y'.inc₂_iff_sym2_eq]
   · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_and_eq_or_eq_and_eq_of_inc₂ hx'y' <;> simp
 
-lemma toSym2_eq_toSym2_iff' {G' : Graph α β} (he : e ∈ G.E) (hf : f ∈ G'.E) :
+lemma toSym2_eq_toSym2_iff' {G' : Graph α β} (he : e ∈ E(G)) (hf : f ∈ E(G')) :
     G.toSym2 e he = G'.toSym2 f hf ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ f x y) := by
   convert toSym2_eq_toSym2_iff (he := he) (hf := hf) using 1
   simp_rw [funext_iff, eq_iff_iff]
 
 /-- Two graphs with the same vertex set and binary incidences are equal. -/
 @[ext]
-protected lemma ext {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V)
+protected lemma ext {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂))
     (h : ∀ e x y, G₁.Inc₂ e x y ↔ G₂.Inc₂ e x y) : G₁ = G₂ := by
   rw [← G₁.mk'_eq_self, ← G₂.mk'_eq_self]
   simp_rw [hV]
@@ -679,30 +682,30 @@ protected lemma ext {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V)
   rw [h]
 
 /-- Two graphs with the same vertex set and unary incidences are equal. -/
-lemma ext_inc {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V) (h : ∀ e x, G₁.Inc e x ↔ G₂.Inc e x) :
+lemma ext_inc {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (h : ∀ e x, G₁.Inc e x ↔ G₂.Inc e x) :
     G₁ = G₂ :=
   Graph.ext hV fun _ _ _ ↦ by simp_rw [inc₂_iff_inc, h]
 
 /-- Two graphs with the same vertex set and Multiset of edges are equal. -/
-lemma ext_toMultiset {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V) (h : ∀ e, G₁.toMultiset e = G₂.toMultiset e) :
+lemma ext_toMultiset {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (h : ∀ e, G₁.toMultiset e = G₂.toMultiset e) :
     G₁ = G₂ :=
   Graph.ext hV fun _ _ _ ↦ by simp_rw [← toMultiset_eq_pair_iff, h]
 
 /-- Two graphs with the same vertex & edge sets and Sym2 of edges are equal. -/
-lemma ext_toSym2 {G₁ G₂ : Graph α β} (hV : G₁.V = G₂.V) (hE : G₁.E = G₂.E)
+lemma ext_toSym2 {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (hE : E(G₁) = E(G₂))
     (h : ∀ e he, G₁.toSym2 e he = G₂.toSym2 e (hE ▸ he)) : G₁ = G₂ :=
   Graph.ext hV fun e _ _ ↦ by
-    by_cases he : e ∈ G₁.E
+    by_cases he : e ∈ E(G₁)
     · simp_rw [← toSym2_eq_pair_iff he , h, toSym2_eq_pair_iff]
     · simp [he, hE ▸ he]
 
 
 -- TODO: write a docstring
 @[simps]
-def copy (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → α → α → Prop} (hV : G.V = V)
-    (hE : G.E = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) : Graph α β where
-  V := V
-  E := E
+def copy (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → α → α → Prop} (hV : V(G) = V)
+    (hE : E(G) = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) : Graph α β where
+  vertexSet := V
+  edgeSet := E
   Inc₂ := Inc₂
   inc₂_symm := by
     simp_rw [← h_inc₂]
@@ -718,7 +721,7 @@ def copy (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → α → α 
     exact G.vx_mem_left_of_inc₂
 
 lemma copy_eq_self (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → α → α → Prop}
-    (hV : G.V = V) (hE : G.E = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) :
+    (hV : V(G) = V) (hE : E(G) = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) :
     G.copy hV hE h_inc₂ = G := by
   ext <;> simp_all
 
@@ -742,9 +745,9 @@ lemma degree_eq_fintype_sum [Fintype β] (G : Graph α β) (v : α) :
   rw [← WithTop.lt_top_iff_ne_top]
   exact Batteries.compareOfLessAndEq_eq_lt.1 rfl
 
-lemma degree_eq_edgeSet_sum (G : Graph α β) [Fintype G.E] (v : α) :
-    G.degree v = ∑ e ∈ G.E, G.incFun e v := by
-  rw [degree, eDegree, tsum_eq_sum (s := G.E.toFinset) (by simp; exact fun b hb ↦ not_inc_of_not_mem_edgeSet hb v), ← Nat.cast_inj (R := ℕ∞),
+lemma degree_eq_edgeSet_sum (G : Graph α β) [Fintype E(G)] (v : α) :
+    G.degree v = ∑ e ∈ E(G), G.incFun e v := by
+  rw [degree, eDegree, tsum_eq_sum (s := E(G).toFinset) (by simp; exact fun b hb ↦ not_inc_of_not_mem_edgeSet hb v), ← Nat.cast_inj (R := ℕ∞),
     Nat.cast_sum, ENat.coe_toNat]
   refine WithTop.sum_ne_top.2 fun i _ ↦ ?_
   rw [← WithTop.lt_top_iff_ne_top]
@@ -755,29 +758,29 @@ lemma degree_eq_finsum [Finite β] (G : Graph α β) (v : α) :
   have := Fintype.ofFinite β
   rw [degree_eq_fintype_sum, finsum_eq_sum_of_fintype]
 
-lemma degree_eq_finsum_edgeSet (G : Graph α β) [Finite G.E] (v : α) :
-    G.degree v = ∑ᶠ (e) (_ : e ∈ G.E), G.incFun e v := by
-  rw [degree_eq_edgeSet_sum, finsum_cond_eq_sum_of_cond_iff (t := G.E.toFinset) (h := by simp)]
+lemma degree_eq_finsum_edgeSet (G : Graph α β) [Finite E(G)] (v : α) :
+    G.degree v = ∑ᶠ (e) (_ : e ∈ E(G)), G.incFun e v := by
+  rw [degree_eq_edgeSet_sum, finsum_cond_eq_sum_of_cond_iff (t := E(G).toFinset) (h := by simp)]
 
 @[simp]
-lemma finsum_incFun_eq (he : e ∈ G.E) : ∑ᶠ v, G.incFun e v = 2 := by
+lemma finsum_incFun_eq (he : e ∈ E(G)) : ∑ᶠ v, G.incFun e v = 2 := by
   simp_rw [← sum_incFun_eq_two he, Finsupp.sum]
   rw [finsum_eq_finset_sum_of_support_subset]
   simp
 
 @[simp]
-lemma finsum_vxSet_incFun_eq (he : e ∈ G.E) : ∑ᶠ v ∈ G.V, G.incFun e v = 2 := by
+lemma finsum_vertexSet_incFun_eq (he : e ∈ E(G)) : ∑ᶠ v ∈ V(G), G.incFun e v = 2 := by
   simp_rw [← sum_incFun_eq_two he, Finsupp.sum, finsum_mem_def]
   rw [← finsum_eq_finset_sum_of_support_subset]
   refine finsum_congr fun v ↦ ?_
   rw [indicator_apply_eq_self]
   rintro hv
-  simp [not_inc_of_not_mem_vxSet v hv]
+  simp [not_inc_of_not_mem_vertexSet v hv]
   · simp
 
 lemma handshake [Finite α] [Finite β] (G : Graph α β) :
-    ∑ᶠ v, G.degree v = 2 * G.E.ncard := by
-  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) G.E.toFinite (Set.finite_univ (α := α))
+    ∑ᶠ v, G.degree v = 2 * E(G).ncard := by
+  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) E(G).toFinite (Set.finite_univ (α := α))
   convert h.symm using 1
   · simp only [Set.mem_univ, finsum_true, degree_eq_finsum, finsum_mem_def]
     convert rfl with v e
@@ -785,22 +788,22 @@ lemma handshake [Finite α] [Finite β] (G : Graph α β) :
     simp only [indicator_apply_eq_self, incFun_eq_zero, not_imp_not]
     apply Inc.edge_mem
   simp only [Set.mem_univ, finsum_true]
-  rw [finsum_mem_congr (show G.E = G.E from rfl) (fun x h ↦ finsum_incFun_eq h),
+  rw [finsum_mem_congr (show E(G) = E(G) from rfl) (fun x h ↦ finsum_incFun_eq h),
     finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card]
   simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
 
-lemma handshake' (G : Graph α β) [hV : Finite G.V] [hE : Finite G.E] :
-    ∑ᶠ v, G.degree v = 2 * G.E.ncard := by
-  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) G.E.toFinite hV
+lemma handshake' (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
+    ∑ᶠ v, G.degree v = 2 * E(G).ncard := by
+  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) E(G).toFinite hV
   convert h.symm using 1
   · simp only [degree_eq_finsum_edgeSet, finsum_mem_def]
     convert rfl with v
     rw [indicator_apply_eq_self]
     rintro hv
     convert finsum_zero with e
-    simp [not_inc_of_not_mem_vxSet v hv]
+    simp [not_inc_of_not_mem_vertexSet v hv]
   simp only [Set.mem_univ, finsum_true]
-  rw [finsum_mem_congr (show G.E = G.E from rfl) (fun x h ↦ finsum_vxSet_incFun_eq h),
+  rw [finsum_mem_congr (show E(G) = E(G) from rfl) (fun x h ↦ finsum_vertexSet_incFun_eq h),
     finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card _ hE]
   simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
 
@@ -828,11 +831,11 @@ lemma not_inc₂_right (hisol : G.Isolated u) : ¬ G.Inc₂ e v u :=
 
 end Isolated
 
-lemma isolated_of_E_empty (hE : G.E = ∅) : G.Isolated u := by
+lemma isolated_of_E_empty (hE : E(G) = ∅) : G.Isolated u := by
   intro e hinc
   exact (hE ▸ hinc.edge_mem : e ∈ ∅)
 
-lemma degree_eq_zero_iff_isolated (G : Graph α β) [Finite G.E] (v : α) :
+lemma degree_eq_zero_iff_isolated (G : Graph α β) [Finite E(G)] (v : α) :
     G.degree v = 0 ↔ G.Isolated v := by
   rw [degree_eq_edgeSet_sum]
   constructor <;> rintro h

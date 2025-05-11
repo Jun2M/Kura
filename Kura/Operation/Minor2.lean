@@ -7,7 +7,7 @@ variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e 
 namespace Graph
 
 def SetContract (G : Graph (Set α) β) (C : Set β) : Graph (Set α) β :=
-  G.VxIdentification (G ↾ C).ConnectivityPartition ＼ C
+  V(G)xIdentification (G ↾ C).ConnectivityPartition ＼ C
 
 -- scoped infix:70 " / " => Graph.SetContract
 
@@ -17,37 +17,37 @@ instance : HDiv (Graph (Set α) β) (Set β) (Graph (Set α) β) where
 def setContract_def (G : Graph (Set α) β) (C : Set β) : G / C = G.SetContract C := rfl
 
 @[simp]
-lemma setContract_vxSet (G : Graph (Set α) β) (C : Set β) :
-  (G / C).V = (⋃₀ (G ↾ C).Component · ) '' G.V := by
+lemma setContract_vertexSet (G : Graph (Set α) β) (C : Set β) :
+  (G / C).V = (⋃₀ (G ↾ C).Component · ) '' V(G) := by
   rw [← connectivityPartition_partOf]
   rfl
 
-instance instvxSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite G.V] :
+instance instvertexSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite V(G)] :
     Finite (G / C).V := by
-  rw [setContract_vxSet]
+  rw [setContract_vertexSet]
   infer_instance
 
 @[simp]
-lemma SetContract_edgeSet (G : Graph (Set α) β) (C : Set β) : (G / C).E = G.E \ C :=
+lemma SetContract_edgeSet (G : Graph (Set α) β) (C : Set β) : (G / C).E = E(G) \ C :=
   congrArg (· \ C) (VxIdentification_edgeSet G _)
 
-instance instedgeSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite G.E] :
+instance instedgeSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite E(G)] :
     Finite (G / C).E := by
   rw [SetContract_edgeSet]
   infer_instance
 
-lemma setContract_edgeSet_ncard_le (G : Graph (Set α) β) (C : Set β) [Finite G.E] :
-    (G / C).E.ncard ≤ G.E.ncard := by
+lemma setContract_edgeSet_ncard_le (G : Graph (Set α) β) (C : Set β) [Finite E(G)] :
+    (G / C).E.ncard ≤ E(G).ncard := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_edgeSet_ncard_le C
 
-lemma setContract_edgeSet_ncard_lt_iff (G : Graph (Set α) β) (C : Set β) [Finite G.E] :
-    (G / C).E.ncard < G.E.ncard ↔ (G.E ∩ C).Nonempty := by
+lemma setContract_edgeSet_ncard_lt_iff (G : Graph (Set α) β) (C : Set β) [Finite E(G)] :
+    (G / C).E.ncard < E(G).ncard ↔ (E(G) ∩ C).Nonempty := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_edgeSet_ncard_lt_iff C
 
-lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) β) (e : β) [Finite G.E] :
-    (G / ({e} : Set β )).E.ncard < G.E.ncard ↔ e ∈ G.E := by
+lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) β) (e : β) [Finite E(G)] :
+    (G / ({e} : Set β )).E.ncard < E(G).ncard ↔ e ∈ E(G) := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_singleton_edgeSet_ncard_lt_iff e
 
@@ -79,30 +79,30 @@ lemma setContract_inc₂ {u v : Set α} : (G / C).Inc₂ e u v ↔
   simp_rw [setContract_def, SetContract, ← connectivityPartition_partOf, edgeDelete_inc₂,
     vxIdentification_inc₂]
 
-lemma SetContract.subset_map (C : Set β) {u : Set α} (hu : u ∈ G.V) : u ⊆ ⋃₀ (G ↾ C).Component u :=
+lemma SetContract.subset_map (C : Set β) {u : Set α} (hu : u ∈ V(G)) : u ⊆ ⋃₀ (G ↾ C).Component u :=
   subset_sUnion_of_subset ((G ↾ C).Component u) u (fun _ a ↦ a) (VxConnected.refl hu)
 
-lemma SetContract.map_eq_iff' {u v : Set α} (hP : G.IsPartitionGraph) (hv : v ∈ G.V) :
+lemma SetContract.map_eq_iff' {u v : Set α} (hP : G.IsPartitionGraph) (hv : v ∈ V(G)) :
     ⋃₀ (G ↾ C).Component u = ⋃₀ (G ↾ C).Component v ↔ (G ↾ C).VxConnected u v := by
   obtain ⟨P, hP⟩ := hP
   rw [← hP] at hv
   constructor <;> intro h
   · have : v ⊆ ⋃₀ (G ↾ C).Component v := subset_map C (hP ▸ hv)
-    rw [← h, P.subset_sUnion_iff_mem hv (by rw [hP, ← edgeRestrict_vxSet]; exact component_subset_V)] at this
+    rw [← h, P.subset_sUnion_iff_mem hv (by rw [hP, ← edgeRestrict_vertexSet]; exact component_subset_V)] at this
     simpa using this
   · ext x
     simp only [mem_sUnion, mem_component_iff]
     have : ∀ t, (G ↾ C).VxConnected u t ↔ (G ↾ C).VxConnected v t := fun _ ↦ rel_congr_left h
     simp_rw [this]
 
-lemma SetContract.map_eq_iff {u v : Set α} (hP : G.IsPartitionGraph) (hu : u ∈ G.V) :
+lemma SetContract.map_eq_iff {u v : Set α} (hP : G.IsPartitionGraph) (hu : u ∈ V(G)) :
     ⋃₀ (G ↾ C).Component u = ⋃₀ (G ↾ C).Component v ↔ (G ↾ C).VxConnected u v := by
   rw [eq_comm, vxConnected_comm, SetContract.map_eq_iff' hP hu]
 
 @[simp]
 lemma SetContract.map_mem_iff {u : Set α} (hP : G.IsPartitionGraph) :
-    (⋃₀ (G ↾ C).Component u) ∈ (G / C).V ↔ u ∈ G.V := by
-  simp only [setContract_vxSet, mem_image]
+    (⋃₀ (G ↾ C).Component u) ∈ (G / C).V ↔ u ∈ V(G) := by
+  simp only [setContract_vertexSet, mem_image]
   constructor <;> rintro h
   · obtain ⟨x, hx, heq⟩ := h
     rw [map_eq_iff hP hx] at heq
@@ -110,7 +110,7 @@ lemma SetContract.map_mem_iff {u : Set α} (hP : G.IsPartitionGraph) :
   · use u
 
 -- @[simp]
--- lemma SetContract.merged_iff {u v : Set α} (hP : G.IsPartitionGraph) (hu : u ∈ G.V) (hv : v ∈ G.V) :
+-- lemma SetContract.merged_iff {u v : Set α} (hP : G.IsPartitionGraph) (hu : u ∈ V(G)) (hv : v ∈ V(G)) :
 --     (∃ x ∈ (G / C).V, u ⊆ x ∧ v ⊆ x) ↔ (G ↾ C).Connected u v := by
 --   obtain ⟨P, hP⟩ := hP
 --   constructor
@@ -133,7 +133,7 @@ lemma SetContract.IsPartitionGraph (C : Set β) (hP : G.IsPartitionGraph) :
   obtain ⟨P, hP⟩ := hP
   use (G ↾ C).ConnectivityPartition.flatten (by use P; simp [hP])
   simp only [Partition.flatten_parts, sSup_eq_sUnion, connectedPartition_parts, ComponentSets,
-    edgeRestrict_vxSet, setContract_vxSet, connectivityPartition_partOf]
+    edgeRestrict_vertexSet, setContract_vertexSet, connectivityPartition_partOf]
   rw [image_image]
 
 lemma setContract_edgeDel_comm (G : Graph (Set α) β) (hCD : Disjoint C D) :
@@ -143,15 +143,15 @@ lemma setContract_edgeDel_comm (G : Graph (Set α) β) (hCD : Disjoint C D) :
     tauto_set
   refine ext_inc ?_ fun e x ↦ ?_
   · ext u
-    simp only [edgeDelete_vxSet, setContract_vxSet, heq, mem_image]
+    simp only [edgeDelete_vertexSet, setContract_vertexSet, heq, mem_image]
   · simp only [edgeDelete_inc, setContract_inc, ← heq]
     tauto
 
 lemma SetContract.foo {u v : Set α} (hP : G.IsPartitionGraph)
     (hTconn : (G / C ↾ D).VxConnected (⋃₀ (G ↾ C).Component v) (⋃₀ (G ↾ C).Component u)) :
     (G ↾ (C ∪ D)).VxConnected v u := by
-  have hu : u ∈ G.V := (SetContract.map_mem_iff hP).mp hTconn.mem_right
-  have hv : v ∈ G.V := (SetContract.map_mem_iff hP).mp hTconn.mem_left
+  have hu : u ∈ V(G) := (SetContract.map_mem_iff hP).mp hTconn.mem_right
+  have hv : v ∈ V(G) := (SetContract.map_mem_iff hP).mp hTconn.mem_left
   obtain ⟨w, hwVd, hwfst, hwlst⟩ := vxConnected_iff_exists_walk.mp hTconn ; clear hTconn
   induction w generalizing v with
   | nil v =>
@@ -172,7 +172,7 @@ lemma SetContract.foo2 {u v : Set α} (hP : G.IsPartitionGraph) (h : (G ↾ (C �
   obtain ⟨w, hwVd, rfl, rfl⟩ := vxConnected_iff_exists_walk.mp h ; clear h
   induction w with
   | nil x =>
-    simp only [WList.nil_last, WList.nil_first, vxConnected_self, edgeRestrict_vxSet, V,
+    simp only [WList.nil_last, WList.nil_first, vxConnected_self, edgeRestrict_vertexSet, V,
       mem_image]
     use x, by simpa using hwVd
     rw [connectivityPartition_partOf]
@@ -210,7 +210,7 @@ lemma SetContract.contract_contract (C D : Set β) (hP : G.IsPartitionGraph) :
     (G / C) / D = G / (C ∪ D) := by
   refine Graph.ext ?_ fun e x y ↦ ?_
   · ext u
-    simp only [setContract_vxSet, mem_image, exists_exists_and_eq_and, map_map C D hP]
+    simp only [setContract_vertexSet, mem_image, exists_exists_and_eq_and, map_map C D hP]
   · simp only [setContract_inc₂, mem_union, not_or]
     constructor
     · rintro ⟨heD, _, _, ⟨heC, x, y, hbtw, rfl, rfl⟩, rfl, rfl⟩
@@ -236,7 +236,7 @@ inductive IspMinor : Graph (Set α) β → Graph (Set α) β → Prop
 
 inductive IsrMinor : Graph α β → Graph α β → Prop
   | repFun G H (G' : Graph (Set α) β) (f : Set α → α) :
-    G'.IspMinor H.Setify → (∀ s ∈ G'.V, f s ∈ s) → G = G'.vxMap f → IsrMinor G H
+    G'.IspMinor H.Setify → (∀ s ∈ V(G'), f s ∈ s) → G = G'.vxMap f → IsrMinor G H
 
 def IsiMinor (G : Graph α' β') (H : Graph α β) : Prop :=
   ∃ (G' : Graph (Set α) β), G'.IspMinor (H.Setify) ∧ G ≤↔ G'

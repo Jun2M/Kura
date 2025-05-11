@@ -52,7 +52,7 @@ lemma IsSublist.edge_sublist {w₁ w₂ : WList α β} (h : w₁.IsSublist w₂)
   | cons x e h ih => exact ih.trans <| by simp
   | cons₂ x e h ih => simpa
 
-lemma IsSublist.edgeSet_subset (h : w₁.IsSublist w₂) : w₁.E ⊆ w₂.E :=
+lemma IsSublist.edgeSet_subset (h : w₁.IsSublist w₂) : E(w₁) ⊆ E(w₂) :=
   fun _ hx ↦ (h.edge_sublist.subset hx)
 
 lemma IsSublist.length_le (h : w₁.IsSublist w₂) : w₁.length ≤ w₂.length := by
@@ -542,9 +542,9 @@ lemma first_not_mem_tail_of_nodup (hw : Nodup w.vx) (hne : w.Nonempty) :
     w.first ∉ w.tail := by
   simp [mem_tail_iff_of_nodup hw hne]
 
-lemma tail_vxSet_of_nodup (hw : Nodup w.vx) (hne : w.Nonempty) :
-    w.tail.V = w.V \ {w.first} := by
-  simp_rw [WList.V, mem_tail_iff_of_nodup hw hne]
+lemma tail_vertexSet_of_nodup (hw : Nodup w.vx) (hne : w.Nonempty) :
+    V(w.tail) = V(w) \ {w.first} := by
+  simp_rw [WList.vertexSet, mem_tail_iff_of_nodup hw hne]
   aesop
 
 lemma Nonempty.cons_tail (hw : w.Nonempty) : w.tail.cons w.first (hw.firstEdge w) = w := by
@@ -648,9 +648,9 @@ lemma mem_iff_eq_mem_dropLast_or_eq_last : u ∈ w ↔ u ∈ w.dropLast ∨ u = 
   rw [← mem_reverse, mem_iff_eq_first_or_mem_tail, or_comm, reverse_tail, mem_reverse,
     reverse_first]
 
-lemma dropLast_vxSet_of_nodup (hw : w.vx.Nodup) (hne : w.Nonempty) :
-    (w.dropLast).V = w.V \ {w.last} := by
-  rw [← reverse_vxSet, ← reverse_tail, tail_vxSet_of_nodup (by simpa) (by simpa)]
+lemma dropLast_vertexSet_of_nodup (hw : w.vx.Nodup) (hne : w.Nonempty) :
+    V(w.dropLast) = V(w) \ {w.last} := by
+  rw [← reverse_vertexSet, ← reverse_tail, tail_vertexSet_of_nodup (by simpa) (by simpa)]
   simp
 
 lemma mem_dropLast_iff_of_nodup (hw : w.vx.Nodup) (hne : w.Nonempty) :
@@ -930,7 +930,7 @@ lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β)
 --   rw [endIf]
 --   split_ifs <;> simp [endIf_sizeOf_le]
 
--- lemma ValidIn.endIf {w : WList α β} (hVd : w.ValidIn G) (h : ∃ u ∈ w, P u) :
+-- lemma ValidIn.endIf {w : WList α β} (hVd : V(w)alidIn G) (h : ∃ u ∈ w, P u) :
 --     (w.endIf h).ValidIn G := by
 --   match w with
 --   | .nil x => simpa only [endIf, nil_validIn]
@@ -973,7 +973,7 @@ lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β)
 --       · simp only [mem_cons_iff, exists_eq_or_imp, hPx, false_or] at h
 --         exact endIf_mem_vx h hvmem
 
--- lemma endIf_exists_inc₂_last {w : WList α β} (h : ∃ u ∈ w, P u) (hVd : w.ValidIn G)
+-- lemma endIf_exists_inc₂_last {w : WList α β} (h : ∃ u ∈ w, P u) (hVd : V(w)alidIn G)
 --     (hNonempty : (w.endIf h).Nonempty) :
 --     ∃ v ∈ (w.endIf h), ¬ P v ∧ ∃ e, G.Inc₂ e v (w.endIf h).last := by
 --   match w with

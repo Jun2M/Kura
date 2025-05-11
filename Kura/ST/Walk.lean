@@ -15,14 +15,14 @@ lemma walk_inter (hUsep : G.IsVxSetSeparator S T U) (hWF : G.IsWalkFrom S T w) :
   use w.first, hWF.first_mem, w.last, hWF.last_mem
   exact (hWF.validIn.vxDel fun V hV hVU x hxV ↦ hx x (hV hxV) (hVU hxV)).connected
 
-lemma walk_validOn_left (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G - U))
-    (hLeft : ∃ x ∈ w, x ∈ hUsep.leftSet) : w.ValidIn (G[hUsep.leftSet]) := by
+lemma walk_validOn_left (hUsep : G.IsVxSetSeparator S T U) (hVd : V(w)alidIn (G - U))
+    (hLeft : ∃ x ∈ w, x ∈ hUsep.leftSet) : V(w)alidIn (G[hUsep.leftSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hLeft
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
 
-lemma walk_validOn_right (hUsep : G.IsVxSetSeparator S T U) (hVd : w.ValidIn (G - U))
-    (hT : ∃ x ∈ w, x ∈ hUsep.rightSet) : w.ValidIn (G[hUsep.rightSet]) := by
+lemma walk_validOn_right (hUsep : G.IsVxSetSeparator S T U) (hVd : V(w)alidIn (G - U))
+    (hT : ∃ x ∈ w, x ∈ hUsep.rightSet) : V(w)alidIn (G[hUsep.rightSet]) := by
   obtain ⟨y, hy, s, hs, hys⟩ := hT
   refine hVd.le (induce_le G diff_subset) |>.induce fun x hxp ↦ ?_
   use s, hs, (hVd.connected_of_mem hxp hy).trans hys
@@ -57,7 +57,7 @@ lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hP : G.IsPath w)
       refine ⟨hP.validIn.2.vx_mem_of_mem first_mem, hw'⟩
 
 lemma path_validOn_leftHalf_of_finishSep (hUsep : G.IsVxSetSeparator S T {w.last}) (hP : G.IsPath w)
-    (hS : w.first ∈ hUsep.leftSet) : w.ValidIn (G[hUsep.leftSet ∪ {w.last}]) :=
+    (hS : w.first ∈ hUsep.leftSet) : V(w)alidIn (G[hUsep.leftSet ∪ {w.last}]) :=
   hP.validIn.induce <| fun _ => path_in_leftHalf_of_finishSep (w := w) hP hUsep hS
 
 instance IsPreorder : IsPreorder (Set α) (IsVxSetSeparator G S) where
@@ -95,7 +95,7 @@ lemma crossingWalk_endIf_validOn [DecidableEq α] (hVsep : G.IsVxSetSeparator S 
   by_cases hnonempty : ¬ (w.endIf h).Nonempty
   · rw [Nonempty.not_iff] at hnonempty
     obtain ⟨y, hy⟩ := hnonempty
-    simp only [hy, nil_vxSet, mem_singleton_iff] at hx
+    simp only [hy, nil_vertexSet, mem_singleton_iff] at hx
     subst y
     right
     convert endIf_last h
@@ -122,7 +122,7 @@ lemma crossingWalk_endIf_validOn' [DecidableEq α] [DecidablePred (· ∈ V)]
     (hVsep.crossingWalk_intersect' hwF)).ValidIn (G[hVsep.rightSet ∪ V]) :=
   hVsep.symm.crossingWalk_endIf_validOn hwF
 
-lemma leftSetV_iff (h : G.IsVxSetSeparator S T V) (hV : V ⊆ G.V) (U : Set α) :
+lemma leftSetV_iff (h : G.IsVxSetSeparator S T V) (hV : V ⊆ V(G)) (U : Set α) :
     G[h.leftSet ∪ V].IsVxSetSeparator S V U ↔ G.IsVxSetSeparator S V U := by
   classical
   constructor
@@ -144,14 +144,14 @@ lemma leftSetV_iff (h : G.IsVxSetSeparator S T V) (hV : V ⊆ G.V) (U : Set α) 
     refine hUsep.le <| induce_le _ <| Set.union_subset ?_ hV
     exact (leftSet_subset h).trans diff_subset
 
-lemma rightSetV_iff (hVsep : G.IsVxSetSeparator S T V) (hV : V ⊆ G.V) (U : Set α) :
+lemma rightSetV_iff (hVsep : G.IsVxSetSeparator S T V) (hV : V ⊆ V(G)) (U : Set α) :
     G[hVsep.rightSet ∪ V].IsVxSetSeparator V T U ↔ G.IsVxSetSeparator V T U := by
   have := hVsep.symm.leftSetV_iff hV U
   rw [comm (S := V), comm (S := V)]
   convert this using 1
 
 lemma conn_sep_iff_conn_left (hVsep : G.IsVxSetSeparator S T V) (hu : u ∈ hVsep.leftSet)
-    (hV : V ⊆ G.V) :
+    (hV : V ⊆ V(G)) :
     (∃ v ∈ V, G.Connected u v) ↔ ∃ v ∈ V, G[hVsep.leftSet ∪ V].Connected u v := by
   classical
   constructor
@@ -186,14 +186,14 @@ lemma conn_sep_iff_conn_left (hVsep : G.IsVxSetSeparator S T V) (hu : u ∈ hVse
           refine Connected.trans ?_ hsconn
           exact ValidIn.connected_of_mem hw'dvdGV hy first_mem
 
-        rw [mem_vxSet_iff, ← mem_notation, ← List.dropLast_concat_getLast vx_ne_nil,
+        rw [mem_vertexSet_iff, ← mem_notation, ← List.dropLast_concat_getLast vx_ne_nil,
         List.mem_append, ← dropLast_vx hNonempty, List.mem_singleton, ← w'.last_eq_vx_getLast] at hxw'
         simp only [hxw'Last, or_false] at hxw'
         left
         exact this.vx_mem_of_mem hxw'
     · simp only [Nonempty.not_iff] at hNonempty
       obtain ⟨y, hy⟩ := hNonempty
-      simp only [hy, nil_vxSet, mem_singleton_iff] at hxw'
+      simp only [hy, nil_vertexSet, mem_singleton_iff] at hxw'
       subst y
       right
       have : w'.last = x := by

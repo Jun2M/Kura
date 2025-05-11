@@ -46,19 +46,19 @@ namespace Graph
 
 
 structure Funs (G : Graph α β) (G' : Graph α' β') where
-  toFun : G.V → G'.V
-  edgeFun : G.E → G'.E
+  toFun : V(G) → V(G')
+  edgeFun : E(G) → E(G')
 
-instance : CoeFun (Funs G G') fun (_ : Funs G G') ↦ G.V → G'.V where
+instance : CoeFun (Funs G G') fun (_ : Funs G G') ↦ V(G) → V(G') where
   coe v := v.toFun
 
 @[simps]
-def Funs.ofVxFun {G' : Graph α' β} (f : G.V → G'.V) (hE : G.E = G'.E) : Funs G G' where
+def Funs.ofVxFun {G' : Graph α' β} (f : V(G) → V(G')) (hE : E(G) = E(G')) : Funs G G' where
   toFun := f
   edgeFun := fun ⟨e, he⟩ ↦ ⟨e, hE ▸ he⟩
 
 @[simps]
-def Funs.ofEdgeFun {G' : Graph α β'} (f : G.E → G'.E) (hV : G.V = G'.V) : Funs G G' where
+def Funs.ofEdgeFun {G' : Graph α β'} (f : E(G) → E(G')) (hV : V(G) = V(G')) : Funs G G' where
   toFun := fun ⟨v, hv⟩ ↦ ⟨v, hV ▸ hv⟩
   edgeFun := f
 
@@ -72,7 +72,7 @@ def Funs.comp {G' : Graph α' β'} {G'' : Graph α'' β''} (f : Funs G G') (g : 
   toFun := g.toFun ∘ f.toFun
   edgeFun := g.edgeFun ∘ f.edgeFun
 
-lemma exists_funs (hV : G'.V.Nonempty) (hE : G'.E.Nonempty) : ∃ _ : Funs G G', True := by
+lemma exists_funs (hV : V(G').Nonempty) (hE : E(G').Nonempty) : ∃ _ : Funs G G', True := by
   use {
     toFun := fun _ ↦ ⟨hV.some, hV.some_mem⟩
     edgeFun := fun _ ↦ ⟨hE.some, hE.some_mem⟩
@@ -80,11 +80,11 @@ lemma exists_funs (hV : G'.V.Nonempty) (hE : G'.E.Nonempty) : ∃ _ : Funs G G',
 
 
 structure Hom (G : Graph α β) (G' : Graph α' β') extends Funs G G' where
-  inc₂ ⦃e : G.E⦄ ⦃x y : G.V⦄ : G.Inc₂ e x y → G'.Inc₂ (edgeFun e) (toFun x) (toFun y)
+  inc₂ ⦃e : E(G)⦄ ⦃x y : V(G)⦄ : G.Inc₂ e x y → G'.Inc₂ (edgeFun e) (toFun x) (toFun y)
 
-  -- inc ⦃e : G.E⦄ ⦃a : G.V⦄ : G.Inc e a → G'.Inc (edgeFun e) (toFun a) := fun hinc ↦
+  -- inc ⦃e : E(G)⦄ ⦃a : V(G)⦄ : G.Inc e a → G'.Inc (edgeFun e) (toFun a) := fun hinc ↦
   --   (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
-  -- toMultiset ⦃e : G.E⦄ : (G.toMultiset e).map toFun = G'.toMultiset (edgeFun e) := by
+  -- toMultiset ⦃e : E(G)⦄ : (G.toMultiset e).map toFun = G'.toMultiset (edgeFun e) := by
   --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
   --   rw [toMultiset_eq_pair_iff.mpr hbtw, toMultiset_eq_pair_iff.mpr (f.inc₂ hbtw)]
   --   rfl
@@ -150,7 +150,7 @@ lemma HasEmb.trans (h₁₂ : G ↪ᴳ G') (h₂₃ : G' ↪ᴳ G'') : G ↪ᴳ 
 
 lemma HasEmb.of_le (hle : G ≤ G₁) : G ↪ᴳ G₁ := by
   exact ⟨{
-    toFun v := ⟨v, vxSet_subset_of_le hle v.prop⟩
+    toFun v := ⟨v, vertexSet_subset_of_le hle v.prop⟩
     edgeFun e := ⟨e, edgeSet_subset_of_le hle e.prop⟩
     inc₂ e x y hbtw := hbtw.of_le hle
     inj_vx x y h := by
@@ -171,18 +171,18 @@ lemma HasEmb.bot : (⊥ : Graph α β) ↪ᴳ (⊥ : Graph α' β') := ⟨{
 
 
 structure Isom (G₁ : Graph α β) (G₂ : Graph α' β') extends Hom G₁ G₂ where
-  invFun : G₂.V → G₁.V
+  invFun : V(G₂) → V(G₁)
   vx_right_inv : RightInverse toFun invFun
   vx_left_inv : LeftInverse toFun invFun
-  edgeInvFun : G₂.E → G₁.E
+  edgeInvFun : E(G₂) → E(G₁)
   edge_right_inv : RightInverse edgeFun edgeInvFun
   edge_left_inv : LeftInverse edgeFun edgeInvFun
 
-lemma Isom.inc₂_iff (f : Isom G G') {e : G.E} {x y : G.V} :
+lemma Isom.inc₂_iff (f : Isom G G') {e : E(G)} {x y : V(G)} :
     G.Inc₂ e x y ↔ G'.Inc₂ (f.edgeFun e) (f.toFun x) (f.toFun y) := by
   refine ⟨(f.inc₂ ·), fun h ↦ ?_⟩
   obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet e.prop
-  have huv' : G.Inc₂ e (⟨u, huv.vx_mem_left⟩ : G.V) (⟨v, huv.vx_mem_right⟩ : G.V) := huv
+  have huv' : G.Inc₂ e (⟨u, huv.vx_mem_left⟩ : V(G)) (⟨v, huv.vx_mem_right⟩ : V(G)) := huv
   obtain ⟨hu, hv⟩ | ⟨hu, hv⟩ := (f.inc₂ huv').eq_and_eq_or_eq_and_eq_of_inc₂ h <;>
   rw [← Subtype.eq_iff, f.vx_right_inv.injective.eq_iff] at hu hv <;>
   subst x y
@@ -224,44 +224,44 @@ def Isom.toEmb (f : Isom G G') : Emb G G' where
 noncomputable def Isom.ofSurjEmb (f : Emb G G') (hvxSurj : Surjective f.toFun) (hedgeSurj : Surjective f.edgeFun) : Isom G G' where
   toHom := f.toHom
   invFun := by
-    by_cases h : Nonempty G.V.Elem
+    by_cases h : Nonempty V(G).Elem
     · exact f.toFun.invFun
     · simp only [nonempty_subtype, not_exists] at h
       rintro v
       simpa using h (hvxSurj v).choose
   vx_right_inv v := by
-    by_cases h : Nonempty G.V.Elem
+    by_cases h : Nonempty V(G).Elem
     · simp only [h, ↓reduceDIte]
       refine congrFun (invFun_comp f.inj_vx) _
     · simp only [nonempty_subtype, not_exists] at h
       simpa using h v
   vx_left_inv v := by
-    by_cases h : Nonempty G.V.Elem
+    by_cases h : Nonempty V(G).Elem
     · simp only [h, ↓reduceDIte]
       exact invFun_eq (hvxSurj _)
     · simp only [nonempty_subtype, not_exists] at h
       simpa using h (hvxSurj v).choose
   edgeInvFun := by
-    by_cases h : Nonempty G.E.Elem
+    by_cases h : Nonempty E(G).Elem
     · exact f.edgeFun.invFun
     · simp only [nonempty_subtype, not_exists] at h
       rintro e
       simpa using h (hedgeSurj e).choose
   edge_right_inv e := by
-    by_cases h : Nonempty G.E.Elem
+    by_cases h : Nonempty E(G).Elem
     · simp only [h, ↓reduceDIte]
       exact congrFun (invFun_comp f.inj_edge) _
     · simp only [nonempty_subtype, not_exists] at h
       simpa using h e
   edge_left_inv e := by
-    by_cases h : Nonempty G.E.Elem
+    by_cases h : Nonempty E(G).Elem
     · simp only [h, ↓reduceDIte]
       exact invFun_eq (hedgeSurj e)
     · simp only [nonempty_subtype, not_exists] at h
       simpa using h (hedgeSurj e).choose
 
-noncomputable def Isom.ofEmbCard [Finite G'.V] [Finite G'.E] (f : Emb G G')
-    (hVcard : Nat.card G'.V ≤ Nat.card G.V) (hedgeCard : Nat.card G'.E ≤ Nat.card G.E) : Isom G G' :=
+noncomputable def Isom.ofEmbCard [Finite V(G')] [Finite E(G')] (f : Emb G G')
+    (hVcard : Nat.card V(G') ≤ Nat.card V(G)) (hedgeCard : Nat.card E(G') ≤ Nat.card E(G)) : Isom G G' :=
   Isom.ofSurjEmb f (Function.Injective.bijective_of_nat_card_le f.inj_vx hVcard).surjective
     (Function.Injective.bijective_of_nat_card_le f.inj_edge hedgeCard).surjective
 
@@ -307,10 +307,10 @@ def Isom.comp {G' : Graph α' β'} (f : Isom G G') (g : Isom G' G'') : Isom G G'
   edge_left_inv e := by
     simp only [Hom.comp_edgeFun, comp_apply, g.edge_left_inv e, f.edge_left_inv (g.edgeInvFun e)]
 
-def vxMap_inj_isom {G' : Graph α' β} (f : α → α') (hinj : InjOn f G.V) (heq : G.vxMap f = G') :
+def vxMap_inj_isom {G' : Graph α' β} (f : α → α') (hinj : InjOn f V(G)) (heq : G.vxMap f = G') :
     Isom G G' := sorry
 
-def edgeMap_isom {G' : Graph α β'} (f : β → β') (hf : InjOn f G.E) (heq : G.edgeMap f hf = G') :
+def edgeMap_isom {G' : Graph α β'} (f : β → β') (hf : InjOn f E(G)) (heq : G.edgeMap f hf = G') :
     Isom G G' := sorry
 
 inductive HasIsom (G₁ : Graph α β) (G₂ : Graph α' β') : Prop where
@@ -337,19 +337,19 @@ lemma HasIsom.trans (h₁₂ : G ↔ᴳ G') (h₂₃ : G' ↔ᴳ G'') : G ↔ᴳ
   obtain ⟨g⟩ := h₂₃
   exact ⟨f.comp g⟩
 
-lemma HasIsom.ofEmbCard [Finite G'.V] [Finite G'.E] (f : G ↪ᴳ G')
-    (hVcard : Nat.card G'.V ≤ Nat.card G.V) (hedgeCard : Nat.card G'.E ≤ Nat.card G.E) : G ↔ᴳ G' :=
+lemma HasIsom.ofEmbCard [Finite V(G')] [Finite E(G')] (f : G ↪ᴳ G')
+    (hVcard : Nat.card V(G') ≤ Nat.card V(G)) (hedgeCard : Nat.card E(G') ≤ Nat.card E(G)) : G ↔ᴳ G' :=
   let ⟨f⟩ := f
   ⟨Isom.ofEmbCard f hVcard hedgeCard⟩
 
-lemma vxMap_hasIsom {f : α → α'} (hinj : InjOn f G.V) : G ↔ᴳ G.vxMap f :=
+lemma vxMap_hasIsom {f : α → α'} (hinj : InjOn f V(G)) : G ↔ᴳ G.vxMap f :=
   ⟨vxMap_inj_isom f hinj rfl⟩
 
-lemma edgeMap_hasIsom {f : β → β'} (hf : InjOn f G.E) : G ↔ᴳ G.edgeMap f hf :=
+lemma edgeMap_hasIsom {f : β → β'} (hf : InjOn f E(G)) : G ↔ᴳ G.edgeMap f hf :=
   ⟨edgeMap_isom f hf rfl⟩
 
--- lemma isom_iff : G ↔ᴳ G' ↔ ∃ (fα : α → α') (fβ : β → β') (hinjα : InjOn fα G.V)
---     (hinjβ : InjOn fβ G.E),
+-- lemma isom_iff : G ↔ᴳ G' ↔ ∃ (fα : α → α') (fβ : β → β') (hinjα : InjOn fα V(G))
+--     (hinjβ : InjOn fβ E(G)),
 
 lemma bot_hasIsom_bot : (⊥ : Graph α β) ↔ᴳ (⊥ : Graph α' β') := HasIsom.ofEmbCard HasEmb.bot
   (by simp) (by simp)
@@ -364,7 +364,7 @@ lemma bot_hasIsom_bot : (⊥ : Graph α β) ↔ᴳ (⊥ : Graph α' β') := HasI
 
 
 -- def HomSys.image (f : HomSys α β α' β') (h : f.IsHomOn G G₂) : Graph α' β' :=
---   ofInc (f '' G.V) (fun e' v' ↦ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v)
+--   ofInc (f '' V(G)) (fun e' v' ↦ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v)
 --   (by rintro e' v' ⟨e, rfl, v, rfl, hinc⟩; use v, hinc.vx_mem)
 --   (by
 --     rintro u' v' w' e' ⟨e, rfl, v, rfl, hincev⟩ ⟨a, heqae, b, rfl, hincab⟩ ⟨c, heqce, d, rfl, hinccd⟩
@@ -373,11 +373,11 @@ lemma bot_hasIsom_bot : (⊥ : Graph α β) ↔ᴳ (⊥ : Graph α' β') := HasI
 --     have hcd := heqce ▸ h.inc hinccd
 --     exact Inc.eq_or_eq_or_eq_of_inc_of_inc hev hab hcd)
 
--- @[simp] lemma HomSys.image_V (h : f.IsHomOn G G₂) : (f.image h).V = f '' G.V :=
+-- @[simp] lemma HomSys.image_V (h : f.IsHomOn G G₂) : (f.image h).V = f '' V(G) :=
 --   rfl
 
 -- @[simp] lemma HomSys.image_E (h : f.IsHomOn G G₂) :
---     (f.image h).E = f.edgeFun '' G.E := by
+--     (f.image h).E = f.edgeFun '' E(G) := by
 --   ext e'
 --   simp only [image, ofInc_E, mem_setOf_eq, mem_image]
 --   constructor
@@ -507,50 +507,50 @@ instance instHasHomRightGraphic : GraphicFunction (fun G ↦ H →ᴳ G) (fun G 
     rw [eq_iff_iff]
     exact ⟨(HasHom.trans · h.toHasHom), (HasHom.trans · h.symm.toHasHom)⟩
 
-instance instVxSetFiniteGraphic : GraphicFunction (fun G ↦ Finite G.V) (fun G ↦ Finite G.V) where
+instance instVxSetFiniteGraphic : GraphicFunction (fun G ↦ Finite V(G)) (fun G ↦ Finite V(G)) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     exact f.bij_vx.finite_iff
 
-instance instEdgeSetFiniteGraphic : GraphicFunction (fun G ↦ Finite G.E) (fun G ↦ Finite G.E) where
+instance instEdgeSetFiniteGraphic : GraphicFunction (fun G ↦ Finite E(G)) (fun G ↦ Finite E(G)) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     exact f.bij_edge.finite_iff
 
-instance instVxSetNonemptyGraphic : GraphicFunction (fun G ↦ G.V.Nonempty) (fun G ↦ G.V.Nonempty) where
+instance instVxSetNonemptyGraphic : GraphicFunction (fun G ↦ V(G).Nonempty) (fun G ↦ V(G).Nonempty) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     simpa only [nonempty_subtype] using f.bij_vx.nonempty_iff
 
-instance instEdgeSetNonemptyGraphic : GraphicFunction (fun G ↦ G.E.Nonempty) (fun G ↦ G.E.Nonempty) where
+instance instEdgeSetNonemptyGraphic : GraphicFunction (fun G ↦ E(G).Nonempty) (fun G ↦ E(G).Nonempty) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     simpa only [nonempty_subtype] using f.bij_edge.nonempty_iff
 
-instance instVxSetEncardGraphic : GraphicFunction (fun G ↦ G.V.encard) (fun G ↦ G.V.encard) where
+instance instVxSetEncardGraphic : GraphicFunction (fun G ↦ V(G).encard) (fun G ↦ V(G).encard) where
   invariant h := by
     obtain ⟨f⟩ := h
     have := f.bij_vx
     sorry
     -- exact bijOn_encard this
 
-instance instEdgeSetEncardGraphic : GraphicFunction (fun G ↦ G.E.encard) (fun G ↦ G.E.encard) where
+instance instEdgeSetEncardGraphic : GraphicFunction (fun G ↦ E(G).encard) (fun G ↦ E(G).encard) where
   invariant h := by
     obtain ⟨f⟩ := h
     have := f.bij_edge
     sorry
     -- exact bijOn_encard this
 
-instance instVxSetNcardGraphic : GraphicFunction (fun G ↦ G.V.ncard) (fun G ↦ G.V.ncard) where
+instance instVxSetNcardGraphic : GraphicFunction (fun G ↦ V(G).ncard) (fun G ↦ V(G).ncard) where
   invariant h := by
     obtain ⟨f⟩ := h
     exact Nat.card_eq_of_bijective _ f.bij_vx
 
-instance instEdgeSetNcardGraphic : GraphicFunction (fun G ↦ G.E.ncard) (fun G ↦ G.E.ncard) where
+instance instEdgeSetNcardGraphic : GraphicFunction (fun G ↦ E(G).ncard) (fun G ↦ E(G).ncard) where
   invariant h := by
     obtain ⟨f⟩ := h
     exact Nat.card_eq_of_bijective _ f.bij_edge
@@ -569,7 +569,7 @@ instance instGraphicGraphicVertex {f : ∀ {α : Type u_7} {β : Type v₀}, Gra
     obtain ⟨f, hinj, rfl⟩ := h
     rw [← hF.invariant (edgeMap_hasIsom hinj)]
 
-example : GraphicVertexFunction (fun (G : Graph α _) ↦ G.V.ncard) (fun (G : Graph α _) ↦ G.V.ncard) :=
+example : GraphicVertexFunction (fun (G : Graph α _) ↦ V(G).ncard) (fun (G : Graph α _) ↦ V(G).ncard) :=
   -- inferInstance
   instGraphicGraphicVertex (hF := instVxSetNcardGraphic)
 
@@ -628,25 +628,25 @@ instance instHasHomRightGraphicVertex :
   instGraphicGraphicVertex (hF := instHasHomRightGraphic)
 
 instance instVxSetGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.V) (fun (G : Graph α _) ↦ G.V) where
+    GraphicVertexFunction (fun (G : Graph α _) ↦ V(G)) (fun (G : Graph α _) ↦ V(G)) where
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
-    simp only [edgeMap_vxSet]
+    simp only [edgeMap_vertexSet]
 
 instance instEdgeSetFiniteGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ Finite G.E) (fun (G : Graph α _) ↦ Finite G.E) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ Finite E(G)) (fun (G : Graph α _) ↦ Finite E(G)) :=
   instGraphicGraphicVertex (hF := instEdgeSetFiniteGraphic)
 
 instance instEdgeSetNonemptyGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.Nonempty) (fun (G : Graph α _) ↦ G.E.Nonempty) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).Nonempty) (fun (G : Graph α _) ↦ E(G).Nonempty) :=
   instGraphicGraphicVertex (hF := instEdgeSetNonemptyGraphic)
 
 instance instEdgeSetEncardGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.encard) (fun (G : Graph α _) ↦ G.E.encard) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).encard) (fun (G : Graph α _) ↦ E(G).encard) :=
   instGraphicGraphicVertex (hF := instEdgeSetEncardGraphic)
 
 instance instEdgeSetNcardGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.ncard) (fun (G : Graph α _) ↦ G.E.ncard) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).ncard) (fun (G : Graph α _) ↦ E(G).ncard) :=
   instGraphicGraphicVertex (hF := instEdgeSetNcardGraphic)
 
 
@@ -664,7 +664,7 @@ instance instGraphicGraphicEdge {β : Type v₀} {f : ∀ {α : Type u_7} {β : 
     obtain ⟨f, hinj, rfl⟩ := h
     rw [← hF.invariant (vxMap_hasIsom hinj)]
 
-example : GraphicVertexFunction (fun (G : Graph α _) ↦ G.V.ncard) (fun (G : Graph α _) ↦ G.V.ncard) :=
+example : GraphicVertexFunction (fun (G : Graph α _) ↦ V(G).ncard) (fun (G : Graph α _) ↦ V(G).ncard) :=
   -- inferInstance
   instGraphicGraphicVertex (hF := instVxSetNcardGraphic)
 
@@ -723,23 +723,23 @@ instance instHasHomRightGraphicVertex :
   instGraphicGraphicVertex (hF := instHasHomRightGraphic)
 
 instance instVxSetGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.V) (fun (G : Graph α _) ↦ G.V) where
+    GraphicVertexFunction (fun (G : Graph α _) ↦ V(G)) (fun (G : Graph α _) ↦ V(G)) where
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
-    simp only [edgeMap_vxSet]
+    simp only [edgeMap_vertexSet]
 
 instance instEdgeSetFiniteGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ Finite G.E) (fun (G : Graph α _) ↦ Finite G.E) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ Finite E(G)) (fun (G : Graph α _) ↦ Finite E(G)) :=
   instGraphicGraphicVertex (hF := instEdgeSetFiniteGraphic)
 
 instance instEdgeSetNonemptyGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.Nonempty) (fun (G : Graph α _) ↦ G.E.Nonempty) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).Nonempty) (fun (G : Graph α _) ↦ E(G).Nonempty) :=
   instGraphicGraphicVertex (hF := instEdgeSetNonemptyGraphic)
 
 instance instEdgeSetEncardGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.encard) (fun (G : Graph α _) ↦ G.E.encard) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).encard) (fun (G : Graph α _) ↦ E(G).encard) :=
   instGraphicGraphicVertex (hF := instEdgeSetEncardGraphic)
 
 instance instEdgeSetNcardGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.E.ncard) (fun (G : Graph α _) ↦ G.E.ncard) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).ncard) (fun (G : Graph α _) ↦ E(G).ncard) :=
   instGraphicGraphicVertex (hF := instEdgeSetNcardGraphic)

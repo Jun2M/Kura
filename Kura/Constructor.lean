@@ -66,9 +66,9 @@ def ofInc (V : Set α) (inc : β → α → Prop) (vx_mem : ∀ e v, inc e v →
 variable {V : Set α} {inc : β → α → Prop} {vx_mem : ∀ e v, inc e v → v ∈ V}
     {not_hypergraph : ∀ ⦃x y z e⦄, inc e x → inc e y → inc e z → x = y ∨ x = z ∨ y = z}
 
-@[simp] lemma ofInc_V : (ofInc V inc vx_mem not_hypergraph).V = V := rfl
+@[simp] lemma ofInc_V : V(ofInc V inc vx_mem not_hypergraph) = V := rfl
 
-@[simp] lemma ofInc_E : (ofInc V inc vx_mem not_hypergraph).E = {e | ∃ x, inc e x} := by
+@[simp] lemma ofInc_E : E(ofInc V inc vx_mem not_hypergraph) = {e | ∃ x, inc e x} := by
   ext e
   simp only [ofInc, mk'_edgeSet, exists_and_left, mem_setOf_eq]
   refine ⟨fun ⟨h1, h2, h3, h4⟩ ↦ ⟨h1, h2⟩, fun ⟨x, hx⟩ ↦ ?_⟩
@@ -102,8 +102,8 @@ variable {V : Set α} {inc : β → α → Prop} {vx_mem : ∀ e v, inc e v → 
 @[simps]
 def oftoMultiset (V : Set α) (toMultiset : β → Multiset α) (vx_mem : ∀ e v, v ∈ toMultiset e → v ∈ V) :
     Graph α β where
-  V := V
-  E := {e | (toMultiset e).card = 2}
+  vertexSet := V
+  edgeSet := {e | (toMultiset e).card = 2}
   Inc₂ e x y := toMultiset e = {x, y}
   inc₂_symm e x y h := by rwa [Multiset.pair_comm]
   vx_mem_left_of_inc₂ e x y h := by
@@ -134,8 +134,8 @@ lemma oftoMultiset_toMultiset (card_eq : ∀ e, (toMultiset e).card = 2 ∨ (toM
 @[simps]
 def ofIncFun (V : Set α) (incFun : β → α →₀ ℕ) (vx_mem : ∀ e v, incFun e v ≠ 0 → v ∈ V) :
     Graph α β where
-  V := V
-  E := {e | (incFun e).sum (fun _ ↦ id) = 2}
+  vertexSet := V
+  edgeSet := {e | (incFun e).sum (fun _ ↦ id) = 2}
   Inc₂ e x y := by
     classical
     exact ({x, y} : Multiset α).toFinsupp = incFun e
@@ -155,10 +155,10 @@ def ofIncFun (V : Set α) (incFun : β → α →₀ ℕ) (vx_mem : ∀ e v, inc
 variable {incFun : β → α →₀ ℕ} {vx_mem : ∀ e v, incFun e v ≠ 0 → v ∈ V}
 
 @[simp]
-lemma ofIncFun_V : (ofIncFun V incFun vx_mem).V = V := rfl
+lemma ofIncFun_V : V(ofIncFun V incFun vx_mem) = V := rfl
 
 @[simp]
-lemma ofIncFun_E : (ofIncFun V incFun vx_mem).E = {e | (incFun e).sum (fun _ ↦ id) = 2} := rfl
+lemma ofIncFun_E : E(ofIncFun V incFun vx_mem) = {e | (incFun e).sum (fun _ ↦ id) = 2} := rfl
 
 @[simp]
 lemma ofIncFun_incFun : (ofIncFun V incFun vx_mem).incFun = incFun := by
@@ -170,8 +170,8 @@ lemma ofIncFun_incFun : (ofIncFun V incFun vx_mem).incFun = incFun := by
 @[simps]
 def oftoSym2 (V : Set α) (E : Set β) (tosym2 : ∀ (e) (_he : e ∈ E), Sym2 α)
     (vx_mem : ∀ e v he, v ∈ tosym2 e he → v ∈ V) : Graph α β where
-  V := V
-  E := E
+  vertexSet := V
+  edgeSet := E
   Inc₂ e x y := ∃ (he : e ∈ E), tosym2 e he = s(x, y)
   inc₂_symm e x y h := by
     obtain ⟨he, hxy⟩ := h
@@ -207,8 +207,8 @@ end intro
 
 /-- The graph with vertex set `V` and no edges -/
 @[simps] protected def noEdge (V : Set α) (β : Type*) : Graph α β where
-  V := V
-  E := ∅
+  vertexSet := V
+  edgeSet := ∅
   Inc₂ _ _ _ := False
   inc₂_symm := by simp
   eq_or_eq_of_inc₂_of_inc₂ := by simp
@@ -216,15 +216,15 @@ end intro
   vx_mem_left_of_inc₂ := by simp
 
 instance instVxSetFiniteNoEdge (V : Set α) (β : Type*) [hV : Finite V] :
-    Finite (Graph.noEdge V β).V :=
+    Finite V(Graph.noEdge V β) :=
   hV
 
-instance instESetIsEmptyNoEdge (V : Set α) (β : Type*) : IsEmpty (Graph.noEdge V β).E := by
+instance instESetIsEmptyNoEdge (V : Set α) (β : Type*) : IsEmpty E(Graph.noEdge V β) := by
   simp only [noEdge_edgeSet]
   infer_instance
 
 @[simp]
-lemma edge_empty_iff_eq_noEdge (G : Graph α β) : G.E = ∅ ↔ G = Graph.noEdge G.V β := by
+lemma edge_empty_iff_eq_noEdge (G : Graph α β) : E(G) = ∅ ↔ G = Graph.noEdge V(G) β := by
   constructor <;> rintro h
   · refine Graph.ext rfl fun e x y ↦ ?_
     simp only [noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
@@ -243,19 +243,19 @@ lemma not_adj_noEdge : ¬ (Graph.noEdge S β).Adj x y := by
 /-- A graph with a single edge `e` from `u` to `v` -/
 @[simps]
 protected def singleEdge (u v : α) (e : β) : Graph α β where
-  V := {u,v}
-  E := {e}
+  vertexSet := {u,v}
+  edgeSet := {e}
   Inc₂ e' x y := e' = e ∧ ((x = u ∧ y = v) ∨ (x = v ∧ y = u))
   inc₂_symm := by tauto
   eq_or_eq_of_inc₂_of_inc₂ := by aesop
   edge_mem_iff_exists_inc₂ := by tauto
   vx_mem_left_of_inc₂ := by tauto
 
-instance instVxSetFiniteSingleEdge (u v : α) (e : β) : Finite (Graph.singleEdge u v e).V := by
-  simp only [singleEdge_vxSet]
+instance instVxSetFiniteSingleEdge (u v : α) (e : β) : Finite V(Graph.singleEdge u v e) := by
+  simp only [singleEdge_vertexSet]
   infer_instance
 
-instance instESetSubsingletonSingleEdge (u v : α) (e : β) : Subsingleton (Graph.singleEdge u v e).E := by
+instance instESetSubsingletonSingleEdge (u v : α) (e : β) : Subsingleton E(Graph.singleEdge u v e) := by
   simp only [singleEdge_edgeSet]
   infer_instance
 
@@ -267,8 +267,8 @@ lemma singleEdge_inc₂_iff : (Graph.singleEdge u v e).Inc₂ f x y ↔ (f = e) 
 
 @[simps]
 def CompleteGraph (n : ℕ) : Graph ℕ (Sym2 ℕ) where
-  V := Set.Iio n
-  E := {s | ∃ x y, x < n ∧ y < n ∧ s = s(x, y)}
+  vertexSet := Set.Iio n
+  edgeSet := {s | ∃ x y, x < n ∧ y < n ∧ s = s(x, y)}
   Inc₂ e x y := x < n ∧ y < n ∧ e = s(x, y)
   inc₂_symm e x y h := by rw [Sym2.eq_swap]; tauto
   eq_or_eq_of_inc₂_of_inc₂ e x y z w h := by

@@ -27,7 +27,7 @@ lemma cons_isClosed_iff : (cons x e w).IsClosed ↔ x = w.last := by
 lemma concat_isClosed_iff : (w.concat e x).IsClosed ↔ x = w.first := by
   simp [IsClosed, eq_comm]
 
-lemma IsClosed.vxSet_tail (h : w.IsClosed) : w.tail.V = w.V := by
+lemma IsClosed.vertexSet_tail (h : w.IsClosed) : V(w.tail) = V(w) := by
   induction w with simp_all
 
 lemma IsClosed.reverse (h : w.IsClosed) : w.reverse.IsClosed := by
@@ -37,14 +37,14 @@ lemma IsClosed.reverse (h : w.IsClosed) : w.reverse.IsClosed := by
 lemma reverse_isClosed_iff : w.reverse.IsClosed ↔ w.IsClosed := by
   simp [IsClosed, eq_comm]
 
-lemma IsClosed.vxSet_dropLast (h : w.IsClosed) : w.dropLast.V = w.V := by
-  rw [← reverse_tail_reverse, reverse_vxSet, h.reverse.vxSet_tail, reverse_vxSet]
+lemma IsClosed.vertexSet_dropLast (h : w.IsClosed) : V(w.dropLast) = V(w) := by
+  rw [← reverse_tail_reverse, reverse_vertexSet, h.reverse.vertexSet_tail, reverse_vertexSet]
 
 lemma IsClosed.mem_tail_iff (h : w.IsClosed) : x ∈ w.tail ↔ x ∈ w := by
-  rw [← mem_vxSet_iff, h.vxSet_tail, mem_vxSet_iff]
+  rw [← mem_vertexSet_iff, h.vertexSet_tail, mem_vertexSet_iff]
 
 lemma IsClosed.mem_dropLast (h : w.IsClosed) : x ∈ w.dropLast ↔ x ∈ w := by
-   rw [← mem_vxSet_iff, h.vxSet_dropLast, mem_vxSet_iff]
+  rw [← mem_vertexSet_iff, h.vertexSet_dropLast, mem_vertexSet_iff]
 
 lemma IsClosed.tail_dropLast (hw : w.IsClosed) : w.tail.dropLast = w.dropLast.tail := by
   refine (eq_or_ne w.length 1).elim (fun h1 ↦ ?_) WList.tail_dropLast
@@ -164,12 +164,12 @@ lemma rotate_vx_tail (w : WList α β) (n : ℕ) : (w.rotate n).tail.vx = w.tail
     | zero => simp | succ n IH => rw [← rotate_rotate, aux, ← List.rotate_rotate, IH]
   rintro (w | ⟨x, e, (w | ⟨y, f, w⟩)⟩) <;> simp
 
-lemma IsClosed.rotate_vxSet (hw : w.IsClosed) (n) : (w.rotate n).V = w.V := by
-  simp_rw [← (hw.rotate _).vxSet_tail, WList.V, ← mem_vx, rotate_vx_tail, List.mem_rotate, mem_vx]
-  rw [← WList.V, hw.vxSet_tail, WList.V]
+lemma IsClosed.rotate_vertexSet (hw : w.IsClosed) (n) : V(w.rotate n) = V(w) := by
+  simp_rw [← (hw.rotate _).vertexSet_tail, WList.vertexSet, ← mem_vx, rotate_vx_tail, List.mem_rotate, mem_vx]
+  rw [← WList.vertexSet, hw.vertexSet_tail, WList.vertexSet]
 
 lemma IsClosed.mem_rotate (hw : w.IsClosed) {n} : x ∈ w.rotate n ↔ x ∈ w := by
-  rw [← mem_vxSet_iff, hw.rotate_vxSet, mem_vxSet_iff]
+  rw [← mem_vertexSet_iff, hw.rotate_vertexSet, mem_vertexSet_iff]
 
 lemma IsClosed.dInc_rotate (hw : w.IsClosed) (h : w.DInc e x y) (n) : (w.rotate n).DInc e x y := by
   induction n generalizing w with
@@ -191,8 +191,8 @@ lemma IsClosed.inc₂_rotate (hw : w.IsClosed) (h : w.Inc₂ e x y) (n) : (w.rot
   exact h.elim (fun h' ↦ .inl (hw.dInc_rotate h' n)) (fun h' ↦ .inr (hw.dInc_rotate h' n))
 
 @[simp]
-lemma rotate_edgeSet (w : WList α β) (n) : (w.rotate n).E = w.E := by
-  simp [WList.E, rotate_edge]
+lemma rotate_edgeSet (w : WList α β) (n) : E(w.rotate n) = E(w) := by
+  simp [WList.edgeSet, rotate_edge]
 
 lemma IsClosed.rotate_length (hw : w.IsClosed) : w.rotate w.length = w := by
   refine ext_vx_edge ?_ (by rw [rotate_edge, ← length_edge, List.rotate_length])

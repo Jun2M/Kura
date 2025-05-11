@@ -11,15 +11,15 @@ variable {α β : Type*} {G G' H H' : Graph α β} {u v x y z : α} {e e' f g : 
 structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
   not_mem_left : u ∉ S
   not_mem_right : v ∉ S
-  not_connected : ¬ (G [G.V \ S]).VxConnected u v
+  not_connected : ¬ (G [V(G) \ S]).VxConnected u v
 
-lemma not_exists_isSeparator_self (hu : u ∈ G.V) : ¬ ∃ S, G.IsVxSeparator u u S :=
+lemma not_exists_isSeparator_self (hu : u ∈ V(G)) : ¬ ∃ S, G.IsVxSeparator u u S :=
   fun ⟨S, hS⟩ ↦ hS.not_connected <| VxConnected.refl <| by simp [hu, hS.not_mem_left]
 
 -- lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) :
 --     G.IsVxSeparator u v S ↔ (G -ᴳ e).IsVxSeparator u v S := by
 --   refine ⟨fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩, fun ⟨hu, hv, hconn⟩ ↦ ⟨hu, hv, ?_⟩⟩
---   · by_cases he' : e ∈ G[G.V \ S].E
+--   · by_cases he' : e ∈ G[V(G) \ S].E
 --     · rw [restrict_V, ← induce_restrict_eq_subgraph]
 --       rw [← IsLoop.connected_iff_edgeDel_singleton (e := e)] at hconn
 --       convert hconn using 2
@@ -78,46 +78,46 @@ lemma empty_iff : G.IsVxSetSeparator S T ∅ ↔ ¬ G.SetConnected S T := by sim
 
 @[simp] lemma univ_sep : G.IsVxSetSeparator S T univ := by simp [IsVxSetSeparator]
 
-@[simp] lemma support_sep : G.IsVxSetSeparator S T G.V := by simp [IsVxSetSeparator]
+@[simp] lemma support_sep : G.IsVxSetSeparator S T V(G) := by simp [IsVxSetSeparator]
 
-lemma sep_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S T (V ∩ G.V) := by
+lemma sep_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S T (V ∩ V(G)) := by
   unfold IsVxSetSeparator
-  suffices G - V = G - (V ∩ G.V) by rw [this]
+  suffices G - V = G - (V ∩ V(G)) by rw [this]
   rw [vxDelete_eq_vxDelete_iff]
   simp
 
-lemma left_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator (S ∩ G.V) T V := by
+lemma left_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator (S ∩ V(G)) T V := by
   constructor <;> refine fun hSep hconn ↦ hSep ?_
-  · rw [SetConnected.left_supported, vxDelete_vxSet] at hconn ⊢
+  · rw [SetConnected.left_supported, vxDelete_vertexSet] at hconn ⊢
     exact hconn.left_subset (by tauto_set)
-  · rw [SetConnected.left_supported, vxDelete_vxSet] at hconn
+  · rw [SetConnected.left_supported, vxDelete_vertexSet] at hconn
     exact hconn.left_subset (by tauto_set)
 
-lemma right_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S (T ∩ G.V) V := by
+lemma right_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S (T ∩ V(G)) V := by
   constructor <;> refine fun hSep hconn ↦ hSep ?_
-  · rw [SetConnected.right_supported, vxDelete_vxSet] at hconn ⊢
+  · rw [SetConnected.right_supported, vxDelete_vertexSet] at hconn ⊢
     exact hconn.right_subset (by tauto_set)
-  · rw [SetConnected.right_supported, vxDelete_vxSet] at hconn
+  · rw [SetConnected.right_supported, vxDelete_vertexSet] at hconn
     exact hconn.right_subset (by tauto_set)
 
-lemma left_right_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator (S ∩ G.V) (T ∩ G.V) V := by
+lemma left_right_support : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator (S ∩ V(G)) (T ∩ V(G)) V := by
   rw [left_support, right_support]
 
 lemma left_diff_sep : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator (S \ V) T V := by
   constructor <;> refine fun hSep hconn ↦ hSep ?_
-  · rw [SetConnected.left_supported, vxDelete_vxSet] at hconn ⊢
+  · rw [SetConnected.left_supported, vxDelete_vertexSet] at hconn ⊢
     exact hconn.left_subset (by tauto_set)
-  · rw [SetConnected.left_supported, vxDelete_vxSet] at hconn
+  · rw [SetConnected.left_supported, vxDelete_vertexSet] at hconn
     exact hconn.left_subset (by tauto_set)
 
 lemma right_diff_sep : G.IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S (T \ V) V := by
   constructor <;> refine fun hSep hconn ↦ hSep ?_
-  · rw [SetConnected.right_supported, vxDelete_vxSet] at hconn ⊢
+  · rw [SetConnected.right_supported, vxDelete_vertexSet] at hconn ⊢
     exact hconn.right_subset (by tauto_set)
-  · rw [SetConnected.right_supported, vxDelete_vxSet] at hconn
+  · rw [SetConnected.right_supported, vxDelete_vertexSet] at hconn
     exact hconn.right_subset (by tauto_set)
 
-lemma source_inter_target_subset (h : G.IsVxSetSeparator S T V) : G.V ∩ S ∩ T ⊆ V := by
+lemma source_inter_target_subset (h : G.IsVxSetSeparator S T V) : V(G) ∩ S ∩ T ⊆ V := by
   rintro x ⟨⟨hx, hxS⟩, hxT⟩
   by_contra! hxV
   apply h
@@ -129,20 +129,20 @@ lemma vxDel : (G - U).IsVxSetSeparator S T V ↔ G.IsVxSetSeparator S T (U ∪ V
   rw [vxDelete_vxDelete]
 
 /- Lemmas about the left and right sets of a separator -/
-lemma leftSet_subset (h : G.IsVxSetSeparator S T V) : h.leftSet ⊆ G.V \ V :=
+lemma leftSet_subset (h : G.IsVxSetSeparator S T V) : h.leftSet ⊆ V(G) \ V :=
   fun _v ⟨_s, _hs, hconn⟩ ↦ hconn.mem_left
 
-lemma source_subset_leftHalf (h : G.IsVxSetSeparator S T V) : S ∩ G.V ⊆ h.leftSet ∪ V := by
+lemma source_subset_leftHalf (h : G.IsVxSetSeparator S T V) : S ∩ V(G) ⊆ h.leftSet ∪ V := by
   rintro x ⟨hxS, hx⟩
   simp only [leftSet, mem_union, mem_setOf_eq]
   rw [or_iff_not_imp_right]
   rintro hxV
   use x, hxS, VxConnected.refl ⟨hx, hxV⟩
 
-lemma rightSet_subset (h : G.IsVxSetSeparator S T V) : h.rightSet ⊆ G.V \ V :=
+lemma rightSet_subset (h : G.IsVxSetSeparator S T V) : h.rightSet ⊆ V(G) \ V :=
   fun _v ⟨_t, _ht, hconn⟩ ↦ hconn.mem_left
 
-lemma target_subset_rightHalf (h : G.IsVxSetSeparator S T V) : T ∩ G.V ⊆ h.rightSet ∪ V := by
+lemma target_subset_rightHalf (h : G.IsVxSetSeparator S T V) : T ∩ V(G) ⊆ h.rightSet ∪ V := by
   rintro t ⟨htT, ht⟩
   simp only [leftSet, mem_union, mem_setOf_eq]
   rw [or_iff_not_imp_right]
@@ -231,7 +231,7 @@ lemma mem_of_inc₂_rightSet (hbtw : G.Inc₂ e u v) (hv : v ∈ h.rightSet) :
   by_contra! huV
   simp only [rightSet, mem_union, mem_setOf_eq, not_or, not_exists, not_and] at huV
   obtain ⟨hnconn, huV⟩ := huV
-  refine hnconn t ht <| hbtw.induce (⟨hbtw.vx_mem_left, huV⟩ : u ∈ G.V \ V) hconn.mem_left
+  refine hnconn t ht <| hbtw.induce (⟨hbtw.vx_mem_left, huV⟩ : u ∈ V(G) \ V) hconn.mem_left
   |>.vxConnected.trans hconn
 
 /-- Given a set of edges, there is a separator that puts those edges on one side and the rest of
@@ -293,34 +293,34 @@ lemma empty_iff : G.IsEdgeSetSeparator S T ∅ ↔ ¬ G.SetConnected S T := by
 @[simp] lemma empty_target : G.IsEdgeSetSeparator S ∅ F := by
   simp [IsEdgeSetSeparator]
 
-@[simp] lemma edge_univ_sep : G.IsEdgeSetSeparator S T univ ↔ S ∩ T ∩ G.V = ∅ := by
+@[simp] lemma edge_univ_sep : G.IsEdgeSetSeparator S T univ ↔ S ∩ T ∩ V(G) = ∅ := by
   simp [IsEdgeSetSeparator, not_nonempty_iff_eq_empty]
 
-@[simp] lemma edge_support_sep : G.IsEdgeSetSeparator S T G.E ↔ S ∩ T ∩ G.V = ∅ := by
+@[simp] lemma edge_support_sep : G.IsEdgeSetSeparator S T E(G) ↔ S ∩ T ∩ V(G) = ∅ := by
   simp [IsEdgeSetSeparator, not_nonempty_iff_eq_empty]
 
 -- Support & Interaction with Graph Structure
-lemma sep_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S T (F ∩ G.E) := by
+lemma sep_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S T (F ∩ E(G)) := by
   simp [IsEdgeSetSeparator]
-  suffices G ＼ F = G ＼ (F ∩ G.E) by rw [this]
+  suffices G ＼ F = G ＼ (F ∩ E(G)) by rw [this]
   rw [edgeDelete_eq_edgeDelete_iff]
   simp
 
-lemma left_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (S ∩ G.V) T F := by
+lemma left_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (S ∩ V(G)) T F := by
   constructor <;> refine fun hSep hconn ↦ hSep ?_
   · rw [SetConnected.left_supported] at hconn ⊢
     exact hconn.left_subset (by tauto_set)
   · rw [SetConnected.left_supported] at hconn
     exact hconn.left_subset (by tauto_set)
 
-lemma right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S (T ∩ G.V) F := by
+lemma right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S (T ∩ V(G)) F := by
   constructor <;> refine fun hSep hconn ↦ hSep ?_
   · rw [SetConnected.right_supported] at hconn ⊢
     exact hconn.right_subset (by tauto_set)
   · rw [SetConnected.right_supported] at hconn
     exact hconn.right_subset (by tauto_set)
 
-lemma left_right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (S ∩ G.V) (T ∩ G.V) F := by
+lemma left_right_support : G.IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator (S ∩ V(G)) (T ∩ V(G)) F := by
   rw [left_support, right_support]
 
 -- Composition
@@ -330,12 +330,12 @@ lemma edgeDel : (G ＼ F').IsEdgeSetSeparator S T F ↔ G.IsEdgeSetSeparator S T
 
 -- Minimal Separator
 
-lemma mem_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) : e ∈ G.E :=
+lemma mem_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) : e ∈ E(G) :=
   by_contra fun hnot ↦ h.not_ssubset
     (sep_support.mp h.prop |>.mono <| subset_diff_singleton inter_subset_left (by simp [hnot]))
     (by simp [heF] : F \ {e} ⊂ F)
 
-lemma subset_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) : F ⊆ G.E :=
+lemma subset_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) : F ⊆ E(G) :=
   fun _ ↦ mem_of_minimal h
 
 lemma exists_pathFrom_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) :

@@ -16,7 +16,7 @@ namespace Graph
 
     This is the fundamental operation for creating graph minors. -/
 def Contract (G : Graph α β) (φ : α → α') (C : Set β) : Graph α' β :=
-  (G.vxMap φ) ↾ (G.E \ C)
+  (G.vxMap φ) ↾ (E(G) \ C)
 
 notation:70 G " /["φ"] " C => Graph.Contract G φ C
 
@@ -25,15 +25,15 @@ notation:70 G " /["φ"] " C => Graph.Contract G φ C
 variable {φ τ : α → α'} {C D : Set β}
 
 @[simp]
-lemma contract_vxSet : (G /[φ] C).V = φ '' G.V := rfl
+lemma contract_vertexSet : (G /[φ] C).V = φ '' V(G) := rfl
 
 @[simp]
-lemma contract_edgeSet : (G /[φ] C).E = G.E \ C := by
+lemma contract_edgeSet : (G /[φ] C).E = E(G) \ C := by
   simp only [Contract, vxMap, edgeRestrict_edgeSet, oftoMultiset_edgeSet, Multiset.card_map,
     toMultiset_card_eq_two_iff, setOf_mem_eq, inter_eq_right]
   tauto_set
 
-lemma contract_edgeSet_subset : (G /[φ] C).E ⊆ G.E := by
+lemma contract_edgeSet_subset : (G /[φ] C).E ⊆ E(G) := by
   simp only [contract_edgeSet]
   tauto_set
 
@@ -68,10 +68,10 @@ namespace Contract
     This property ensures that contraction preserves the structure of the graph
     in a well-defined way. -/
 def ValidIn (G : Graph α β) (φ : α → α') (C : Set β) :=
-  ∀ ⦃x y⦄, x ∈ G.V → y ∈ G.V → (φ x = φ y ↔ (G ↾ C).VxConnected x y)
+  ∀ ⦃x y⦄, x ∈ V(G) → y ∈ V(G) → (φ x = φ y ↔ (G ↾ C).VxConnected x y)
 
 @[simp]
-lemma map_mem (φ : α → α') (C : Set β) (hx : u ∈ G.V) : φ u ∈ (G /[φ] C).V := by
+lemma map_mem (φ : α → α') (C : Set β) (hx : u ∈ V(G)) : φ u ∈ (G /[φ] C).V := by
   use u
 
 -- lemma map_eq_of_reflAdj (hC : ValidIn G φ C) (hradj : (G ↾ C).reflAdj u v) : φ u = φ v := by
@@ -80,27 +80,27 @@ lemma map_mem (φ : α → α') (C : Set β) (hx : u ∈ G.V) : φ u ∈ (G /[φ
 --     exact h.connected
 --   · rfl
 
-lemma ValidIn.of_inter_eq (hC : ValidIn G φ C) (h : C ∩ G.E = D ∩ G.E) :
+lemma ValidIn.of_inter_eq (hC : ValidIn G φ C) (h : C ∩ E(G) = D ∩ E(G)) :
     ValidIn G φ D := by
   rwa [ValidIn, ← (G.edgeRestrict_eq_edgeRestrict_iff C D).mpr h]
 
 lemma toFun_eq_of_inter_eq_fixed_eq (hC : ValidIn G φ C) (hD : ValidIn G τ C)
-    (hfixed : ∀ a ∈ G.V, ∃ x ∈ G.V, τ x = φ a ∧ φ x = φ a) : EqOn φ τ G.V := by
+    (hfixed : ∀ a ∈ V(G), ∃ x ∈ V(G), τ x = φ a ∧ φ x = φ a) : EqOn φ τ V(G) := by
   rintro x hx
   obtain ⟨y, hy, htypx, hpypx⟩ := hfixed x hx
   rwa [← htypx, hD hy hx, ← hC hy hx]
 
 lemma toFun_eq_of_inter_eq_fixed_eq' (hC : ValidIn G φ C) (hD : ValidIn G τ D)
-    (hinter : C ∩ G.E = D ∩ G.E)
-    (hfixed : ∀ a ∈ G.V, ∃ x ∈ G.V, τ x = φ a ∧ φ x = φ a) : EqOn φ τ G.V := by
+    (hinter : C ∩ E(G) = D ∩ E(G))
+    (hfixed : ∀ a ∈ V(G), ∃ x ∈ V(G), τ x = φ a ∧ φ x = φ a) : EqOn φ τ V(G) := by
   rintro x hx
   obtain ⟨y, hy, hτyφx, hφyφx⟩ := hfixed x hx
   rwa [← hτyφx, hD hy hx, ← (G.edgeRestrict_eq_edgeRestrict_iff C D).mpr hinter, ← hC hy hx]
 
--- lemma ValidIn.le (hC : ValidIn G φ C) (hle : H ≤ G) (hE : G.E ∩ C ⊆ H.E) :
+-- lemma ValidIn.le (hC : ValidIn G φ C) (hle : H ≤ G) (hE : E(G) ∩ C ⊆ E(H)) :
 --     ValidIn H φ C := by
 --   intro x y hx hy
---   rw [hC (vxSet_subset_of_le hle hx) (vxSet_subset_of_le hle hy)]
+--   rw [hC (vertexSet_subset_of_le hle hx) (vertexSet_subset_of_le hle hy)]
 --   exact ( hle hE hx).symm
 
 -- restrict_Connected_iff_restrict_Connected_of_le
@@ -113,7 +113,7 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
   -- Get a representative function for the connected components
   obtain ⟨φ, hid, hrel, heq⟩ := Partition.nonempty_repFun (ConnectedPartition (G ↾ S))
   use φ
-  simp only [connectedPartition_supp, edgeRestrict_vxSet, ConnectedPartition.Rel] at hrel heq
+  simp only [connectedPartition_supp, edgeRestrict_vertexSet, ConnectedPartition.Rel] at hrel heq
   -- Show that φ is a valid contraction function with respect to S
   intro x y hx hy
   refine ⟨fun h_eq_φ ↦ ?_, (heq _ _ ·)⟩
@@ -140,7 +140,7 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
 --   · intro v hv
 --     simp only [induce_V, mem_inter_iff, mem_preimage, not_and, ContractSys.confine, ite_eq_right_iff] at hv ⊢
 --     rintro hinR
---     have : v ∉ G.V := fun a ↦ hv a hinR
+--     have : v ∉ V(G) := fun a ↦ hv a hinR
 --     exact hmvalid.map_not_mem_simp this
 --   · simp only [induce_V, mem_inter_iff, mem_preimage, ContractSys.confine, induce_restrict_eq_subgraph,
 --     and_imp]
@@ -177,7 +177,7 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
 
 
 @[simp]
-lemma contract_eq_contract_iff : (G /[φ] C) = (G /[φ] D) ↔ G.E \ C = G.E \ D := by
+lemma contract_eq_contract_iff : (G /[φ] C) = (G /[φ] D) ↔ E(G) \ C = E(G) \ D := by
   constructor <;> rintro hE
   · apply_fun Graph.E at hE
     simpa using hE
@@ -189,7 +189,7 @@ lemma contract_eq_contract_iff : (G /[φ] C) = (G /[φ] D) ↔ G.E \ C = G.E \ D
 
 @[simp]
 lemma contract_restrict_eq_restrict_contract {S : Set β} :
-    (G /[φ] C) ↾ S = ((G ↾ (S ∪ (G.E ∩ C))) /[φ] C) := by
+    (G /[φ] C) ↾ S = ((G ↾ (S ∪ (E(G) ∩ C))) /[φ] C) := by
   refine ext_inc (by simp) fun e x ↦ ?_
   simp only [edgeRestrict_inc, contract_inc, mem_union, mem_inter_iff]
   tauto
@@ -198,12 +198,12 @@ lemma contract_restrict_eq_restrict_contract {S : Set β} :
 lemma contract_vxDel_eq_vxDel_contract {S : Set α'} : (G /[φ] C) - S = (G - (φ ⁻¹' S)) /[φ] C := by
   apply Graph.ext
   · ext v
-    simp only [vxDelete_vxSet, contract_vxSet, mem_diff, mem_image, mem_preimage]
+    simp only [vxDelete_vertexSet, contract_vertexSet, mem_diff, mem_image, mem_preimage]
     simp_rw [← exists_and_right, and_assoc, and_comm]
     refine exists_congr (fun x ↦ ?_)
     simp_all only [and_congr_right_iff, implies_true]
   · rintro e x y
-    simp only [iff_def, vxDelete_inc₂, contract_inc₂, contract_vxSet, mem_image, mem_preimage]
+    simp only [iff_def, vxDelete_inc₂, contract_inc₂, contract_vertexSet, mem_image, mem_preimage]
     constructor
     · rintro ⟨⟨heC, u, v, huv, rfl, rfl⟩, ⟨-, hu⟩, ⟨-, hv⟩⟩
       use heC, u, v, ?_
@@ -303,8 +303,8 @@ lemma Inc₂.contractFun_eq_self_iff [DecidableEq α] (hexy : G.Inc₂ e u v) (h
 
 @[simp]
 lemma Inc₂.vx_mem_contract_iff [DecidableEq α] (hexy : G.Inc₂ e u v) :
-    w ∈ (G /[hexy.contractFun] {e}).V ↔ w ∈ G.V \ {v} ∪ {u} := by
-  simp +contextual only [contract_vxSet, Inc₂.contractFun, mem_image, union_singleton,
+    w ∈ (G /[hexy.contractFun] {e}).V ↔ w ∈ V(G) \ {v} ∪ {u} := by
+  simp +contextual only [contract_vertexSet, Inc₂.contractFun, mem_image, union_singleton,
     mem_insert_iff, mem_diff, mem_singleton_iff, iff_def, forall_exists_index, and_imp]
   constructor
   · rintro w hw rfl
@@ -337,7 +337,7 @@ lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidIn G φ C) : (G /[φ] C).reflAd
   · exact reflAdj.of_vxMem (by use u)
 
 lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflAdj (φ u) (φ v))
-    (hu : u ∈ G.V) (hv : v ∈ G.V) : G.VxConnected u v := by
+    (hu : u ∈ V(G)) (hv : v ∈ V(G)) : G.VxConnected u v := by
   have hle := G.edgeRestrict_le (E₀ := C)
   obtain ⟨e, hbtw⟩ | ⟨heq, hmem⟩ := hradj
   · obtain he := hbtw.edge_mem
@@ -357,7 +357,7 @@ lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflA
     exact heq.of_le hle
 
 lemma connnected_of_map_connected (hVd : ValidIn G φ C) (hconn : (G /[φ] C).Connected x y) :
-    ∀ u ∈ G.V, ∀ v ∈ G.V, φ u = x → φ v = y → G.Connected u v := by
+    ∀ u ∈ V(G), ∀ v ∈ V(G), φ u = x → φ v = y → G.Connected u v := by
   induction hconn with
   | single hradj =>
     rename_i z
@@ -378,12 +378,12 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
     exact ih.trans (reflAdj hradj hVd).connected
 
 -- @[simp]
--- lemma connected_iff (hVd : ValidIn G φ C) (hu : u ∈ G.V) (hv : v ∈ G.V) :
+-- lemma connected_iff (hVd : ValidIn G φ C) (hu : u ∈ V(G)) (hv : v ∈ V(G)) :
 --     (G /[φ] C).Connected (φ u) (φ v) ↔ G.Connected u v :=
 --   ⟨(connnected_of_map_connected hVd · u hu v hv rfl rfl), connected hVd⟩
 
 -- private lemma connected_restrict_of_reflAdj_restrict_contract (S : Set β) (hVd : ValidIn G φ C)
---     (hu : u ∈ G.V) (hv : v ∈ G.V) (hradj : (G /[φ] C){S}.reflAdj (φ u) (φ v)) :
+--     (hu : u ∈ V(G)) (hv : v ∈ V(G)) (hradj : (G /[φ] C){S}.reflAdj (φ u) (φ v)) :
 --     G{C ∪ S}.Connected u v := by
 --   rw [reflAdj_iff_or] at hradj
 --   obtain ⟨hne, e, hinc, h⟩ | ⟨heq, hin⟩ := hradj
@@ -398,7 +398,7 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --     exact heq.of_le (G.restrict_mono subset_union_left)
 
 -- private lemma Connected.restrict_of_connected_restrict_contract' (S : Set β) (hVd : ValidIn G φ C)
---     (hu : u ∈ G.V) (hv : v ∈ G.V) (hx : x = φ u) (hy : y = φ v) (h : (G /[φ] C){S}.Connected x y) :
+--     (hu : u ∈ V(G)) (hv : v ∈ V(G)) (hx : x = φ u) (hy : y = φ v) (h : (G /[φ] C){S}.Connected x y) :
 --     G{C ∪ S}.Connected u v := by
 --   induction h generalizing v with
 --   | single hradj =>
@@ -410,11 +410,11 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --     exact (ih hw rfl).trans (connected_restrict_of_reflAdj_restrict_contract S hVd hw hv hadj)
 
 -- lemma Connected.restrict_of_connected_restrict_contract (S : Set β) (hVd : ValidIn G φ C)
---     (hu : u ∈ G.V) (hv : v ∈ G.V) (h : (G /[φ] C){S}.Connected (φ u) (φ v)) :
+--     (hu : u ∈ V(G)) (hv : v ∈ V(G)) (h : (G /[φ] C){S}.Connected (φ u) (φ v)) :
 --     G{C ∪ S}.Connected u v :=
 --   Connected.restrict_of_connected_restrict_contract' S hVd hu hv rfl rfl h
 
--- lemma Connected.of_contract (hVd : ValidIn G φ C) (hu : u ∈ G.V) (hv : v ∈ G.V)
+-- lemma Connected.of_contract (hVd : ValidIn G φ C) (hu : u ∈ V(G)) (hv : v ∈ V(G))
 --     (h : (G /[φ] C).Connected (φ u) (φ v)) : G.Connected u v := by
 --   have := Connected.restrict_of_connected_restrict_contract univ hVd hu hv (by
 --     rwa [restrict_univ_eq_self])
@@ -436,7 +436,7 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --   {n : ContractSys α β} (hn : n.validIn (G/m ~hm)) :
 --   ∀ (v : α), m (n (m v)) = n (m v) := by
 --   rintro v
---   by_cases h : v ∈ G.V
+--   by_cases h : v ∈ V(G)
 --   · obtain ⟨w, hw, heq⟩ := hn.map_mem (x := m v) (mem_image_of_mem m h)
 --     rw [← heq, m.idem]
 --   · rw [hn.map_not_mem, m.idem]
@@ -532,7 +532,7 @@ def IsContraction (H G : Graph α β) := ∃ φ C, H = G /[φ] C
 -- notation G " ≤ₘ " H => IsMinor G H
 
 -- lemma IsMinor.refl : G ≤ₘ G := by
---   refine ⟨G.E, G.V, ContractSys.id, ⟨?_, ?_, ?_⟩, ?_⟩
+--   refine ⟨E(G), V(G), ContractSys.id, ⟨?_, ?_, ?_⟩, ?_⟩
 --   · simp only [restrict_E_eq_self, induce_V_eq_self, ContractSys.id, id_eq, implies_true]
 --   · simp only [restrict_E_eq_self, induce_V_eq_self, ContractSys.id, id_eq]
 --     intro x hx

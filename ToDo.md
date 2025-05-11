@@ -28,7 +28,7 @@
 
 ## Options - Actionables without a clear goal
 
-- Vertex identification using partition on the vxSet
+- Vertex identification using partition on the vertexSet
 
 ## Thoughts - Abstract thoughts
 

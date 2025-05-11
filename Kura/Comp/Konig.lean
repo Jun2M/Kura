@@ -65,7 +65,7 @@ lemma Inc₂.color_ne_one (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.In
   simp only [ne_eq, Graph.color_ne_one]
   exact color_eq_zero G huv
 
-lemma exists_ends (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) :
+lemma exists_ends (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     ∃ u v, u ≠ v ∧ G.Inc₂ e u v ∧ G.color u = 0 ∧ G.color v = 1 := by
   obtain ⟨u, v, huv⟩ := Inc₂.exists_vx_inc₂ he
   wlog hu0 : G.color u = 0 generalizing u v
@@ -73,31 +73,31 @@ lemma exists_ends (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) :
     rwa [← ne_eq, huv.color_ne_zero] at hu0
   exact ⟨u, v, huv.ne, huv, hu0, (huv.color_eq_zero).mp hu0⟩
 
-noncomputable def zeroVx (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) : α :=
+noncomputable def zeroVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) : α :=
   (G.exists_ends he).choose
 
-noncomputable def oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) : α :=
+noncomputable def oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) : α :=
   (G.exists_ends he).choose_spec.choose
 
-lemma zeroVx_ne_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) :
+lemma zeroVx_ne_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.zeroVx he ≠ G.oneVx he := (G.exists_ends he).choose_spec.choose_spec.left
 
-lemma inc₂_zeroVx_oncVx (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) :
+lemma inc₂_zeroVx_oncVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.Inc₂ e (G.zeroVx he) (G.oneVx he) := (G.exists_ends he).choose_spec.choose_spec.right.left
 
-lemma zeroVx_color_zero (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) :
+lemma zeroVx_color_zero (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.color (G.zeroVx he) = 0 := (G.exists_ends he).choose_spec.choose_spec.right.right.left
 
-lemma oneVx_color_one (G : Graph α β) [G.Bipartite] (he : e ∈ G.E) :
+lemma oneVx_color_one (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.color (G.oneVx he) = 1 := (G.exists_ends he).choose_spec.choose_spec.right.right.right
 
 structure IsMatching (G : Graph α β) (F : Set β) : Prop where
-  supp : F ⊆ G.E
+  supp : F ⊆ E(G)
   disj : ∀ e ∈ F, ∀ f ∈ F, e ≠ f → Disjoint (G.toMultiset e) (G.toMultiset f)
 
 structure IsPerfectMatching (G : Graph α β) (F : Set β) : Prop where
-  supp : F ⊆ G.E
-  all_matched : ∀ v ∈ G.V, ∃! e ∈ F, G.Inc e v
+  supp : F ⊆ E(G)
+  all_matched : ∀ v ∈ V(G), ∃! e ∈ F, G.Inc e v
 
 lemma exists_isMatching (G : Graph α β) : ∃ M : Set β, G.IsMatching M :=
   ⟨∅, by constructor <;> simp [IsMatching]⟩
@@ -105,14 +105,14 @@ lemma exists_isMatching (G : Graph α β) : ∃ M : Set β, G.IsMatching M :=
 lemma exists_maximal_isMatching (G : Graph α β) [G.Finite] :
     ∃ M : Set β, Maximal G.IsMatching M := by
   obtain ⟨M, hM⟩ := exists_isMatching G
-  obtain ⟨M, _hM, hMax⟩ := Set.Finite.exists_le_maximal (s := {s : Set β | s ⊆ G.E ∧ G.IsMatching s})
+  obtain ⟨M, _hM, hMax⟩ := Set.Finite.exists_le_maximal (s := {s : Set β | s ⊆ E(G) ∧ G.IsMatching s})
     (Finite.sep Graph.Finite.edge_fin.powerset G.IsMatching) ⟨hM.supp, hM⟩
   simp only [mem_setOf_eq] at hMax
   rw [maximal_and_iff_left_of_imp (fun M hM ↦ hM.supp)] at hMax
   exact ⟨M, hMax.right⟩
 
 lemma IsPerfectMatching_supported (G : Graph α β) (F : Set β) :
-    G.IsPerfectMatching (G.E ∩ F) ↔ G.IsPerfectMatching F := by
+    G.IsPerfectMatching (E(G) ∩ F) ↔ G.IsPerfectMatching F := by
   sorry
 
 def IsMatching.VxMatched (G : Graph α β) (M : Set β) (v : α) : Prop :=
@@ -148,7 +148,7 @@ lemma IsMatching.maximal_iff_augmentingPath_empty (G : Graph α β) {M : Set β}
   sorry
 
 def IsVxCover (G : Graph α β) (X : Set α) : Prop :=
-  ∀ e ∈ G.E, ∃ v ∈ X, G.Inc e v
+  ∀ e ∈ E(G), ∃ v ∈ X, G.Inc e v
 
 
 

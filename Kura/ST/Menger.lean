@@ -31,8 +31,8 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
     ∃ (Ps : PathEnsemble α β), k ≤ Ps.Paths.encard ∧ Ps.ValidIn G ∧ Ps.StartSet ⊆ S ∧ Ps.FinishSet ⊆ T := by
   classical
 
-  obtain hE | ⟨e, hE⟩ := G.E.eq_empty_or_nonempty
-  · use PathEnsemble.nil (G.V ∩ S ∩ T) β
+  obtain hE | ⟨e, hE⟩ := E(G).eq_empty_or_nonempty
+  · use PathEnsemble.nil (V(G) ∩ S ∩ T) β
     simp only [nil_encard, nil_validOn_iff, nil_firstSet, nil_lastSet, Set.inter_subset_right,
       and_true]
     refine ⟨hsep' _ ?_, by tauto_set⟩
@@ -43,8 +43,8 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
     · exact subset_eq_empty (induce_le G Set.diff_subset).2.1 hE
 
 
-  by_cases h : ∀ U : Set α, G{G.E \ {e}}.IsVxSetSeparator U S T → k ≤ U.encard
-  · obtain ⟨Ps, hlen, hPVd, hPs⟩ := Menger_VxSet (G{G.E \ {e}}) S T k h
+  by_cases h : ∀ U : Set α, G{E(G) \ {e}}.IsVxSetSeparator U S T → k ≤ U.encard
+  · obtain ⟨Ps, hlen, hPVd, hPs⟩ := Menger_VxSet (G{E(G) \ {e}}) S T k h
     use Ps, hlen, hPVd.le (restrict_le _ _), hPs.1, hPs.2
 
   simp only [not_forall, Classical.not_imp, not_le] at h
@@ -77,12 +77,12 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
   obtain ⟨w₁, w₂, hw12, hnin⟩ := Walk.eq_append_cons_of_edge_mem heP
   let x := w₁.last
   let y := w₂.first
-  have hxy : G[G.V \ U].Inc₂ e x y := (hw12 ▸ hpVdU).append_right_validOn.1
+  have hxy : G[V(G) \ U].Inc₂ e x y := (hw12 ▸ hpVdU).append_right_validOn.1
   have hxney : x ≠ y := ne_of_inc₂_edge_mem hpVdU hxy hpe
 
-  let Ge := (G - U){G.E \ {e}}
+  let Ge := (G - U){E(G) \ {e}}
 
-  have hGeleGU : Ge ≤ G[G.V \ U] := restrict_le _ _
+  have hGeleGU : Ge ≤ G[V(G) \ U] := restrict_le _ _
   have hGxleGU : G - (U ∪ {x}) ≤ G - U := by
     rw [← vxDel_vxDel_eq_vxDel_union]
     exact vxDel_le (G - U)
@@ -179,8 +179,8 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
     rintro hyU
     simp only [union_singleton, hyU, insert_eq_of_mem] at hUyncard
     omega
-  have hUV : U ⊆ G.V := by
-    change ∀ x ∈ U, x ∈ G.V
+  have hUV : U ⊆ V(G) := by
+    change ∀ x ∈ U, x ∈ V(G)
     by_contra! hUV
     obtain ⟨u, huU, huv⟩ := hUV
     have hUdiffu : ((U ∪ {x}) \ {u}).ncard < (U ∪ {x}).ncard := by
@@ -192,11 +192,11 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
       convert hconn using 1
       rw [vxDel_eq_vxDel_iff, Set.diff_diff_right, eq_comm, Set.union_eq_left,
         Set.inter_singleton_eq_empty.mpr huv]
-      exact empty_subset (G.V \ (U ∪ {x}))
+      exact empty_subset (V(G) \ (U ∪ {x}))
     omega
-  have hUx : (U ∪ {x}) ⊆ G.V := by
+  have hUx : (U ∪ {x}) ⊆ V(G) := by
     simp [hUV, Set.insert_subset_iff, (Set.diff_subset hxy.vx_mem_left)]
-  have hUy : (U ∪ {y}) ⊆ G.V := by
+  have hUy : (U ∪ {y}) ⊆ V(G) := by
     simp [hUV, Set.insert_subset_iff, (Set.diff_subset hxy.vx_mem_right)]
 
   let L : Set α := hUxSep.leftSet
@@ -208,14 +208,14 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
     rintro ⟨t, ht, hconn⟩
     exact hUySep p.val.first hs t ht <| hUyconn.trans hconn
 
-  have hLV : L ⊆ G.V := by
+  have hLV : L ⊆ V(G) := by
     rintro l ⟨s, hs, hconn⟩
     exact diff_subset hconn.mem_left
   obtain ⟨Psx, hlenx, hPVdx, hPsxStartSet, hPsxFinishSet⟩ :=
     Menger_VxSet (hfin := ⟨(hfin.vx_fin.subset hLV).union hUxFin, hfin.edge_fin.subset (induce_E_le (L ∪ (U ∪ {x})))⟩)
       (G[L ∪ (U ∪ {x})]) S (U ∪ {x}) k (fun V hVFin hVsep ↦
       hsep V hVFin (IsVxSetSeparator.IsPreorder.trans V (U ∪ {x}) T ((hUxSep.leftSetV_iff hUx _).mp hVsep) hUxSep))
-  have hRV : R ⊆ G.V := by
+  have hRV : R ⊆ V(G) := by
     rintro r ⟨t, ht, hconn⟩
     exact Set.diff_subset hconn.mem_left
   obtain ⟨Psy, hleny, hPVdy, hPsyStartSet, hPsyFinishSet⟩ :=
@@ -277,9 +277,9 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
       refine insert_subset hxy.vx_mem_left.1 (insert_subset hxy.vx_mem_right.1 hUV)
     · exact hPVdy.le (induce_le G <| union_subset hRV hUy)
   · rwa [append_firstSet, append_firstSet]
-termination_by G.E.ncard
+termination_by E(G).ncard
 decreasing_by
-  · refine lt_of_le_of_lt (Set.ncard_inter_le_ncard_right G.E _ hfin.edge_fin.diff) ?_
+  · refine lt_of_le_of_lt (Set.ncard_inter_le_ncard_right E(G) _ hfin.edge_fin.diff) ?_
     rw [Set.ncard_diff (by simp only [singleton_subset_iff, he])]
     simp only [ncard_singleton, tsub_lt_self_iff, lt_one_iff, pos_of_gt, and_true]
     rw [Set.ncard_pos hfin.edge_fin]

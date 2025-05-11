@@ -10,7 +10,7 @@ namespace Graph
 set I am contracting on. This is one way to do it using partitions. -/
 
 def IsPartitionGraph (G : Graph (Set α) β) : Prop :=
-  ∃ P : Partition (⋃₀ G.V), P.parts = G.V
+  ∃ P : Partition (⋃₀ V(G)), P.parts = V(G)
 
 def Setify (G : Graph α β) : Graph (Set α) β :=
   vxMap G ({·})
@@ -19,7 +19,7 @@ def Setify.HasIsom (G : Graph α β) : G ≤↔ G.Setify :=
   vxMap.HasIsom ({·}) singleton_injective.injOn
 
 lemma Setify.IsPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := by
-  use (Partition.discrete G.V).congr (by simp [Setify])
+  use (Partition.discrete V(G)).congr (by simp [Setify])
   ext x
   simp [Partition.discrete, Setify]
   refine exists_congr fun a => and_congr_right fun ha => ?_
@@ -27,36 +27,36 @@ lemma Setify.IsPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := b
   rw [eq_iff_eq_cancel_right]
   simp [ha]
 
-@[simps! vxSet edgeSet]
-def VxIdentification (G : Graph (Set α) β) (P : Partition G.V) : Graph (Set α) β :=
+@[simps! vertexSet edgeSet]
+def VxIdentification (G : Graph (Set α) β) (P : Partition V(G)) : Graph (Set α) β :=
   G.vxMap (⋃₀ P.partOf ·)
 
-variable {P : Partition G.V}
+variable {P : Partition V(G)}
 
 @[simp]
-lemma vxIdentification_inc₂ : (G.VxIdentification P).Inc₂ e x y ↔ ∃ x' y',
+lemma vxIdentification_inc₂ : (V(G)xIdentification P).Inc₂ e x y ↔ ∃ x' y',
     G.Inc₂ e x' y' ∧ ⋃₀ P.partOf x' = x ∧ ⋃₀ P.partOf y' = y := by
   rw [VxIdentification, vxMap_inc₂]
 
 lemma vxIdentification_inc₂_toMultiset :
-    (G.VxIdentification P).Inc₂ e x y ↔ (G.toMultiset e).map (⋃₀ P.partOf ·) = {x, y} := by
+    (V(G)xIdentification P).Inc₂ e x y ↔ (G.toMultiset e).map (⋃₀ P.partOf ·) = {x, y} := by
   rw [VxIdentification, vxMap_inc₂_toMultiset]
 
 @[simp]
 lemma vxIdentification_toMultiset :
-    (G.VxIdentification P).toMultiset e = (G.toMultiset e).map (⋃₀ P.partOf ·) := by
+    (V(G)xIdentification P).toMultiset e = (G.toMultiset e).map (⋃₀ P.partOf ·) := by
   rw [VxIdentification, vxMap_toMultiset]
 
 @[simp]
-lemma vxIdentification_inc : (G.VxIdentification P).Inc e x ↔ ∃ y, G.Inc e y ∧ ⋃₀ P.partOf y = x := by
+lemma vxIdentification_inc : (V(G)xIdentification P).Inc e x ↔ ∃ y, G.Inc e y ∧ ⋃₀ P.partOf y = x := by
   rw [VxIdentification, vxMap_inc]
 
 
-structure IdentifyingMap {G : Graph (Set α) β} (P : Partition G.V) where
+structure IdentifyingMap {G : Graph (Set α) β} (P : Partition V(G)) where
   toFun : Set α → Set α
-  eq_preimg_sUnion : ∀ p ∈ G.V, toFun p = ⋃₀ (toFun ⁻¹' {toFun p})
+  eq_preimg_sUnion : ∀ p ∈ V(G), toFun p = ⋃₀ (toFun ⁻¹' {toFun p})
 
-lemma IdentifyingMap.fiber {G : Graph (Set α) β} (P : Partition G.V) (f : IdentifyingMap P) :
-    G.vxMap f.toFun = G.VxIdentification P := by
+lemma IdentifyingMap.fiber {G : Graph (Set α) β} (P : Partition V(G)) (f : IdentifyingMap P) :
+    G.vxMap f.toFun = V(G)xIdentification P := by
   unfold VxIdentification
   sorry

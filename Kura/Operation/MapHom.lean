@@ -19,7 +19,7 @@ lemma vxMap.IsHomOn (φ : α → α') : (HomSys.ofVxFun φ).IsHomOn G (vxMap G �
 lemma vxMap.HasHom (φ : α → α') : G ≤→ (vxMap G φ) :=
   ⟨HomSys.ofVxFun φ, vxMap.IsHomOn φ⟩
 
-lemma vxMap.IsIsomOn (φ : α → α') (hφ : InjOn φ G.V) :
+lemma vxMap.IsIsomOn (φ : α → α') (hφ : InjOn φ V(G)) :
     (HomSys.ofVxFun φ).IsIsomOn G (vxMap G φ) where
   toIsHomOn := vxMap.IsHomOn φ
   bijOn_vx := ⟨mapsTo'.mpr fun ⦃a⦄ a ↦ a, hφ, fun ⦃a⦄ a ↦ a⟩
@@ -29,7 +29,7 @@ lemma vxMap.IsIsomOn (φ : α → α') (hφ : InjOn φ G.V) :
     · simpa only using heq
     · simpa only [HomSys.ofVxFun, id_eq, image_id', vxMap_edgeSet] using he
 
-lemma vxMap.HasIsom (φ : α → α') (hφ : InjOn φ G.V) : G ≤↔ (vxMap G φ) :=
+lemma vxMap.HasIsom (φ : α → α') (hφ : InjOn φ V(G)) : G ≤↔ (vxMap G φ) :=
   ⟨HomSys.ofVxFun φ, vxMap.IsIsomOn φ hφ⟩
 
 
@@ -46,7 +46,7 @@ lemma edgePreimg.HasHom (σ : β' → β) : (edgePreimg G σ) ≤→ G :=
   ⟨edgePreimg.HomSys σ, edgePreimg.HomSys.IsHomOn σ⟩
 
 -- TODO: Have some more think about what the appropriate assumptions should be.
--- lemma edgePreimg.HomSys.IsIsomOn (σ : β' → β) (hσ : BijOn σ univ G.E) :
+-- lemma edgePreimg.HomSys.IsIsomOn (σ : β' → β) (hσ : BijOn σ univ E(G)) :
 --     (edgePreimg.HomSys σ).IsIsomOn (edgePreimg G σ) G where
 --   toIsHomOn := edgePreimg.HomSys.IsHomOn σ
 --   bijOn_vx := by
@@ -68,7 +68,7 @@ noncomputable def edgePreimg.HomSys' [h : Nonempty β'] (σ : β' → β) : Grap
     haveI : Decidable (∃ e', σ e' = e) := Classical.dec _
     if hex : ∃ e', σ e' = e then hex.choose else h.some
 
-lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ G.E) :
+lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ E(G)) :
     (edgePreimg.HomSys' σ).IsEmbOn G (edgePreimg G σ) where
   Mapsto_vx v hv := by simpa only [V, HomSys', id_eq] using hv
   inc₂ ⦃e x y⦄ hbtw := by
@@ -90,5 +90,5 @@ lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : Surj
     change hex₁.choose = hex₂.choose at heq
     rw [← hex₁.choose_spec, ← hex₂.choose_spec, heq]
 
-lemma edgePreimg.HasEmb [Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ G.E) :
+lemma edgePreimg.HasEmb [Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ E(G)) :
     G ≤↪ (edgePreimg G σ) := ⟨edgePreimg.HomSys' σ, edgePreimg.HomSys.IsEmbOn σ hσ⟩
