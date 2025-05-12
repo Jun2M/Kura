@@ -621,7 +621,7 @@ instance instEqNoEdgeGraphic : GraphicFunction (fun G ↦ G = Graph.noEdge V(G) 
     have := instEdgeSetNonemptyGraphic.invariant h
     rwa [eq_iff_iff, ← not_iff_not, not_nonempty_iff_eq_empty, not_nonempty_iff_eq_empty] at this
 
-
+-- Change this to allow the IsEmpty case
 class GraphicVertexFunction (f : outParam <| ∀ {β : Type v₀}, Graph α β → χ)
     (g : ∀ {β : Type v₁}, Graph α β → χ) : Prop where
   invariant {β₁ β₂} {G : Graph α β₁} {G' : Graph α β₂} :

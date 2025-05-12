@@ -100,6 +100,10 @@ lemma ext_of_le_le {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : H₂ �
   (le_of_le_le_subset_subset h₁ h₂ hV.subset hE.subset).antisymm <|
     (le_of_le_le_subset_subset h₂ h₁ hV.symm.subset hE.symm.subset)
 
+instance instvxNonemptyOfEdgeNonempty (G : Graph α β) [hE : Nonempty E(G)] : Nonempty V(G) := by
+  obtain ⟨x, y, hbtw⟩ := exists_inc₂_of_mem_edgeSet hE.some.prop
+  use x, hbtw.vx_mem_left
+
 /-- Restrict `G : Graph α β` to the edges in a set `E₀` without removing vertices -/
 @[simps]
 def edgeRestrict (G : Graph α β) (E₀ : Set β) : Graph α β where

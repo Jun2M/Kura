@@ -1,4 +1,5 @@
-import Kura.Operation.MapHom
+import Kura.Operation.Map
+import Kura.Operation.Hom2
 
 
 open Set Function
