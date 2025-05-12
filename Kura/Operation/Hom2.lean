@@ -622,8 +622,8 @@ instance instEqNoEdgeGraphic : GraphicFunction (fun G ↦ G = Graph.noEdge V(G) 
     rwa [eq_iff_iff, ← not_iff_not, not_nonempty_iff_eq_empty, not_nonempty_iff_eq_empty] at this
 
 -- Change this to allow the IsEmpty case
-class GraphicVertexFunction (f : outParam <| ∀ {β : Type v₀}, Graph α β → χ)
-    (g : ∀ {β : Type v₁}, Graph α β → χ) : Prop where
+class GraphicVertexFunction (f : outParam <| ∀ {β : Type v₀} (_ : Graph α β), χ)
+    (g : ∀ {β : Type v₁} (_ : Graph α β), χ) : Prop where
   invariant {β₁ β₂} {G : Graph α β₁} {G' : Graph α β₂} :
     (∃ (F : β₁ → β₂) (hF : _), G.edgeMap F hF = G') → f G = g G'
 
@@ -666,7 +666,7 @@ instance instComp3GraphicVertex (f : χ → χ' → χ'' → χ''') :
   invariant h := by rw [← hA.invariant h, ← hA'.invariant h, ← hA''.invariant h]
 
 instance instImpGraphicVertex :
-  GraphicVertexFunction (fun (G : Graph α _) ↦ P G → Q G) (fun (G : Graph α _) ↦ P₁ G → Q₁ G) :=
+  GraphicVertexFunction (fun {β} (G : Graph α β) ↦ P G → Q G) (fun {β} (G : Graph α β) ↦ P₁ G → Q₁ G) :=
   instComp2GraphicVertex (· → ·)
 
 instance instHasIsomLeftGraphicVertex :
@@ -698,6 +698,9 @@ instance instVxSetGraphicVertex :
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
     simp only [edgeMap_vertexSet]
+
+instance : GraphicVertexFunction (fun (G : Graph α _) ↦ Finite G.vertexSet → Finite G.vertexSet) (fun (G : Graph α _) ↦ Finite G.vertexSet → Finite G.vertexSet) := inferInstance
+
 
 instance instEdgeSetFiniteGraphicVertex :
     GraphicVertexFunction (fun (G : Graph α _) ↦ Finite E(G)) (fun (G : Graph α _) ↦ Finite E(G)) :=

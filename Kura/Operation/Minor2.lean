@@ -7,7 +7,7 @@ variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e 
 namespace Graph
 
 def SetContract (G : Graph (Set α) β) (C : Set β) : Graph (Set α) β :=
-  V(G)xIdentification (G ↾ C).ConnectivityPartition ＼ C
+  G.VxIdentification (G ↾ C).ConnectivityPartition ＼ C
 
 -- scoped infix:70 " / " => Graph.SetContract
 
@@ -18,36 +18,36 @@ def setContract_def (G : Graph (Set α) β) (C : Set β) : G / C = G.SetContract
 
 @[simp]
 lemma setContract_vertexSet (G : Graph (Set α) β) (C : Set β) :
-  (G / C).V = (⋃₀ (G ↾ C).Component · ) '' V(G) := by
+  V(G / C) = (⋃₀ (G ↾ C).Component · ) '' V(G) := by
   rw [← connectivityPartition_partOf]
   rfl
 
 instance instvertexSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite V(G)] :
-    Finite (G / C).V := by
+    Finite V(G / C) := by
   rw [setContract_vertexSet]
   infer_instance
 
 @[simp]
-lemma SetContract_edgeSet (G : Graph (Set α) β) (C : Set β) : (G / C).E = E(G) \ C :=
+lemma SetContract_edgeSet (G : Graph (Set α) β) (C : Set β) : E(G / C) = E(G) \ C :=
   congrArg (· \ C) (VxIdentification_edgeSet G _)
 
 instance instedgeSetSetContractFinite (G : Graph (Set α) β) (C : Set β) [Finite E(G)] :
-    Finite (G / C).E := by
+    Finite E(G / C) := by
   rw [SetContract_edgeSet]
   infer_instance
 
 lemma setContract_edgeSet_ncard_le (G : Graph (Set α) β) (C : Set β) [Finite E(G)] :
-    (G / C).E.ncard ≤ E(G).ncard := by
+    E(G / C).ncard ≤ E(G).ncard := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_edgeSet_ncard_le C
 
 lemma setContract_edgeSet_ncard_lt_iff (G : Graph (Set α) β) (C : Set β) [Finite E(G)] :
-    (G / C).E.ncard < E(G).ncard ↔ (E(G) ∩ C).Nonempty := by
+    E(G / C).ncard < E(G).ncard ↔ (E(G) ∩ C).Nonempty := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_edgeSet_ncard_lt_iff C
 
 lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) β) (e : β) [Finite E(G)] :
-    (G / ({e} : Set β )).E.ncard < E(G).ncard ↔ e ∈ E(G) := by
+    E(G / ({e} : Set β )).ncard < E(G).ncard ↔ e ∈ E(G) := by
   rw [SetContract_edgeSet]
   exact G.edgeDelete_singleton_edgeSet_ncard_lt_iff e
 
@@ -101,7 +101,7 @@ lemma SetContract.map_eq_iff {u v : Set α} (hP : G.IsPartitionGraph) (hu : u �
 
 @[simp]
 lemma SetContract.map_mem_iff {u : Set α} (hP : G.IsPartitionGraph) :
-    (⋃₀ (G ↾ C).Component u) ∈ (G / C).V ↔ u ∈ V(G) := by
+    (⋃₀ (G ↾ C).Component u) ∈ V(G / C) ↔ u ∈ V(G) := by
   simp only [setContract_vertexSet, mem_image]
   constructor <;> rintro h
   · obtain ⟨x, hx, heq⟩ := h
@@ -111,7 +111,7 @@ lemma SetContract.map_mem_iff {u : Set α} (hP : G.IsPartitionGraph) :
 
 -- @[simp]
 -- lemma SetContract.merged_iff {u v : Set α} (hP : G.IsPartitionGraph) (hu : u ∈ V(G)) (hv : v ∈ V(G)) :
---     (∃ x ∈ (G / C).V, u ⊆ x ∧ v ⊆ x) ↔ (G ↾ C).Connected u v := by
+--     (∃ x ∈ V(G / C), u ⊆ x ∧ v ⊆ x) ↔ (G ↾ C).Connected u v := by
 --   obtain ⟨P, hP⟩ := hP
 --   constructor
 --   · rintro ⟨x, hx, hux, hvx⟩
@@ -172,7 +172,7 @@ lemma SetContract.foo2 {u v : Set α} (hP : G.IsPartitionGraph) (h : (G ↾ (C �
   obtain ⟨w, hwVd, rfl, rfl⟩ := vxConnected_iff_exists_walk.mp h ; clear h
   induction w with
   | nil x =>
-    simp only [WList.nil_last, WList.nil_first, vxConnected_self, edgeRestrict_vertexSet, V,
+    simp only [WList.nil_last, WList.nil_first, vxConnected_self, edgeRestrict_vertexSet, vertexSet,
       mem_image]
     use x, by simpa using hwVd
     rw [connectivityPartition_partOf]
@@ -239,31 +239,31 @@ inductive IsrMinor : Graph α β → Graph α β → Prop
     G'.IspMinor H.Setify → (∀ s ∈ V(G'), f s ∈ s) → G = G'.vxMap f → IsrMinor G H
 
 def IsiMinor (G : Graph α' β') (H : Graph α β) : Prop :=
-  ∃ (G' : Graph (Set α) β), G'.IspMinor (H.Setify) ∧ G ≤↔ G'
+  ∃ (G' : Graph (Set α) β), G'.IspMinor (H.Setify) ∧ G ↔ᴳ G'
 
 def HasCliqueMinor (G : Graph α β) (n : ℕ) : Prop :=
   (CompleteGraph n).IsiMinor G
 
-variable {α α' : Type u_1} {β β' : Type u_2} [Nonempty α] [Nonempty α'] [Nonempty β] [Nonempty β']
-  {χ : Type*}{G H : Graph α β} {G' H' : Graph α' β'}
+variable {α α' β β' χ : Type*} {G H : Graph α β} {G' H' : Graph α' β'}
 
-lemma iff_exists_isom_Setify (P : {α : Type u_1} → {β : Type u_2} → Graph α β → Prop)
-    [hP : GraphicFunction P] : P G ↔ ∃ (G' : Graph (Set α) β), P G' ∧ G ≤↔ G' := by
+lemma iff_exists_isom_Setify (P : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
+    [hP : GraphicFunction P P] : P G ↔ ∃ (G' : Graph (Set α) β), P G' ∧ G ↔ᴳ G' := by
   constructor
   · rintro h
-    refine ⟨G.Setify, ?_, Setify.HasIsom G⟩
-    rwa [hP.presv_isom G G.Setify (Setify.HasIsom G)] at h
+    refine ⟨G.Setify, ?_, setify_hasIsom G⟩
+    rwa [hP.invariant (setify_hasIsom G)] at h
   · rintro ⟨G', h, h'⟩
-    rwa [hP.presv_isom _ _ h']
+    rwa [hP.invariant h']
 
-lemma forall_Setify (F : {α : Type u_1} → {β : Type u_2} → Graph α β → Prop) [hF : GraphicFunction F]
-    (h : ∀ (G' : Graph (Set α) β), G'.IsPartitionGraph → F G') : ∀ (G : Graph α β), F G :=
+lemma forall_Setify (F : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
+    [hF : GraphicFunction F F] (h : ∀ (G' : Graph (Set α) β), G'.IsPartitionGraph → F G') :
+    ∀ (G : Graph α β), F G :=
   fun G => by
-    rw [hF.presv_isom G G.Setify (Setify.HasIsom G)]
-    exact h G.Setify <| Setify.IsPartitionGraph G
+    rw [hF.invariant (setify_hasIsom G)]
+    exact h G.Setify <| setify_isPartitionGraph G
 
-instance instIsiMinorleftGraphic : GraphicFunction (fun G ↦ G.IsiMinor H) where
-  presv_isom G G' h := by
+instance instIsiMinorleftGraphic : GraphicFunction (·.IsiMinor H) (·.IsiMinor H) where
+  invariant h := by
     unfold IsiMinor
     rw [eq_iff_iff]
     constructor
@@ -272,19 +272,20 @@ instance instIsiMinorleftGraphic : GraphicFunction (fun G ↦ G.IsiMinor H) wher
     · rintro ⟨I, hI, hHI⟩
       exact ⟨I, hI, h.trans hHI⟩
 
-instance instIsiMinorrightGraphic : GraphicFunction (fun G ↦ H.IsiMinor G) where
-  presv_isom G G' h := by
+instance instIsiMinorrightGraphic : GraphicFunction H.IsiMinor H.IsiMinor where
+  invariant h := by
     unfold IsiMinor
     rw [eq_iff_iff]
     constructor
     · sorry
     · sorry
 
-instance instHasCliqueMinorGraphic {n : ℕ} : GraphicFunction (fun G ↦ G.HasCliqueMinor n) where
-  presv_isom G G' h := instIsiMinorrightGraphic.presv_isom G G' h
+instance instHasCliqueMinorGraphic {n : ℕ} :
+    GraphicFunction (·.HasCliqueMinor n) (·.HasCliqueMinor n) :=
+  instIsiMinorrightGraphic
 
 instance instHasCliqueMinorGraphicVertex {n : ℕ} :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G.HasCliqueMinor n) :=
+    GraphicVertexFunction (fun (G : Graph α _) ↦ G.HasCliqueMinor n) (fun (G : Graph α _) ↦ G.HasCliqueMinor n) :=
   instGraphicGraphicVertex (hF := instHasCliqueMinorGraphic)
 
 end Graph
