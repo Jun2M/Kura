@@ -807,6 +807,9 @@ lemma handshake' (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
     finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card _ hE]
   simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
 
+noncomputable def maxDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] : ℕ :=
+  (G.degree '' V(G)).toFinset.max.getD 0
+
 end Degree
 
 section Isolated
