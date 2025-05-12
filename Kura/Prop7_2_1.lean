@@ -1,5 +1,5 @@
-import Kura.Operation.Minor2
-import Kura.Operation.Simple
+import Kura.Operation.Minor2Simp
+
 
 
 open Set Function
@@ -8,7 +8,7 @@ variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e 
 namespace Graph
 
 theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite V(G)] [hE : Finite E(G)]
-    [G.IsSimpleCanonical] (hVnonempty : V(G).Nonempty) (hGP : G.IsPartitionGraph)
+    [G.SimpleCanonical] (hVnonempty : V(G).Nonempty) (hGP : G.IsPartitionGraph)
     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
   have hEnonempty : E(G).Nonempty := by
     by_contra! hE
@@ -25,10 +25,11 @@ theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite 
   simp at this
   have := prop721_rec t (G := G / ({e} : Set _) |>.Simplify) (by simpa) ?_
   sorry
+  sorry
 termination_by E(G).ncard
 decreasing_by exact this
 
-theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.IsSimple] [hV : Finite V(G)] [hE : Finite E(G)]
+theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.Simple] [hV : Finite V(G)] [hE : Finite E(G)]
     (hVnonempty : V(G).Nonempty) (hGP : G.IsPartitionGraph)
     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
   revert G
@@ -37,7 +38,7 @@ theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.IsSimple] [hV : Finite V(G
   rintro G _ _ _ hVnonempty hGP hcard
   exact prop721_rec t hVnonempty hGP hcard
 
-theorem prop721 (t : ℕ) [hV : Finite V(G)] [hE : Finite E(G)] [G.IsSimple] (hVnonempty : V(G).Nonempty)
+theorem prop721 (t : ℕ) [hV : Finite V(G)] [hE : Finite E(G)] [G.Simple] (hVnonempty : V(G).Nonempty)
     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
   revert G
   apply forall_Setify
