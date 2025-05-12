@@ -19,16 +19,21 @@ theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite 
 
   let e := hEnonempty.some
   obtain ⟨x, y, hxy : G.Inc₂ e x y⟩ := exists_inc₂_of_mem_edgeSet hEnonempty.some_mem
-  have := prop721_rec t (G := G / ({e} : Set _) |>.Simplify)
+  have : E(G / ({e} : Set _) |>.Simplify).ncard < E(G).ncard := by
+    sorry
+    -- rw [← simplify_hasIsom.eq (·.edgeSet.ncard) (·.edgeSet.ncard)]
+  simp at this
+  have := prop721_rec t (G := G / ({e} : Set _) |>.Simplify) (by simpa) ?_
   sorry
+termination_by E(G).ncard
+decreasing_by exact this
 
 theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.IsSimple] [hV : Finite V(G)] [hE : Finite E(G)]
     (hVnonempty : V(G).Nonempty) (hGP : G.IsPartitionGraph)
     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
   revert G
-  apply forall_Simplify (α := Set α) (β := β) (fun {β} G ↦
-      ∀ [hV : Finite ↑V(G)] [hE : Finite ↑E(G)],
-        V(G).Nonempty → G.IsPartitionGraph → 2 ^ (t - 1) * V(G).ncard ≤ E(G).ncard → G.HasCliqueMinor t)
+  apply forall_Simplify (α := Set α) (β := β) (fun {β} G ↦ ∀ [hV : Finite ↑V(G)] [hE : Finite ↑E(G)],
+    V(G).Nonempty → G.IsPartitionGraph → 2 ^ (t - 1) * V(G).ncard ≤ E(G).ncard → G.HasCliqueMinor t)
   rintro G _ _ _ hVnonempty hGP hcard
   exact prop721_rec t hVnonempty hGP hcard
 
