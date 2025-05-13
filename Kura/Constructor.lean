@@ -272,13 +272,26 @@ lemma singleEdge_inc₂_iff : (Graph.singleEdge u v e).Inc₂ f x y ↔ (f = e) 
 @[simps]
 def CompleteGraph (n : ℕ) : Graph ℕ (Sym2 ℕ) where
   vertexSet := Set.Iio n
-  edgeSet := {s | ∃ x y, x < n ∧ y < n ∧ s = s(x, y)}
-  Inc₂ e x y := x < n ∧ y < n ∧ e = s(x, y)
+  edgeSet := {s | s.all (· < n) ∧ ¬ s.IsDiag}
+  Inc₂ e x y := x < n ∧ y < n ∧ x ≠ y ∧ e = s(x, y)
   inc₂_symm e x y h := by rw [Sym2.eq_swap]; tauto
   eq_or_eq_of_inc₂_of_inc₂ e x y z w h := by
     simp only [h, Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk]
     tauto
-  edge_mem_iff_exists_inc₂ e := by rfl
+  edge_mem_iff_exists_inc₂ e := by
+    induction' e with x y
+    simp only [Sym2.all_iff, mem_setOf_eq, Sym2.mem_iff, forall_eq_or_imp, forall_eq,
+      Sym2.isDiag_iff_proj_eq, ne_eq, exists_and_left]
+    refine ⟨fun ⟨⟨hx, hy⟩, hne⟩ ↦ ?_, fun ⟨x, hx, y, hy, hne, heq⟩ ↦ ?_⟩
+    · use x, hx, y, hy, hne
+    · simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at heq
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := heq <;> tauto
   vx_mem_left_of_inc₂ e x y h := h.1
+
+@[simp]
+lemma CompleteGraph_adj (n : ℕ) (x y : ℕ) (hx : x < n) (hy : y < n) :
+    (CompleteGraph n).Adj x y ↔ x ≠ y := by
+  unfold Adj
+  simp [hx, hy]
 
 end Graph

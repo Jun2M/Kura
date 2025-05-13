@@ -135,3 +135,19 @@ lemma edgeMap_inc₂ (hσ : InjOn σ E(G)) : (G.edgeMap σ hσ).Inc₂ e' u v �
   · use ⟨e, heq, hincu⟩, ⟨e, heq, hincv⟩, fun x f hfeq hfinc ↦ ?_
     obtain rfl := hσ hfinc.edge_mem hincv.edge_mem <| hfeq.trans heq.symm
     exact h x hfinc
+
+
+@[simps!]
+def map (G : Graph α β) (f : α → α') (g : β → β') (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂)
+    (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ → (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f) : Graph α' β' :=
+  Graph.mk' (f '' V(G)) (fun e x y ↦ ∃ e', g e' = e ∧ ∃ x', f x' = x ∧ ∃ y', f y' = y ∧ G.Inc₂ e' x' y')
+  (fun e x y ⟨e', he', x', hx', y', hy', hbtw⟩ ↦ ⟨e', he', y', hy', x', hx', hbtw.symm⟩)
+  (fun e x y a b hxy hab ↦ by
+    obtain ⟨e', he', x', rfl, y', rfl, hbtw⟩ := hxy
+    obtain ⟨e'', rfl, a', rfl, b', rfl, hbtw'⟩ := hab
+    have := h e' hbtw.edge_mem e'' hbtw'.edge_mem he'
+    obtain ⟨h1, h2⟩ | ⟨h1, h2⟩ := by simpa [hbtw.toSym2, hbtw'.toSym2] using this
+    tauto
+    tauto)
+  (fun e x y ⟨e', he', x', hx', y', hy', hbtw⟩ ↦ ⟨x', hbtw.vx_mem_left, hx'⟩)
+

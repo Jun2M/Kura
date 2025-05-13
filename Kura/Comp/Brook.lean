@@ -7,4 +7,5 @@ variable {α α' β β' : Type*} {G G' H H' : Graph α β} {x y z u v : α} {e f
 
 namespace Graph
 
-
+theorem brooks_theorem (G : Graph α β) [G.Simple] [hV : Finite V(G)] [hE : Finite E(G)]
+    

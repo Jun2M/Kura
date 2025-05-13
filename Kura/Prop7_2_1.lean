@@ -1,7 +1,6 @@
 import Kura.Operation.Minor2Simp
 
 
-
 open Set Function
 variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
   {S S' T T' U U': Set α} {F F' R R' : Set β}
@@ -41,6 +40,6 @@ theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.Simple] [hV : Finite V(G)]
 theorem prop721 (t : ℕ) [hV : Finite V(G)] [hE : Finite E(G)] [G.Simple] (hVnonempty : V(G).Nonempty)
     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
   revert G
-  apply forall_Setify
+  apply forall_setify
   rintro G hGP _ _ _ hVnonempty hcard
   exact prop721' t hVnonempty hGP hcard
