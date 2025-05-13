@@ -19,11 +19,11 @@ theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite 
 
   let e := hEnonempty.some
   obtain ⟨x, y, hxy : G.Inc₂ e x y⟩ := exists_inc₂_of_mem_edgeSet hEnonempty.some_mem
-  have : E(G / ({e} : Set _) |>.Simplify).ncard < E(G).ncard := by
+  have : E(G / ({e} : Set _) |>.simplify).ncard < E(G).ncard := by
     sorry
     -- rw [← simplify_hasIsom.eq (·.edgeSet.ncard) (·.edgeSet.ncard)]
   simp at this
-  have := prop721_rec t (G := G / ({e} : Set _) |>.Simplify) (by simpa) ?_
+  have := prop721_rec t (G := G / ({e} : Set _) |>.simplify) (by simpa) ?_
   sorry
   sorry
 termination_by E(G).ncard

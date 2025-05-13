@@ -737,14 +737,6 @@ noncomputable def degree (G : Graph α β) (v : α) : ℕ := (G.eDegree v).toNat
 
 def regular (G : Graph α β) := ∃ d, ∀ v, G.degree v = d
 
-lemma degree_eq_fintype_sum [Fintype β] (G : Graph α β) (v : α) :
-    G.degree v = ∑ e, G.incFun e v := by
-  rw [degree, eDegree, tsum_eq_sum (s := Finset.univ) (by simp), ← Nat.cast_inj (R := ℕ∞),
-    Nat.cast_sum, ENat.coe_toNat]
-  refine WithTop.sum_ne_top.2 fun i _ ↦ ?_
-  rw [← WithTop.lt_top_iff_ne_top]
-  exact Batteries.compareOfLessAndEq_eq_lt.1 rfl
-
 lemma degree_eq_edgeSet_sum (G : Graph α β) [Fintype E(G)] (v : α) :
     G.degree v = ∑ e ∈ E(G), G.incFun e v := by
   rw [degree, eDegree, tsum_eq_sum (s := E(G).toFinset) (by simp; exact fun b hb ↦ not_inc_of_not_mem_edgeSet hb v), ← Nat.cast_inj (R := ℕ∞),
@@ -753,20 +745,9 @@ lemma degree_eq_edgeSet_sum (G : Graph α β) [Fintype E(G)] (v : α) :
   rw [← WithTop.lt_top_iff_ne_top]
   exact Batteries.compareOfLessAndEq_eq_lt.1 rfl
 
-lemma degree_eq_finsum [Finite β] (G : Graph α β) (v : α) :
-    G.degree v = ∑ᶠ e, G.incFun e v := by
-  have := Fintype.ofFinite β
-  rw [degree_eq_fintype_sum, finsum_eq_sum_of_fintype]
-
 lemma degree_eq_finsum_edgeSet (G : Graph α β) [Finite E(G)] (v : α) :
     G.degree v = ∑ᶠ (e) (_ : e ∈ E(G)), G.incFun e v := by
   rw [degree_eq_edgeSet_sum, finsum_cond_eq_sum_of_cond_iff (t := E(G).toFinset) (h := by simp)]
-
-@[simp]
-lemma finsum_incFun_eq (he : e ∈ E(G)) : ∑ᶠ v, G.incFun e v = 2 := by
-  simp_rw [← sum_incFun_eq_two he, Finsupp.sum]
-  rw [finsum_eq_finset_sum_of_support_subset]
-  simp
 
 @[simp]
 lemma finsum_vertexSet_incFun_eq (he : e ∈ E(G)) : ∑ᶠ v ∈ V(G), G.incFun e v = 2 := by
@@ -778,21 +759,7 @@ lemma finsum_vertexSet_incFun_eq (he : e ∈ E(G)) : ∑ᶠ v ∈ V(G), G.incFun
   simp [not_inc_of_not_mem_vertexSet v hv]
   · simp
 
-lemma handshake [Finite α] [Finite β] (G : Graph α β) :
-    ∑ᶠ v, G.degree v = 2 * E(G).ncard := by
-  have h := finsum_mem_comm (fun e v ↦ G.incFun e v) E(G).toFinite (Set.finite_univ (α := α))
-  convert h.symm using 1
-  · simp only [Set.mem_univ, finsum_true, degree_eq_finsum, finsum_mem_def]
-    convert rfl with v e
-    rw [indicator_apply_eq_self]
-    simp only [indicator_apply_eq_self, incFun_eq_zero, not_imp_not]
-    apply Inc.edge_mem
-  simp only [Set.mem_univ, finsum_true]
-  rw [finsum_mem_congr (show E(G) = E(G) from rfl) (fun x h ↦ finsum_incFun_eq h),
-    finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card]
-  simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
-
-lemma handshake' (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
+lemma handshake (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
     ∑ᶠ v, G.degree v = 2 * E(G).ncard := by
   have h := finsum_mem_comm (fun e v ↦ G.incFun e v) E(G).toFinite hV
   convert h.symm using 1
@@ -807,8 +774,68 @@ lemma handshake' (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
     finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card _ hE]
   simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
 
+@[simp]
+lemma degree_eq_zero_not_mem (G : Graph α β) (hv : v ∉ V(G)) : G.degree v = 0 := by
+  unfold degree eDegree
+  simp only [ENat.toNat_eq_zero]
+  left
+  convert tsum_zero
+  simp [hv]
+
 noncomputable def maxDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] : ℕ :=
-  (G.degree '' V(G)).toFinset.max.getD 0
+  (G.degree '' V(G)).toFinset.max.unbotD 0
+
+scoped notation "Δ(" G ")" => maxDegree G
+
+lemma degree_le_maxDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] (v : α) :
+    G.degree v ≤ Δ(G) := by
+  obtain hv | hv := (em <| v ∈ V(G)).symm
+  · simp only [hv, not_false_eq_true, degree_eq_zero_not_mem, zero_le]
+  unfold maxDegree
+  have hmem : G.degree v ∈ (G.degree '' V(G)).toFinset := by
+    simp
+    use v
+  obtain ⟨e, he⟩ := Finset.max_of_mem hmem
+  rw [he]
+  simp only [WithBot.unbotD_coe, ge_iff_le]
+  have := Finset.le_max hmem
+  simp_all only [toFinset_image, WithBot.coe_le_coe]
+
+lemma exists_vertex_maxDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] (hV : V(G).Nonempty) :
+    ∃ v, G.degree v = Δ(G) := by
+  unfold maxDegree
+  obtain ⟨k, hk⟩ := Finset.max_of_nonempty (by simpa : (G.degree '' V(G)).toFinset.Nonempty)
+  have := Finset.mem_of_max hk
+  simp only [toFinset_image, Finset.mem_image, mem_toFinset] at this
+  obtain ⟨v, hv, rfl⟩ := this
+  use v
+  simp only [hk, WithBot.unbotD_coe]
+
+noncomputable def minDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] : ℕ :=
+  (G.degree '' V(G)).toFinset.min.untopD 0
+
+scoped notation "δ(" G ")" => minDegree G
+
+lemma minDegree_le_degree (G : Graph α β) [Finite V(G)] [Finite E(G)] (hv : v ∈ V(G)) :
+    δ(G) ≤ G.degree v := by
+  unfold minDegree
+  have hmem : G.degree v ∈ (G.degree '' V(G)).toFinset := by
+    simp
+    use v
+  obtain ⟨e, he⟩ := Finset.min_of_mem hmem
+  rw [he, WithTop.untopD_coe]
+  have := Finset.min_le hmem
+  simp_all only [toFinset_image, Finset.mem_image, mem_toFinset, ENat.some_eq_coe, Nat.cast_le]
+
+lemma exists_vertex_minDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] (hV : V(G).Nonempty) :
+    ∃ v, G.degree v = δ(G) := by
+  unfold minDegree
+  obtain ⟨k, hk⟩ := Finset.min_of_nonempty (by simpa : (G.degree '' V(G)).toFinset.Nonempty)
+  have := Finset.mem_of_min hk
+  simp only [toFinset_image, Finset.mem_image, mem_toFinset] at this
+  obtain ⟨v, hv, rfl⟩ := this
+  use v
+  simp only [hk, WithTop.untopD_coe]
 
 end Degree
 

@@ -4,7 +4,7 @@
 
 - Take a Minimal Graph? [Prop721]
 
-- GraphProperty/GraphFunction? [Isom]
+- GraphVertexFunction/GraphEdgeFunction [Isom]
 
 - Update commented-out lemma\theorems in Minor.lean [priMinor]
 
@@ -27,8 +27,6 @@
   - [IsEdgeSetSep] Develop IsEdgeSetSep
 
 ## Options - Actionables without a clear goal
-
-- Vertex identification using partition on the vertexSet
 
 ## Thoughts - Abstract thoughts
 

@@ -12,9 +12,31 @@ namespace Graph
 
 structure IsColoring (G : Graph α β) (f : α → ℕ) (n : ℕ) : Prop where
   proper ⦃u v : _⦄ : G.Adj u v → f u ≠ f v
-  uptoN ⦃u : _⦄ : f u < n
+  uptoN ⦃u : _⦄ : u ∈ V(G) → f u < n
 
 def Colorable (G : Graph α β) (n : ℕ) : Prop := ∃ f : α → ℕ, IsColoring G f n
+
+lemma zero_colorable_iff : G.Colorable 0 ↔ G = ⊥ := by
+  refine ⟨fun ⟨f, hf⟩ ↦ ?_, ?_⟩
+  · rw [← vertexSet_empty_iff_eq_bot]
+    by_contra! hV
+    simpa using hf.uptoN hV.some_mem
+  · rintro rfl
+    use fun _ ↦ 0, by simp, by simp
+
+lemma one_colorable_iff : G.Colorable 1 ↔ G = Graph.noEdge V(G) β := by
+  refine ⟨fun ⟨f, hf⟩ ↦ ?_, ?_⟩
+  · rw [← edgeSet_empty_iff_eq_noEdge]
+    by_contra! hE
+    obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet hE.some_mem
+    have hu := hf.uptoN huv.vx_mem_left
+    have hv := hf.uptoN huv.vx_mem_right
+    simp at hu hv
+    simpa [hu, hv] using hf.proper ⟨hE.some, huv⟩
+  · rintro h
+    rw [h]
+    use fun _ ↦ 0, by simp, by simp
+ 
 
 class Bipartite (G : Graph α β) where
   color : α → ℕ

@@ -246,7 +246,7 @@ def HasCliqueMinor (G : Graph α β) (n : ℕ) : Prop :=
 
 variable {α α' β β' χ : Type*} {G H : Graph α β} {G' H' : Graph α' β'}
 
-lemma iff_exists_isom_Setify (P : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
+lemma iff_exists_isom_setify (P : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
     [hP : GraphicFunction P P] : P G ↔ ∃ (G' : Graph (Set α) β), P G' ∧ G ↔ᴳ G' := by
   constructor
   · rintro h
@@ -255,7 +255,7 @@ lemma iff_exists_isom_Setify (P : {α : Type u_6} → {β : Type u_8} → Graph 
   · rintro ⟨G', h, h'⟩
     rwa [hP.invariant h']
 
-lemma forall_Setify (F : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
+lemma forall_setify (F : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
     [hF : GraphicFunction F F] (h : ∀ (G' : Graph (Set α) β), G'.IsPartitionGraph → F G') :
     ∀ (G : Graph α β), F G :=
   fun G => by

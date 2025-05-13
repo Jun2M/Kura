@@ -337,6 +337,22 @@ instance instUniqueGraph [IsEmpty α] : Unique (Graph α β) where
 @[simp] lemma eq_bot_of_isEmpty [IsEmpty α] : G = ⊥ := instUniqueGraph.uniq G
 
 @[simp]
+lemma bot_not_inc₂ : ¬ (⊥ : Graph α β).Inc₂ e x y := by
+  intro h
+  simpa using h.vx_mem_left
+
+@[simp]
+lemma bot_not_inc : ¬ (⊥ : Graph α β).Inc e x := by
+  intro h
+  simpa using h.choose_spec.vx_mem_left
+
+@[simp]
+lemma bot_not_adj : ¬ (⊥ : Graph α β).Adj x y := by
+  intro h
+  simpa using h.choose_spec.vx_mem_left
+
+
+@[simp]
 lemma edgeDelete_empty : G ＼ (∅ : Set β) = G := by
   simp
 

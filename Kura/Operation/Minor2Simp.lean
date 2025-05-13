@@ -9,7 +9,7 @@ namespace Graph
 
 @[simps!]
 def SimpMinor (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) : Graph (Set α) (Sym2 (Set α)) :=
-  G / C |>.Simplify
+  G / C |>.simplify
 
 scoped infix:50 " // " => Graph.SimpMinor
 
