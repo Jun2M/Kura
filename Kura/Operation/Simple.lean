@@ -27,6 +27,10 @@ lemma Graph.Inc₂.ne [hG : G.IsLoopless] (hbtw : G.Inc₂ e u v) : u ≠ v := b
   rintro rfl
   exact hG.loopless u ⟨e, hbtw⟩
 
+lemma Graph.Adj.ne (G : Graph α β) [hS : G.IsLoopless] (huv : G.Adj u v) : u ≠ v := by
+  rintro rfl
+  exact hS.loopless u huv
+
 @[simp]
 lemma Graph.toSym2_not_isDiag {G : Graph α β} [G.IsLoopless] {e : β} {he : e ∈ E(G)} :
     ¬ (G.toSym2 e he).IsDiag := by

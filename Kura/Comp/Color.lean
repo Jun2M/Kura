@@ -1,6 +1,7 @@
 import Kura.Connected
 import Kura.Walk.Path
 import Mathlib.Order.SymmDiff
+import Kura.Operation.Simple
 
 
 open Set Function WList symmDiff
@@ -15,6 +16,11 @@ structure IsColoring (G : Graph α β) (f : α → ℕ) (n : ℕ) : Prop where
   uptoN ⦃u : _⦄ : u ∈ V(G) → f u < n
 
 def Colorable (G : Graph α β) (n : ℕ) : Prop := ∃ f : α → ℕ, IsColoring G f n
+
+lemma Colorable.isLoopless {n : ℕ} (G : Graph α β) (h : G.Colorable n) : G.IsLoopless where
+  loopless v hv := by
+    obtain ⟨f, hf⟩ := h
+    exact hf.proper hv rfl
 
 lemma zero_colorable_iff : G.Colorable 0 ↔ G = ⊥ := by
   refine ⟨fun ⟨f, hf⟩ ↦ ?_, ?_⟩
@@ -36,7 +42,33 @@ lemma one_colorable_iff : G.Colorable 1 ↔ G = Graph.noEdge V(G) β := by
   · rintro h
     rw [h]
     use fun _ ↦ 0, by simp, by simp
- 
+
+lemma exists_colorable (G : Graph α β) [hS : G.Simple] [hV : Finite V(G)] : ∃ n, G.Colorable n := by
+  classical
+  use V(G).ncard
+  obtain ⟨f⟩ := hV
+  use fun a ↦ if ha : a ∈ V(G) then (f ⟨a, ha⟩) else 0
+  constructor
+  · rintro u v huv
+    have := huv.ne
+    simp only [huv.mem_left, ↓reduceDIte, huv.mem_right, ne_eq]
+    rwa [Fin.val_inj, f.injective.eq_iff, ← Subtype.coe_inj]
+  · intro u hu
+    obtain hcard : V(G).ncard = _ := Nat.card_eq_of_equiv_fin f
+    rw [hcard]
+    simp only [hu, ↓reduceDIte]
+    exact (f ⟨u, hu⟩).prop
+
+lemma colorable_iff_exists_vector {n : ℕ} (G : Graph α β) [hV : Finite V(G)] [DecidableRel (G.Adj · ·)] :
+    G.Colorable n ↔ ∃ l : V(G) → (Fin n), ∀ u v, G.Adj u.val v.val → l u ≠ l v := by
+  sorry
+
+instance decidableColorable (G : Graph α β) [G.Simple] [Finite V(G)] [DecidableRel (G.Adj · ·)] :
+    DecidablePred (G.Colorable ·) := sorry
+
+def ChromaticNumber (G : Graph α β) [G.Simple] [Finite V(G)] [DecidableRel (G.Adj · ·)] : ℕ :=
+  Nat.find (exists_colorable G)
+
 
 class Bipartite (G : Graph α β) where
   color : α → ℕ
@@ -47,6 +79,9 @@ def color (G : Graph α β) [G.Bipartite] : α → ℕ := Bipartite.color G
 def proper (G : Graph α β) [hBip : G.Bipartite] {u v} : G.Adj u v → color G u ≠ color G v :=
   (hBip.proper ·)
 def twoColor (G : Graph α β) [hBip : G.Bipartite] : ∀ u, color G u < 2 := hBip.two
+
+instance instBipartiteIsLoopless (G : Graph α β) [G.Bipartite] : G.IsLoopless where
+  loopless _ hv := G.proper hv rfl
 
 lemma color_zero_or_one (G : Graph α β) [G.Bipartite] (u : α) :
     G.color u = 0 ∨ G.color u = 1 := by
@@ -60,11 +95,6 @@ lemma color_ne_zero (G : Graph α β) [G.Bipartite] : G.color u ≠ 0 ↔ G.colo
 @[simp]
 lemma color_ne_one (G : Graph α β) [G.Bipartite] : G.color u ≠ 1 ↔ G.color u = 0 :=
   G.color_ne_zero.not_right.symm
-
-@[simp]
-lemma Inc₂.ne (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.Inc₂ e u v) : u ≠ v := by
-  rintro rfl
-  simpa using G.proper ⟨e, huv.symm⟩
 
 lemma Inc₂.color_eq_zero (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.Inc₂ e u v) :
     G.color u = 0 ↔ G.color v = 1 := by
