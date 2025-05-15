@@ -1,5 +1,5 @@
-import Kura.Operation.Map
-import Kura.Operation.Hom2
+import Kura.Operation.Hom
+import Kura.Dep.SetPartitionTypeless
 
 
 open Set Function

@@ -286,6 +286,9 @@ lemma eq_bot_of_hasEmb_bot (h : G ↪ᴳ (⊥ : Graph α' β')) : G = ⊥ := by
   have : Nonempty (V(G) → V(⊥)) := ⟨f.toFun⟩
   simpa using this
 
+-- lemma map_hasEmb
+-- lemma hasEmb_iff_le_map
+
 
 
 structure Isom (G₁ : Graph α β) (G₂ : Graph α' β') extends Hom G₁ G₂ where
@@ -620,18 +623,18 @@ class GraphicFunction (f : outParam <| ∀ {α : Type u₀} {β : Type v₀}, Gr
     (g : ∀ {α : Type u₁} {β : Type v₁}, Graph α β → χ) where
   invariant {α₁ β₁ α₂ β₂} {G : Graph α₁ β₁} {G' : Graph α₂ β₂} : G ↔ᴳ G' → f G = g G'
 
-lemma iff_exists_isom (f : ∀ {α : Type u₀} {β : Type v₀}, Graph α β → Prop)
-    (g : ∀ {α : Type (max u₀ u₁)} {β : Type (max v₀ v₁)}, Graph α β → Prop)
-    [hP : GraphicFunction f g] {α : Type u₀} {β : Type v₀} {G : Graph α β} :
-    f G ↔ ∃ (α' : Type (max u₀ u₁)) (β' : Type (max v₀ v₁))
-    (G' : Graph α' β'), g G' ∧ G ↔ᴳ G' := by
-  constructor
-  · rintro h
-    use ULift α, ULift β
-    sorry
-    -- exact ⟨h, HasIsom.rfl⟩
-  · rintro ⟨α', β', G', hg, h'⟩
-    rwa [hP.invariant h']
+-- lemma iff_exists_isom (f : ∀ {α : Type u₀} {β : Type v₀}, Graph α β → Prop)
+--     (g : ∀ {α : Type (max u₀ u₁)} {β : Type (max v₀ v₁)}, Graph α β → Prop)
+--     [hP : GraphicFunction f g] {α : Type u₀} {β : Type v₀} {G : Graph α β} :
+--     f G ↔ ∃ (α' : Type (max u₀ u₁)) (β' : Type (max v₀ v₁))
+--     (G' : Graph α' β'), g G' ∧ G ↔ᴳ G' := by
+--   constructor
+--   · rintro h
+--     use ULift α, ULift β
+--     sorry
+--     -- exact ⟨h, HasIsom.rfl⟩
+--   · rintro ⟨α', β', G', hg, h'⟩
+--     rwa [hP.invariant h']
 
 variable {α : Type u₀} {β : Type v₀} {α' : Type u₁} {β' : Type v₁}
   {G : Graph α β} {G' : Graph α' β'}

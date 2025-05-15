@@ -1,4 +1,4 @@
-import Kura.Operation.Hom2
+import Kura.Operation.Hom
 
 
 open Set Function Graph

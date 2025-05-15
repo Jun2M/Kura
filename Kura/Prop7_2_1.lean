@@ -28,18 +28,21 @@ theorem prop721_rec (t : ℕ) {G : Graph (Set α) (Sym2 (Set α))} [hV : Finite 
 termination_by E(G).ncard
 decreasing_by exact this
 
-theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.Simple] [hV : Finite V(G)] [hE : Finite E(G)]
-    (hVnonempty : V(G).Nonempty) (hGP : G.IsPartitionGraph)
-    (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
-  revert G
-  apply forall_Simplify (α := Set α) (β := β) (fun {β} G ↦ ∀ [hV : Finite ↑V(G)] [hE : Finite ↑E(G)],
-    V(G).Nonempty → G.IsPartitionGraph → 2 ^ (t - 1) * V(G).ncard ≤ E(G).ncard → G.HasCliqueMinor t)
-  rintro G _ _ _ hVnonempty hGP hcard
-  exact prop721_rec t hVnonempty hGP hcard
+-- theorem prop721' (t : ℕ) {G : Graph (Set α) β} [G.Simple] [hV : Finite V(G)] [hE : Finite E(G)]
+--     (hVnonempty : V(G).Nonempty) (hGP : G.IsPartitionGraph)
+--     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
+--   revert G
+--   apply forall_Simplify (α := Set α) (β := β) (fun {β} G ↦ ∀ [hV : Finite ↑V(G)] [hE : Finite ↑E(G)],
+--     V(G).Nonempty → G.IsPartitionGraph → 2 ^ (t - 1) * V(G).ncard ≤ E(G).ncard → G.HasCliqueMinor t)
+--   rintro G _ _ _ hVnonempty hGP hcard
+--   exact prop721_rec t hVnonempty hGP hcard
 
 theorem prop721 (t : ℕ) [hV : Finite V(G)] [hE : Finite E(G)] [G.Simple] (hVnonempty : V(G).Nonempty)
     (hcard : 2^(t - 1) * V(G).ncard ≤ E(G).ncard) : G.HasCliqueMinor t := by
   revert G
+  apply forall_type_nonempty
+  intro α β _ _
   apply forall_setify
+  apply forall_Simplify
   rintro G hGP _ _ _ hVnonempty hcard
-  exact prop721' t hVnonempty hGP hcard
+  exact prop721_rec t hVnonempty hGP hcard
