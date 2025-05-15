@@ -137,7 +137,7 @@ lemma edgeMap_inc₂ (hσ : InjOn σ E(G)) : (G.edgeMap σ hσ).Inc₂ e' u v �
     exact h x hfinc
 
 
-@[simps!]
+@[simps! vertexSet inc₂]
 def map (G : Graph α β) (f : α → α') (g : β → β') (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂)
     (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ → (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f) : Graph α' β' :=
   Graph.mk' (f '' V(G)) (fun e x y ↦ ∃ e', g e' = e ∧ ∃ x', f x' = x ∧ ∃ y', f y' = y ∧ G.Inc₂ e' x' y')
@@ -151,3 +151,28 @@ def map (G : Graph α β) (f : α → α') (g : β → β') (h : ∀ (e₁) (he�
     tauto)
   (fun e x y ⟨e', he', x', hx', y', hy', hbtw⟩ ↦ ⟨x', hbtw.vx_mem_left, hx'⟩)
 
+variable {G : Graph α β} {f : α → α'} {g : β → β'} {h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂)
+    (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ → (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f}
+
+@[simp]
+lemma map_edgeSet : E(G.map f g h) = g '' E(G) := by
+  ext e'
+  simp only [map, mk'_edgeSet, mem_setOf_eq, mem_image]
+  refine ⟨fun ⟨a', b', e, heq', a, heqa, b, heqb, hbtw⟩ ↦ ?_, fun ⟨e, he, heq⟩ ↦ ?_⟩
+  · subst heq' heqa heqb
+    use e, hbtw.edge_mem
+  · subst heq
+    obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
+    use f a, f b, e, rfl, a, rfl, b, rfl, hbtw
+
+lemma Inc₂.map (hbtw : G.Inc₂ e u v) : (G.map f g h).Inc₂ (g e) (f u) (f v) := by
+  rw [map_inc₂]
+  use e, rfl, u, rfl, v, rfl, hbtw
+
+lemma mem_vertexSet_map (hin : u ∈ V(G)) : f u ∈ V(G.map f g h) := by
+  rw [map_vertexSet]
+  exact ⟨u, hin, rfl⟩
+
+lemma mem_edgeSet_map (hin : e ∈ E(G)) : g e ∈ E(G.map f g h) := by
+  rw [map_edgeSet]
+  use e

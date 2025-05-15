@@ -234,7 +234,6 @@ lemma edgeSet_empty_iff_eq_noEdge (G : Graph α β) : E(G) = ∅ ↔ G = Graph.n
     simp at this
   · rw [h, noEdge_edgeSet]
 
--- @[simp]
 lemma eq_noEdge_of_isEmpty [IsEmpty β] : G = Graph.noEdge V(G) _ := by
   simpa only [edgeSet_empty_iff_eq_noEdge] using eq_empty_of_isEmpty E(G)
 

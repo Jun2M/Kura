@@ -1,4 +1,3 @@
-import Kura.Connected
 import Kura.Operation.Map
 
 
@@ -114,8 +113,7 @@ def Hom.comp {G' : Graph α' β'} (f : Hom G G') (g : Hom G' G'') : Hom G G'' wh
   toFuns := Funs.comp f.toFuns g.toFuns
   inc₂ _ _ _ hbtw := g.inc₂ (f.inc₂ hbtw)
 
-inductive HasHom (G₁ : Graph α β) (G₂ : Graph α' β') : Prop where
-  | intro (f : Hom G₁ G₂)
+def HasHom (G₁ : Graph α β) (G₂ : Graph α' β') : Prop := Nonempty (Hom G₁ G₂)
 
 scoped infix:50 " →ᴳ " => HasHom
 
@@ -126,7 +124,110 @@ lemma HasHom.trans (h₁₂ : G →ᴳ G') (h₂₃ : G' →ᴳ G'') : G →ᴳ 
   obtain ⟨g⟩ := h₂₃
   exact ⟨f.comp g⟩
 
+lemma hasHom_map {f : α → α'} {g : β → β'} (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂)
+    (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ → (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f)
+    (hmap : G.map f g h ≤ G') : G →ᴳ G' := ⟨{
+      toFun v := ⟨f v, vertexSet_subset_of_le hmap (mem_vertexSet_map v.prop)⟩
+      edgeFun e := ⟨g e, edgeSet_subset_of_le hmap (mem_edgeSet_map e.prop)⟩
+      inc₂ _ _ _ hbtw := hbtw.map.of_le hmap}⟩
+
+lemma hasHom_iff_le_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β')] : G →ᴳ G' ↔
+    ∃ (f : α → α') (g : β → β') (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂) (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ →
+    (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f), G.map f g h ≤ G' := by
+  refine ⟨fun ⟨F⟩ ↦ ?_, fun ⟨f, g, h, heq⟩ ↦ hasHom_map h heq⟩
+  use Function.extend Subtype.val (Subtype.val ∘ F.toFun) (Classical.arbitrary (α → α')),
+    Function.extend Subtype.val (Subtype.val ∘ F.edgeFun) (Classical.arbitrary (β → β')), ?_, ?_, ?_
+  · rintro e₁ he₁ e₂ he₂ h
+    obtain ⟨x₁, y₁, hxy₁⟩ := exists_inc₂_of_mem_edgeSet he₁
+    obtain ⟨x₂, y₂, hxy₂⟩ := exists_inc₂_of_mem_edgeSet he₂
+    rw [Subtype.val_injective.extend_apply _ _ ⟨e₁, he₁⟩, Subtype.val_injective.extend_apply _ _ ⟨e₂, he₂⟩] at h
+    rw [(toSym2_eq_pair_iff he₁).mpr hxy₁, (toSym2_eq_pair_iff he₂).mpr hxy₂, Sym2.map_pair_eq,
+      Sym2.map_pair_eq, Subtype.val_injective.extend_apply _ _ ⟨x₁, hxy₁.vx_mem_left⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨y₁, hxy₁.vx_mem_right⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨x₂, hxy₂.vx_mem_left⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨y₂, hxy₂.vx_mem_right⟩]
+    simp only [comp_apply, Subtype.val_inj] at h ⊢
+    have hbtw₁ : G.Inc₂ (⟨e₁, he₁⟩ : E(G)) (⟨x₁, hxy₁.vx_mem_left⟩ : V(G)) (⟨y₁, hxy₁.vx_mem_right⟩ : V(G)) := hxy₁
+    have hbtw₂ : G.Inc₂ (⟨e₂, he₂⟩ : E(G)) (⟨x₂, hxy₂.vx_mem_left⟩ : V(G)) (⟨y₂, hxy₂.vx_mem_right⟩ : V(G)) := hxy₂
+    rw [← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₁, ← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₂]
+    simp_rw [h]
+  · rintro x hx
+    simp only [map_vertexSet, mem_image] at hx
+    obtain ⟨y, hy, rfl⟩ := hx
+    rw [Subtype.val_injective.extend_apply _ _ ⟨y, hy⟩]
+    simp only [comp_apply, Subtype.coe_prop]
+  · rintro e x y hxy
+    simp only [map_inc₂] at hxy
+    obtain ⟨e, rfl, x, rfl, y, rfl, hxy⟩ := hxy
+    rw [Subtype.val_injective.extend_apply _ _ ⟨e, hxy.edge_mem⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨x, hxy.vx_mem_left⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨y, hxy.vx_mem_right⟩]
+    simp only [comp_apply]
+    exact F.inc₂ hxy
+
 -- Todo: Add some stuff about cardinality
+
+
+-- def HomSys.image (f : HomSys α β α' β') (h : f.IsHomOn G G₂) : Graph α' β' :=
+--   ofInc (f '' V(G)) (fun e' v' ↦ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v)
+--   (by rintro e' v' ⟨e, rfl, v, rfl, hinc⟩; use v, hinc.vx_mem)
+--   (by
+--     rintro u' v' w' e' ⟨e, rfl, v, rfl, hincev⟩ ⟨a, heqae, b, rfl, hincab⟩ ⟨c, heqce, d, rfl, hinccd⟩
+--     have hev := h.inc hincev
+--     have hab := heqae ▸ h.inc hincab
+--     have hcd := heqce ▸ h.inc hinccd
+--     exact Inc.eq_or_eq_or_eq_of_inc_of_inc hev hab hcd)
+
+-- @[simp] lemma HomSys.image_V (h : f.IsHomOn G G₂) : (f.image h).V = f '' V(G) :=
+--   rfl
+
+-- @[simp] lemma HomSys.image_E (h : f.IsHomOn G G₂) :
+--     (f.image h).E = f.edgeFun '' E(G) := by
+--   ext e'
+--   simp only [image, ofInc_E, mem_setOf_eq, mem_image]
+--   constructor
+--   · rintro ⟨v, e, rfl, v, rfl, hinc⟩
+--     use e, hinc.edge_mem
+--   · rintro ⟨e, he, rfl⟩
+--     obtain ⟨v, hinc⟩ := exists_inc_of_mem_edgeSet he
+--     use f v, e, rfl, v
+
+-- @[simp]
+-- lemma HomSys.image_inc (h : f.IsHomOn G G₂) {e'} {v'}:
+--     (f.image h).Inc e' v' ↔ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v := by
+--   simp only [image, ofInc_inc]
+
+-- lemma HomSys.image_le (h : f.IsHomOn G G₂) : f.image h ≤ G₂ := by
+--   rw [le_iff_inc, image_V, image_E]
+--   refine ⟨image_subset_iff.mpr h.Mapsto_vx, image_subset_iff.mpr h.Mapsto_edge, ?_⟩
+--   rintro e he v
+--   simp only [image_inc]
+--   constructor
+--   · rintro ⟨e, rfl, v, rfl, hinc⟩
+--     exact h.inc hinc
+--   · rintro hinc
+--     obtain ⟨b, hb, rfl⟩ := he
+--     obtain ⟨a, a', hinc₂⟩ := exists_inc_of_mem_edgeSet hb
+--     obtain (rfl | rfl) := (h.inc₂ hinc₂).eq_or_eq_of_inc hinc
+--     · use b, rfl, a, rfl
+--       exact hinc₂.inc_left
+--     · use b, rfl, a', rfl
+--       exact hinc₂.inc_right
+
+-- lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toIsHomOn) where
+--   Mapsto_vx v hv := by use v
+--   inc₂ e v w hbtw := by
+--     rw [← inc₂_iff_inc₂_of_le_of_mem (HomSys.image_le h.toIsHomOn)]
+--     exact h.inc₂ hbtw
+--     · simp only [image_E, mem_image]
+--       use e, hbtw.edge_mem
+--   bijOn_vx := ⟨fun u hu ↦ (by use u), fun u hu v hv heq ↦ h.injOn_vx hu hv heq, fun _ h ↦ h⟩
+--   bijOn_edge := by
+--     refine ⟨fun e he ↦ ?_, fun e he v hv heq ↦ h.injOn_edge he hv heq, fun d hd ↦ by
+--       simpa only [image_E] using hd⟩
+--     simp only [image_E, mem_image]
+--     use e
+
 
 structure Emb (G₁ : Graph α β) (G₂ : Graph α' β') extends Hom G₁ G₂ where
   inj_vx : Injective toFun
@@ -144,8 +245,7 @@ def Emb.comp {G' : Graph α' β'} (f : Emb G G') (g : Emb G' G'') : Emb G G'' wh
   inj_vx ⦃_ _⦄ h := f.inj_vx (g.inj_vx h)
   inj_edge ⦃_ _⦄ h := f.inj_edge (g.inj_edge h)
 
-inductive HasEmb (G₁ : Graph α β) (G₂ : Graph α' β') : Prop where
-  | intro (f : Emb G₁ G₂)
+def HasEmb (G₁ : Graph α β) (G₂ : Graph α' β') : Prop := Nonempty (Emb G₁ G₂)
 
 scoped infix:50 " ↪ᴳ " => HasEmb
 
@@ -209,6 +309,10 @@ lemma Isom.inc₂_iff (f : Isom G G') {e : E(G)} {x y : V(G)} :
 
 alias ⟨Inc₂.isIsomOn, _⟩ := Isom.inc₂_iff
 
+lemma Isom.inc₂_iff' (F : Isom G G') {e : E(G')} {x y : V(G')} :
+    G'.Inc₂ e x y ↔ G.Inc₂ (F.edgeInvFun e) (F.invFun x) (F.invFun y) := by
+  conv_lhs => rw [← F.edge_right_inv e, ← F.vx_right_inv x, ← F.vx_right_inv y, ← F.inc₂_iff]
+
 lemma Isom.inj_vx (f : Isom G G') : Injective f.toFun := f.vx_left_inv.injective
 lemma Isom.surj_vx (f : Isom G G') : Surjective f.toFun := f.vx_right_inv.surjective
 lemma Isom.inv_inj_vx (f : Isom G G') : Injective f.invFun := f.vx_right_inv.injective
@@ -233,6 +337,11 @@ lemma Isom.bij_inv_vx (f : Isom G G') : Bijective f.invFun := by
 lemma Isom.bij_inv_edge (f : Isom G G') : Bijective f.edgeInvFun := by
   rw [Function.bijective_iff_has_inverse]
   exact ⟨f.edgeFun, f.edge_right_inv, f.edge_left_inv⟩
+
+def Isom.toInvHom (f : Isom G G') : Hom G' G where
+  toFun := f.invFun
+  edgeFun := f.edgeInvFun
+  inc₂ _ _ _ hbtw := f.inc₂_iff'.mp hbtw
 
 def Isom.toEmb (f : Isom G G') : Emb G G' where
   toHom := f.toHom
@@ -411,65 +520,97 @@ lemma noEdge_hasIsom_noEdge_iff {T : Set α'} : Graph.noEdge S β ↔ᴳ Graph.n
   exact Equiv.equivOfIsEmpty _ _
 
 
--- def HomSys.image (f : HomSys α β α' β') (h : f.IsHomOn G G₂) : Graph α' β' :=
---   ofInc (f '' V(G)) (fun e' v' ↦ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v)
---   (by rintro e' v' ⟨e, rfl, v, rfl, hinc⟩; use v, hinc.vx_mem)
---   (by
---     rintro u' v' w' e' ⟨e, rfl, v, rfl, hincev⟩ ⟨a, heqae, b, rfl, hincab⟩ ⟨c, heqce, d, rfl, hinccd⟩
---     have hev := h.inc hincev
---     have hab := heqae ▸ h.inc hincab
---     have hcd := heqce ▸ h.inc hinccd
---     exact Inc.eq_or_eq_or_eq_of_inc_of_inc hev hab hcd)
+lemma hasIsom_map {f : α → α'} {g : β → β'} (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂)
+    (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ → (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f)
+    (hvInj : InjOn f V(G)) (heInj : InjOn g E(G))
+    (hmap : G.map f g h = G') : G ↔ᴳ G' := by
+  classical
+  let fᵥ : V(G) → V(G') := fun v ↦ ⟨f v, vertexSet_subset_of_le hmap.le (mem_vertexSet_map v.prop)⟩
+  let fₑ : E(G) → E(G') := fun e ↦ ⟨g e, edgeSet_subset_of_le hmap.le (mem_edgeSet_map e.prop)⟩
+  subst G'
+  have hfᵥ : Function.Bijective fᵥ := by
+    constructor
+    · rintro u v h
+      rw [Subtype.ext_iff]
+      refine hvInj u.prop v.prop ?_
+      simpa [fᵥ] using h
+    · rintro v
+      simp only [map_vertexSet, Subtype.exists, fᵥ]
+      obtain ⟨v, v, hv, rfl⟩ := v
+      use v, hv
+  have hfₑ : Function.Bijective fₑ := by
+    constructor
+    · rintro e₁ e₂ h
+      simpa [fₑ, heInj.eq_iff, Subtype.ext_iff] using h
+    · rintro e
+      simp only [map_edgeSet, Subtype.exists, fₑ]
+      obtain ⟨e', he'⟩ := e
+      simp only [map_edgeSet, mem_image, fᵥ, fₑ] at he'
+      obtain ⟨e, he, rfl⟩ := he'
+      simp only [map_edgeSet, mem_image, fᵥ, fₑ] at he'
+      obtain ⟨a, ha, heq⟩ := he'
+      use a, ha, by simp_rw [heq]
+  exact ⟨{
+    toFun := fᵥ
+    edgeFun := fₑ
+    inc₂ _ _ _ hbtw := hbtw.map.of_le le_rfl
+    invFun := Function.surjInv hfᵥ.surjective
+    vx_right_inv := Function.rightInverse_surjInv hfᵥ.surjective
+    vx_left_inv := Function.leftInverse_surjInv hfᵥ
+    edgeInvFun := Function.surjInv hfₑ.surjective
+    edge_right_inv := Function.rightInverse_surjInv hfₑ.surjective
+    edge_left_inv := Function.leftInverse_surjInv hfₑ}⟩
 
--- @[simp] lemma HomSys.image_V (h : f.IsHomOn G G₂) : (f.image h).V = f '' V(G) :=
---   rfl
+lemma hasIsom_iff_eq_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β')] : G ↔ᴳ G' ↔
+    ∃ (f : α → α') (g : β → β') (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂) (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ →
+    (G.toSym2 e₁ he₁).map f = (G.toSym2 e₂ he₂).map f), InjOn f V(G) ∧ InjOn g E(G) ∧ G.map f g h = G' := by
+  refine ⟨fun ⟨F⟩ ↦ ?_, fun ⟨f, g, h, hvInj, heInj, heq⟩ ↦ hasIsom_map h hvInj heInj heq⟩
+  use Function.extend Subtype.val (Subtype.val ∘ F.toFun) (Classical.arbitrary (α → α')),
+    Function.extend Subtype.val (Subtype.val ∘ F.edgeFun) (Classical.arbitrary (β → β')), ?_, ?_, ?_, ?_
+  · rintro e₁ he₁ e₂ he₂ h
+    obtain ⟨x₁, y₁, hxy₁⟩ := exists_inc₂_of_mem_edgeSet he₁
+    obtain ⟨x₂, y₂, hxy₂⟩ := exists_inc₂_of_mem_edgeSet he₂
+    rw [Subtype.val_injective.extend_apply _ _ ⟨e₁, he₁⟩, Subtype.val_injective.extend_apply _ _ ⟨e₂, he₂⟩] at h
+    rw [(toSym2_eq_pair_iff he₁).mpr hxy₁, (toSym2_eq_pair_iff he₂).mpr hxy₂, Sym2.map_pair_eq,
+      Sym2.map_pair_eq, Subtype.val_injective.extend_apply _ _ ⟨x₁, hxy₁.vx_mem_left⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨y₁, hxy₁.vx_mem_right⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨x₂, hxy₂.vx_mem_left⟩,
+      Subtype.val_injective.extend_apply _ _ ⟨y₂, hxy₂.vx_mem_right⟩]
+    simp only [comp_apply, Subtype.val_inj] at h ⊢
+    have hbtw₁ : G.Inc₂ (⟨e₁, he₁⟩ : E(G)) (⟨x₁, hxy₁.vx_mem_left⟩ : V(G)) (⟨y₁, hxy₁.vx_mem_right⟩ : V(G)) := hxy₁
+    have hbtw₂ : G.Inc₂ (⟨e₂, he₂⟩ : E(G)) (⟨x₂, hxy₂.vx_mem_left⟩ : V(G)) (⟨y₂, hxy₂.vx_mem_right⟩ : V(G)) := hxy₂
+    rw [← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₁, ← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₂]
+    simp_rw [h]
+  · rintro u hu v hv h
+    rwa [Subtype.val_injective.extend_apply _ _ ⟨u, hu⟩, Subtype.val_injective.extend_apply _ _ ⟨v, hv⟩,
+      comp_apply, comp_apply, Subtype.val_inj, F.inj_vx.eq_iff, ← Subtype.val_inj] at h
+  · rintro e₁ he₁ e₂ he₂ h
+    rwa [Subtype.val_injective.extend_apply _ _ ⟨e₁, he₁⟩, Subtype.val_injective.extend_apply _ _ ⟨e₂, he₂⟩,
+      comp_apply, comp_apply, Subtype.val_inj, F.inj_edge.eq_iff, ← Subtype.val_inj] at h
+  · ext a b c
+    · simp only [map_vertexSet, mem_image]
+      constructor
+      · rintro ⟨u, hu, rfl⟩
+        rw [Subtype.val_injective.extend_apply _ _ ⟨u, hu⟩, comp_apply]
+        exact Subtype.coe_prop (F.toFun ⟨u, hu⟩)
+      · rintro h
+        use F.invFun ⟨a, h⟩, Subtype.coe_prop (F.invFun ⟨a, h⟩)
+        rw [Subtype.val_injective.extend_apply _ _ (F.invFun ⟨a, h⟩), comp_apply, F.vx_right_inv]
+    · simp only [map_inc₂]
+      constructor
+      · rintro ⟨e, rfl, x, rfl, y, rfl, hbtw⟩
+        rw [Subtype.val_injective.extend_apply _ _ ⟨e, hbtw.edge_mem⟩,
+          Subtype.val_injective.extend_apply _ _ ⟨x, hbtw.vx_mem_left⟩,
+          Subtype.val_injective.extend_apply _ _ ⟨y, hbtw.vx_mem_right⟩,
+          comp_apply, comp_apply, comp_apply]
+        exact F.inc₂ hbtw
+      · rintro hbtw
+        use F.edgeInvFun ⟨a, hbtw.edge_mem⟩, ?_, F.invFun ⟨b, hbtw.vx_mem_left⟩, ?_, F.invFun ⟨c, hbtw.vx_mem_right⟩, ?_, ?_
+        · rw [Subtype.val_injective.extend_apply _ _ (F.edgeInvFun ⟨_, hbtw.edge_mem⟩), comp_apply, F.edge_right_inv]
+        · rw [Subtype.val_injective.extend_apply _ _ (F.invFun ⟨_, hbtw.vx_mem_left⟩), comp_apply, F.vx_right_inv]
+        · rw [Subtype.val_injective.extend_apply _ _ (F.invFun ⟨_, hbtw.vx_mem_right⟩), comp_apply, F.vx_right_inv]
+        · rwa [← F.inc₂_iff']
 
--- @[simp] lemma HomSys.image_E (h : f.IsHomOn G G₂) :
---     (f.image h).E = f.edgeFun '' E(G) := by
---   ext e'
---   simp only [image, ofInc_E, mem_setOf_eq, mem_image]
---   constructor
---   · rintro ⟨v, e, rfl, v, rfl, hinc⟩
---     use e, hinc.edge_mem
---   · rintro ⟨e, he, rfl⟩
---     obtain ⟨v, hinc⟩ := exists_inc_of_mem_edgeSet he
---     use f v, e, rfl, v
-
--- @[simp]
--- lemma HomSys.image_inc (h : f.IsHomOn G G₂) {e'} {v'}:
---     (f.image h).Inc e' v' ↔ ∃ e, f.edgeFun e = e' ∧ ∃ v, f v = v' ∧ G.Inc e v := by
---   simp only [image, ofInc_inc]
-
--- lemma HomSys.image_le (h : f.IsHomOn G G₂) : f.image h ≤ G₂ := by
---   rw [le_iff_inc, image_V, image_E]
---   refine ⟨image_subset_iff.mpr h.Mapsto_vx, image_subset_iff.mpr h.Mapsto_edge, ?_⟩
---   rintro e he v
---   simp only [image_inc]
---   constructor
---   · rintro ⟨e, rfl, v, rfl, hinc⟩
---     exact h.inc hinc
---   · rintro hinc
---     obtain ⟨b, hb, rfl⟩ := he
---     obtain ⟨a, a', hinc₂⟩ := exists_inc_of_mem_edgeSet hb
---     obtain (rfl | rfl) := (h.inc₂ hinc₂).eq_or_eq_of_inc hinc
---     · use b, rfl, a, rfl
---       exact hinc₂.inc_left
---     · use b, rfl, a', rfl
---       exact hinc₂.inc_right
-
--- lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toIsHomOn) where
---   Mapsto_vx v hv := by use v
---   inc₂ e v w hbtw := by
---     rw [← inc₂_iff_inc₂_of_le_of_mem (HomSys.image_le h.toIsHomOn)]
---     exact h.inc₂ hbtw
---     · simp only [image_E, mem_image]
---       use e, hbtw.edge_mem
---   bijOn_vx := ⟨fun u hu ↦ (by use u), fun u hu v hv heq ↦ h.injOn_vx hu hv heq, fun _ h ↦ h⟩
---   bijOn_edge := by
---     refine ⟨fun e he ↦ ?_, fun e he v hv heq ↦ h.injOn_edge he hv heq, fun d hd ↦ by
---       simpa only [image_E] using hd⟩
---     simp only [image_E, mem_image]
---     use e
 
 variable {α α' α'' α''' β β' β'' β''' χ χ' χ'' χ''' : Type*}
   {G : Graph α β} {G' : Graph α' β'} {H : Graph α'' β''} {H' : Graph α''' β'''}
@@ -492,23 +633,25 @@ lemma iff_exists_isom (f : ∀ {α : Type u₀} {β : Type v₀}, Graph α β �
   · rintro ⟨α', β', G', hg, h'⟩
     rwa [hP.invariant h']
 
-variable {A : {α : Type u_7} → {β : Type u_11} → (G : Graph α β) → χ}
-  {A₁ : {α : Type u_8} → {β : Type u_12} → (G : Graph α β) → χ}
-  {A' : {α : Type u_7} → {β : Type u_11} → (G : Graph α β) → χ'}
-  {A'₁ : {α : Type u_8} → {β : Type u_12} → (G : Graph α β) → χ'}
-  {A'' : {α : Type u_7} → {β : Type u_11} → (G : Graph α β) → χ''}
-  {A''₁ : {α : Type u_8} → {β : Type u_12} → (G : Graph α β) → χ''}
-  {P Q : {α : Type u_7} → {β : Type u_11} → (G : Graph α β) → Prop}
-  {P₁ Q₁ : {α : Type u_8} → {β : Type u_12} → (G : Graph α β) → Prop}
+variable {α : Type u₀} {β : Type v₀} {α' : Type u₁} {β' : Type v₁}
+  {G : Graph α β} {G' : Graph α' β'}
+  {A : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → χ}
+  {A₁ : {α : Type u₁} → {β : Type v₁} → (G : Graph α β) → χ}
+  {A' : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → χ'}
+  {A'₁ : {α : Type u₁} → {β : Type v₁} → (G : Graph α β) → χ'}
+  {A'' : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → χ''}
+  {A''₁ : {α : Type u₁} → {β : Type v₁} → (G : Graph α β) → χ''}
+  {P Q : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → Prop}
+  {P₁ Q₁ : {α : Type u₁} → {β : Type v₁} → (G : Graph α β) → Prop}
   [hA : GraphicFunction A A₁] [hA' : GraphicFunction A' A'₁] [hA'' : GraphicFunction A'' A''₁]
   [hP : GraphicFunction P P₁] [hQ : GraphicFunction Q Q₁]
 
-lemma HasIsom.eq (A : {α : Type u_7} → {β : Type u_11} → (G : Graph α β) → χ)
-    (A₁ : {α : Type u_8} → {β : Type u_12} → (G : Graph α β) → χ) [hA : GraphicFunction A A₁]
+lemma HasIsom.eq (A : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → χ)
+    (A₁ : {α : Type u₁} → {β : Type v₁} → (G : Graph α β) → χ) [hA : GraphicFunction A A₁]
     (h : G ↔ᴳ G') : A G = A₁ G' := hA.invariant h
 
-lemma HasIsom.iff (P : {α : Type u_7} → {β : Type u_11} → (G : Graph α β) → Prop)
-    (P₁ : {α : Type u_8} → {β : Type u_12} → (G : Graph α β) → Prop) [hP : GraphicFunction P P₁]
+lemma HasIsom.iff (P : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → Prop)
+    (P₁ : {α : Type u₁} → {β : Type v₁} → (G : Graph α β) → Prop) [hP : GraphicFunction P P₁]
     (h : G ↔ᴳ G') : P G ↔ P₁ G' := by
   rw [← hP.invariant h]
 
@@ -621,6 +764,22 @@ instance instEqNoEdgeGraphic : GraphicFunction (fun G ↦ G = Graph.noEdge V(G) 
     have := instEdgeSetNonemptyGraphic.invariant h
     rwa [eq_iff_iff, ← not_iff_not, not_nonempty_iff_eq_empty, not_nonempty_iff_eq_empty] at this
 
+
+lemma forall_type_nonempty {P : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → Prop}
+    [hP : GraphicFunction P P] (h : ∀ {α β : Type _} [Nonempty α] [Nonempty β] (G : Graph α β), P G)
+    {α β : Type _} : ∀ (G : Graph α β), P G := by
+  intro G
+  obtain (hα | hα) := isEmpty_or_nonempty α
+  · rw [eq_bot_of_isEmpty (G := G), ← hP.invariant (bot_hasIsom_bot) (α₁ := PUnit) (β₁ := PUnit)]
+    exact h ⊥
+
+  obtain (hβ | hβ) := isEmpty_or_nonempty β
+  · rw [eq_noEdge_of_isEmpty (G := G), ← hP.invariant (noEdge_hasIsom_noEdge_iff.mpr ⟨Equiv.refl _⟩) (β₁ := PUnit)]
+    exact h _
+
+  exact h G
+
+
 -- Change this to allow the IsEmpty case
 class GraphicVertexFunction (f : outParam <| ∀ {β : Type v₀} (_ : Graph α β), χ)
     (g : ∀ {β : Type v₁} (_ : Graph α β), χ) : Prop where
@@ -628,8 +787,8 @@ class GraphicVertexFunction (f : outParam <| ∀ {β : Type v₀} (_ : Graph α 
     (∃ (F : β₁ → β₂) (hF : _), G.edgeMap F hF = G') → f G = g G'
 
 -- WHY IS THIS NOT WORKING?
-instance instGraphicGraphicVertex {A : ∀ {α : Type u_7} {β : Type v₀}, Graph α β → χ}
-    {B : ∀ {α : Type u_7} {β : Type v₁}, Graph α β → χ}
+instance instGraphicGraphicVertex {A : ∀ {α : Type u₀} {β : Type v₀}, Graph α β → χ}
+    {B : ∀ {α : Type u₀} {β : Type v₁}, Graph α β → χ}
     [hF : GraphicFunction A B] : GraphicVertexFunction (fun G ↦ A (α := α) G) (fun G ↦ B (α := α) G) where
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
@@ -639,14 +798,14 @@ example : GraphicVertexFunction (fun (G : Graph α _) ↦ V(G).ncard) (fun (G : 
   -- inferInstance
   instGraphicGraphicVertex (hF := instVxSetNcardGraphic)
 
-variable {A : {β : Type u_11} → (G : Graph α β) → χ}
-  {A₁ : {β : Type u_12} → (G : Graph α β) → χ}
-  {A' : {β : Type u_11} → (G : Graph α β) → χ'}
-  {A'₁ : {β : Type u_12} → (G : Graph α β) → χ'}
-  {A'' : {β : Type u_11} → (G : Graph α β) → χ''}
-  {A''₁ : {β : Type u_12} → (G : Graph α β) → χ''}
-  {P Q : {β : Type u_11} → (G : Graph α β) → Prop}
-  {P₁ Q₁ : {β : Type u_12} → (G : Graph α β) → Prop}
+variable {A : {β : Type v₀} → (G : Graph α β) → χ}
+  {A₁ : {β : Type v₁} → (G : Graph α β) → χ}
+  {A' : {β : Type v₀} → (G : Graph α β) → χ'}
+  {A'₁ : {β : Type v₁} → (G : Graph α β) → χ'}
+  {A'' : {β : Type v₀} → (G : Graph α β) → χ''}
+  {A''₁ : {β : Type v₁} → (G : Graph α β) → χ''}
+  {P Q : {β : Type v₀} → (G : Graph α β) → Prop}
+  {P₁ Q₁ : {β : Type v₁} → (G : Graph α β) → Prop}
   [hA : GraphicVertexFunction A A₁] [hA' : GraphicVertexFunction A' A'₁] [hA'' : GraphicVertexFunction A'' A''₁]
   [hP : GraphicVertexFunction P P₁] [hQ : GraphicVertexFunction Q Q₁]
 
@@ -726,8 +885,8 @@ class GraphicEdgeFunction (f : outParam <| ∀ {α : Type u₀}, Graph α β →
     (∃ (F : α₁ → α₂) (_ : InjOn F V(G)), G.vxMap F = G') → f G = g G'
 
 -- WHY IS THIS NOT WORKING?
-instance instGraphicGraphicEdge {β : Type v₀} {f : ∀ {α : Type u_7} {β : Type v₀}, Graph α β → χ}
-    {g : ∀ {α : Type u_8} {β : Type v₀}, Graph α β → χ}
+instance instGraphicGraphicEdge {β : Type v₀} {f : ∀ {α : Type u₀} {β : Type v₀}, Graph α β → χ}
+    {g : ∀ {α : Type u₁} {β : Type v₀}, Graph α β → χ}
     [hF : GraphicFunction f g] : GraphicEdgeFunction (fun G ↦ f (β := β) G) (fun G ↦ g (β := β) G) where
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
@@ -737,14 +896,14 @@ example : GraphicEdgeFunction (fun (G : Graph _ β) ↦ E(G).ncard) (fun (G : Gr
   -- inferInstance
   instGraphicGraphicEdge (hF := instEdgeSetNcardGraphic)
 
-variable {A : {α : Type u_11} → (G : Graph α β) → χ}
-  {A₁ : {α : Type u_12} → (G : Graph α β) → χ}
-  {A' : {α : Type u_11} → (G : Graph α β) → χ'}
-  {A'₁ : {α : Type u_12} → (G : Graph α β) → χ'}
-  {A'' : {α : Type u_11} → (G : Graph α β) → χ''}
-  {A''₁ : {α : Type u_12} → (G : Graph α β) → χ''}
-  {P Q : {α : Type u_11} → (G : Graph α β) → Prop}
-  {P₁ Q₁ : {α : Type u_12} → (G : Graph α β) → Prop}
+variable {A : {α : Type v₀} → (G : Graph α β) → χ}
+  {A₁ : {α : Type v₁} → (G : Graph α β) → χ}
+  {A' : {α : Type v₀} → (G : Graph α β) → χ'}
+  {A'₁ : {α : Type v₁} → (G : Graph α β) → χ'}
+  {A'' : {α : Type v₀} → (G : Graph α β) → χ''}
+  {A''₁ : {α : Type v₁} → (G : Graph α β) → χ''}
+  {P Q : {α : Type v₀} → (G : Graph α β) → Prop}
+  {P₁ Q₁ : {α : Type v₁} → (G : Graph α β) → Prop}
   [hA : GraphicEdgeFunction A A₁] [hA' : GraphicEdgeFunction A' A'₁] [hA'' : GraphicEdgeFunction A'' A''₁]
   [hP : GraphicEdgeFunction P P₁] [hQ : GraphicEdgeFunction Q Q₁]
 
