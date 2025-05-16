@@ -636,6 +636,8 @@ class GraphicFunction (f : outParam <| ∀ {α : Type u₀} {β : Type v₀}, Gr
 --   · rintro ⟨α', β', G', hg, h'⟩
 --     rwa [hP.invariant h']
 
+scoped notation F "|₂" B => F B B
+
 variable {α : Type u₀} {β : Type v₀} {α' : Type u₁} {β' : Type v₁}
   {G : Graph α β} {G' : Graph α' β'}
   {A : {α : Type u₀} → {β : Type v₀} → (G : Graph α β) → χ}
@@ -658,7 +660,7 @@ lemma HasIsom.iff (P : {α : Type u₀} → {β : Type v₀} → (G : Graph α �
     (h : G ↔ᴳ G') : P G ↔ P₁ G' := by
   rw [← hP.invariant h]
 
-instance instConstGraphic (c : χ) : GraphicFunction (fun _ ↦ c) (fun _ ↦ c) where
+instance instConstGraphic (c : χ) : GraphicFunction |₂ (fun _ ↦ c) where
   invariant _ := rfl
 
 instance instCompGraphic (f : χ' → χ) : GraphicFunction (fun G ↦ f (A' G)) (fun G ↦ f (A'₁ G)) where
@@ -675,92 +677,92 @@ instance instComp3Graphic (f : χ → χ' → χ'' → χ''') :
 instance instImpGraphic : GraphicFunction (fun G ↦ P G → Q G) (fun G ↦ P₁ G → Q₁ G) :=
   instComp2Graphic (· → ·)
 
-instance instHasIsomLeftGraphic : GraphicFunction (fun G ↦ G ↔ᴳ H) (fun G ↦ G ↔ᴳ H) where
+instance instHasIsomLeftGraphic : GraphicFunction |₂ (fun G ↦ G ↔ᴳ H) where
   invariant h := by
     rw [eq_iff_iff]
     exact ⟨h.symm.trans, h.trans⟩
 
-instance instHasIsomRightGraphic : GraphicFunction (fun G ↦ H ↔ᴳ G) (fun G ↦ H ↔ᴳ G) where
+instance instHasIsomRightGraphic : GraphicFunction |₂ (fun G ↦ H ↔ᴳ G) where
   invariant h := by
     rw [eq_iff_iff]
     exact ⟨(HasIsom.trans · h), (HasIsom.trans · h.symm)⟩
 
-instance instHasEmbLeftGraphic : GraphicFunction (fun G ↦ G ↪ᴳ H) (fun G ↦ G ↪ᴳ H) where
+instance instHasEmbLeftGraphic : GraphicFunction |₂ (fun G ↦ G ↪ᴳ H) where
   invariant h := by
     rw [eq_iff_iff]
     exact ⟨h.symm.toHasEmb.trans, h.toHasEmb.trans⟩
 
-instance instHasEmbRightGraphic : GraphicFunction (fun G ↦ H ↪ᴳ G) (fun G ↦ H ↪ᴳ G) where
+instance instHasEmbRightGraphic : GraphicFunction |₂ (fun G ↦ H ↪ᴳ G) where
   invariant h := by
     rw [eq_iff_iff]
     exact ⟨(HasEmb.trans · h.toHasEmb), (HasEmb.trans · h.symm.toHasEmb)⟩
 
-instance instHasHomLeftGraphic : GraphicFunction (fun G ↦ G →ᴳ H) (fun G ↦ G →ᴳ H) where
+instance instHasHomLeftGraphic : GraphicFunction |₂ (fun G ↦ G →ᴳ H) where
   invariant h := by
     rw [eq_iff_iff]
     exact ⟨h.symm.toHasHom.trans, h.toHasHom.trans⟩
 
-instance instHasHomRightGraphic : GraphicFunction (fun G ↦ H →ᴳ G) (fun G ↦ H →ᴳ G) where
+instance instHasHomRightGraphic : GraphicFunction |₂ (fun G ↦ H →ᴳ G) where
   invariant h := by
     rw [eq_iff_iff]
     exact ⟨(HasHom.trans · h.toHasHom), (HasHom.trans · h.symm.toHasHom)⟩
 
-instance instVxSetFiniteGraphic : GraphicFunction (fun G ↦ Finite V(G)) (fun G ↦ Finite V(G)) where
+instance instVxSetFiniteGraphic : GraphicFunction |₂ (fun G ↦ Finite V(G)) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     exact f.bij_vx.finite_iff
 
-instance instEdgeSetFiniteGraphic : GraphicFunction (fun G ↦ Finite E(G)) (fun G ↦ Finite E(G)) where
+instance instEdgeSetFiniteGraphic : GraphicFunction |₂ (fun G ↦ Finite E(G)) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     exact f.bij_edge.finite_iff
 
-instance instVxSetNonemptyGraphic : GraphicFunction (fun G ↦ V(G).Nonempty) (fun G ↦ V(G).Nonempty) where
+instance instVxSetNonemptyGraphic : GraphicFunction |₂ (fun G ↦ V(G).Nonempty) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     simpa only [nonempty_subtype] using f.bij_vx.nonempty_iff
 
-instance instEdgeSetNonemptyGraphic : GraphicFunction (fun G ↦ E(G).Nonempty) (fun G ↦ E(G).Nonempty) where
+instance instEdgeSetNonemptyGraphic : GraphicFunction |₂ (fun G ↦ E(G).Nonempty) where
   invariant h := by
     rw [eq_iff_iff]
     obtain ⟨f⟩ := h
     simpa only [nonempty_subtype] using f.bij_edge.nonempty_iff
 
-instance instVxSetEncardGraphic : GraphicFunction (fun G ↦ V(G).encard) (fun G ↦ V(G).encard) where
+instance instVxSetEncardGraphic : GraphicFunction |₂ (fun G ↦ V(G).encard) where
   invariant h := by
     obtain ⟨f⟩ := h
     have := f.bij_vx
     sorry
     -- exact bijOn_encard this
 
-instance instEdgeSetEncardGraphic : GraphicFunction (fun G ↦ E(G).encard) (fun G ↦ E(G).encard) where
+instance instEdgeSetEncardGraphic : GraphicFunction |₂ (fun G ↦ E(G).encard) where
   invariant h := by
     obtain ⟨f⟩ := h
     have := f.bij_edge
     sorry
     -- exact bijOn_encard this
 
-instance instVxSetNcardGraphic : GraphicFunction (fun G ↦ V(G).ncard) (fun G ↦ V(G).ncard) where
+instance instVxSetNcardGraphic : GraphicFunction |₂ (fun G ↦ V(G).ncard) where
   invariant h := by
     obtain ⟨f⟩ := h
     exact Nat.card_eq_of_bijective _ f.bij_vx
 
-instance instEdgeSetNcardGraphic : GraphicFunction (fun G ↦ E(G).ncard) (fun G ↦ E(G).ncard) where
+instance instEdgeSetNcardGraphic : GraphicFunction |₂ (fun G ↦ E(G).ncard) where
   invariant h := by
     obtain ⟨f⟩ := h
     exact Nat.card_eq_of_bijective _ f.bij_edge
 
-instance instEqBotGraphic : GraphicFunction (fun G ↦ G = ⊥) (fun G ↦ G = ⊥) where
+instance instEqBotGraphic : GraphicFunction |₂ (fun G ↦ G = ⊥) where
   invariant h := by
     simp only [eq_iff_iff]
     rw [← vertexSet_empty_iff_eq_bot, ← vertexSet_empty_iff_eq_bot]
     have := instVxSetNonemptyGraphic.invariant h
     rwa [eq_iff_iff, ← not_iff_not, not_nonempty_iff_eq_empty, not_nonempty_iff_eq_empty] at this
 
-instance instEqNoEdgeGraphic : GraphicFunction (fun G ↦ G = Graph.noEdge V(G) _) (fun G ↦ G = Graph.noEdge V(G) _) where
+instance instEqNoEdgeGraphic : GraphicFunction |₂ (fun G ↦ G = Graph.noEdge V(G) _) where
   invariant h := by
     simp only [eq_iff_iff]
     rw [← edgeSet_empty_iff_eq_noEdge, ← edgeSet_empty_iff_eq_noEdge]
@@ -812,7 +814,7 @@ variable {A : {β : Type v₀} → (G : Graph α β) → χ}
   [hA : GraphicVertexFunction A A₁] [hA' : GraphicVertexFunction A' A'₁] [hA'' : GraphicVertexFunction A'' A''₁]
   [hP : GraphicVertexFunction P P₁] [hQ : GraphicVertexFunction Q Q₁]
 
-instance instConstGraphicVertex (c : χ) : GraphicVertexFunction (fun (_ : Graph α _) ↦ c) (fun (_ : Graph α _) ↦ c) :=
+instance instConstGraphicVertex (c : χ) : GraphicVertexFunction |₂ (fun (_ : Graph α _) ↦ c) :=
   instGraphicGraphicVertex (hF := instConstGraphic c)
 
 instance instCompGraphicVertex (f : χ' → χ) :
@@ -831,53 +833,42 @@ instance instImpGraphicVertex :
   GraphicVertexFunction (fun {β} (G : Graph α β) ↦ P G → Q G) (fun {β} (G : Graph α β) ↦ P₁ G → Q₁ G) :=
   instComp2GraphicVertex (· → ·)
 
-instance instHasIsomLeftGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G ↔ᴳ H) (fun (G : Graph α _) ↦ G ↔ᴳ H) :=
+instance instHasIsomLeftGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ G ↔ᴳ H) :=
   instGraphicGraphicVertex (hF := instHasIsomLeftGraphic)
 
-instance instHasIsomRightGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ H ↔ᴳ G) (fun (G : Graph α _) ↦ H ↔ᴳ G) :=
+instance instHasIsomRightGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ H ↔ᴳ G) :=
   instGraphicGraphicVertex (hF := instHasIsomRightGraphic)
 
-instance instHasEmbLeftGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G ↪ᴳ H) (fun (G : Graph α _) ↦ G ↪ᴳ H) :=
+instance instHasEmbLeftGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ G ↪ᴳ H) :=
   instGraphicGraphicVertex (hF := instHasEmbLeftGraphic)
 
-instance instHasEmbRightGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ H ↪ᴳ G) (fun (G : Graph α _) ↦ H ↪ᴳ G) :=
+instance instHasEmbRightGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ H ↪ᴳ G) :=
   instGraphicGraphicVertex (hF := instHasEmbRightGraphic)
 
-instance instHasHomLeftGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ G →ᴳ H) (fun (G : Graph α _) ↦ G →ᴳ H) :=
+instance instHasHomLeftGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ G →ᴳ H) :=
   instGraphicGraphicVertex (hF := instHasHomLeftGraphic)
 
-instance instHasHomRightGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ H →ᴳ G) (fun (G : Graph α _) ↦ H →ᴳ G) :=
+instance instHasHomRightGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ H →ᴳ G) :=
   instGraphicGraphicVertex (hF := instHasHomRightGraphic)
 
-instance instVxSetGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ V(G)) (fun (G : Graph α _) ↦ V(G)) where
+instance instVxSetGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ V(G)) where
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
     simp only [edgeMap_vertexSet]
 
-instance : GraphicVertexFunction (fun (G : Graph α _) ↦ Finite G.vertexSet → Finite G.vertexSet) (fun (G : Graph α _) ↦ Finite G.vertexSet → Finite G.vertexSet) := inferInstance
+-- instance : GraphicVertexFunction (fun (G : Graph α _) ↦ Finite G.vertexSet → Finite G.vertexSet) (fun (G : Graph α _) ↦ Finite G.vertexSet → Finite G.vertexSet) := inferInstance
 
 
-instance instEdgeSetFiniteGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ Finite E(G)) (fun (G : Graph α _) ↦ Finite E(G)) :=
+instance instEdgeSetFiniteGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ Finite E(G)) :=
   instGraphicGraphicVertex (hF := instEdgeSetFiniteGraphic)
 
-instance instEdgeSetNonemptyGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).Nonempty) (fun (G : Graph α _) ↦ E(G).Nonempty) :=
+instance instEdgeSetNonemptyGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ E(G).Nonempty) :=
   instGraphicGraphicVertex (hF := instEdgeSetNonemptyGraphic)
 
-instance instEdgeSetEncardGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).encard) (fun (G : Graph α _) ↦ E(G).encard) :=
+instance instEdgeSetEncardGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ E(G).encard) :=
   instGraphicGraphicVertex (hF := instEdgeSetEncardGraphic)
 
-instance instEdgeSetNcardGraphicVertex :
-    GraphicVertexFunction (fun (G : Graph α _) ↦ E(G).ncard) (fun (G : Graph α _) ↦ E(G).ncard) :=
+instance instEdgeSetNcardGraphicVertex : GraphicVertexFunction |₂ (fun (G : Graph α _) ↦ E(G).ncard) :=
   instGraphicGraphicVertex (hF := instEdgeSetNcardGraphic)
 
 
@@ -910,7 +901,7 @@ variable {A : {α : Type v₀} → (G : Graph α β) → χ}
   [hA : GraphicEdgeFunction A A₁] [hA' : GraphicEdgeFunction A' A'₁] [hA'' : GraphicEdgeFunction A'' A''₁]
   [hP : GraphicEdgeFunction P P₁] [hQ : GraphicEdgeFunction Q Q₁]
 
-instance instConstGraphicEdge (c : χ) : GraphicEdgeFunction (fun (_ : Graph _ β) ↦ c) (fun (_ : Graph _ β) ↦ c) :=
+instance instConstGraphicEdge (c : χ) : GraphicEdgeFunction |₂ (fun (_ : Graph _ β) ↦ c) :=
   instGraphicGraphicEdge (hF := instConstGraphic c)
 
 instance instCompGraphicEdge (f : χ' → χ) :
@@ -929,50 +920,39 @@ instance instImpGraphicEdge :
   GraphicEdgeFunction (fun (G : Graph _ β) ↦ P G → Q G) (fun (G : Graph _ β) ↦ P₁ G → Q₁ G) :=
   instComp2GraphicEdge (· → ·)
 
-instance instHasIsomLeftGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ G ↔ᴳ H) (fun (G : Graph _ β) ↦ G ↔ᴳ H) :=
+instance instHasIsomLeftGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ G ↔ᴳ H) :=
   instGraphicGraphicEdge (hF := instHasIsomLeftGraphic)
 
-instance instHasIsomRightGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ H ↔ᴳ G) (fun (G : Graph _ β) ↦ H ↔ᴳ G) :=
+instance instHasIsomRightGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ H ↔ᴳ G) :=
   instGraphicGraphicEdge (hF := instHasIsomRightGraphic)
 
-instance instHasEmbLeftGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ G ↪ᴳ H) (fun (G : Graph _ β) ↦ G ↪ᴳ H) :=
+instance instHasEmbLeftGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ G ↪ᴳ H) :=
   instGraphicGraphicEdge (hF := instHasEmbLeftGraphic)
 
-instance instHasEmbRightGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ H ↪ᴳ G) (fun (G : Graph _ β) ↦ H ↪ᴳ G) :=
+instance instHasEmbRightGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ H ↪ᴳ G) :=
   instGraphicGraphicEdge (hF := instHasEmbRightGraphic)
 
-instance instHasHomLeftGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ G →ᴳ H) (fun (G : Graph _ β) ↦ G →ᴳ H) :=
+instance instHasHomLeftGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ G →ᴳ H) :=
   instGraphicGraphicEdge (hF := instHasHomLeftGraphic)
 
-instance instHasHomRightGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ H →ᴳ G) (fun (G : Graph _ β) ↦ H →ᴳ G) :=
+instance instHasHomRightGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ H →ᴳ G) :=
   instGraphicGraphicEdge (hF := instHasHomRightGraphic)
 
-instance instVxSetGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ E(G)) (fun (G : Graph _ β) ↦ E(G)) where
+instance instVxSetGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ E(G)) where
   invariant h := by
     obtain ⟨f, hinj, rfl⟩ := h
     simp only [vxMap_edgeSet]
 
-instance instVersetSetFiniteGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ Finite V(G)) (fun (G : Graph _ β) ↦ Finite V(G)) :=
+instance instVersetSetFiniteGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ Finite V(G)) :=
   instGraphicGraphicEdge (hF := instVxSetFiniteGraphic)
 
-instance instVertexSetNonemptyGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ V(G).Nonempty) (fun (G : Graph _ β) ↦ V(G).Nonempty) :=
+instance instVertexSetNonemptyGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ V(G).Nonempty) :=
   instGraphicGraphicEdge (hF := instVxSetNonemptyGraphic)
 
-instance instVertexSetEncardGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ V(G).encard) (fun (G : Graph _ β) ↦ V(G).encard) :=
+instance instVertexSetEncardGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ V(G).encard) :=
   instGraphicGraphicEdge (hF := instVxSetEncardGraphic)
 
-instance instVertexSetNcardGraphicEdge :
-    GraphicEdgeFunction (fun (G : Graph _ β) ↦ V(G).ncard) (fun (G : Graph _ β) ↦ V(G).ncard) :=
+instance instVertexSetNcardGraphicEdge : GraphicEdgeFunction |₂ (fun (G : Graph _ β) ↦ V(G).ncard) :=
   instGraphicGraphicEdge (hF := instVxSetNcardGraphic)
 
 
