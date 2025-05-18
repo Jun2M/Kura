@@ -6,6 +6,7 @@ Authors: Peter Nelson, Jun Kwon
 import Mathlib.Data.Sym.Sym2
 import Mathlib.Topology.Instances.ENat
 import Kura.Dep.Finset
+import Kura.Dep.Sym2
 
 /-!
 # Multigraphs
@@ -470,7 +471,7 @@ lemma toSym2_eq_pair_iff (he : e ∈ E(G)) : G.toSym2 e he = s(x, y) ↔ G.Inc�
 lemma Inc₂.toSym2 (h : G.Inc₂ e x y) : G.toSym2 e h.edge_mem = s(x, y) := by
   rwa [toSym2_eq_pair_iff h.edge_mem]
 
-noncomputable def func (G : Graph α β) (e : E(G)): Sym2 V(G) :=
+noncomputable def func (G : Graph α β) (e : E(G)) : Sym2 V(G) :=
   let H := G.exists_inc₂_of_mem_edgeSet e.prop
   s(⟨H.choose, H.choose_spec.choose_spec.vx_mem_left⟩,
     ⟨H.choose_spec.choose, H.choose_spec.choose_spec.vx_mem_right⟩)
@@ -500,6 +501,12 @@ lemma exists_func_pair (e : E(G)) : ∃ x y, G.func e = s(x, y) := by
   let b := H.choose_spec.choose
   let h := H.choose_spec.choose_spec
   exact ⟨⟨a, h.vx_mem_left⟩, ⟨b, h.vx_mem_right⟩, H.choose_spec.choose_spec.func⟩
+
+lemma val_func_eq_toSym2 {e : β} (he : e ∈ E(G)) : (G.func ⟨e, he⟩).map Subtype.val = G.toSym2 e he := by
+  rw [(G.func ⟨e, he⟩).eq_mk_out, eq_comm, Sym2.map_pair_eq, toSym2_eq_pair_iff]
+  change G.Inc₂ (⟨e, he⟩ : E(G)) _ _
+  rw [← func_eq_pair_iff]
+  exact (G.func ⟨e, he⟩).eq_mk_out
 
 end toSym2
 
@@ -878,4 +885,15 @@ lemma degree_eq_zero_iff_isolated (G : Graph α β) [Finite E(G)] (v : α) :
     exact fun i _ ↦ h i
 
 end Isolated
+
+section parallel
+
+def parallel (G : Graph α β) (e f : E(G)) : Prop :=
+  G.toSym2 e e.prop = G.toSym2 f f.prop
+
+
+
+
+end parallel
+
 end Graph

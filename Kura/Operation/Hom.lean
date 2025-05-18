@@ -98,7 +98,7 @@ structure Hom (G : Graph α β) (G' : Graph α' β') extends Funs G G' where
   inc₂ ⦃e : E(G)⦄ ⦃x y : V(G)⦄ : G.Inc₂ e x y → G'.Inc₂ (edgeFun e) (toFun x) (toFun y)
 
   -- inc ⦃e : E(G)⦄ ⦃a : V(G)⦄ : G.Inc e a → G'.Inc (edgeFun e) (toFun a) := fun hinc ↦
-  --   (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
+    -- (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
   -- toMultiset ⦃e : E(G)⦄ : (G.toMultiset e).map toFun = G'.toMultiset (edgeFun e) := by
   --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
   --   rw [toMultiset_eq_pair_iff.mpr hbtw, toMultiset_eq_pair_iff.mpr (f.inc₂ hbtw)]

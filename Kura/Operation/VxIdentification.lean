@@ -85,14 +85,10 @@ lemma vxIdentification_isPartitionGraph (hP : P.supp = V(G)) (hGP : G.IsPartitio
   · use P.partOf x, P.partOf_mem (hP ▸ hx)
 
 
-@[simps!]
-def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β := by
-  by_cases hS : S = ∅
-  · exact G.VxIdentification (Partition.discrete (V(G) \ S))
-  · exact G.VxIdentification (Partition.indiscrete S hS ⊔ Partition.discrete (V(G) \ S))
+def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β :=
+  G.VxIdentification (Partition.indiscrete' S ⊔ Partition.discrete (V(G) \ S))
 
 scoped infix:100 " ÷ " => VxIdenBySet
 
 variable {G : Graph (Set α) β} {S : Set (Set α)}
 
-lemma vxIdenBySet_isPartitionGraph (hGP : G.IsPartitionGraph) : (G ÷ S).IsPartitionGraph := by

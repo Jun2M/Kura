@@ -53,7 +53,7 @@ lemma setContract_edgeSet_ncard_lt_singleton_iff (G : Graph (Set α) β) (e : β
 
 @[simp]
 lemma SetContract_inc₂ (G : Graph (Set α) β) (C : Set β) (e : β) (x y : Set α) :
-    (G / C).Inc₂ e x y ↔ (e ∉ C ∧ ∃ x' y', G.Inc₂ e x' y' ∧ ⋃₀ (G ↾ C).Component x' = x ∧ ⋃₀ (G ↾ C).Component y' = y) := by
+    (G / C).Inc₂ e x y ↔ (e ∉ C ∧ ∃ x', ⋃₀ (G ↾ C).Component x' = x ∧ ∃ y', ⋃₀ (G ↾ C).Component y' = y ∧ G.Inc₂ e x' y') := by
   rw [← connectivityPartition_partOf, setContract_def, SetContract, edgeDelete_inc₂,
     vxIdentification_inc₂]
 
@@ -75,7 +75,7 @@ lemma setContract_inc {u : Set α} :
 
 @[simp]
 lemma setContract_inc₂ {u v : Set α} : (G / C).Inc₂ e u v ↔
-    e ∉ C ∧ (∃ x y, G.Inc₂ e x y ∧ ⋃₀ (G ↾ C).Component x = u ∧ ⋃₀ (G ↾ C).Component y = v) := by
+    e ∉ C ∧ (∃ x, ⋃₀ (G ↾ C).Component x = u ∧ ∃ y, ⋃₀ (G ↾ C).Component y = v ∧ G.Inc₂ e x y) := by
   simp_rw [setContract_def, SetContract, ← connectivityPartition_partOf, edgeDelete_inc₂,
     vxIdentification_inc₂]
 
@@ -161,7 +161,7 @@ lemma SetContract.foo {u v : Set α} (hP : G.IsPartitionGraph)
   | cons a e w ih =>
     simp only [WList.first_cons, WList.last_cons, cons_isWalk_iff, edgeRestrict_inc₂,
       setContract_inc₂] at hwfst hwlst hwVd
-    obtain ⟨⟨heD, heC, x, y, hbtw, rfl, hy⟩, hwVd⟩ := hwVd
+    obtain ⟨⟨heD, heC, x, rfl, y, hy, hbtw⟩, hwVd⟩ := hwVd
     rw [map_eq_iff' hP hv] at hwfst
     exact hwfst.symm.of_le (edgeRestrict_mono_right G subset_union_left)
     |>.trans ((edgeRestrict_inc₂ _ _ _ _ _).mpr ⟨by tauto, hbtw⟩).vxConnected
@@ -189,7 +189,7 @@ lemma SetContract.foo2 {u v : Set α} (hP : G.IsPartitionGraph) (h : (G ↾ (C �
     · simp only [heC, false_or] at he
       refine Inc₂.vxConnected ?_ (e := e)
       simp only [edgeRestrict_inc₂, he, setContract_inc₂, heC, not_false_eq_true, true_and]
-      use a, w.first
+      use a, rfl, w.first
 
 lemma SetContract.map_map (C D : Set β) (hP : G.IsPartitionGraph) {v : Set α}  :
     ⋃₀ (G / C ↾ D).Component (⋃₀ (G ↾ C).Component v) = ⋃₀ (G ↾ (C ∪ D)).Component v := by
@@ -213,12 +213,13 @@ lemma SetContract.contract_contract (C D : Set β) (hP : G.IsPartitionGraph) :
     simp only [setContract_vertexSet, mem_image, exists_exists_and_eq_and, map_map C D hP]
   · simp only [setContract_inc₂, mem_union, not_or]
     constructor
-    · rintro ⟨heD, _, _, ⟨heC, x, y, hbtw, rfl, rfl⟩, rfl, rfl⟩
+    · rintro ⟨heD, _, rfl, _, rfl, ⟨heC, x, rfl, y, rfl, hbtw⟩⟩
       simp only [heC, not_false_eq_true, heD, and_self, map_map C D hP, true_and]
-      use x, y
-    · rintro ⟨⟨heC, heD⟩, x, y, hbtw, rfl, rfl⟩
+      use x, rfl, y
+    · rintro ⟨⟨heC, heD⟩, x, rfl, y, rfl, hbtw⟩
       simp only [heD, not_false_eq_true, heC, true_and]
-      use ⋃₀ (G ↾ C).Component x, ⋃₀ (G ↾ C).Component y, (by use x, y), map_map C D hP, map_map C D hP
+      have := map_map C D hP (v := x)
+      use ⋃₀ (G ↾ C).Component x, map_map C D hP, ⋃₀ (G ↾ C).Component y, map_map C D hP, x, rfl, y
 
 lemma setContract_comm (hP : G.IsPartitionGraph) : (G / C) / D = (G / D) / C := by
   rw [SetContract.contract_contract _ _ hP, SetContract.contract_contract _ _ hP, union_comm]

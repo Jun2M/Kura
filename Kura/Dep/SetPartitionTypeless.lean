@@ -162,6 +162,18 @@ instance {α : Type*} [CompleteLattice α] [Subsingleton α] : Unique (Partition
 lemma supp_indiscrete (s : α) (hs : s ≠ ⊥) : (Partition.indiscrete s hs).supp = s := by
   simp [Partition.indiscrete, supp]
 
+def indiscrete' (s : α) : Partition α :=
+  let _ : Decidable (s = ⊥) := Classical.dec _
+  if hs : s = ⊥ then Partition.empty α else indiscrete s hs
+
+@[simp]
+lemma indiscrete'_eq_empty : indiscrete' ⊥ = Partition.empty α := by
+  simp [indiscrete']
+
+@[simp]
+lemma indiscrete'_eq_of_ne_bot {s : α} (hs : s ≠ ⊥) : indiscrete' s = indiscrete s hs := by
+  simp only [indiscrete', hs, ↓reduceDIte]
+
 end indep
 
 section Order
@@ -209,6 +221,12 @@ lemma top_eq_indiscrete (hs : ⊤ ≠ ⊥) : (⊤ : Partition α) = indiscrete �
 
 lemma parts_top_subset : ((⊤ : Partition α) : Set α) ⊆ {⊤} := by
   simp
+
+instance : OrderBot (Partition α) where
+  bot := Partition.empty α
+  bot_le a s hs := by simp only [not_mem_empty] at hs
+
+@[simp] lemma not_mem_bot {a : α} : a ∉ (⊥ : Partition α) := not_mem_empty α
 
 lemma supp_le_of_le {P Q : Partition α} (h : P ≤ Q) : P.supp ≤ Q.supp :=
   sSup_le_sSup_of_forall_exists_le h
