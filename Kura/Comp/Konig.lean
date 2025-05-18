@@ -104,9 +104,9 @@ theorem Konig_exist (G : Graph α β) [Finite V(G)] [Finite E(G)] [G.Bipartite] 
   rintro e he
   -- If the 0-vertex of e is in X, e is covered by X.
   by_cases h0X : G.zeroVx he ∈ X
-  · exact ⟨G.zeroVx he, h0X, G.inc₂_zeroVx_oneVx he |>.inc_left⟩
+  · exact ⟨G.zeroVx he, h0X, G.isLink_zeroVx_oneVx he |>.inc_left⟩
   -- Otherwise, e must be covered by X by 1-vertex of e.
-  refine ⟨G.oneVx he, ?_, (G.inc₂_zeroVx_oneVx he |>.inc_right)⟩
+  refine ⟨G.oneVx he, ?_, (G.isLink_zeroVx_oneVx he |>.inc_right)⟩
   simp only [mem_image, Subtype.exists, X, f]
   -- If 0-vertex of e is not matched, then e is an alternating path.
   obtain h0notmatched | ⟨e', he'M, he'inc⟩ := (em (∃ e' ∈ M, G.Inc e' (G.zeroVx he))).symm

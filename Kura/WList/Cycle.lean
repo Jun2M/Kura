@@ -186,8 +186,8 @@ lemma IsClosed.dInc_rotate (hw : w.IsClosed) (h : w.DInc e x y) (n) : (w.rotate 
       · exact dInc_concat w f w.first
       exact h.concat ..
 
-lemma IsClosed.inc₂_rotate (hw : w.IsClosed) (h : w.Inc₂ e x y) (n) : (w.rotate n).Inc₂ e x y := by
-  rw [inc₂_iff_dInc] at h ⊢
+lemma IsClosed.isLink_rotate (hw : w.IsClosed) (h : w.IsLink e x y) (n) : (w.rotate n).IsLink e x y := by
+  rw [isLink_iff_dInc] at h ⊢
   exact h.elim (fun h' ↦ .inl (hw.dInc_rotate h' n)) (fun h' ↦ .inr (hw.dInc_rotate h' n))
 
 @[simp]
@@ -292,12 +292,12 @@ lemma IsClosed.dInc_rotate_iff (hw : w.IsClosed) : (w.rotate n).DInc e x y ↔ w
   rw [← hw.rotate_intRotate_neg n]
   exact (hw.rotate n).dInc_intRotate (-n) h
 
-lemma IsClosed.inc₂_rotate_iff (hw : w.IsClosed) : (w.rotate n).Inc₂ e x y ↔ w.Inc₂ e x y := by
-  rw [inc₂_iff_dInc, inc₂_iff_dInc, hw.dInc_rotate_iff, hw.dInc_rotate_iff]
+lemma IsClosed.isLink_rotate_iff (hw : w.IsClosed) : (w.rotate n).IsLink e x y ↔ w.IsLink e x y := by
+  rw [isLink_iff_dInc, isLink_iff_dInc, hw.dInc_rotate_iff, hw.dInc_rotate_iff]
 
 lemma WellFormed.rotate (hw : w.WellFormed) (h_closed : w.IsClosed) (n : ℕ) :
     (w.rotate n).WellFormed := by
-  simpa [WellFormed, h_closed.inc₂_rotate_iff] using hw
+  simpa [WellFormed, h_closed.isLink_rotate_iff] using hw
 
 lemma IsClosed.wellFormed_rotate_iff (h_closed : w.IsClosed) :
     (w.rotate n).WellFormed ↔ w.WellFormed := by

@@ -43,20 +43,20 @@ lemma contract_inc : (G /[φ] C).Inc e x ↔ e ∉ C ∧ ∃ v, G.Inc e v ∧ φ
     not_false_eq_true, and_self, implies_true, and_true, and_imp, forall_exists_index, true_and]
   exact fun heC x hinc rfl ↦ hinc.edge_mem
 
-lemma inc₂_of_inc₂ (hbtw : G.Inc₂ e u v) (hnin : e ∉ C) : (G /[φ] C).Inc₂ e (φ u) (φ v) := by
-  simp only [Contract, edgeRestrict_inc₂, mem_diff, hbtw.edge_mem, hnin, not_false_eq_true,
-    and_self, vxMap_inc₂', true_and]
+lemma isLink_of_isLink (hbtw : G.IsLink e u v) (hnin : e ∉ C) : (G /[φ] C).IsLink e (φ u) (φ v) := by
+  simp only [Contract, edgeRestrict_isLink, mem_diff, hbtw.edge_mem, hnin, not_false_eq_true,
+    and_self, vxMap_isLink', true_and]
   use u, v
 
 @[simp]
-lemma contract_inc₂ : (G /[φ] C).Inc₂ e x y ↔ e ∉ C ∧ ∃ u v, G.Inc₂ e u v ∧ φ u = x ∧ φ v = y := by
-  simp +contextual only [Contract, edgeRestrict_inc₂, mem_diff, vxMap_inc₂', iff_def,
+lemma contract_isLink : (G /[φ] C).IsLink e x y ↔ e ∉ C ∧ ∃ u v, G.IsLink e u v ∧ φ u = x ∧ φ v = y := by
+  simp +contextual only [Contract, edgeRestrict_isLink, mem_diff, vxMap_isLink', iff_def,
     not_false_eq_true, and_self, implies_true, and_true, and_imp, forall_exists_index, true_and]
   exact fun heC x y hbtw rfl rfl ↦ hbtw.edge_mem
 
-lemma Inc₂.contract (φ : α → α') (he : e ∉ C) (hbtw : G.Inc₂ e u v) :
-    (G /[φ] C).Inc₂ e (φ u) (φ v) := by
-  rw [Contract, edgeRestrict_inc₂, vxMap_inc₂']
+lemma IsLink.contract (φ : α → α') (he : e ∉ C) (hbtw : G.IsLink e u v) :
+    (G /[φ] C).IsLink e (φ u) (φ v) := by
+  rw [Contract, edgeRestrict_isLink, vxMap_isLink']
   use ⟨hbtw.edge_mem, he⟩, u, v
 
 namespace Contract
@@ -203,7 +203,7 @@ lemma contract_vxDel_eq_vxDel_contract {S : Set α'} : (G /[φ] C) - S = (G - (�
     refine exists_congr (fun x ↦ ?_)
     simp_all only [and_congr_right_iff, implies_true]
   · rintro e x y
-    simp only [iff_def, vxDelete_inc₂, contract_inc₂, contract_vertexSet, mem_image, mem_preimage]
+    simp only [iff_def, vxDelete_isLink, contract_isLink, contract_vertexSet, mem_image, mem_preimage]
     constructor
     · rintro ⟨⟨heC, u, v, huv, rfl, rfl⟩, ⟨-, hu⟩, ⟨-, hv⟩⟩
       use heC, u, v, ?_
@@ -231,9 +231,9 @@ lemma Inc.contractFun_validIn (hxe : G.Inc e u) [DecidablePred (G.Inc e)] :
     by_cases hab : a = b
     · subst b
       exact VxConnected.refl ha
-    · refine Inc₂.vxConnected ?_ (e := e)
-      rw [edgeRestrict_inc₂]
-      exact ⟨rfl, hainc.inc₂_of_inc_of_ne hbinc hab⟩
+    · refine IsLink.vxConnected ?_ (e := e)
+      rw [edgeRestrict_isLink]
+      exact ⟨rfl, hainc.isLink_of_inc_of_ne hbinc hab⟩
   · apply iff_of_false
     · rintro rfl
       exact hbinc hxe
@@ -265,10 +265,10 @@ lemma Inc.contractFun_validIn (hxe : G.Inc e u) [DecidablePred (G.Inc e)] :
       obtain ⟨rfl, he⟩ := he'
       exact hainc he
 
-def Inc₂.contractFun (_hexy : G.Inc₂ e u v) [DecidableEq α] : α → α :=
+def IsLink.contractFun (_hexy : G.IsLink e u v) [DecidableEq α] : α → α :=
   fun w ↦ if w = v then u else w
 
-lemma Inc₂.contractFun_validIn (hexy : G.Inc₂ e u v) [DecidableEq α] :
+lemma IsLink.contractFun_validIn (hexy : G.IsLink e u v) [DecidableEq α] :
     Contract.ValidIn G hexy.contractFun {e} := by
   rintro a b ha hb
   have hsub := (G.edgeRestrict_edgeSet {e}) ▸ inter_subset_left
@@ -279,32 +279,32 @@ lemma Inc₂.contractFun_validIn (hexy : G.Inc₂ e u v) [DecidableEq α] :
     exact VxConnected.refl hb
   · subst hainc
     rw [← ne_eq, ne_comm] at hbinc
-    simp [vxConnected_edgeRestrict_singleton, hbinc, hexy.symm.inc₂_iff_eq_right]
+    simp [vxConnected_edgeRestrict_singleton, hbinc, hexy.symm.isLink_iff_eq_right]
   · subst hbinc
-    simp [vxConnected_edgeRestrict_singleton, hainc, hexy.inc₂_iff_eq_left, eq_comm]
+    simp [vxConnected_edgeRestrict_singleton, hainc, hexy.isLink_iff_eq_left, eq_comm]
   · rw [vxConnected_edgeRestrict_singleton]
-    have hnadj : ¬ G.Inc₂ e a b := by
+    have hnadj : ¬ G.IsLink e a b := by
       rintro hbtw
-      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_and_eq_or_eq_and_eq_of_inc₂ hbtw
+      obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hexy.eq_and_eq_or_eq_and_eq_of_isLink hbtw
       · exact hbinc rfl
       · exact hainc rfl
     simp [hnadj, ha]
 
-lemma Inc₂.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.Inc₂ e u v)
+lemma IsLink.contractFun_eq_self_of_not_inc [DecidableEq α] (hexy : G.IsLink e u v)
     (h : ¬ G.Inc e u) : hexy.contractFun u = u := by
   simp only [contractFun, ite_eq_right_iff]
   rintro rfl
   exact (h hexy.inc_right).elim
 
 @[simp]
-lemma Inc₂.contractFun_eq_self_iff [DecidableEq α] (hexy : G.Inc₂ e u v) (huv : u ≠ v) :
+lemma IsLink.contractFun_eq_self_iff [DecidableEq α] (hexy : G.IsLink e u v) (huv : u ≠ v) :
     hexy.contractFun u = u ↔ u ≠ v := by
-  simp +contextual [Inc₂.contractFun, huv]
+  simp +contextual [IsLink.contractFun, huv]
 
 @[simp]
-lemma Inc₂.vx_mem_contract_iff [DecidableEq α] (hexy : G.Inc₂ e u v) :
+lemma IsLink.vx_mem_contract_iff [DecidableEq α] (hexy : G.IsLink e u v) :
     w ∈ (G /[hexy.contractFun] {e}).V ↔ w ∈ V(G) \ {v} ∪ {u} := by
-  simp +contextual only [contract_vertexSet, Inc₂.contractFun, mem_image, union_singleton,
+  simp +contextual only [contract_vertexSet, IsLink.contractFun, mem_image, union_singleton,
     mem_insert_iff, mem_diff, mem_singleton_iff, iff_def, forall_exists_index, and_imp]
   constructor
   · rintro w hw rfl
@@ -326,14 +326,14 @@ lemma reflAdj (hbtw : G.reflAdj u v) (hVd : ValidIn G φ C) : (G /[φ] C).reflAd
   obtain ⟨e', hbtw'⟩ | ⟨rfl, huv⟩ := hbtw
   · by_cases he : e' ∈ C
     · have : G{C}.Connected u v := by
-        apply Inc₂.connected
-        rw [restrict_inc₂_iff]
+        apply IsLink.connected
+        rw [restrict_isLink_iff]
         exact ⟨hbtw', he⟩
       rw [← hVd hbtw'.vx_mem_left hbtw'.vx_mem_right] at this
       rw [this]; clear this
       refine reflAdj.of_vxMem ?_
       use v, hbtw'.vx_mem_right
-    · exact (inc₂ φ he hbtw').reflAdj
+    · exact (isLink φ he hbtw').reflAdj
   · exact reflAdj.of_vxMem (by use u)
 
 lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflAdj (φ u) (φ v))
@@ -343,8 +343,8 @@ lemma connected_of_map_reflAdj (hVd : ValidIn G φ C) (hradj : (G /[φ] C).reflA
   · obtain he := hbtw.edge_mem
     simp only [E, mem_diff] at he
     obtain ⟨he, heC⟩ := he
-    obtain ⟨a, b, hbtwG⟩ := Inc₂.exists_vx_inc₂ he
-    have heqeq := (inc₂ φ heC hbtwG).eq_or_eq_of_inc₂ hbtw
+    obtain ⟨a, b, hbtwG⟩ := IsLink.exists_vx_isLink he
+    have heqeq := (isLink φ heC hbtwG).eq_or_eq_of_isLink hbtw
     wlog heq : φ a = φ u ∧ φ b = φ v
     · simp only [heq, false_or] at heqeq
       rw [and_comm] at heqeq
@@ -387,7 +387,7 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --     G{C ∪ S}.Connected u v := by
 --   rw [reflAdj_iff_or] at hradj
 --   obtain ⟨hne, e, hinc, h⟩ | ⟨heq, hin⟩ := hradj
---   · rw [Inc₂] at hinc
+--   · rw [IsLink] at hinc
 --     obtain ⟨u', hequ, v', heqv, hbtw', hnin⟩ := hinc
 --     rw [hVd hbtw'.vx_mem_left hu] at hequ
 --     rw [hVd hbtw'.vx_mem_right hv] at heqv

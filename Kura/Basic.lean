@@ -28,7 +28,7 @@ For `G : Graph α β`, ...
 
 * `V(G)` denotes the vertex set of `G` as a term in `Set α`.
 * `E(G)` denotes the edge set of `G` as a term in `Set β`.
-* `G.Inc₂ e x y` means that the edge `e : β` has vertices `x : α` and `y : α` as its ends.
+* `G.IsLink e x y` means that the edge `e : β` has vertices `x : α` and `y : α` as its ends.
 * `G.Inc e x` means that the edge `e : β` has `x` as one of its ends.
 * `G.Adj x y` means that there is an edge `e` having `x` and `y` as its ends.
 * `G.IsLoopAt e x` means that `e` is a loop edge with both ends equal to `x`.
@@ -70,17 +70,17 @@ structure Graph (α β : Type*) where
   /-- The edge set. -/
   edgeSet : Set β
   /-- The predicate that an edge `e` goes from `x` to `y`. -/
-  Inc₂ : β → α → α → Prop
+  IsLink : β → α → α → Prop
   /-- If `e` goes from `x` to `y`, it goes from `y` to `x`. -/
-  inc₂_symm : ∀ ⦃e x y⦄, Inc₂ e x y → Inc₂ e y x
+  isLink_symm : ∀ ⦃e x y⦄, IsLink e x y → IsLink e y x
   /-- An edge is incident with at most one pair of vertices. -/
-  eq_or_eq_of_inc₂_of_inc₂ : ∀ ⦃e x y v w⦄, Inc₂ e x y → Inc₂ e v w → x = v ∨ x = w
+  eq_or_eq_of_isLink_of_isLink : ∀ ⦃e x y v w⦄, IsLink e x y → IsLink e v w → x = v ∨ x = w
   /-- If `e` is incident to something, then `e` is in the edge set -/
-  edge_mem_iff_exists_inc₂ : ∀ e, e ∈ edgeSet ↔ ∃ x y, Inc₂ e x y
+  edge_mem_iff_exists_isLink : ∀ e, e ∈ edgeSet ↔ ∃ x y, IsLink e x y
   /-- If some edge `e` is incident to `x`, then `x ∈ V`. -/
-  vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ vertexSet
+  vx_mem_left_of_isLink : ∀ ⦃e x y⦄, IsLink e x y → x ∈ vertexSet
 
-initialize_simps_projections Graph (vertexSet → vertexSet, edgeSet → edgeSet, Inc₂ → inc₂)
+initialize_simps_projections Graph (vertexSet → vertexSet, edgeSet → edgeSet, IsLink → isLink)
 
 namespace Graph
 
@@ -91,92 +91,92 @@ variable {G H : Graph α β}
 
 /-! ### Edge-vertex-vertex incidence -/
 
-lemma Inc₂.symm (h : G.Inc₂ e x y) : G.Inc₂ e y x :=
-  G.inc₂_symm h
+lemma IsLink.symm (h : G.IsLink e x y) : G.IsLink e y x :=
+  G.isLink_symm h
 
-lemma inc₂_comm : G.Inc₂ e x y ↔ G.Inc₂ e y x :=
-  ⟨Inc₂.symm, Inc₂.symm⟩
+lemma isLink_comm : G.IsLink e x y ↔ G.IsLink e y x :=
+  ⟨IsLink.symm, IsLink.symm⟩
 
-lemma Inc₂.edge_mem (h : G.Inc₂ e x y) : e ∈ E(G) :=
-  (edge_mem_iff_exists_inc₂ ..).2 ⟨x, y, h⟩
+lemma IsLink.edge_mem (h : G.IsLink e x y) : e ∈ E(G) :=
+  (edge_mem_iff_exists_isLink ..).2 ⟨x, y, h⟩
 
-lemma Inc₂.vx_mem_left (h : G.Inc₂ e x y) : x ∈ V(G) :=
-  G.vx_mem_left_of_inc₂ h
+lemma IsLink.vx_mem_left (h : G.IsLink e x y) : x ∈ V(G) :=
+  G.vx_mem_left_of_isLink h
 
-lemma Inc₂.vx_mem_right (h : G.Inc₂ e x y) : y ∈ V(G) :=
+lemma IsLink.vx_mem_right (h : G.IsLink e x y) : y ∈ V(G) :=
   h.symm.vx_mem_left
 
-lemma exists_inc₂_of_mem_edgeSet (h : e ∈ E(G)) : ∃ x y, G.Inc₂ e x y :=
-  (edge_mem_iff_exists_inc₂ ..).1 h
+lemma exists_isLink_of_mem_edgeSet (h : e ∈ E(G)) : ∃ x y, G.IsLink e x y :=
+  (edge_mem_iff_exists_isLink ..).1 h
 
-lemma Inc₂.left_eq_or_eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e z w) : x = z ∨ x = w :=
-  G.eq_or_eq_of_inc₂_of_inc₂ h h'
+lemma IsLink.left_eq_or_eq_of_isLink (h : G.IsLink e x y) (h' : G.IsLink e z w) : x = z ∨ x = w :=
+  G.eq_or_eq_of_isLink_of_isLink h h'
 
-lemma Inc₂.left_eq_of_inc₂_of_ne (h : G.Inc₂ e x y) (h' : G.Inc₂ e z w) (hzx : x ≠ z) : x = w :=
-  (h.left_eq_or_eq_of_inc₂ h').elim (False.elim ∘ hzx) id
+lemma IsLink.left_eq_of_isLink_of_ne (h : G.IsLink e x y) (h' : G.IsLink e z w) (hzx : x ≠ z) : x = w :=
+  (h.left_eq_or_eq_of_isLink h').elim (False.elim ∘ hzx) id
 
-lemma Inc₂.eq_of_inc₂ (h : G.Inc₂ e x y) (h' : G.Inc₂ e x z) : y = z := by
-  obtain rfl | rfl := h.symm.left_eq_or_eq_of_inc₂ h'.symm; rfl
-  obtain rfl | rfl := h'.symm.left_eq_or_eq_of_inc₂ h.symm <;> rfl
+lemma IsLink.eq_of_isLink (h : G.IsLink e x y) (h' : G.IsLink e x z) : y = z := by
+  obtain rfl | rfl := h.symm.left_eq_or_eq_of_isLink h'.symm; rfl
+  obtain rfl | rfl := h'.symm.left_eq_or_eq_of_isLink h.symm <;> rfl
 
-lemma Inc₂.inc₂_iff_eq (h : G.Inc₂ e x y) : G.Inc₂ e x z ↔ z = y :=
-  ⟨fun h' ↦ h'.eq_of_inc₂ h, fun h' ↦ h' ▸ h⟩
+lemma IsLink.isLink_iff_eq (h : G.IsLink e x y) : G.IsLink e x z ↔ z = y :=
+  ⟨fun h' ↦ h'.eq_of_isLink h, fun h' ↦ h' ▸ h⟩
 
-lemma edgeSet_eq_setOf_exists_inc₂ : E(G) = {e | ∃ x y, G.Inc₂ e x y} :=
-  Set.ext fun e ↦ G.edge_mem_iff_exists_inc₂ e
+lemma edgeSet_eq_setOf_exists_isLink : E(G) = {e | ∃ x y, G.IsLink e x y} :=
+  Set.ext fun e ↦ G.edge_mem_iff_exists_isLink e
 
 @[simp]
-lemma not_inc₂_of_not_mem_edgeSet (he : e ∉ E(G)) (x y : α) : ¬ G.Inc₂ e x y := by
+lemma not_isLink_of_not_mem_edgeSet (he : e ∉ E(G)) (x y : α) : ¬ G.IsLink e x y := by
   contrapose! he
   exact he.edge_mem
 
 @[simp]
-lemma not_inc₂_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Inc₂ e x y := by
+lemma not_isLink_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.IsLink e x y := by
   contrapose! hx
   exact hx.vx_mem_left
 
 @[simp]
-lemma not_inc₂_of_right_not_mem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.Inc₂ e x y := by
+lemma not_isLink_of_right_not_mem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.IsLink e x y := by
   contrapose! hy
   exact hy.vx_mem_right
 
-lemma Inc₂.inc₂_iff_eq_left {x' : α} (h : G.Inc₂ e x y) : G.Inc₂ e x' y ↔ x = x' := by
+lemma IsLink.isLink_iff_eq_left {x' : α} (h : G.IsLink e x y) : G.IsLink e x' y ↔ x = x' := by
   constructor
   · rintro h'
-    obtain rfl | rfl := h.left_eq_or_eq_of_inc₂ h'
+    obtain rfl | rfl := h.left_eq_or_eq_of_isLink h'
     · rfl
-    obtain rfl | rfl := h'.left_eq_or_eq_of_inc₂ h <;> rfl
+    obtain rfl | rfl := h'.left_eq_or_eq_of_isLink h <;> rfl
   · rintro rfl
     exact h
 
-lemma Inc₂.inc₂_iff_eq_right {y' : α} (h : G.Inc₂ e x y) : G.Inc₂ e x y' ↔ y = y' := by
-  rw [inc₂_comm, h.symm.inc₂_iff_eq_left]
+lemma IsLink.isLink_iff_eq_right {y' : α} (h : G.IsLink e x y) : G.IsLink e x y' ↔ y = y' := by
+  rw [isLink_comm, h.symm.isLink_iff_eq_left]
 
-lemma Inc₂.eq_and_eq_or_eq_and_eq_of_inc₂ {x' y' : α} (h : G.Inc₂ e x y) (h' : G.Inc₂ e x' y') :
+lemma IsLink.eq_and_eq_or_eq_and_eq_of_isLink {x' y' : α} (h : G.IsLink e x y) (h' : G.IsLink e x' y') :
     (x = x' ∧ y = y') ∨ (x = y' ∧ y = x') := by
-  obtain rfl | rfl := h.left_eq_or_eq_of_inc₂ h'
-  on_goal 1 => obtain rfl := h.inc₂_iff_eq_right.mp h'
-  on_goal 2 => obtain rfl := h.symm.inc₂_iff_eq_left.mp h'
+  obtain rfl | rfl := h.left_eq_or_eq_of_isLink h'
+  on_goal 1 => obtain rfl := h.isLink_iff_eq_right.mp h'
+  on_goal 2 => obtain rfl := h.symm.isLink_iff_eq_left.mp h'
   all_goals tauto
 
-lemma Inc₂.inc₂_iff (h : G.Inc₂ e x y) {x' y' : α} :
-    G.Inc₂ e x' y' ↔ (x = x' ∧ y = y') ∨ (x = y' ∧ y = x') := by
-  refine ⟨h.eq_and_eq_or_eq_and_eq_of_inc₂, ?_⟩
+lemma IsLink.isLink_iff (h : G.IsLink e x y) {x' y' : α} :
+    G.IsLink e x' y' ↔ (x = x' ∧ y = y') ∨ (x = y' ∧ y = x') := by
+  refine ⟨h.eq_and_eq_or_eq_and_eq_of_isLink, ?_⟩
   rintro (⟨rfl, rfl⟩ | ⟨rfl,rfl⟩)
   · assumption
   exact h.symm
 
-lemma Inc₂.inc₂_iff_sym2_eq (h : G.Inc₂ e x y) {x' y' : α} :
-    G.Inc₂ e x' y' ↔ s(x,y) = s(x',y') := by
-  rw [h.inc₂_iff, Sym2.eq_iff]
+lemma IsLink.isLink_iff_sym2_eq (h : G.IsLink e x y) {x' y' : α} :
+    G.IsLink e x' y' ↔ s(x,y) = s(x',y') := by
+  rw [h.isLink_iff, Sym2.eq_iff]
 
 /-! ### Edge-vertex incidence -/
 
 /-- `G.Inc e x` means that `x` is one of the ends of `e`. -/
-def Inc (G : Graph α β) (e : β) (x : α) : Prop := ∃ y, G.Inc₂ e x y
+def Inc (G : Graph α β) (e : β) (x : α) : Prop := ∃ y, G.IsLink e x y
 
-lemma inc_iff_exists_inc₂ : G.Inc e x ↔ ∃ y, G.Inc₂ e x y := Iff.rfl
-alias ⟨Inc.exists_vx_inc₂, _⟩ := inc_iff_exists_inc₂
+lemma inc_iff_exists_isLink : G.Inc e x ↔ ∃ y, G.IsLink e x y := Iff.rfl
+alias ⟨Inc.exists_vx_isLink, _⟩ := inc_iff_exists_isLink
 
 @[simp]
 lemma Inc.edge_mem (h : G.Inc e x) : e ∈ E(G) :=
@@ -187,22 +187,22 @@ lemma Inc.vx_mem (h : G.Inc e x) : x ∈ V(G) :=
   h.choose_spec.vx_mem_left
 
 @[simp]
-lemma Inc₂.inc_left (h : G.Inc₂ e x y) : G.Inc e x :=
+lemma IsLink.inc_left (h : G.IsLink e x y) : G.Inc e x :=
   ⟨y, h⟩
 
 @[simp]
-lemma Inc₂.inc_right (h : G.Inc₂ e x y) : G.Inc e y :=
+lemma IsLink.inc_right (h : G.IsLink e x y) : G.Inc e y :=
   ⟨x, h.symm⟩
 
-lemma Inc.eq_or_eq_of_inc₂ (h : G.Inc e x) (h' : G.Inc₂ e y z) : x = y ∨ x = z :=
-  h.choose_spec.left_eq_or_eq_of_inc₂ h'
+lemma Inc.eq_or_eq_of_isLink (h : G.Inc e x) (h' : G.IsLink e y z) : x = y ∨ x = z :=
+  h.choose_spec.left_eq_or_eq_of_isLink h'
 
-lemma Inc₂.eq_or_eq_of_inc (h : G.Inc₂ e x y) (h' : G.Inc e z) : x = z ∨ y = z := by
-  have := h'.eq_or_eq_of_inc₂ h
+lemma IsLink.eq_or_eq_of_inc (h : G.IsLink e x y) (h' : G.Inc e z) : x = z ∨ y = z := by
+  have := h'.eq_or_eq_of_isLink h
   tauto
 
-lemma Inc.eq_of_inc₂_of_ne_left (h : G.Inc e x) (h' : G.Inc₂ e y z) (hxy : x ≠ y) : x = z :=
-  (h.eq_or_eq_of_inc₂ h').elim (False.elim ∘ hxy) id
+lemma Inc.eq_of_isLink_of_ne_left (h : G.Inc e x) (h' : G.IsLink e y z) (hxy : x ≠ y) : x = z :=
+  (h.eq_or_eq_of_isLink h').elim (False.elim ∘ hxy) id
 
 @[simp]
 lemma not_inc_of_not_mem_edgeSet (he : e ∉ E(G)) (x : α) : ¬ G.Inc e x :=
@@ -214,7 +214,7 @@ lemma not_inc_of_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Inc e x := 
   exact hx.vx_mem
 
 lemma exists_inc_of_mem_edgeSet (he : e ∈ E(G)) : ∃ x, G.Inc e x := by
-  obtain ⟨y, z, h⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨y, z, h⟩ := exists_isLink_of_mem_edgeSet he
   exact ⟨y, h.inc_left⟩
 
 /-- Given a proof that `e` is incident with `x`, noncomputably find the other end of `e`.
@@ -222,52 +222,52 @@ lemma exists_inc_of_mem_edgeSet (he : e ∈ E(G)) : ∃ x, G.Inc e x := by
 noncomputable def Inc.other (h : G.Inc e x) : α := h.choose
 
 @[simp]
-lemma Inc.inc₂_other (h : G.Inc e x) : G.Inc₂ e x h.other :=
+lemma Inc.isLink_other (h : G.Inc e x) : G.IsLink e x h.other :=
   h.choose_spec
 
 @[simp]
 lemma Inc.inc_other (h : G.Inc e x) : G.Inc e h.other :=
-  h.inc₂_other.inc_right
+  h.isLink_other.inc_right
 
 lemma Inc.eq_or_eq_or_eq_of_inc_of_inc (hx : G.Inc e x) (hy : G.Inc e y) (hz : G.Inc e z) :
     x = y ∨ x = z ∨ y = z := by
   by_contra! hcon
   obtain ⟨x', hx'⟩ := hx
-  obtain rfl := hy.eq_of_inc₂_of_ne_left hx' hcon.1.symm
-  obtain rfl := hz.eq_of_inc₂_of_ne_left hx' hcon.2.1.symm
+  obtain rfl := hy.eq_of_isLink_of_ne_left hx' hcon.1.symm
+  obtain rfl := hz.eq_of_isLink_of_ne_left hx' hcon.2.1.symm
   exact hcon.2.2 rfl
 
 /-- The binary incidence predicate can be expressed in terms of the unary one. -/
-lemma inc₂_iff_inc : G.Inc₂ e x y ↔ G.Inc e x ∧ G.Inc e y ∧ ∀ z, G.Inc e z → z = x ∨ z = y := by
-  refine ⟨fun h ↦ ⟨h.inc_left, h.inc_right, fun z h' ↦ h'.eq_or_eq_of_inc₂ h⟩, ?_⟩
+lemma isLink_iff_inc : G.IsLink e x y ↔ G.Inc e x ∧ G.Inc e y ∧ ∀ z, G.Inc e z → z = x ∨ z = y := by
+  refine ⟨fun h ↦ ⟨h.inc_left, h.inc_right, fun z h' ↦ h'.eq_or_eq_of_isLink h⟩, ?_⟩
   rintro ⟨⟨x', hx'⟩, ⟨y', hy'⟩, h⟩
   obtain rfl | rfl := h _ hx'.inc_right
-  · obtain rfl | rfl := hx'.left_eq_or_eq_of_inc₂ hy'
+  · obtain rfl | rfl := hx'.left_eq_or_eq_of_isLink hy'
     · assumption
     exact hy'.symm
   assumption
 
-lemma Inc.inc₂_of_inc_of_ne (h : G.Inc e x) (h' : G.Inc e y) (hxy : x ≠ y) : G.Inc₂ e x y := by
+lemma Inc.isLink_of_inc_of_ne (h : G.Inc e x) (h' : G.Inc e y) (hxy : x ≠ y) : G.IsLink e x y := by
   obtain ⟨z, hz⟩ := h
   obtain rfl | rfl := hz.eq_or_eq_of_inc h'
   · simp at hxy
   exact hz
 
 /-- `G.IsLoopAt e x` means that `e` is a loop edge at the vertex `x`. -/
-def IsLoopAt (G : Graph α β) (e : β) (x : α) : Prop := G.Inc₂ e x x
+def IsLoopAt (G : Graph α β) (e : β) (x : α) : Prop := G.IsLink e x x
 
-lemma inc₂_self_iff : G.Inc₂ e x x ↔ G.IsLoopAt e x := Iff.rfl
+lemma isLink_self_iff : G.IsLink e x x ↔ G.IsLoopAt e x := Iff.rfl
 
-lemma IsLoopAt.inc₂ (h : G.IsLoopAt e x) : G.Inc₂ e x x := h
+lemma IsLoopAt.isLink (h : G.IsLoopAt e x) : G.IsLink e x x := h
 
 lemma IsLoopAt.inc (h : G.IsLoopAt e x) : G.Inc e x :=
-  Inc₂.inc_left h
+  IsLink.inc_left h
 
 lemma IsLoopAt.eq_of_inc (h : G.IsLoopAt e x) (h' : G.Inc e y) : x = y := by
-  obtain rfl | rfl := h'.eq_or_eq_of_inc₂ h <;> rfl
+  obtain rfl | rfl := h'.eq_or_eq_of_isLink h <;> rfl
 
-lemma IsLoopAt.inc₂_iff_eq (h : G.IsLoopAt e x) : G.Inc₂ e x y ↔ x = y :=
-  ⟨h.eq_of_inc₂, fun h' ↦ by rwa [← h']⟩
+lemma IsLoopAt.isLink_iff_eq (h : G.IsLoopAt e x) : G.IsLink e x y ↔ x = y :=
+  ⟨h.eq_of_isLink, fun h' ↦ by rwa [← h']⟩
 
 @[simp]
 lemma IsLoopAt.edge_mem (h : G.IsLoopAt e x) : e ∈ E(G) :=
@@ -281,7 +281,7 @@ lemma IsLoopAt.vx_mem (h : G.IsLoopAt e x) : x ∈ V(G) :=
 @[mk_iff]
 structure IsNonloopAt (G : Graph α β) (e : β) (x : α) : Prop where
   inc : G.Inc e x
-  exists_inc₂_ne : ∃ y ≠ x, G.Inc₂ e x y
+  exists_isLink_ne : ∃ y ≠ x, G.IsLink e x y
 
 @[simp]
 lemma IsNonloopAt.edge_mem (h : G.IsNonloopAt e x) : e ∈ E(G) :=
@@ -293,7 +293,7 @@ lemma IsNonloopAt.vx_mem (h : G.IsNonloopAt e x) : x ∈ V(G) :=
 
 lemma IsLoopAt.not_isNonloop_at (h : G.IsLoopAt e x) (y : α) : ¬ G.IsNonloopAt e y := by
   intro h'
-  obtain ⟨z, hyz, hy⟩ := h'.exists_inc₂_ne
+  obtain ⟨z, hyz, hy⟩ := h'.exists_isLink_ne
   rw [← h.eq_of_inc hy.inc_left, ← h.eq_of_inc hy.inc_right] at hyz
   exact hyz rfl
 
@@ -306,27 +306,27 @@ lemma Inc.isLoopAt_or_isNonloopAt (h : G.Inc e x) : G.IsLoopAt e x ∨ G.IsNonlo
   · exact .inl hy
   exact .inr ⟨hy.inc_left, y, hne.symm, hy⟩
 
-lemma Inc.isLoopAt_or_inc₂_ne (h : G.Inc e x) : G.IsLoopAt e x ∨ ∃ y ≠ x, G.Inc₂ e x y := by
+lemma Inc.isLoopAt_or_isLink_ne (h : G.Inc e x) : G.IsLoopAt e x ∨ ∃ y ≠ x, G.IsLink e x y := by
   obtain ⟨y, hy⟩ := h
   obtain rfl | hne := eq_or_ne x y
   · exact .inl hy
   exact .inr ⟨y, hne.symm, hy⟩
 
-lemma Inc₂.isNonloopAt_iff_ne (h : G.Inc₂ e x y) : G.IsNonloopAt e x ↔ x ≠ y := by
+lemma IsLink.isNonloopAt_iff_ne (h : G.IsLink e x y) : G.IsNonloopAt e x ↔ x ≠ y := by
   obtain rfl | hne := eq_or_ne x y
   · exact iff_of_false (IsLoopAt.not_isNonloop_at h x) <| by simp
   rw [isNonloopAt_iff]
   exact iff_of_true ⟨h.inc_left, ⟨y, hne.symm, h⟩⟩ hne
 
-lemma Inc₂.isNonloopAt_of_ne (h : G.Inc₂ e x y) (hxy : x ≠ y) : G.IsNonloopAt e x :=
+lemma IsLink.isNonloopAt_of_ne (h : G.IsLink e x y) (hxy : x ≠ y) : G.IsNonloopAt e x :=
   h.isNonloopAt_iff_ne.2 hxy
 
-lemma Inc₂.isNonloopAt_right_of_ne (h : G.Inc₂ e x y) (hxy : x ≠ y) : G.IsNonloopAt e y :=
+lemma IsLink.isNonloopAt_right_of_ne (h : G.IsLink e x y) (hxy : x ≠ y) : G.IsNonloopAt e y :=
   h.symm.isNonloopAt_iff_ne.2 hxy.symm
 
-lemma exists_isLoopAt_or_inc₂_of_mem_edgeSet (h : e ∈ E(G)) :
-    (∃ x, G.IsLoopAt e x) ∨ ∃ x y, G.Inc₂ e x y ∧ x ≠ y := by
-  obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet h
+lemma exists_isLoopAt_or_isLink_of_mem_edgeSet (h : e ∈ E(G)) :
+    (∃ x, G.IsLoopAt e x) ∨ ∃ x y, G.IsLink e x y ∧ x ≠ y := by
+  obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edgeSet h
   obtain rfl | hne := eq_or_ne x y
   · exact .inl ⟨x, h⟩
   exact .inr ⟨x, y, h, hne⟩
@@ -334,7 +334,7 @@ lemma exists_isLoopAt_or_inc₂_of_mem_edgeSet (h : e ∈ E(G)) :
 /-! ### Adjacency -/
 
 /-- `G.Adj x y` means that `G` has an edge from `x` to `y`. -/
-def Adj (G : Graph α β) (x y : α) : Prop := ∃ e, G.Inc₂ e x y
+def Adj (G : Graph α β) (x y : α) : Prop := ∃ e, G.IsLink e x y
 
 lemma Adj.symm (h : G.Adj x y) : G.Adj y x :=
   ⟨_, h.choose_spec.symm⟩
@@ -350,7 +350,7 @@ lemma Adj.mem_left (h : G.Adj x y) : x ∈ V(G) :=
 lemma Adj.mem_right (h : G.Adj x y) : y ∈ V(G) :=
   h.symm.mem_left
 
-lemma Inc₂.adj (h : G.Inc₂ e x y) : G.Adj x y :=
+lemma IsLink.adj (h : G.IsLink e x y) : G.Adj x y :=
   ⟨e, h⟩
 
 lemma not_adj_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Adj x y := by
@@ -368,8 +368,8 @@ section toMultiset
 noncomputable def toMultiset (G : Graph α β) (e : β) : Multiset α := by
   classical
   exact if he : e ∈ E(G)
-    then {G.exists_inc₂_of_mem_edgeSet he |>.choose,
-          G.exists_inc₂_of_mem_edgeSet he |>.choose_spec.choose}
+    then {G.exists_isLink_of_mem_edgeSet he |>.choose,
+          G.exists_isLink_of_mem_edgeSet he |>.choose_spec.choose}
     else 0
 
 @[simp]
@@ -378,15 +378,15 @@ lemma vx_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : x ∈ V(G) := by
   split_ifs at hxe with he
   · simp only [Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at hxe
     obtain rfl | rfl := hxe
-    · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.vx_mem_left
-    · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.vx_mem_right
+    · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.vx_mem_left
+    · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.vx_mem_right
   · exact (Multiset.not_mem_zero _ hxe).elim
 
 @[simp]
 lemma edge_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : e ∈ E(G) := by
   simp only [toMultiset] at hxe
   split_ifs at hxe with he
-  · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.edge_mem
+  · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.edge_mem
   · exact (Multiset.not_mem_zero _ hxe).elim
 
 @[simp]
@@ -418,24 +418,24 @@ lemma toMultiset_card_or : (G.toMultiset e).card = 2 ∨ (G.toMultiset e).card =
   · exact Or.inr (Multiset.card_eq_zero.mpr (toMultiset_eq_zero_iff.mpr he))
 
 @[simp]
-lemma toMultiset_eq_pair_iff : G.toMultiset e = {x, y} ↔ G.Inc₂ e x y := by
+lemma toMultiset_eq_pair_iff : G.toMultiset e = {x, y} ↔ G.IsLink e x y := by
   constructor <;> rintro h
   · have he := edge_mem_of_mem_toMultiset (by rw [h]; simp : x ∈ G.toMultiset e)
     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := by simpa only [toMultiset, he, ↓reduceDIte, Multiset.pair_eq_pair_iff] using h
-    · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
-    · exact (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec.symm
+    · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec
+    · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.symm
   · simp only [Graph.toMultiset, h.edge_mem, ↓reduceDIte]
-    let huv := (G.exists_inc₂_of_mem_edgeSet h.edge_mem).choose_spec.choose_spec
-    obtain ⟨h1, h2⟩ | ⟨h1, h2⟩ := huv.eq_and_eq_or_eq_and_eq_of_inc₂ h <;> simp_rw [← h1, ← h2]
+    let huv := (G.exists_isLink_of_mem_edgeSet h.edge_mem).choose_spec.choose_spec
+    obtain ⟨h1, h2⟩ | ⟨h1, h2⟩ := huv.eq_and_eq_or_eq_and_eq_of_isLink h <;> simp_rw [← h1, ← h2]
     rw [Multiset.pair_comm]
 
-alias ⟨_, Inc₂.toMultiset⟩ := toMultiset_eq_pair_iff
+alias ⟨_, IsLink.toMultiset⟩ := toMultiset_eq_pair_iff
 
 @[simp]
 lemma inc_iff_mem_toMultiset : x ∈ G.toMultiset e ↔ G.Inc e x := by
   constructor
   · rintro h
-    obtain ⟨u, v, huv⟩ := G.exists_inc₂_of_mem_edgeSet (edge_mem_of_mem_toMultiset h)
+    obtain ⟨u, v, huv⟩ := G.exists_isLink_of_mem_edgeSet (edge_mem_of_mem_toMultiset h)
     simp only [huv.toMultiset, Multiset.insert_eq_cons, Multiset.mem_cons, Multiset.mem_singleton] at h
     obtain rfl | rfl := h
     · exact huv.inc_left
@@ -450,53 +450,53 @@ end toMultiset
 section toSym2
 
 noncomputable def toSym2 (G : Graph α β) (e : β) (he : e ∈ E(G)) : Sym2 α :=
-  s(G.exists_inc₂_of_mem_edgeSet he |>.choose, G.exists_inc₂_of_mem_edgeSet he |>.choose_spec.choose)
+  s(G.exists_isLink_of_mem_edgeSet he |>.choose, G.exists_isLink_of_mem_edgeSet he |>.choose_spec.choose)
 
 @[simp]
 lemma vx_mem_of_toSym2 {he : e ∈ E(G)} (h : x ∈ G.toSym2 e he) : x ∈ V(G) := by
-  have := (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
+  have := (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec
   obtain rfl | rfl := by simpa [toSym2] using h
   · exact this.vx_mem_left
   · exact this.vx_mem_right
 
 @[simp]
-lemma toSym2_eq_pair_iff (he : e ∈ E(G)) : G.toSym2 e he = s(x, y) ↔ G.Inc₂ e x y := by
-  have := (G.exists_inc₂_of_mem_edgeSet he).choose_spec.choose_spec
+lemma toSym2_eq_pair_iff (he : e ∈ E(G)) : G.toSym2 e he = s(x, y) ↔ G.IsLink e x y := by
+  have := (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec
   constructor <;> rintro h
   · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := by simpa [toSym2] using h
     · exact this
     · exact this.symm
-  · simpa [toSym2] using this.eq_and_eq_or_eq_and_eq_of_inc₂ h
+  · simpa [toSym2] using this.eq_and_eq_or_eq_and_eq_of_isLink h
 
-lemma Inc₂.toSym2 (h : G.Inc₂ e x y) : G.toSym2 e h.edge_mem = s(x, y) := by
+lemma IsLink.toSym2 (h : G.IsLink e x y) : G.toSym2 e h.edge_mem = s(x, y) := by
   rwa [toSym2_eq_pair_iff h.edge_mem]
 
 noncomputable def func (G : Graph α β) (e : E(G)) : Sym2 V(G) :=
-  let H := G.exists_inc₂_of_mem_edgeSet e.prop
+  let H := G.exists_isLink_of_mem_edgeSet e.prop
   s(⟨H.choose, H.choose_spec.choose_spec.vx_mem_left⟩,
     ⟨H.choose_spec.choose, H.choose_spec.choose_spec.vx_mem_right⟩)
 
 @[simp] lemma func_eq_pair_iff {x y : V(G)} {e : E(G)} :
-    G.func e = s(x, y) ↔ G.Inc₂ e x y := by
-  let H := G.exists_inc₂_of_mem_edgeSet e.prop
+    G.func e = s(x, y) ↔ G.IsLink e x y := by
+  let H := G.exists_isLink_of_mem_edgeSet e.prop
   let a := H.choose
   let b := H.choose_spec.choose
   let h := H.choose_spec.choose_spec
   simp only [func]
-  change s(⟨a, h.vx_mem_left⟩, ⟨b, h.vx_mem_right⟩) = s(x, y) ↔ G.Inc₂ e x y
+  change s(⟨a, h.vx_mem_left⟩, ⟨b, h.vx_mem_right⟩) = s(x, y) ↔ G.IsLink e x y
   constructor <;> rintro hbtw
   · simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at hbtw
     obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw
     · exact H.choose_spec.choose_spec
     · exact H.choose_spec.choose_spec.symm
   · simp [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk, Subtype.ext_iff]
-    exact h.eq_and_eq_or_eq_and_eq_of_inc₂ hbtw
+    exact h.eq_and_eq_or_eq_and_eq_of_isLink hbtw
 
-lemma Inc₂.func (h : G.Inc₂ e x y) :
+lemma IsLink.func (h : G.IsLink e x y) :
     G.func ⟨e, h.edge_mem⟩ = s(⟨x, h.vx_mem_left⟩, ⟨y, h.vx_mem_right⟩) := by simpa
 
 lemma exists_func_pair (e : E(G)) : ∃ x y, G.func e = s(x, y) := by
-  let H := G.exists_inc₂_of_mem_edgeSet e.prop
+  let H := G.exists_isLink_of_mem_edgeSet e.prop
   let a := H.choose
   let b := H.choose_spec.choose
   let h := H.choose_spec.choose_spec
@@ -504,7 +504,7 @@ lemma exists_func_pair (e : E(G)) : ∃ x y, G.func e = s(x, y) := by
 
 lemma val_func_eq_toSym2 {e : β} (he : e ∈ E(G)) : (G.func ⟨e, he⟩).map Subtype.val = G.toSym2 e he := by
   rw [(G.func ⟨e, he⟩).eq_mk_out, eq_comm, Sym2.map_pair_eq, toSym2_eq_pair_iff]
-  change G.Inc₂ (⟨e, he⟩ : E(G)) _ _
+  change G.IsLink (⟨e, he⟩ : E(G)) _ _
   rw [← func_eq_pair_iff]
   exact (G.func ⟨e, he⟩).eq_mk_out
 
@@ -516,7 +516,7 @@ noncomputable def incFun (G : Graph α β) (e : β) : α →₀ ℕ := by
   classical
   exact (G.toMultiset e).toFinsupp
 
-lemma Inc₂.incFun_support_eq [DecidableEq α] (h : G.Inc₂ e x y) :
+lemma IsLink.incFun_support_eq [DecidableEq α] (h : G.IsLink e x y) :
     (G.incFun e).support = {x,y} := by
   simp only [incFun, h.toMultiset, Multiset.insert_eq_cons, Multiset.toFinsupp_support,
     Multiset.toFinset_cons, Multiset.toFinset_singleton]
@@ -531,17 +531,17 @@ lemma Inc₂.incFun_support_eq [DecidableEq α] (h : G.Inc₂ e x y) :
 --   split_ifs <;> simpa
 
 lemma incFun_eq_zero_of_not_mem (he : e ∉ E(G)) : G.incFun e = 0 := by
-  simp [DFunLike.ext_iff, incFun, inc_iff_exists_inc₂, not_inc₂_of_not_mem_edgeSet he]
+  simp [DFunLike.ext_iff, incFun, inc_iff_exists_isLink, not_isLink_of_not_mem_edgeSet he]
 
 lemma incFun_le_two (G : Graph α β) (e : β) (x : α) : G.incFun e x ≤ 2 := by
   classical
   obtain ⟨y, hy⟩ | hx := em <| G.Inc e x
   · rw [incFun, Multiset.toFinsupp_apply, ← toMultiset_card_eq_two_iff.mpr (hy.edge_mem)]
     exact Multiset.count_le_card x _
-  simp [incFun, inc₂_iff_inc, hx]
+  simp [incFun, isLink_iff_inc, hx]
 
 lemma IsNonloopAt.IncFun_eq_one (h : G.IsNonloopAt e x) : G.incFun e x = 1 := by
-  obtain ⟨y, hne, hxy⟩ := h.exists_inc₂_ne
+  obtain ⟨y, hne, hxy⟩ := h.exists_isLink_ne
   rw [← toMultiset_eq_pair_iff] at hxy
   simp [incFun, hxy, hne.symm]
 
@@ -549,7 +549,7 @@ lemma IsNonloopAt.IncFun_eq_one (h : G.IsNonloopAt e x) : G.incFun e x = 1 := by
 lemma incFun_eq_one_iff : G.incFun e x = 1 ↔ G.IsNonloopAt e x := by
   obtain (⟨y, hxy⟩ | hex) := em <| G.Inc e x
   · simp [hxy.isNonloopAt_iff_ne, incFun, toMultiset_eq_pair_iff.mpr hxy]
-  simp [incFun, mt Inc₂.inc_left hex, mt IsNonloopAt.inc hex]
+  simp [incFun, mt IsLink.inc_left hex, mt IsNonloopAt.inc hex]
   rw [← inc_iff_mem_toMultiset] at hex
   simp_all
 
@@ -562,9 +562,9 @@ lemma incFun_eq_two_iff : G.incFun e x = 2 ↔ G.IsLoopAt e x := by
   · simp only [incFun, toMultiset_eq_pair_iff.mpr hxy, Multiset.insert_eq_cons,
     Multiset.toFinsupp_apply, Multiset.count_cons_self, Multiset.nodup_singleton,
     Multiset.count_singleton, Nat.reduceEqDiff, ite_eq_left_iff, zero_ne_one, imp_false, not_not, ←
-    inc₂_self_iff, hxy.inc₂_iff_eq_right]
+    isLink_self_iff, hxy.isLink_iff_eq_right]
     exact eq_comm
-  simp [incFun, mt Inc₂.inc_left hex, hex, mt IsLoopAt.inc hex]
+  simp [incFun, mt IsLink.inc_left hex, hex, mt IsLoopAt.inc hex]
 
 lemma IsLoopAt.incFun_eq_two (h : G.IsLoopAt e x) : G.incFun e x = 2 :=
   incFun_eq_two_iff.2 h
@@ -572,7 +572,7 @@ lemma IsLoopAt.incFun_eq_two (h : G.IsLoopAt e x) : G.incFun e x = 2 :=
 @[simp]
 lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ E(G) := by
   refine ⟨fun h he ↦ ?_, incFun_eq_zero_of_not_mem⟩
-  obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
   obtain hx | hx := hxy.inc_left.isLoopAt_or_isNonloopAt
   · have := h ▸ hx.incFun_eq_two
     simp at this
@@ -581,9 +581,9 @@ lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ E(G) := by
 
 lemma sum_incFun_eq_two (he : e ∈ E(G)) : (G.incFun e).sum (fun _ x ↦ x) = 2 := by
   classical
-  obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
   obtain rfl | hne := eq_or_ne x y
-  · simp [Finsupp.sum, hxy.incFun_support_eq, hxy.inc₂_iff_eq, show G.IsLoopAt e x from hxy]
+  · simp [Finsupp.sum, hxy.incFun_support_eq, hxy.isLink_iff_eq, show G.IsLoopAt e x from hxy]
   simp [Finsupp.sum, hxy.incFun_support_eq, Finset.sum_pair hne,
     (hxy.isNonloopAt_of_ne hne).incFun_eq_one, (hxy.isNonloopAt_right_of_ne hne).incFun_eq_one]
 
@@ -616,72 +616,72 @@ end incFun
 /-- A constructor for `Graph` in which the edge set is inferred from the incidence predicate
 rather than supplied explicitly. -/
 @[simps]
-protected def mk' (V : Set α) (Inc₂ : β → α → α → Prop)
-    (inc₂_symm : ∀ ⦃e x y⦄, Inc₂ e x y → Inc₂ e y x)
-    (eq_or_eq_of_inc₂_of_inc₂ : ∀ ⦃e x y v w⦄, Inc₂ e x y → Inc₂ e v w → x = v ∨ x = w)
-    (vx_mem_left_of_inc₂ : ∀ ⦃e x y⦄, Inc₂ e x y → x ∈ V) : Graph α β where
+protected def mk' (V : Set α) (IsLink : β → α → α → Prop)
+    (isLink_symm : ∀ ⦃e x y⦄, IsLink e x y → IsLink e y x)
+    (eq_or_eq_of_isLink_of_isLink : ∀ ⦃e x y v w⦄, IsLink e x y → IsLink e v w → x = v ∨ x = w)
+    (vx_mem_left_of_isLink : ∀ ⦃e x y⦄, IsLink e x y → x ∈ V) : Graph α β where
   vertexSet := V
-  edgeSet := {e | ∃ x y, Inc₂ e x y}
-  Inc₂ := Inc₂
-  inc₂_symm := inc₂_symm
-  eq_or_eq_of_inc₂_of_inc₂ := eq_or_eq_of_inc₂_of_inc₂
-  edge_mem_iff_exists_inc₂ _ := Iff.rfl
-  vx_mem_left_of_inc₂ := vx_mem_left_of_inc₂
+  edgeSet := {e | ∃ x y, IsLink e x y}
+  IsLink := IsLink
+  isLink_symm := isLink_symm
+  eq_or_eq_of_isLink_of_isLink := eq_or_eq_of_isLink_of_isLink
+  edge_mem_iff_exists_isLink _ := Iff.rfl
+  vx_mem_left_of_isLink := vx_mem_left_of_isLink
 
 @[simp]
-lemma mk'_eq_self (G : Graph α β) : Graph.mk' V(G) G.Inc₂ (fun _ _ _ ↦ Inc₂.symm)
-  (fun _ _ _ _ _ h h' ↦ h.left_eq_or_eq_of_inc₂ h') (fun _ _ _ ↦ Inc₂.vx_mem_left) = G := by
-  have h := G.edgeSet_eq_setOf_exists_inc₂
-  cases G with | mk V E Inc₂ _ _ _ => simpa [Graph.mk'] using h.symm
+lemma mk'_eq_self (G : Graph α β) : Graph.mk' V(G) G.IsLink (fun _ _ _ ↦ IsLink.symm)
+  (fun _ _ _ _ _ h h' ↦ h.left_eq_or_eq_of_isLink h') (fun _ _ _ ↦ IsLink.vx_mem_left) = G := by
+  have h := G.edgeSet_eq_setOf_exists_isLink
+  cases G with | mk V E IsLink _ _ _ => simpa [Graph.mk'] using h.symm
 
-lemma inc_eq_inc_iff {G₁ G₂ : Graph α β} : G₁.Inc e = G₂.Inc f ↔ G₁.Inc₂ e = G₂.Inc₂ f := by
+lemma inc_eq_inc_iff {G₁ G₂ : Graph α β} : G₁.Inc e = G₂.Inc f ↔ G₁.IsLink e = G₂.IsLink f := by
   constructor <;> rintro h
   · ext x y
-    rw [inc₂_iff_inc, inc₂_iff_inc, h]
-  · simp [funext_iff, inc_iff_exists_inc₂, eq_iff_iff, h]
+    rw [isLink_iff_inc, isLink_iff_inc, h]
+  · simp [funext_iff, inc_iff_exists_isLink, eq_iff_iff, h]
 
 lemma inc_iff_inc_iff {G₁ G₂ : Graph α β} :
-    (∀ x, G₁.Inc e x ↔ G₂.Inc f x) ↔ (∀ x y, G₁.Inc₂ e x y ↔ G₂.Inc₂ f x y) := by
+    (∀ x, G₁.Inc e x ↔ G₂.Inc f x) ↔ (∀ x y, G₁.IsLink e x y ↔ G₂.IsLink f x y) := by
   convert inc_eq_inc_iff (G₁ := G₁) (G₂ := G₂) (e := e) (f := f) using 1 <;>
   simp_rw [funext_iff, eq_iff_iff]
 
 lemma toMultiset_eq_toMultiset_iff {G' : Graph α β} :
-    G.toMultiset e = G'.toMultiset f ↔ G.Inc₂ e = G'.Inc₂ f := by
+    G.toMultiset e = G'.toMultiset f ↔ G.IsLink e = G'.IsLink f := by
   constructor <;> rintro h
   · ext x y
     rw [← toMultiset_eq_pair_iff, h, toMultiset_eq_pair_iff]
   · by_cases he : e ∈ E(G)
-    · obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
-      rw [hxy.toMultiset, Inc₂.toMultiset (h ▸ hxy)]
+    · obtain ⟨x, y, hxy⟩ := G.exists_isLink_of_mem_edgeSet he
+      rw [hxy.toMultiset, IsLink.toMultiset (h ▸ hxy)]
     · have : f ∉ E(G') := fun h' ↦ by
-        obtain ⟨x, y, hxy⟩ := G'.exists_inc₂_of_mem_edgeSet h'
+        obtain ⟨x, y, hxy⟩ := G'.exists_isLink_of_mem_edgeSet h'
         exact he (h ▸ hxy).edge_mem |>.elim
       simp [he, this]
 
 lemma toMultiset_eq_toMultiset_iff' {G' : Graph α β} :
-    G.toMultiset e = G'.toMultiset f ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ f x y) := by
+    G.toMultiset e = G'.toMultiset f ↔ (∀ x y, G.IsLink e x y ↔ G'.IsLink f x y) := by
   convert toMultiset_eq_toMultiset_iff (G := G) (G' := G') using 1
   simp_rw [funext_iff, eq_iff_iff]
 
 lemma toSym2_eq_toSym2_iff {G' : Graph α β} (he : e ∈ E(G)) (hf : f ∈ E(G')) :
-    G.toSym2 e he = G'.toSym2 f hf ↔ G.Inc₂ e = G'.Inc₂ f := by
-  obtain ⟨x, y, hxy⟩ := G.exists_inc₂_of_mem_edgeSet he
-  obtain ⟨x', y', hx'y'⟩ := G'.exists_inc₂_of_mem_edgeSet hf
-  rw [hxy.toSym2, Inc₂.toSym2 hx'y']
+    G.toSym2 e he = G'.toSym2 f hf ↔ G.IsLink e = G'.IsLink f := by
+  obtain ⟨x, y, hxy⟩ := G.exists_isLink_of_mem_edgeSet he
+  obtain ⟨x', y', hx'y'⟩ := G'.exists_isLink_of_mem_edgeSet hf
+  rw [hxy.toSym2, IsLink.toSym2 hx'y']
   constructor <;> rintro h
   · ext u v
-    rw [hxy.inc₂_iff_sym2_eq, h, hx'y'.inc₂_iff_sym2_eq]
-  · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_and_eq_or_eq_and_eq_of_inc₂ hx'y' <;> simp
+    rw [hxy.isLink_iff_sym2_eq, h, hx'y'.isLink_iff_sym2_eq]
+  · obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := (h ▸ hxy).eq_and_eq_or_eq_and_eq_of_isLink hx'y' <;> simp
 
 lemma toSym2_eq_toSym2_iff' {G' : Graph α β} (he : e ∈ E(G)) (hf : f ∈ E(G')) :
-    G.toSym2 e he = G'.toSym2 f hf ↔ (∀ x y, G.Inc₂ e x y ↔ G'.Inc₂ f x y) := by
+    G.toSym2 e he = G'.toSym2 f hf ↔ (∀ x y, G.IsLink e x y ↔ G'.IsLink f x y) := by
   convert toSym2_eq_toSym2_iff (he := he) (hf := hf) using 1
   simp_rw [funext_iff, eq_iff_iff]
 
 /-- Two graphs with the same vertex set and binary incidences are equal. -/
 @[ext]
 protected lemma ext {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂))
-    (h : ∀ e x y, G₁.Inc₂ e x y ↔ G₂.Inc₂ e x y) : G₁ = G₂ := by
+    (h : ∀ e x y, G₁.IsLink e x y ↔ G₂.IsLink e x y) : G₁ = G₂ := by
   rw [← G₁.mk'_eq_self, ← G₂.mk'_eq_self]
   simp_rw [hV]
   convert rfl using 2
@@ -691,7 +691,7 @@ protected lemma ext {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂))
 /-- Two graphs with the same vertex set and unary incidences are equal. -/
 lemma ext_inc {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (h : ∀ e x, G₁.Inc e x ↔ G₂.Inc e x) :
     G₁ = G₂ :=
-  Graph.ext hV fun _ _ _ ↦ by simp_rw [inc₂_iff_inc, h]
+  Graph.ext hV fun _ _ _ ↦ by simp_rw [isLink_iff_inc, h]
 
 /-- Two graphs with the same vertex set and Multiset of edges are equal. -/
 lemma ext_toMultiset {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (h : ∀ e, G₁.toMultiset e = G₂.toMultiset e) :
@@ -709,27 +709,27 @@ lemma ext_toSym2 {G₁ G₂ : Graph α β} (hV : V(G₁) = V(G₂)) (hE : E(G₁
 
 -- TODO: write a docstring
 @[simps]
-def copy (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → α → α → Prop} (hV : V(G) = V)
-    (hE : E(G) = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) : Graph α β where
+def copy (G : Graph α β) {V : Set α} {E : Set β} {IsLink : β → α → α → Prop} (hV : V(G) = V)
+    (hE : E(G) = E) (h_isLink : ∀ e x y, G.IsLink e x y ↔ IsLink e x y) : Graph α β where
   vertexSet := V
   edgeSet := E
-  Inc₂ := Inc₂
-  inc₂_symm := by
-    simp_rw [← h_inc₂]
-    exact G.inc₂_symm
-  eq_or_eq_of_inc₂_of_inc₂ := by
-    simp_rw [← h_inc₂]
-    exact G.eq_or_eq_of_inc₂_of_inc₂
-  edge_mem_iff_exists_inc₂ := by
-    simp_rw [← h_inc₂, ← hE]
-    exact G.edge_mem_iff_exists_inc₂
-  vx_mem_left_of_inc₂ := by
-    simp_rw [← h_inc₂, ← hV]
-    exact G.vx_mem_left_of_inc₂
+  IsLink := IsLink
+  isLink_symm := by
+    simp_rw [← h_isLink]
+    exact G.isLink_symm
+  eq_or_eq_of_isLink_of_isLink := by
+    simp_rw [← h_isLink]
+    exact G.eq_or_eq_of_isLink_of_isLink
+  edge_mem_iff_exists_isLink := by
+    simp_rw [← h_isLink, ← hE]
+    exact G.edge_mem_iff_exists_isLink
+  vx_mem_left_of_isLink := by
+    simp_rw [← h_isLink, ← hV]
+    exact G.vx_mem_left_of_isLink
 
-lemma copy_eq_self (G : Graph α β) {V : Set α} {E : Set β} {Inc₂ : β → α → α → Prop}
-    (hV : V(G) = V) (hE : E(G) = E) (h_inc₂ : ∀ e x y, G.Inc₂ e x y ↔ Inc₂ e x y) :
-    G.copy hV hE h_inc₂ = G := by
+lemma copy_eq_self (G : Graph α β) {V : Set α} {E : Set β} {IsLink : β → α → α → Prop}
+    (hV : V(G) = V) (hE : E(G) = E) (h_isLink : ∀ e x y, G.IsLink e x y ↔ IsLink e x y) :
+    G.copy hV hE h_isLink = G := by
   ext <;> simp_all
 
 
@@ -860,10 +860,10 @@ lemma not_adj_right (hisol : G.Isolated u) : ¬ G.Adj v u := by
   rw [adj_comm]
   exact hisol.not_adj_left
 
-lemma not_inc₂_left (hisol : G.Isolated u) : ¬ G.Inc₂ e u v :=
+lemma not_isLink_left (hisol : G.Isolated u) : ¬ G.IsLink e u v :=
   (hisol e ·.inc_left)
 
-lemma not_inc₂_right (hisol : G.Isolated u) : ¬ G.Inc₂ e v u :=
+lemma not_isLink_right (hisol : G.Isolated u) : ¬ G.IsLink e v u :=
   (hisol e ·.inc_right)
 
 end Isolated

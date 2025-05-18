@@ -34,7 +34,7 @@ lemma one_colorable_iff : G.Colorable 1 ↔ G = Graph.noEdge V(G) β := by
   refine ⟨fun ⟨f, hf⟩ ↦ ?_, ?_⟩
   · rw [← edgeSet_empty_iff_eq_noEdge]
     by_contra! hE
-    obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet hE.some_mem
+    obtain ⟨u, v, huv⟩ := exists_isLink_of_mem_edgeSet hE.some_mem
     have hu := hf.uptoN huv.vx_mem_left
     have hv := hf.uptoN huv.vx_mem_right
     simp at hu hv
@@ -96,7 +96,7 @@ lemma color_ne_zero (G : Graph α β) [G.Bipartite] : G.color u ≠ 0 ↔ G.colo
 lemma color_ne_one (G : Graph α β) [G.Bipartite] : G.color u ≠ 1 ↔ G.color u = 0 :=
   G.color_ne_zero.not_right.symm
 
-lemma Inc₂.color_eq_zero (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.Inc₂ e u v) :
+lemma IsLink.color_eq_zero (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.IsLink e u v) :
     G.color u = 0 ↔ G.color v = 1 := by
   constructor <;> rintro h
   · have := h ▸ G.proper ⟨e, huv.symm⟩
@@ -104,22 +104,22 @@ lemma Inc₂.color_eq_zero (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.I
   · have := h ▸ G.proper ⟨e, huv⟩
     simpa using this
 
-lemma Inc₂.color_eq_one (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.Inc₂ e u v) :
+lemma IsLink.color_eq_one (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.IsLink e u v) :
     G.color u = 1 ↔ G.color v = 0 := (color_eq_zero G huv.symm).symm
 
-lemma Inc₂.color_ne_zero (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.Inc₂ e u v) :
+lemma IsLink.color_ne_zero (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.IsLink e u v) :
     G.color u ≠ 0 ↔ G.color v = 0 := by
   simp only [ne_eq, Graph.color_ne_zero]
   exact color_eq_one G huv
 
-lemma Inc₂.color_ne_one (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.Inc₂ e u v) :
+lemma IsLink.color_ne_one (G : Graph α β) [G.Bipartite] {u v : α} (huv : G.IsLink e u v) :
     G.color u ≠ 1 ↔ G.color v = 1 := by
   simp only [ne_eq, Graph.color_ne_one]
   exact color_eq_zero G huv
 
 lemma exists_ends (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
-    ∃ u v, u ≠ v ∧ G.Inc₂ e u v ∧ G.color u = 0 ∧ G.color v = 1 := by
-  obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet he
+    ∃ u v, u ≠ v ∧ G.IsLink e u v ∧ G.color u = 0 ∧ G.color v = 1 := by
+  obtain ⟨u, v, huv⟩ := exists_isLink_of_mem_edgeSet he
   wlog hu0 : G.color u = 0 generalizing u v
   · apply this v u huv.symm
     rwa [← ne_eq, huv.color_ne_zero] at hu0
@@ -134,8 +134,8 @@ noncomputable def oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) : α :
 lemma zeroVx_ne_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.zeroVx he ≠ G.oneVx he := (G.exists_ends he).choose_spec.choose_spec.left
 
-lemma inc₂_zeroVx_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
-    G.Inc₂ e (G.zeroVx he) (G.oneVx he) := (G.exists_ends he).choose_spec.choose_spec.right.left
+lemma isLink_zeroVx_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
+    G.IsLink e (G.zeroVx he) (G.oneVx he) := (G.exists_ends he).choose_spec.choose_spec.right.left
 
 @[simp]
 lemma zeroVx_color_zero (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
@@ -146,7 +146,7 @@ lemma oneVx_color_one (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.color (G.oneVx he) = 1 := (G.exists_ends he).choose_spec.choose_spec.right.right.right
 
 lemma zeroVx_mem (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
-    G.zeroVx he ∈ V(G) := (G.inc₂_zeroVx_oneVx he).vx_mem_left
+    G.zeroVx he ∈ V(G) := (G.isLink_zeroVx_oneVx he).vx_mem_left
 
 lemma oneVx_mem (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
-    G.oneVx he ∈ V(G) := (G.inc₂_zeroVx_oneVx he).vx_mem_right
+    G.oneVx he ∈ V(G) := (G.isLink_zeroVx_oneVx he).vx_mem_right

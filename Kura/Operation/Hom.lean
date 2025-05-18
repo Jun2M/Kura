@@ -95,31 +95,31 @@ lemma eq_noEdge_of_Funs (F : Funs G G') : G' = Graph.noEdge V(G') _ → G = Grap
 
 
 structure Hom (G : Graph α β) (G' : Graph α' β') extends Funs G G' where
-  inc₂ ⦃e : E(G)⦄ ⦃x y : V(G)⦄ : G.Inc₂ e x y → G'.Inc₂ (edgeFun e) (toFun x) (toFun y)
+  isLink ⦃e : E(G)⦄ ⦃x y : V(G)⦄ : G.IsLink e x y → G'.IsLink (edgeFun e) (toFun x) (toFun y)
 
   -- inc ⦃e : E(G)⦄ ⦃a : V(G)⦄ : G.Inc e a → G'.Inc (edgeFun e) (toFun a) := fun hinc ↦
-    -- (inc₂ (inc_iff_exists_inc₂.mp hinc).choose_spec).inc_left
+    -- (isLink (inc_iff_exists_isLink.mp hinc).choose_spec).inc_left
   -- toMultiset ⦃e : E(G)⦄ : (G.toMultiset e).map toFun = G'.toMultiset (edgeFun e) := by
   --   obtain ⟨a, b, hbtw⟩ := exists_inc_of_mem_edgeSet he
-  --   rw [toMultiset_eq_pair_iff.mpr hbtw, toMultiset_eq_pair_iff.mpr (f.inc₂ hbtw)]
+  --   rw [toMultiset_eq_pair_iff.mpr hbtw, toMultiset_eq_pair_iff.mpr (f.isLink hbtw)]
   --   rfl
   func ⦃e : _⦄ : (G.func e).map toFun = G'.func (edgeFun e) :=
     let h := exists_func_pair e |>.choose_spec.choose_spec
-    ((congrArg _ h).trans (Sym2.map_pair_eq toFun _ _)).trans (func_eq_pair_iff.mpr (inc₂ <| func_eq_pair_iff.mp h)).symm
+    ((congrArg _ h).trans (Sym2.map_pair_eq toFun _ _)).trans (func_eq_pair_iff.mpr (isLink <| func_eq_pair_iff.mp h)).symm
 
 @[simps!]
 def Hom.id : Hom G G where
   toFuns := Funs.id
-  inc₂ _ _ _ hbtw := hbtw
+  isLink _ _ _ hbtw := hbtw
 
 @[simps!]
 def Hom.comp {G' : Graph α' β'} (f : Hom G G') (g : Hom G' G'') : Hom G G'' where
   toFuns := Funs.comp f.toFuns g.toFuns
-  inc₂ _ _ _ hbtw := g.inc₂ (f.inc₂ hbtw)
+  isLink _ _ _ hbtw := g.isLink (f.isLink hbtw)
 
 def Hom.of_le (hle : G ≤ H) : Hom G H where
   toFuns := Funs.of_le hle
-  inc₂ _ _ _ hbtw := hbtw.of_le hle
+  isLink _ _ _ hbtw := hbtw.of_le hle
 
 def HasHom (G₁ : Graph α β) (G₂ : Graph α' β') : Prop := Nonempty (Hom G₁ G₂)
 
@@ -139,7 +139,7 @@ lemma hasHom_map {f : α → α'} {g : β → β'} (h : ∀ (e₁) (he₁ : e₁
     (hmap : G.map f g h ≤ G') : G →ᴳ G' := ⟨{
       toFun v := ⟨f v, vertexSet_subset_of_le hmap (mem_vertexSet_map v.prop)⟩
       edgeFun e := ⟨g e, edgeSet_subset_of_le hmap (mem_edgeSet_map e.prop)⟩
-      inc₂ _ _ _ hbtw := hbtw.map.of_le hmap}⟩
+      isLink _ _ _ hbtw := hbtw.map.of_le hmap}⟩
 
 lemma hasHom_iff_le_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β')] : G →ᴳ G' ↔
     ∃ (f : α → α') (g : β → β') (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂) (he₂ : e₂ ∈ E(G)), g e₁ = g e₂ →
@@ -148,8 +148,8 @@ lemma hasHom_iff_le_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β
   use Function.extend Subtype.val (Subtype.val ∘ F.toFun) (Classical.arbitrary (α → α')),
     Function.extend Subtype.val (Subtype.val ∘ F.edgeFun) (Classical.arbitrary (β → β')), ?_, ?_, ?_
   · rintro e₁ he₁ e₂ he₂ h
-    obtain ⟨x₁, y₁, hxy₁⟩ := exists_inc₂_of_mem_edgeSet he₁
-    obtain ⟨x₂, y₂, hxy₂⟩ := exists_inc₂_of_mem_edgeSet he₂
+    obtain ⟨x₁, y₁, hxy₁⟩ := exists_isLink_of_mem_edgeSet he₁
+    obtain ⟨x₂, y₂, hxy₂⟩ := exists_isLink_of_mem_edgeSet he₂
     rw [Subtype.val_injective.extend_apply _ _ ⟨e₁, he₁⟩, Subtype.val_injective.extend_apply _ _ ⟨e₂, he₂⟩] at h
     rw [(toSym2_eq_pair_iff he₁).mpr hxy₁, (toSym2_eq_pair_iff he₂).mpr hxy₂, Sym2.map_pair_eq,
       Sym2.map_pair_eq, Subtype.val_injective.extend_apply _ _ ⟨x₁, hxy₁.vx_mem_left⟩,
@@ -157,9 +157,9 @@ lemma hasHom_iff_le_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β
       Subtype.val_injective.extend_apply _ _ ⟨x₂, hxy₂.vx_mem_left⟩,
       Subtype.val_injective.extend_apply _ _ ⟨y₂, hxy₂.vx_mem_right⟩]
     simp only [comp_apply, Subtype.val_inj] at h ⊢
-    have hbtw₁ : G.Inc₂ (⟨e₁, he₁⟩ : E(G)) (⟨x₁, hxy₁.vx_mem_left⟩ : V(G)) (⟨y₁, hxy₁.vx_mem_right⟩ : V(G)) := hxy₁
-    have hbtw₂ : G.Inc₂ (⟨e₂, he₂⟩ : E(G)) (⟨x₂, hxy₂.vx_mem_left⟩ : V(G)) (⟨y₂, hxy₂.vx_mem_right⟩ : V(G)) := hxy₂
-    rw [← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₁, ← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₂]
+    have hbtw₁ : G.IsLink (⟨e₁, he₁⟩ : E(G)) (⟨x₁, hxy₁.vx_mem_left⟩ : V(G)) (⟨y₁, hxy₁.vx_mem_right⟩ : V(G)) := hxy₁
+    have hbtw₂ : G.IsLink (⟨e₂, he₂⟩ : E(G)) (⟨x₂, hxy₂.vx_mem_left⟩ : V(G)) (⟨y₂, hxy₂.vx_mem_right⟩ : V(G)) := hxy₂
+    rw [← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.isLink hbtw₁, ← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.isLink hbtw₂]
     simp_rw [h]
   · rintro x hx
     simp only [map_vertexSet, mem_image] at hx
@@ -167,13 +167,13 @@ lemma hasHom_iff_le_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β
     rw [Subtype.val_injective.extend_apply _ _ ⟨y, hy⟩]
     simp only [comp_apply, Subtype.coe_prop]
   · rintro e x y hxy
-    simp only [map_inc₂] at hxy
+    simp only [map_isLink] at hxy
     obtain ⟨e, rfl, x, rfl, y, rfl, hxy⟩ := hxy
     rw [Subtype.val_injective.extend_apply _ _ ⟨e, hxy.edge_mem⟩,
       Subtype.val_injective.extend_apply _ _ ⟨x, hxy.vx_mem_left⟩,
       Subtype.val_injective.extend_apply _ _ ⟨y, hxy.vx_mem_right⟩]
     simp only [comp_apply]
-    exact F.inc₂ hxy
+    exact F.isLink hxy
 
 
 
@@ -219,18 +219,18 @@ lemma hasHom_iff_le_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → β
 --     exact h.inc hinc
 --   · rintro hinc
 --     obtain ⟨b, hb, rfl⟩ := he
---     obtain ⟨a, a', hinc₂⟩ := exists_inc_of_mem_edgeSet hb
---     obtain (rfl | rfl) := (h.inc₂ hinc₂).eq_or_eq_of_inc hinc
+--     obtain ⟨a, a', hisLink⟩ := exists_inc_of_mem_edgeSet hb
+--     obtain (rfl | rfl) := (h.isLink hisLink).eq_or_eq_of_inc hinc
 --     · use b, rfl, a, rfl
---       exact hinc₂.inc_left
+--       exact hisLink.inc_left
 --     · use b, rfl, a', rfl
---       exact hinc₂.inc_right
+--       exact hisLink.inc_right
 
 -- lemma HomSys.image_isIsomOn (h : f.IsEmbOn G G₂) : f.IsIsomOn G (f.image h.toIsHomOn) where
 --   Mapsto_vx v hv := by use v
---   inc₂ e v w hbtw := by
---     rw [← inc₂_iff_inc₂_of_le_of_mem (HomSys.image_le h.toIsHomOn)]
---     exact h.inc₂ hbtw
+--   isLink e v w hbtw := by
+--     rw [← isLink_iff_isLink_of_le_of_mem (HomSys.image_le h.toIsHomOn)]
+--     exact h.isLink hbtw
 --     · simp only [image_E, mem_image]
 --       use e, hbtw.edge_mem
 --   bijOn_vx := ⟨fun u hu ↦ (by use u), fun u hu v hv heq ↦ h.injOn_vx hu hv heq, fun _ h ↦ h⟩
@@ -276,7 +276,7 @@ lemma HasEmb.of_le (hle : G ≤ G₁) : G ↪ᴳ G₁ := by
   exact ⟨{
     toFun v := ⟨v, vertexSet_subset_of_le hle v.prop⟩
     edgeFun e := ⟨e, edgeSet_subset_of_le hle e.prop⟩
-    inc₂ e x y hbtw := hbtw.of_le hle
+    isLink e x y hbtw := hbtw.of_le hle
     inj_vx x y h := by
       simp only [Subtype.mk.injEq] at h
       exact SetCoe.ext h
@@ -288,7 +288,7 @@ lemma HasEmb.of_le (hle : G ≤ G₁) : G ↪ᴳ G₁ := by
 lemma HasEmb.bot : (⊥ : Graph α β) ↪ᴳ G' := ⟨{
     toFun v := IsEmpty.elim (α := (∅ : Set α).Elem) inferInstance v
     edgeFun e := IsEmpty.elim (α := (∅ : Set β).Elem) inferInstance e
-    inc₂ e := IsEmpty.elim (α := (∅ : Set β).Elem) inferInstance e
+    isLink e := IsEmpty.elim (α := (∅ : Set β).Elem) inferInstance e
     inj_vx v := IsEmpty.elim (α := (∅ : Set α).Elem) inferInstance v
     inj_edge e := IsEmpty.elim (α := (∅ : Set β).Elem) inferInstance e
   }⟩
@@ -311,22 +311,22 @@ structure Isom (G₁ : Graph α β) (G₂ : Graph α' β') extends Hom G₁ G₂
   edge_right_inv : RightInverse edgeInvFun edgeFun
   edge_left_inv : LeftInverse edgeInvFun edgeFun
 
-lemma Isom.inc₂_iff (f : Isom G G') {e : E(G)} {x y : V(G)} :
-    G.Inc₂ e x y ↔ G'.Inc₂ (f.edgeFun e) (f.toFun x) (f.toFun y) := by
-  refine ⟨(f.inc₂ ·), fun h ↦ ?_⟩
-  obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet e.prop
-  have huv' : G.Inc₂ e (⟨u, huv.vx_mem_left⟩ : V(G)) (⟨v, huv.vx_mem_right⟩ : V(G)) := huv
-  obtain ⟨hu, hv⟩ | ⟨hu, hv⟩ := (f.inc₂ huv').eq_and_eq_or_eq_and_eq_of_inc₂ h <;>
+lemma Isom.isLink_iff (f : Isom G G') {e : E(G)} {x y : V(G)} :
+    G.IsLink e x y ↔ G'.IsLink (f.edgeFun e) (f.toFun x) (f.toFun y) := by
+  refine ⟨(f.isLink ·), fun h ↦ ?_⟩
+  obtain ⟨u, v, huv⟩ := exists_isLink_of_mem_edgeSet e.prop
+  have huv' : G.IsLink e (⟨u, huv.vx_mem_left⟩ : V(G)) (⟨v, huv.vx_mem_right⟩ : V(G)) := huv
+  obtain ⟨hu, hv⟩ | ⟨hu, hv⟩ := (f.isLink huv').eq_and_eq_or_eq_and_eq_of_isLink h <;>
   rw [← Subtype.eq_iff, f.vx_left_inv.injective.eq_iff] at hu hv <;>
   subst x y
   · exact huv
   · exact huv.symm
 
-alias ⟨Inc₂.isIsomOn, _⟩ := Isom.inc₂_iff
+alias ⟨IsLink.isIsomOn, _⟩ := Isom.isLink_iff
 
-lemma Isom.inc₂_iff' (F : Isom G G') {e : E(G')} {x y : V(G')} :
-    G'.Inc₂ e x y ↔ G.Inc₂ (F.edgeInvFun e) (F.invFun x) (F.invFun y) := by
-  conv_lhs => rw [← F.edge_right_inv e, ← F.vx_right_inv x, ← F.vx_right_inv y, ← F.inc₂_iff]
+lemma Isom.isLink_iff' (F : Isom G G') {e : E(G')} {x y : V(G')} :
+    G'.IsLink e x y ↔ G.IsLink (F.edgeInvFun e) (F.invFun x) (F.invFun y) := by
+  conv_lhs => rw [← F.edge_right_inv e, ← F.vx_right_inv x, ← F.vx_right_inv y, ← F.isLink_iff]
 
 lemma Isom.inj_vx (f : Isom G G') : Injective f.toFun := f.vx_left_inv.injective
 lemma Isom.surj_vx (f : Isom G G') : Surjective f.toFun := f.vx_right_inv.surjective
@@ -356,7 +356,7 @@ lemma Isom.bij_inv_edge (f : Isom G G') : Bijective f.edgeInvFun := by
 def Isom.toInvHom (f : Isom G G') : Hom G' G where
   toFun := f.invFun
   edgeFun := f.edgeInvFun
-  inc₂ _ _ _ hbtw := f.inc₂_iff'.mp hbtw
+  isLink _ _ _ hbtw := f.isLink_iff'.mp hbtw
 
 def Isom.toEmb (f : Isom G G') : Emb G G' where
   toHom := f.toHom
@@ -420,7 +420,7 @@ noncomputable def Isom.ofEmbCard [Finite V(G')] [Finite E(G')] (f : Emb G G')
     (Function.Injective.bijective_of_nat_card_le f.inj_edge hedgeCard).surjective
 
 def Isom.ofEquiv (f : V(G) ≃ V(G')) (g : E(G) ≃ E(G'))
-    (hinc₂ : ∀ (e : E(G)) (x y : V(G)), G.Inc₂ e x y → G'.Inc₂ (g e) (f x) (f y)) : Isom G G' where
+    (hisLink : ∀ (e : E(G)) (x y : V(G)), G.IsLink e x y → G'.IsLink (g e) (f x) (f y)) : Isom G G' where
   toFun := f.toFun
   edgeFun := g.toFun
   invFun := f.invFun
@@ -429,7 +429,7 @@ def Isom.ofEquiv (f : V(G) ≃ V(G')) (g : E(G) ≃ E(G'))
   edgeInvFun := g.invFun
   edge_right_inv := g.right_inv
   edge_left_inv := g.left_inv
-  inc₂ := hinc₂
+  isLink := hisLink
 
 @[simps!]
 def Isom.id : Isom G G where
@@ -451,11 +451,11 @@ def Isom.symm (f : Isom G G') : Isom G' G where
   vx_left_inv := f.vx_right_inv
   edge_right_inv := f.edge_left_inv
   edge_left_inv := f.edge_right_inv
-  inc₂ e x y hbtw := by
+  isLink e x y hbtw := by
     obtain ⟨e', rfl⟩ := f.edge_right_inv.surjective e
     obtain ⟨x', rfl⟩ := f.vx_right_inv.surjective x
     obtain ⟨y', rfl⟩ := f.vx_right_inv.surjective y
-    rwa [f.edge_left_inv e', f.vx_left_inv x', f.vx_left_inv y', f.inc₂_iff]
+    rwa [f.edge_left_inv e', f.vx_left_inv x', f.vx_left_inv y', f.isLink_iff]
 
 @[simps!]
 def Isom.comp {G' : Graph α' β'} (f : Isom G G') (g : Isom G' G'') : Isom G G'' where
@@ -487,8 +487,8 @@ noncomputable def vxMap_inj_isom (f : α → α') (hinj : InjOn f V(G)) : Isom G
     rw [Subtype.ext_iff]
   edge_left_inv e := by
     rw [Subtype.ext_iff]
-  inc₂ e x y hbtw := by
-    rw [vxMap_inc₂]
+  isLink e x y hbtw := by
+    rw [vxMap_isLink]
     exact ⟨x, rfl, y, rfl, hbtw⟩
 
 def edgeMap_isom (f : β → β') (hf : InjOn f E(G)) : Isom G (G.edgeMap f hf) := sorry
@@ -578,7 +578,7 @@ noncomputable def isom_map {f : α → α'} {g : β → β'} (h : ∀ (e₁) (he
   exact {
     toFun := fᵥ
     edgeFun := fₑ
-    inc₂ _ _ _ hbtw := hbtw.map.of_le le_rfl
+    isLink _ _ _ hbtw := hbtw.map.of_le le_rfl
     invFun := surjInv hfᵥ.surjective
     vx_right_inv := rightInverse_surjInv hfᵥ.surjective
     vx_left_inv := leftInverse_surjInv hfᵥ
@@ -593,8 +593,8 @@ lemma hasIsom_iff_eq_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → �
   use extend Subtype.val (Subtype.val ∘ F.toFun) (Classical.arbitrary (α → α')),
     extend Subtype.val (Subtype.val ∘ F.edgeFun) (Classical.arbitrary (β → β')), ?_, ?_, ?_, ?_
   · rintro e₁ he₁ e₂ he₂ h
-    obtain ⟨x₁, y₁, hxy₁⟩ := exists_inc₂_of_mem_edgeSet he₁
-    obtain ⟨x₂, y₂, hxy₂⟩ := exists_inc₂_of_mem_edgeSet he₂
+    obtain ⟨x₁, y₁, hxy₁⟩ := exists_isLink_of_mem_edgeSet he₁
+    obtain ⟨x₂, y₂, hxy₂⟩ := exists_isLink_of_mem_edgeSet he₂
     rw [Subtype.val_injective.extend_apply _ _ ⟨e₁, he₁⟩, Subtype.val_injective.extend_apply _ _ ⟨e₂, he₂⟩] at h
     rw [(toSym2_eq_pair_iff he₁).mpr hxy₁, (toSym2_eq_pair_iff he₂).mpr hxy₂, Sym2.map_pair_eq,
       Sym2.map_pair_eq, Subtype.val_injective.extend_apply _ _ ⟨x₁, hxy₁.vx_mem_left⟩,
@@ -602,9 +602,9 @@ lemma hasIsom_iff_eq_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → �
       Subtype.val_injective.extend_apply _ _ ⟨x₂, hxy₂.vx_mem_left⟩,
       Subtype.val_injective.extend_apply _ _ ⟨y₂, hxy₂.vx_mem_right⟩]
     simp only [comp_apply, Subtype.val_inj] at h ⊢
-    have hbtw₁ : G.Inc₂ (⟨e₁, he₁⟩ : E(G)) (⟨x₁, hxy₁.vx_mem_left⟩ : V(G)) (⟨y₁, hxy₁.vx_mem_right⟩ : V(G)) := hxy₁
-    have hbtw₂ : G.Inc₂ (⟨e₂, he₂⟩ : E(G)) (⟨x₂, hxy₂.vx_mem_left⟩ : V(G)) (⟨y₂, hxy₂.vx_mem_right⟩ : V(G)) := hxy₂
-    rw [← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₁, ← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.inc₂ hbtw₂]
+    have hbtw₁ : G.IsLink (⟨e₁, he₁⟩ : E(G)) (⟨x₁, hxy₁.vx_mem_left⟩ : V(G)) (⟨y₁, hxy₁.vx_mem_right⟩ : V(G)) := hxy₁
+    have hbtw₂ : G.IsLink (⟨e₂, he₂⟩ : E(G)) (⟨x₂, hxy₂.vx_mem_left⟩ : V(G)) (⟨y₂, hxy₂.vx_mem_right⟩ : V(G)) := hxy₂
+    rw [← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.isLink hbtw₁, ← (toSym2_eq_pair_iff (F.edgeFun _).prop).mpr <| F.isLink hbtw₂]
     simp_rw [h]
   · rintro u hu v hv h
     rwa [Subtype.val_injective.extend_apply _ _ ⟨u, hu⟩, Subtype.val_injective.extend_apply _ _ ⟨v, hv⟩,
@@ -621,20 +621,20 @@ lemma hasIsom_iff_eq_map [hα : Nonempty (α → α')] [hβ : Nonempty (β → �
       · rintro h
         use F.invFun ⟨a, h⟩, Subtype.coe_prop (F.invFun ⟨a, h⟩)
         rw [Subtype.val_injective.extend_apply _ _ (F.invFun ⟨a, h⟩), comp_apply, F.vx_right_inv]
-    · simp only [map_inc₂]
+    · simp only [map_isLink]
       constructor
       · rintro ⟨e, rfl, x, rfl, y, rfl, hbtw⟩
         rw [Subtype.val_injective.extend_apply _ _ ⟨e, hbtw.edge_mem⟩,
           Subtype.val_injective.extend_apply _ _ ⟨x, hbtw.vx_mem_left⟩,
           Subtype.val_injective.extend_apply _ _ ⟨y, hbtw.vx_mem_right⟩,
           comp_apply, comp_apply, comp_apply]
-        exact F.inc₂ hbtw
+        exact F.isLink hbtw
       · rintro hbtw
         use F.edgeInvFun ⟨a, hbtw.edge_mem⟩, ?_, F.invFun ⟨b, hbtw.vx_mem_left⟩, ?_, F.invFun ⟨c, hbtw.vx_mem_right⟩, ?_, ?_
         · rw [Subtype.val_injective.extend_apply _ _ (F.edgeInvFun ⟨_, hbtw.edge_mem⟩), comp_apply, F.edge_right_inv]
         · rw [Subtype.val_injective.extend_apply _ _ (F.invFun ⟨_, hbtw.vx_mem_left⟩), comp_apply, F.vx_right_inv]
         · rw [Subtype.val_injective.extend_apply _ _ (F.invFun ⟨_, hbtw.vx_mem_right⟩), comp_apply, F.vx_right_inv]
-        · rwa [← F.inc₂_iff']
+        · rwa [← F.isLink_iff']
 
 structure vertexPermutation (G₁ : Graph α β) (G₂ : Graph α' β) extends Isom G₁ G₂ where
   edgeFun_id : Subtype.val ∘ edgeFun = Subtype.val

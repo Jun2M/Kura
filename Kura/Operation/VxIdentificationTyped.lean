@@ -34,13 +34,13 @@ def VxIdentification (G : Graph (Set α) β) (P : Partition V(G)) : Graph (Set �
 variable {P : Partition V(G)}
 
 @[simp]
-lemma vxIdentification_inc₂ : (V(G)xIdentification P).Inc₂ e x y ↔ ∃ x' y',
-    G.Inc₂ e x' y' ∧ ⋃₀ P.partOf x' = x ∧ ⋃₀ P.partOf y' = y := by
-  rw [VxIdentification, vxMap_inc₂]
+lemma vxIdentification_isLink : (V(G)xIdentification P).IsLink e x y ↔ ∃ x' y',
+    G.IsLink e x' y' ∧ ⋃₀ P.partOf x' = x ∧ ⋃₀ P.partOf y' = y := by
+  rw [VxIdentification, vxMap_isLink]
 
-lemma vxIdentification_inc₂_toMultiset :
-    (V(G)xIdentification P).Inc₂ e x y ↔ (G.toMultiset e).map (⋃₀ P.partOf ·) = {x, y} := by
-  rw [VxIdentification, vxMap_inc₂_toMultiset]
+lemma vxIdentification_isLink_toMultiset :
+    (V(G)xIdentification P).IsLink e x y ↔ (G.toMultiset e).map (⋃₀ P.partOf ·) = {x, y} := by
+  rw [VxIdentification, vxMap_isLink_toMultiset]
 
 @[simp]
 lemma vxIdentification_toMultiset :

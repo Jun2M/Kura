@@ -90,9 +90,9 @@ lemma dInc_concat_iff :
     simp only [cons_concat, dInc_cons_iff, concat_first, ih, last_cons]
     tauto
 
-lemma inc₂_concat_iff : (w.concat f u).Inc₂ e x y ↔
-    w.Inc₂ e x y ∨ (f = e ∧ (x = w.last ∧ y = u ∨ x = u ∧ y = w.last)) := by
-  rw [inc₂_iff_dInc, dInc_concat_iff, dInc_concat_iff, inc₂_iff_dInc]
+lemma isLink_concat_iff : (w.concat f u).IsLink e x y ↔
+    w.IsLink e x y ∨ (f = e ∧ (x = w.last ∧ y = u ∨ x = u ∧ y = w.last)) := by
+  rw [isLink_iff_dInc, dInc_concat_iff, dInc_concat_iff, isLink_iff_dInc]
   tauto
 
 
@@ -231,9 +231,9 @@ lemma append_dInc_iff (h : w₁.last = w₂.first) :
     rw [append_first_of_eq (by simpa using h), ih (by simpa using h)]
     tauto
 
-lemma append_inc₂_iff (h : w₁.last = w₂.first) :
-    (w₁ ++ w₂).Inc₂ e x y ↔ w₁.Inc₂ e x y ∨ w₂.Inc₂ e x y := by
-  simp_rw [inc₂_iff_dInc, append_dInc_iff h]
+lemma append_isLink_iff (h : w₁.last = w₂.first) :
+    (w₁ ++ w₂).IsLink e x y ↔ w₁.IsLink e x y ∨ w₂.IsLink e x y := by
+  simp_rw [isLink_iff_dInc, append_dInc_iff h]
   tauto
 
 /-- Reverse the order of the vertices and edges of a wList. -/
@@ -353,8 +353,8 @@ lemma dInc_reverse_iff : w.reverse.DInc e x y ↔ w.DInc e y x :=
   ⟨fun h ↦ by simpa using h.reverse, DInc.reverse⟩
 
 @[simp]
-lemma inc₂_reverse_iff : w.reverse.Inc₂ e x y ↔ w.Inc₂ e x y := by
-  simp [inc₂_iff_dInc, or_comm]
+lemma isLink_reverse_iff : w.reverse.IsLink e x y ↔ w.IsLink e x y := by
+  simp [isLink_iff_dInc, or_comm]
 
 lemma concat_induction {motive : WList α β → Prop} (nil : ∀ u, motive (nil u))
     (concat : ∀ {w} e x, motive w → motive (w.concat e x)) (w : WList α β) : motive w := by

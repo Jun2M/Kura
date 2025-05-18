@@ -55,13 +55,13 @@ def VxIdentification (G : Graph (Set α) β) (P : Partition (Set (Set α))) :
 variable {P : Partition (Set (Set α))}
 
 @[simp]
-lemma vxIdentification_inc₂ : (G.VxIdentification P).Inc₂ e x y ↔ ∃ x', ⋃₀ P.partOf x' = x ∧
-  ∃ y', ⋃₀ P.partOf y' = y ∧ G.Inc₂ e x' y' := by
-  rw [VxIdentification, vxMap_inc₂]
+lemma vxIdentification_isLink : (G.VxIdentification P).IsLink e x y ↔ ∃ x', ⋃₀ P.partOf x' = x ∧
+  ∃ y', ⋃₀ P.partOf y' = y ∧ G.IsLink e x' y' := by
+  rw [VxIdentification, vxMap_isLink]
 
-lemma vxIdentification_inc₂_toMultiset :
-    (G.VxIdentification P).Inc₂ e x y ↔ (G.toMultiset e).map (⋃₀ P.partOf ·) = {x, y} := by
-  rw [VxIdentification, vxMap_inc₂_toMultiset]
+lemma vxIdentification_isLink_toMultiset :
+    (G.VxIdentification P).IsLink e x y ↔ (G.toMultiset e).map (⋃₀ P.partOf ·) = {x, y} := by
+  rw [VxIdentification, vxMap_isLink_toMultiset]
 
 @[simp]
 lemma vxIdentification_toMultiset :
@@ -91,4 +91,3 @@ def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β :
 scoped infix:100 " ÷ " => VxIdenBySet
 
 variable {G : Graph (Set α) β} {S : Set (Set α)}
-

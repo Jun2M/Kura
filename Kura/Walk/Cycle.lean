@@ -10,7 +10,7 @@ open WList
 lemma WList.WellFormed.rotate_toGraph (hw : w.WellFormed) (h_closed : w.IsClosed) (n : ℕ) :
     (w.rotate n).toGraph = w.toGraph := by
   refine Graph.ext (by simp [h_closed.rotate_vertexSet]) fun e x y ↦ ?_
-  rw [(hw.rotate h_closed n).toGraph_inc₂, h_closed.inc₂_rotate_iff, hw.toGraph_inc₂]
+  rw [(hw.rotate h_closed n).toGraph_isLink, h_closed.isLink_rotate_iff, hw.toGraph_isLink]
 
 namespace Graph
 
@@ -110,13 +110,13 @@ lemma IsCycle.isCycle_of_le (h : G.IsCycle w) (hle : H ≤ G) (hE : E(w) ⊆ E(H
   isClosed := h.isClosed
   nodup := h.nodup
 
-lemma IsCycle.eq_loop_of_inc₂_self (h : G.IsCycle C) (hC : C.Inc₂ e x x) :
+lemma IsCycle.eq_loop_of_isLink_self (h : G.IsCycle C) (hC : C.IsLink e x x) :
     C = cons x e (nil x) := by
   cases C with
   | nil u => simp at hC
   | cons u f w =>
     have hnd : w.vx.Nodup := by simpa using h.tail_isPath.nodup
-    rw [inc₂_iff_dInc, or_self, dInc_cons_iff] at hC
+    rw [isLink_iff_dInc, or_self, dInc_cons_iff] at hC
     obtain rfl : u = w.last := by simpa using h.isClosed
     obtain ⟨rfl, rfl, hu⟩ | h' := hC
     · cases w with simp_all
@@ -126,9 +126,9 @@ lemma IsCycle.eq_loop_of_inc₂_self (h : G.IsCycle C) (hC : C.Inc₂ e x x) :
 lemma IsCycle.isCycle_toGraph (hC : G.IsCycle C) : C.toGraph.IsCycle C :=
   hC.isCycle_of_le hC.isWalk.toGraph_le <| by simp
 
-lemma IsCycle.ne_of_inc₂ (hC : G.IsCycle C) (hnt : C.Nontrivial) (hinc : C.Inc₂ e x y) : x ≠ y := by
+lemma IsCycle.ne_of_isLink (hC : G.IsCycle C) (hnt : C.Nontrivial) (hinc : C.IsLink e x y) : x ≠ y := by
   rintro rfl
-  obtain ⟨x, e, rfl⟩ := hC.eq_loop_of_inc₂_self hinc
+  obtain ⟨x, e, rfl⟩ := hC.eq_loop_of_isLink_self hinc
   simp at hnt
 
 lemma IsCycle.length_eq_one_iff (h : G.IsCycle C) : C.length = 1 ↔ ∃ x e, C = cons x e (nil x) := by
@@ -182,10 +182,10 @@ lemma IsCycle.toGraph_vxDelete_first_eq (hC : G.IsCycle C) (hnt : C.Nontrivial) 
     C.toGraph - ({C.first} : Set α) = C.tail.dropLast.toGraph := by
   obtain ⟨P, u, e, f, hP, huP, heP, hfP, hef, rfl⟩ := hC.exists_isPath hnt
   refine Graph.ext (by simpa) fun g x y ↦ ?_
-  have h1 : P.Inc₂ g x y → x ∈ P := fun h ↦ h.vx_mem_left
-  have h2 : P.Inc₂ g x y → y ∈ P := fun h ↦ h.vx_mem_right
-  simp only [vxDelete_inc₂, hC.isWalk.wellFormed.toGraph_inc₂, inc₂_cons_iff',
-    concat_first, inc₂_concat_iff, tail_cons, dropLast_concat, hP.isWalk.wellFormed.toGraph_inc₂]
+  have h1 : P.IsLink g x y → x ∈ P := fun h ↦ h.vx_mem_left
+  have h2 : P.IsLink g x y → y ∈ P := fun h ↦ h.vx_mem_right
+  simp only [vxDelete_isLink, hC.isWalk.wellFormed.toGraph_isLink, isLink_cons_iff',
+    concat_first, isLink_concat_iff, tail_cons, dropLast_concat, hP.isWalk.wellFormed.toGraph_isLink]
   aesop
 
 /-- Deleting a vertex from the graph of a nontrivial cycle gives the graph of a path. -/
@@ -197,10 +197,10 @@ lemma IsCycle.exists_isPath_toGraph_eq_delete_vx (hC : G.IsCycle C) (hnt : C.Non
     exact ⟨P, hP, by rw [hP', WellFormed.rotate_toGraph hC.isWalk.wellFormed hC.isClosed]⟩
   exact ⟨_, hC.tail_dropLast_isPath, by rw [hxC, hC.toGraph_vxDelete_first_eq hnt]⟩
 
-lemma IsCycle.exists_isPath_toGraph_eq_delete_edge_of_inc₂ (hC : G.IsCycle C) (he : C.Inc₂ e x y) :
+lemma IsCycle.exists_isPath_toGraph_eq_delete_edge_of_isLink (hC : G.IsCycle C) (he : C.IsLink e x y) :
     ∃ P, G.IsPath P ∧ P.toGraph = C.toGraph ＼ {e} ∧ P.first = x ∧ P.last = y := by
   wlog he' : C.DInc e y x with aux
-  · obtain hxy | hxy := inc₂_iff_dInc.1 he.symm
+  · obtain hxy | hxy := isLink_iff_dInc.1 he.symm
     · exact aux hC he hxy
     obtain ⟨P, hP, hPC, rfl, rfl⟩ := aux hC he.symm hxy
     exact ⟨P.reverse, hP.reverse, by rwa [hP.isWalk.wellFormed.reverse_toGraph], by simp⟩
@@ -210,20 +210,20 @@ lemma IsCycle.exists_isPath_toGraph_eq_delete_edge_of_inc₂ (hC : G.IsCycle C) 
     simpa [hC.isWalk.wellFormed.rotate_toGraph hC.isClosed] using
       aux (hC.rotate n) (hC.isClosed.dInc_rotate he' n) rfl
   refine ⟨C.tail, hC.tail_isPath, Graph.ext (by simp [hC.isClosed.vertexSet_tail]) fun f z z' ↦ ?_, ?_⟩
-  · rw [hC.tail_isPath.isWalk.wellFormed.toGraph_inc₂, edgeDelete_inc₂, Set.mem_singleton_iff,
-      hC.isWalk.wellFormed.toGraph_inc₂, hC.nonempty.tail_inc₂_iff hC.edge_nodup, ← hxC, and_comm]
+  · rw [hC.tail_isPath.isWalk.wellFormed.toGraph_isLink, edgeDelete_isLink, Set.mem_singleton_iff,
+      hC.isWalk.wellFormed.toGraph_isLink, hC.nonempty.tail_isLink_iff hC.edge_nodup, ← hxC, and_comm]
   rw [tail_last, ← hC.isClosed.eq, and_comm, ← hC.toIsTrail.dInc_iff_eq_of_dInc he', hxC]
   cases C with | _ => simp_all
 
 /-- Deleting an edge from the graph of a cycle gives the graph of a path. -/
 lemma IsCycle.exists_isPath_toGraph_eq_delete_edge (hC : G.IsCycle C) (heC : e ∈ C.edge) :
     ∃ P, G.IsPath P ∧ P.toGraph = C.toGraph ＼ {e} := by
-  obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edge heC
-  obtain ⟨P, hP, hPC, -, -⟩ := hC.exists_isPath_toGraph_eq_delete_edge_of_inc₂ h
+  obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edge heC
+  obtain ⟨P, hP, hPC, -, -⟩ := hC.exists_isPath_toGraph_eq_delete_edge_of_isLink h
   exact ⟨P, hP, hPC⟩
 
 
-lemma IsPath.cons_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.Inc₂ e P.first P.last)
+lemma IsPath.cons_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.IsLink e P.first P.last)
     (heP : e ∉ P.edge) : G.IsCycle (cons P.last e P) where
   isWalk := by simp [he.symm, hP.isWalk]
   edge_nodup := by simp [heP, hP.edge_nodup]
@@ -231,53 +231,53 @@ lemma IsPath.cons_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.Inc₂ e P
   isClosed := by simp
   nodup := by simp [hP.nodup]
 
-lemma IsPath.concat_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.Inc₂ e P.last P.first)
+lemma IsPath.concat_isCycle {P : WList α β} (hP : G.IsPath P) (he : G.IsLink e P.last P.first)
     (heP : e ∉ P.edge) : G.IsCycle (P.concat e P.first) := by
   simpa using (hP.reverse.cons_isCycle (e := e) (by simpa using he) (by simpa)).reverse
 
-namespace Inc₂
+namespace IsLink
 
-/-- The walk corresponding to an incidence `G.Inc₂ e u v` and then backtracking to `u` using the
+/-- The walk corresponding to an incidence `G.IsLink e u v` and then backtracking to `u` using the
 same edge. -/
-def backtrack (_h : G.Inc₂ e u v) : WList α β := cons u e (cons v e (nil u))
+def backtrack (_h : G.IsLink e u v) : WList α β := cons u e (cons v e (nil u))
 
 @[simp]
-lemma backtrack_first (h : G.Inc₂ e u v) : h.backtrack.first = u := rfl
+lemma backtrack_first (h : G.IsLink e u v) : h.backtrack.first = u := rfl
 
 @[simp]
-lemma backtrack_last (h : G.Inc₂ e u v) : h.backtrack.last = u := by
+lemma backtrack_last (h : G.IsLink e u v) : h.backtrack.last = u := by
   simp [backtrack]
 
 @[simp]
-lemma backtrack_nonempty (h : G.Inc₂ e u v) : h.backtrack.Nonempty := by simp [backtrack]
+lemma backtrack_nonempty (h : G.IsLink e u v) : h.backtrack.Nonempty := by simp [backtrack]
 
 @[simp]
-lemma backtrack_vx (h : G.Inc₂ e u v) : h.backtrack.vx = [u, v, u] := by simp [backtrack]
+lemma backtrack_vx (h : G.IsLink e u v) : h.backtrack.vx = [u, v, u] := by simp [backtrack]
 
 @[simp]
-lemma mem_backtrack_iff (h : G.Inc₂ e u v) (x : α) : x ∈ h.backtrack ↔ x = u ∨ x = v := by
+lemma mem_backtrack_iff (h : G.IsLink e u v) (x : α) : x ∈ h.backtrack ↔ x = u ∨ x = v := by
   simp only [backtrack, mem_cons_iff, WList.mem_nil_iff]
   tauto
 
 @[simp]
-lemma backtrack_vertexSet (h : G.Inc₂ e u v) : V(h.backtrack) = {u, v} := by
+lemma backtrack_vertexSet (h : G.IsLink e u v) : V(h.backtrack) = {u, v} := by
   simp [backtrack, Set.pair_comm]
 
 @[simp]
-lemma backtrack_edge (h : G.Inc₂ e u v) : h.backtrack.edge = [e, e] := by simp [backtrack]
+lemma backtrack_edge (h : G.IsLink e u v) : h.backtrack.edge = [e, e] := by simp [backtrack]
 
 @[simp]
-lemma backtrack_edgeSet (h : G.Inc₂ e u v) : E(h.backtrack) = {e} := by
+lemma backtrack_edgeSet (h : G.IsLink e u v) : E(h.backtrack) = {e} := by
   simp [backtrack, Set.pair_comm]
 
 @[simp]
-lemma backtrack_length (h : G.Inc₂ e u v) : h.backtrack.length = 2 := by simp [backtrack]
+lemma backtrack_length (h : G.IsLink e u v) : h.backtrack.length = 2 := by simp [backtrack]
 
 @[simp]
-lemma backtrack_isWalk (h : G.Inc₂ e u v) : G.IsWalk h.backtrack := by
+lemma backtrack_isWalk (h : G.IsLink e u v) : G.IsWalk h.backtrack := by
   simp [backtrack, h, h.symm, h.vx_mem_left]
 
-end Inc₂
+end IsLink
 
 
 end Graph

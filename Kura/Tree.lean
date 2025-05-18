@@ -40,7 +40,7 @@ lemma singleEdge_acyclic (hxy : x ≠ y) (e : β) : (Graph.singleEdge x y e).Acy
   intro C hC
   obtain ⟨u, f, rfl⟩ | hnt := hC.loop_or_nontrivial
   · obtain ⟨z,z', h⟩ := WList.exists_dInc_of_mem_edge (e := f) (w := .cons u f (.nil u)) (by simp)
-    have h' := hC.isWalk.inc₂_of_dInc h
+    have h' := hC.isWalk.isLink_of_dInc h
     aesop
   refine hnt.firstEdge_ne_lastEdge hC.edge_nodup ?_
   have h_const := hC.isWalk.edgeSet_subset

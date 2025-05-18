@@ -12,8 +12,8 @@ lemma vxMap.IsHomOn (φ : α → α') : (HomSys.ofVxFun φ).IsHomOn G (vxMap G �
   Mapsto_vx v hv := by
     simp only [V, HomSys.ofVxFun, mem_image]
     use v
-  inc₂ ⦃e x y⦄ h := by
-    rw [vxMap_inc₂_toMultiset]
+  isLink ⦃e x y⦄ h := by
+    rw [vxMap_isLink_toMultiset]
     simp [toMultiset_eq_pair_iff.mpr h]
 
 lemma vxMap.HasHom (φ : α → α') : G ≤→ (vxMap G φ) :=
@@ -40,7 +40,7 @@ def edgePreimg.HomSys (σ : β' → β) : HomSys α β' α β where
 
 lemma edgePreimg.HomSys.IsHomOn (σ : β' → β) : (edgePreimg.HomSys σ).IsHomOn (edgePreimg G σ) G where
   Mapsto_vx v hv := by simpa only [HomSys, id_eq] using hv
-  inc₂ ⦃e x y⦄ h := by simpa only [HomSys, id_eq, Inc₂, exists_eq_left'] using h
+  isLink ⦃e x y⦄ h := by simpa only [HomSys, id_eq, IsLink, exists_eq_left'] using h
 
 lemma edgePreimg.HasHom (σ : β' → β) : (edgePreimg G σ) ≤→ G :=
   ⟨edgePreimg.HomSys σ, edgePreimg.HomSys.IsHomOn σ⟩
@@ -71,8 +71,8 @@ noncomputable def edgePreimg.HomSys' [h : Nonempty β'] (σ : β' → β) : Grap
 lemma edgePreimg.HomSys.IsEmbOn [h : Nonempty β'] (σ : β' → β) (hσ : SurjOn σ univ E(G)) :
     (edgePreimg.HomSys' σ).IsEmbOn G (edgePreimg G σ) where
   Mapsto_vx v hv := by simpa only [V, HomSys', id_eq] using hv
-  inc₂ ⦃e x y⦄ hbtw := by
-    simp only [HomSys', id_eq, Inc₂, exists_eq_left']
+  isLink ⦃e x y⦄ hbtw := by
+    simp only [HomSys', id_eq, IsLink, exists_eq_left']
     have hex : ∃ e', σ e' = e := by
       obtain ⟨e', he', rfl⟩ := hσ hbtw.edge_mem
       use e'

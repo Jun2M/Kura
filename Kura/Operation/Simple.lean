@@ -11,15 +11,15 @@ variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e 
 def SimpleGraph.toGraph (G : SimpleGraph α) : Graph α (Sym2 α) where
   vertexSet := univ
   edgeSet := G.edgeSet
-  Inc₂ e x y := s(x,y) = e ∧ G.Adj x y
-  inc₂_symm e x y := by simp [Sym2.eq_swap, SimpleGraph.adj_comm]
-  vx_mem_left_of_inc₂ e x y := by simp
-  edge_mem_iff_exists_inc₂ e := by
+  IsLink e x y := s(x,y) = e ∧ G.Adj x y
+  isLink_symm e x y := by simp [Sym2.eq_swap, SimpleGraph.adj_comm]
+  vx_mem_left_of_isLink e x y := by simp
+  edge_mem_iff_exists_isLink e := by
     refine ⟨fun he ↦ ?_, fun ⟨x, y, hx, he⟩ ↦ by simp [he, ← hx]⟩
     induction' e with x y
     use x, y
     simpa using he
-  eq_or_eq_of_inc₂_of_inc₂ a b c d e h1 h2 := by
+  eq_or_eq_of_isLink_of_isLink a b c d e h1 h2 := by
     obtain ⟨rfl, he⟩ := h1
     obtain ⟨heq, he'⟩ := h2
     simp only [Sym2.eq, Sym2.rel_iff', Prod.mk.injEq, Prod.swap_prod_mk] at heq
@@ -30,7 +30,7 @@ variable {G' H' : SimpleGraph α}
 @[simp]
 lemma SimpleGraph.toGraph_adj : (SimpleGraph.toGraph G').Adj = G'.Adj := by
   ext x y
-  simp_rw [Graph.Adj, toGraph_inc₂, exists_eq_left']
+  simp_rw [Graph.Adj, toGraph_isLink, exists_eq_left']
 
 @[simp]
 lemma SimpleGraph.toGraph_inj : G'.toGraph = H'.toGraph ↔ G' = H' := by
@@ -58,7 +58,7 @@ instance instLooplessGraphic : GraphicFunction IsLoopless IsLoopless where
     · exact hloop.loopless (g.toFun ⟨x, hbtw.vx_mem_right⟩) ⟨g.edgeFun ⟨e, hbtw.edge_mem⟩, hbtw.isIsomOn g⟩
     · exact hloop.loopless (f.toFun ⟨x, hbtw.vx_mem_right⟩) ⟨f.edgeFun ⟨e, hbtw.edge_mem⟩, hbtw.isIsomOn f⟩
 
-lemma Inc₂.ne [hG : G.IsLoopless] (hbtw : G.Inc₂ e u v) : u ≠ v := by
+lemma IsLink.ne [hG : G.IsLoopless] (hbtw : G.IsLink e u v) : u ≠ v := by
   rintro rfl
   exact hG.loopless u ⟨e, hbtw⟩
 
@@ -69,7 +69,7 @@ lemma Adj.ne (G : Graph α β) [hS : G.IsLoopless] (huv : G.Adj u v) : u ≠ v :
 @[simp]
 lemma toSym2_not_isDiag {G : Graph α β} [G.IsLoopless] {e : β} {he : e ∈ E(G)} :
     ¬ (G.toSym2 e he).IsDiag := by
-  obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
   have := hxy.ne
   rwa [(toSym2_eq_pair_iff hxy.edge_mem).mpr hxy]
 
@@ -81,7 +81,7 @@ lemma Simple.of_le {G H : Graph α β} [G.Simple] (hle : H ≤ G) : H.Simple whe
     rintro ⟨e, hbtw⟩
     exact IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
   no_multi_edges e f he hf h := by
-    obtain ⟨x, y, hxy⟩ := exists_inc₂_of_mem_edgeSet he
+    obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
     rw [← toSym2_eq_pair_iff he] at hxy
     rw [hxy, eq_comm, toSym2_eq_of_le hle hf] at h
     rw [toSym2_eq_of_le hle he] at hxy
@@ -94,8 +94,8 @@ lemma toSym2_inj [hG : G.Simple] (he : e ∈ E(G)) (hf : f ∈ E(G)) :
   ⟨fun h ↦ hG.no_multi_edges e f he hf h, fun h ↦ h ▸ rfl⟩
 
 @[simp]
-lemma Inc₂.edge_eq_iff_inc₂ [hG : G.Simple] (hbtw : G.Inc₂ e u v) :
-    G.Inc₂ f u v ↔ e = f := by
+lemma IsLink.edge_eq_iff_isLink [hG : G.Simple] (hbtw : G.IsLink e u v) :
+    G.IsLink f u v ↔ e = f := by
   refine ⟨fun h ↦ ?_, (· ▸ hbtw)⟩
   obtain a := ((toSym2_eq_pair_iff hbtw.edge_mem).mpr hbtw).trans ((toSym2_eq_pair_iff h.edge_mem).mpr h).symm
   exact hG.no_multi_edges e f hbtw.edge_mem h.edge_mem a
@@ -128,16 +128,16 @@ lemma toSym2_eq_self {G : Graph α (Sym2 α)} [G.SimpleCanonical] {e : Sym2 α} 
     G.toSym2 e he = e := SimpleCanonical.canonical e he
 
 @[simp]
-lemma inc₂_iff_mem_edgeSet {G : Graph α (Sym2 α)} [G.SimpleCanonical] :
-    G.Inc₂ s(u, v) u v ↔ s(u, v) ∈ E(G) := by
-  refine ⟨Inc₂.edge_mem, fun h ↦ ?_⟩
+lemma isLink_iff_mem_edgeSet {G : Graph α (Sym2 α)} [G.SimpleCanonical] :
+    G.IsLink s(u, v) u v ↔ s(u, v) ∈ E(G) := by
+  refine ⟨IsLink.edge_mem, fun h ↦ ?_⟩
   rw [← toSym2_eq_pair_iff h]
   exact SimpleCanonical.canonical s(u, v) h
 
 @[simp]
-lemma inc₂_iff_eq {G : Graph α (Sym2 α)} [G.SimpleCanonical] {e : Sym2 α} :
-    G.Inc₂ e u v ↔ e = s(u, v) ∧ s(u, v) ∈ E(G) := by
-  refine ⟨fun h ↦ ?_, fun ⟨he, h⟩ ↦ he ▸ inc₂_iff_mem_edgeSet.mpr h⟩
+lemma isLink_iff_eq {G : Graph α (Sym2 α)} [G.SimpleCanonical] {e : Sym2 α} :
+    G.IsLink e u v ↔ e = s(u, v) ∧ s(u, v) ∈ E(G) := by
+  refine ⟨fun h ↦ ?_, fun ⟨he, h⟩ ↦ he ▸ isLink_iff_mem_edgeSet.mpr h⟩
   induction' e with x y
   have hxy := h.edge_mem
   rw [← toSym2_eq_pair_iff h.edge_mem, SimpleCanonical.canonical s(x, y)] at h
@@ -151,9 +151,10 @@ instance instSimpleGraphic : GraphicFunction |₂ Simple where
       loopless := (instLooplessGraphic.invariant h ▸ hsimple.toIsLoopless).loopless
       no_multi_edges e f he hf heq := by
         obtain ⟨F⟩ := h
-        rw [(G'.toSym2 f hf).eq_mk_out, toSym2_eq_pair_iff, ] at heq
+        rw [(G'.toSym2 f hf).eq_mk_out, toSym2_eq_pair_iff] at heq
+        change G'.IsLink (⟨e, he⟩ : E(G')) (Quot.out (G'.toSym2 f hf)).1 (Quot.out (G'.toSym2 f hf)).2 at heq
+        
 
-        have := toSym2_isom
         sorry}, fun hsimple ↦ {
       loopless := (instLooplessGraphic.invariant h ▸ hsimple.toIsLoopless).loopless
       no_multi_edges := fun e f he hf h ↦ by
@@ -216,9 +217,9 @@ lemma simplify_edgeSet_adj {G : Graph α β} : E(G.simplify) = {s | ∃ u v, s(u
     exact ⟨hdiag, e, hbtw.edge_mem, hbtw.toSym2⟩
 
 @[simp]
-lemma simplify_inc₂ {G : Graph α β} (e : Sym2 α) (x y : α) :
-    G.simplify.Inc₂ e x y ↔ x ≠ y ∧ G.Adj x y ∧ e = s(x, y) := by
-  simp only [simplify, mem_setOf_eq, oftoSym2_inc₂, exists_and_right, exists_prop, ne_eq]
+lemma simplify_isLink {G : Graph α β} (e : Sym2 α) (x y : α) :
+    G.simplify.IsLink e x y ↔ x ≠ y ∧ G.Adj x y ∧ e = s(x, y) := by
+  simp only [simplify, mem_setOf_eq, oftoSym2_isLink, exists_and_right, exists_prop, ne_eq]
   rw [← and_assoc (a := x ≠ y), and_congr_left_iff]
   rintro rfl
   simp only [toSym2_eq_pair_iff, exists_prop, Sym2.isDiag_iff_proj_eq, Adj, ne_eq,
@@ -230,23 +231,23 @@ lemma simplify_inc₂ {G : Graph α β} (e : Sym2 α) (x y : α) :
 
 @[simp]
 lemma simplify_adj : (simplify G).Adj u v ↔ u ≠ v ∧ G.Adj u v := by
-  simp only [Adj, simplify, mem_setOf_eq, oftoSym2_inc₂, exists_and_right, exists_prop,
+  simp only [Adj, simplify, mem_setOf_eq, oftoSym2_isLink, exists_and_right, exists_prop,
     exists_eq_right, toSym2_eq_pair_iff, Sym2.isDiag_iff_proj_eq, ← ne_eq]
   rw [and_congr_right_iff]
-  exact fun hne ↦ exists_congr fun e ↦ and_iff_right_iff_imp.mpr (Inc₂.edge_mem ·)
+  exact fun hne ↦ exists_congr fun e ↦ and_iff_right_iff_imp.mpr (IsLink.edge_mem ·)
 
 @[simp]
 lemma simplify_toSym2 {G : Graph α β} {e : Sym2 α} (he : e ∈ E(simplify G)) :
     (simplify G).toSym2 e he = e := by
   induction' e with x y
-  simp only [Simplify_edgeSet, mem_setOf_eq, toSym2_eq_pair_iff, simplify_inc₂, ne_eq,
+  simp only [Simplify_edgeSet, mem_setOf_eq, toSym2_eq_pair_iff, simplify_isLink, ne_eq,
     and_true] at he ⊢
   obtain ⟨hdiag, e, he, h⟩ := he
   exact ⟨hdiag, e, h⟩
 
 instance instSimpleCanonicalSimplify : SimpleCanonical (simplify G) where
   loopless x := by
-    simp only [Adj, simplify, mem_setOf_eq, oftoSym2_inc₂, exists_prop, exists_eq_right,
+    simp only [Adj, simplify, mem_setOf_eq, oftoSym2_isLink, exists_prop, exists_eq_right,
       Sym2.isDiag_iff_proj_eq, not_true_eq_false, toSym2_eq_pair_iff, false_and, not_false_eq_true]
   no_multi_edges e f he hf h := by simpa only [simplify, mem_setOf_eq, oftoSym2_tosym2] using h
   canonical e he := by simp only [simplify, mem_setOf_eq, oftoSym2_tosym2]
@@ -271,8 +272,8 @@ lemma simplify_hasIsom [hG : G.Simple] : G ↔ᴳ G.simplify := ⟨{
     rw [Simplify_edgeSet]
     simp only [mem_setOf_eq, toSym2_not_isDiag, not_false_eq_true, toSym2_inj, exists_prop,
       exists_eq_right, Subtype.coe_prop, and_self]⟩
-  inc₂ e x y hbtw := by
-    simp only [simplify_vertexSet, id_eq, inc₂_iff_eq, toSym2_eq_pair_iff, hbtw,
+  isLink e x y hbtw := by
+    simp only [simplify_vertexSet, id_eq, isLink_iff_eq, toSym2_eq_pair_iff, hbtw,
       simplify_edgeSet_adj, ne_eq, mem_setOf_eq, true_and]
     use x, y, rfl, hbtw.ne, e, hbtw
   invFun := id
@@ -311,7 +312,7 @@ lemma simplify_eq_edgeMap [hα : Nonempty α] [hG : G.Simple] [DecidablePred (·
   · obtain ⟨hne, f, hf, rfl⟩ := by rwa [Simplify_edgeSet, mem_setOf] at he
     simp only [toSym2_eq_self]
     refine ((G.toSym2 f hf).eq_mk_out).trans ?_
-    rw [eq_comm, toSym2_eq_pair_iff, edgeMap_inc₂]
+    rw [eq_comm, toSym2_eq_pair_iff, edgeMap_isLink]
     use f, by simp [hf]
     rw [← toSym2_eq_pair_iff hf, ← Sym2.eq_mk_out]
 
@@ -347,9 +348,9 @@ lemma simplify_edgeSet_ncard_lt (G : Graph α β) [hE : Finite E(G)] :
 --   refine ⟨fun e ↦ if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some), ⟨?_, ?_, ?_⟩⟩
 --   · refine {
 --       Mapsto_vx := fun x ↦ by simp,
---       inc₂ := fun e x y hxy ↦ by
+--       isLink := fun e x y hxy ↦ by
 --         simp only [HomSys.ofEdgeFun_edgeFun, hxy.edge_mem, ↓reduceDIte, HomSys.ofEdgeFun_toFun,
---           id_eq, inc₂_iff_eq, toSym2_eq_pair_iff, hxy, simplify_edgeSet_adj, mem_setOf_eq, true_and]
+--           id_eq, isLink_iff_eq, toSym2_eq_pair_iff, hxy, simplify_edgeSet_adj, mem_setOf_eq, true_and]
 --         use x, y, rfl, hxy.ne, e, hxy}
 --   · rw [Simplify_vertexSet]
 --     exact bijOn_id V(G)
@@ -367,18 +368,18 @@ lemma simplify_idOn_simpleCanonical {G : Graph α (Sym2 α)} [H : G.SimpleCanoni
     G.simplify = G := by
   refine Graph.ext rfl fun e x y ↦ ?_
   induction' e with u v
-  rw [simplify_inc₂]
+  rw [simplify_isLink]
   refine ⟨fun ⟨hne, ⟨e, B⟩, C⟩ ↦ ?_, fun h ↦ ?_⟩
-  · rw [C, inc₂_iff_mem_edgeSet]
-    rw [inc₂_iff_eq] at B
+  · rw [C, isLink_iff_mem_edgeSet]
+    rw [isLink_iff_eq] at B
     exact mem_of_mem_inter_right B
-  · rw [inc₂_iff_eq] at h
+  · rw [isLink_iff_eq] at h
     obtain ⟨h, h'⟩ := h
     refine ⟨?_, ?_, h⟩
     · rintro rfl
       refine H.loopless x ⟨s(x, x), ?_⟩
-      rwa [inc₂_iff_mem_edgeSet]
-    · rw [← inc₂_iff_mem_edgeSet] at h'
+      rwa [isLink_iff_mem_edgeSet]
+    · rw [← isLink_iff_mem_edgeSet] at h'
       exact ⟨s(x, y), h'⟩
 
 lemma SimpleCanonical.of_le {G H : Graph α (Sym2 α)} [G.SimpleCanonical] (hle : H ≤ G) :

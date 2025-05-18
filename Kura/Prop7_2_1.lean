@@ -17,7 +17,7 @@ theorem prop721_rec (t : ℕ) [Nonempty α] {G : Graph (Set α) (Sym2 (Set α))}
     omega
 
   let e := hEnonempty.some
-  obtain ⟨x, y, hxy : G.Inc₂ e x y⟩ := exists_inc₂_of_mem_edgeSet hEnonempty.some_mem
+  obtain ⟨x, y, hxy : G.IsLink e x y⟩ := exists_isLink_of_mem_edgeSet hEnonempty.some_mem
   have : E(G / ({e} : Set _) |>.simplify).ncard < E(G).ncard := by
     sorry
     -- rw [← simplify_hasIsom.eq (·.edgeSet.ncard) (·.edgeSet.ncard)]

@@ -116,28 +116,28 @@ lemma DInc.of_isSublist (h : w₁.DInc e x y) (hle : w₁.IsSublist w₂) : w₂
     | cons_left x e w => exact h_eq ▸ (DInc.cons_left ..)
     | cons u f hw => exact DInc.cons _ _ (ih hw)
 
-lemma Inc₂.of_isSublist (h : w₁.Inc₂ e x y) (hle : w₁.IsSublist w₂) : w₂.Inc₂ e x y :=
-  (inc₂_iff_dInc.1 h).elim (fun h ↦ (h.of_isSublist hle).inc₂)
-    fun h ↦ (h.of_isSublist hle).inc₂.symm
+lemma IsLink.of_isSublist (h : w₁.IsLink e x y) (hle : w₁.IsSublist w₂) : w₂.IsLink e x y :=
+  (isLink_iff_dInc.1 h).elim (fun h ↦ (h.of_isSublist hle).isLink)
+    fun h ↦ (h.of_isSublist hle).isLink.symm
 
 lemma WellFormed.sublist (h : w₂.WellFormed) (hle : w₁.IsSublist w₂) : w₁.WellFormed :=
   fun _ _ _ _ _ h₁ h₂ ↦ h (h₁.of_isSublist hle) (h₂.of_isSublist hle)
 
 lemma cons_wellFormed_iff : (cons x e w).WellFormed ↔
-    w.WellFormed ∧ ∀ y₁ y₂, w.Inc₂ e y₁ y₂ → s(y₁, y₂) = s(x, w.first) := by
+    w.WellFormed ∧ ∀ y₁ y₂, w.IsLink e y₁ y₂ → s(y₁, y₂) = s(x, w.first) := by
   refine ⟨fun h' ↦ ⟨h'.sublist (by simp), fun y₁ y₂ h ↦ ?_⟩, fun h ↦ ?_⟩
-  · exact h' (h.cons ..) (Inc₂.cons_left ..)
+  · exact h' (h.cons ..) (IsLink.cons_left ..)
   intro f x₁ x₂ y₁ y₂ h₁ h₂
   cases h₁ with
   | cons_left u f w =>
-    rw [inc₂_cons_iff, and_iff_right rfl] at h₂
+    rw [isLink_cons_iff, and_iff_right rfl] at h₂
     exact h₂.elim Eq.symm fun h' ↦ (h.2 _ _ h').symm
   | cons_right u f w =>
     rw [Sym2.eq_swap]
-    rw [inc₂_cons_iff, and_iff_right rfl] at h₂
+    rw [isLink_cons_iff, and_iff_right rfl] at h₂
     refine h₂.elim Eq.symm fun h' ↦ (h.2 _ _ h').symm
   | cons u f hw =>
-    obtain ⟨rfl, h₂'⟩ | h₂ := inc₂_cons_iff.1 h₂
+    obtain ⟨rfl, h₂'⟩ | h₂ := isLink_cons_iff.1 h₂
     · rw [h₂', h.2 _ _ hw]
     exact h.1 hw h₂
 
@@ -570,8 +570,8 @@ lemma tail_concat (hw : w.Nonempty) (e : β) (x : α) : (w.concat e x).tail = w.
 lemma tail_append (hw₁ : w₁.Nonempty) (w₂ : WList α β) : (w₁ ++ w₂).tail = w₁.tail ++ w₂ := by
   induction w₁ with simp_all
 
-lemma Nonempty.tail_inc₂_iff (hw : w.Nonempty) (hnd : w.edge.Nodup) :
-    w.tail.Inc₂ f x y ↔ w.Inc₂ f x y ∧ ¬f = hw.firstEdge := by
+lemma Nonempty.tail_isLink_iff (hw : w.Nonempty) (hnd : w.edge.Nodup) :
+    w.tail.IsLink f x y ↔ w.IsLink f x y ∧ ¬f = hw.firstEdge := by
   cases hw with | cons u e w =>
   simp only [tail_cons, Nonempty.firstEdge_cons]
   have ⟨hew, hnd⟩  : e ∉ w.edge ∧ w.edge.Nodup := by simpa using hnd
@@ -973,9 +973,9 @@ lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β)
 --       · simp only [mem_cons_iff, exists_eq_or_imp, hPx, false_or] at h
 --         exact endIf_mem_vx h hvmem
 
--- lemma endIf_exists_inc₂_last {w : WList α β} (h : ∃ u ∈ w, P u) (hVd : V(w)alidIn G)
+-- lemma endIf_exists_isLink_last {w : WList α β} (h : ∃ u ∈ w, P u) (hVd : V(w)alidIn G)
 --     (hNonempty : (w.endIf h).Nonempty) :
---     ∃ v ∈ (w.endIf h), ¬ P v ∧ ∃ e, G.Inc₂ e v (w.endIf h).last := by
+--     ∃ v ∈ (w.endIf h), ¬ P v ∧ ∃ e, G.IsLink e v (w.endIf h).last := by
 --   match w with
 --   | .nil x => simp_all only [endIf_nil, Nonempty.not_nil]
 --   | .cons x e (nil y) =>
@@ -1006,7 +1006,7 @@ lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β)
 --           simpa only [mem_cons_iff, exists_eq_or_imp, hPx, false_or] using h
 --         have hNonempty' : (w'.endIf h').Nonempty := by
 --           simp only [endIf_cons, hPy, ↓reduceDIte, Nonempty.cons_true, w']
---         obtain ⟨a, ha, hh⟩ := endIf_exists_inc₂_last (w := w') h' hVd.2 hNonempty'
+--         obtain ⟨a, ha, hh⟩ := endIf_exists_isLink_last (w := w') h' hVd.2 hNonempty'
 --         refine ⟨a, ?_, hh⟩
 --         rw [mem_cons_iff]
 --         right

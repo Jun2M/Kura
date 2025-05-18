@@ -216,7 +216,7 @@ lemma leftSet_Sep_rightSet (h : G.IsVxSetSeparator S T V) :
   rw [subset_compl_iff_disjoint_left, subset_compl_iff_disjoint_left]
   exact ⟨h.leftSet_rightSet_disjoint, h.rightSet_V_disjoint.symm⟩
 
-lemma mem_of_inc₂_leftSet (hbtw : G.Inc₂ e u v) (hu : u ∈ h.leftSet) :
+lemma mem_of_isLink_leftSet (hbtw : G.IsLink e u v) (hu : u ∈ h.leftSet) :
     v ∈ h.leftSet ∪ V := by
   obtain ⟨s, hs, hconn⟩ := hu
   by_contra! hvV
@@ -225,7 +225,7 @@ lemma mem_of_inc₂_leftSet (hbtw : G.Inc₂ e u v) (hu : u ∈ h.leftSet) :
   exact hnconn s hs
   <| (hbtw.induce hconn.mem_left ⟨hbtw.vx_mem_right, hvV⟩).vxConnected.symm.trans hconn
 
-lemma mem_of_inc₂_rightSet (hbtw : G.Inc₂ e u v) (hv : v ∈ h.rightSet) :
+lemma mem_of_isLink_rightSet (hbtw : G.IsLink e u v) (hv : v ∈ h.rightSet) :
     u ∈ h.rightSet ∪ V := by
   obtain ⟨t, ht, hconn⟩ := hv
   by_contra! huV
@@ -348,11 +348,11 @@ lemma exists_pathFrom_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF
     (G ＼ F).IsPathFrom S T W).isWalkFrom.setConnected
 
 lemma exists_left_vx_right_vx_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T) F) (heF : e ∈ F) :
-    ∃ x y : α, G.Inc₂ e x y ∧ x ∈ h.prop.leftSet ∧ y ∈ h.prop.rightSet := by
+    ∃ x y : α, G.IsLink e x y ∧ x ∈ h.prop.leftSet ∧ y ∈ h.prop.rightSet := by
   classical
   obtain ⟨W, hVd, heW⟩ := exists_pathFrom_of_minimal h heF
   obtain ⟨x, y, hxy⟩ := W.exists_dInc_of_mem_edge heW
-  use x, y, (hVd.isWalk.of_le (restrict_le G _)).inc₂_of_dInc hxy
+  use x, y, (hVd.isWalk.of_le (restrict_le G _)).isLink_of_dInc hxy
   constructor <;> simp only [leftSet, rightSet, mem_setOf_eq]
   · use W.first, hVd.first_mem
     rw [← (W.splitAtEdge_left_prefix e).first_eq, Connected.comm, connected_iff_exists_walk]

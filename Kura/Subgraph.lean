@@ -12,12 +12,12 @@ namespace Graph
 
 structure IsSubgraph (H G : Graph α β) : Prop where
   vx_subset : V(H) ⊆ V(G)
-  inc₂_of_inc₂ : ∀ ⦃e x y⦄, H.Inc₂ e x y → G.Inc₂ e x y
+  isLink_of_isLink : ∀ ⦃e x y⦄, H.IsLink e x y → G.IsLink e x y
 
 def inf (G H : Graph α β) : Graph α β := Graph.mk' (V(G) ∩ V(H))
-  (fun e x y ↦ G.Inc₂ e x y ∧ H.Inc₂ e x y)
+  (fun e x y ↦ G.IsLink e x y ∧ H.IsLink e x y)
   (fun _ _ _ ⟨hxy1, hxy2⟩ ↦ ⟨hxy1.symm, hxy2.symm⟩)
-  (fun _ _ _ _ _ ⟨hxy1, _⟩ ⟨huv1, _⟩ ↦ hxy1.left_eq_or_eq_of_inc₂ huv1)
+  (fun _ _ _ _ _ ⟨hxy1, _⟩ ⟨huv1, _⟩ ↦ hxy1.left_eq_or_eq_of_isLink huv1)
   (fun _ _ _ ⟨hxy1, hxy2⟩ ↦ ⟨hxy1.vx_mem_left, hxy2.vx_mem_left⟩)
 
 /-- The subgraph order -/
@@ -26,13 +26,13 @@ instance : SemilatticeInf (Graph α β) where
   le_refl _ := ⟨rfl.le, by simp⟩
   le_trans _ _ _ h₁ h₂ := ⟨h₁.1.trans h₂.1, fun _ _ _ h ↦ h₂.2 (h₁.2 h)⟩
   le_antisymm G H h₁ h₂ := Graph.ext (h₁.1.antisymm h₂.1)
-    fun e x y ↦ ⟨fun a ↦ h₁.inc₂_of_inc₂ a, fun a ↦ h₂.inc₂_of_inc₂ a⟩
+    fun e x y ↦ ⟨fun a ↦ h₁.isLink_of_isLink a, fun a ↦ h₂.isLink_of_isLink a⟩
   inf := inf
   inf_le_left G H := ⟨inter_subset_left, fun e x y h ↦ h.1⟩
   inf_le_right G H := ⟨inter_subset_right, fun e x y h ↦ h.2⟩
   le_inf _ _ _ h₁ h₂ := ⟨subset_inter h₁.1 h₂.1, fun e x y ↦ imp_and.mpr ⟨(h₁.2 ·), (h₂.2 ·)⟩⟩
 
-lemma Inc₂.of_le (h : H.Inc₂ e x y) (hle : H ≤ G) : G.Inc₂ e x y :=
+lemma IsLink.of_le (h : H.IsLink e x y) (hle : H ≤ G) : G.IsLink e x y :=
   hle.2 h
 
 lemma Inc.of_le (h : H.Inc e x) (hle : H ≤ G) : G.Inc e x :=
@@ -46,25 +46,25 @@ lemma vertexSet_subset_of_le (h : H ≤ G) : V(H) ⊆ V(G) :=
 
 lemma edgeSet_subset_of_le (h : H ≤ G) : E(H) ⊆ E(G) := by
   refine fun e he ↦ ?_
-  obtain ⟨x, y, h'⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨x, y, h'⟩ := exists_isLink_of_mem_edgeSet he
   exact (h'.of_le h).edge_mem
 
-lemma le_iff : H ≤ G ↔ (V(H) ⊆ V(G)) ∧ ∀ ⦃e x y⦄, H.Inc₂ e x y → G.Inc₂ e x y :=
+lemma le_iff : H ≤ G ↔ (V(H) ⊆ V(G)) ∧ ∀ ⦃e x y⦄, H.IsLink e x y → G.IsLink e x y :=
   ⟨fun h ↦ ⟨h.1, h.2⟩, fun h ↦ ⟨h.1, h.2⟩⟩
 
-lemma Inc₂.of_le_of_mem (h : G.Inc₂ e x y) (hle : H ≤ G) (he : e ∈ E(H)) : H.Inc₂ e x y := by
-  obtain ⟨u, v, huv⟩ := exists_inc₂_of_mem_edgeSet he
-  obtain ⟨rfl, rfl⟩ | ⟨rfl,rfl⟩ := (huv.of_le hle).eq_and_eq_or_eq_and_eq_of_inc₂ h
+lemma IsLink.of_le_of_mem (h : G.IsLink e x y) (hle : H ≤ G) (he : e ∈ E(H)) : H.IsLink e x y := by
+  obtain ⟨u, v, huv⟩ := exists_isLink_of_mem_edgeSet he
+  obtain ⟨rfl, rfl⟩ | ⟨rfl,rfl⟩ := (huv.of_le hle).eq_and_eq_or_eq_and_eq_of_isLink h
   · assumption
   exact huv.symm
 
-lemma inc₂_iff_inc₂_of_le_of_mem (hle : H ≤ G) (he : e ∈ E(H)) :
-    G.Inc₂ e x y ↔ H.Inc₂ e x y :=
+lemma isLink_iff_isLink_of_le_of_mem (hle : H ≤ G) (he : e ∈ E(H)) :
+    G.IsLink e x y ↔ H.IsLink e x y :=
   ⟨fun h ↦ h.of_le_of_mem hle he, fun h ↦ h.of_le hle⟩
 
 lemma inc_iff_inc_of_le_of_mem (hle : G ≤ H) (he : e ∈ E(G)) : G.Inc e x ↔ H.Inc e x := by
   revert x
-  simp [inc_iff_inc_iff, inc₂_iff_inc₂_of_le_of_mem hle he]
+  simp [inc_iff_inc_iff, isLink_iff_isLink_of_le_of_mem hle he]
 
 lemma le_iff_inc : G ≤ H ↔ V(G) ⊆ V(H) ∧ E(G) ⊆ E(H) ∧ ∀ e ∈ E(G), ∀ v,
   G.Inc e v ↔ H.Inc e v := by
@@ -79,20 +79,20 @@ lemma le_iff_inc : G ≤ H ↔ V(G) ⊆ V(H) ∧ E(G) ⊆ E(H) ∧ ∀ e ∈ E(G
     · simp [he]
 
 lemma toMultiset_eq_of_le (hle : H ≤ G) (he : e ∈ E(H)) : H.toMultiset e = G.toMultiset e := by
-  obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edgeSet he
   rw [toMultiset_eq_pair_iff.mpr h, toMultiset_eq_pair_iff.mpr (h.of_le hle)]
 
 lemma toSym2_eq_of_le (hle : H ≤ G) (he : e ∈ E(H)) :
     H.toSym2 e he = G.toSym2 e (edgeSet_subset_of_le hle he) := by
-  obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet he
+  obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edgeSet he
   rw [(toSym2_eq_pair_iff he).mpr h,
     (toSym2_eq_pair_iff (edgeSet_subset_of_le hle he)).mpr (h.of_le hle)]
 
 lemma le_of_le_le_subset_subset {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : H₂ ≤ G) (hV : V(H₁) ⊆ V(H₂))
     (hE : E(H₁) ⊆ E(H₂)) : H₁ ≤ H₂ where
   vx_subset := hV
-  inc₂_of_inc₂ e x y h := by
-    rw [← G.inc₂_iff_inc₂_of_le_of_mem h₂ (hE h.edge_mem)]
+  isLink_of_isLink e x y h := by
+    rw [← G.isLink_iff_isLink_of_le_of_mem h₂ (hE h.edge_mem)]
     exact h.of_le h₁
 
 lemma ext_of_le_le {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : H₂ ≤ G) (hV : V(H₁) = V(H₂))
@@ -101,7 +101,7 @@ lemma ext_of_le_le {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : H₂ �
     (le_of_le_le_subset_subset h₂ h₁ hV.symm.subset hE.symm.subset)
 
 instance instvxNonemptyOfEdgeNonempty (G : Graph α β) [hE : Nonempty E(G)] : Nonempty V(G) := by
-  obtain ⟨x, y, hbtw⟩ := exists_inc₂_of_mem_edgeSet hE.some.prop
+  obtain ⟨x, y, hbtw⟩ := exists_isLink_of_mem_edgeSet hE.some.prop
   use x, hbtw.vx_mem_left
 
 /-- Restrict `G : Graph α β` to the edges in a set `E₀` without removing vertices -/
@@ -109,35 +109,35 @@ instance instvxNonemptyOfEdgeNonempty (G : Graph α β) [hE : Nonempty E(G)] : N
 def edgeRestrict (G : Graph α β) (E₀ : Set β) : Graph α β where
   vertexSet := V(G)
   edgeSet := E₀ ∩ E(G)
-  Inc₂ e x y := e ∈ E₀ ∧ G.Inc₂ e x y
-  inc₂_symm e x y h := by rwa [G.inc₂_comm]
-  eq_or_eq_of_inc₂_of_inc₂ _ _ _ _ _ h h' := h.2.left_eq_or_eq_of_inc₂ h'.2
-  edge_mem_iff_exists_inc₂ e := ⟨fun h ↦ by simp [h, G.exists_inc₂_of_mem_edgeSet h.2, h.1],
+  IsLink e x y := e ∈ E₀ ∧ G.IsLink e x y
+  isLink_symm e x y h := by rwa [G.isLink_comm]
+  eq_or_eq_of_isLink_of_isLink _ _ _ _ _ h h' := h.2.left_eq_or_eq_of_isLink h'.2
+  edge_mem_iff_exists_isLink e := ⟨fun h ↦ by simp [h, G.exists_isLink_of_mem_edgeSet h.2, h.1],
     fun ⟨x, y, h⟩ ↦ ⟨h.1, h.2.edge_mem⟩⟩
-  vx_mem_left_of_inc₂ _ _ _ h := h.2.vx_mem_left
+  vx_mem_left_of_isLink _ _ _ h := h.2.vx_mem_left
 
 scoped infixl:65 " ↾ "  => Graph.edgeRestrict
 
-lemma Inc₂.edgeRestrict (hG : G.Inc₂ e x y) (he : e ∈ F) : (G ↾ F).Inc₂ e x y := by
-  rw [edgeRestrict_inc₂]
+lemma IsLink.edgeRestrict (hG : G.IsLink e x y) (he : e ∈ F) : (G ↾ F).IsLink e x y := by
+  rw [edgeRestrict_isLink]
   exact ⟨he, hG⟩
 
-lemma Inc₂.of_edgeRestrict (hG : (G ↾ F).Inc₂ e x y) : G.Inc₂ e x y := by
-  rw [edgeRestrict_inc₂] at hG
+lemma IsLink.of_edgeRestrict (hG : (G ↾ F).IsLink e x y) : G.IsLink e x y := by
+  rw [edgeRestrict_isLink] at hG
   exact hG.2
 
 @[simp]
 lemma edgeRestrict_inc : (G ↾ F).Inc e x ↔ e ∈ F ∧ G.Inc e x := by
-  simp_rw [inc_iff_exists_inc₂, edgeRestrict_inc₂, exists_and_left]
+  simp_rw [inc_iff_exists_isLink, edgeRestrict_isLink, exists_and_left]
 
 @[simp]
 lemma edgeRestrict_le {E₀ : Set β} : G ↾ E₀ ≤ G where
   vx_subset := rfl.le
-  inc₂_of_inc₂ := by simp
+  isLink_of_isLink := by simp
 
 lemma edgeRestrict_mono_right (G : Graph α β) {F₀ F : Set β} (hss : F₀ ⊆ F) : G ↾ F₀ ≤ G ↾ F where
   vx_subset := rfl.subset
-  inc₂_of_inc₂ _ _ _ := fun h ↦ ⟨hss h.1, h.2⟩
+  isLink_of_isLink _ _ _ := fun h ↦ ⟨hss h.1, h.2⟩
 
 lemma edgeRestrict_mono_left (h : H ≤ G) (F : Set β) : H ↾ F ≤ G ↾ F :=
   G.le_of_le_le_subset_subset (edgeRestrict_le.trans h) (by simp)
@@ -181,7 +181,7 @@ lemma edgeRestrict_le_edgeRestrict_iff (G : Graph α β) (F₁ F₂ : Set β) :
   · rw [mem_inter_iff] at he ⊢
     simp [he, (edgeSet_subset_of_le h he).1]
   · refine ⟨subset_rfl, fun e x y hbtw ↦ ?_⟩
-    rw [edgeRestrict_inc₂] at hbtw ⊢
+    rw [edgeRestrict_isLink] at hbtw ⊢
     exact ⟨(h ⟨hbtw.1, hbtw.2.edge_mem⟩).1, hbtw.2⟩
 
 @[simp]
@@ -193,10 +193,10 @@ lemma edgeRestrict_eq_edgeRestrict_iff (G : Graph α β) (F₁ F₂ : Set β) :
 use `copy` for better definitional properties. -/
 @[simps!]
 def edgeDelete (G : Graph α β) (F : Set β) : Graph α β :=
-  (G.edgeRestrict (E(G) \ F)).copy (E := E(G) \ F) (Inc₂ := fun e x y ↦ e ∉ F ∧ G.Inc₂ e x y) rfl
+  (G.edgeRestrict (E(G) \ F)).copy (E := E(G) \ F) (IsLink := fun e x y ↦ e ∉ F ∧ G.IsLink e x y) rfl
     (by simp [diff_subset])
     (fun e x y ↦ by
-      simp only [edgeRestrict_inc₂, mem_diff, and_comm, and_congr_left_iff, and_iff_left_iff_imp]
+      simp only [edgeRestrict_isLink, mem_diff, and_comm, and_congr_left_iff, and_iff_left_iff_imp]
       exact fun h _ ↦ h.edge_mem)
 
 scoped infixl:65 " ＼ " => Graph.edgeDelete
@@ -224,17 +224,17 @@ lemma edgeDelete_singleton_edgeSet_ncard_lt_iff (G : Graph α β) (e : β) [Fini
     E(G ＼ {e}).ncard < E(G).ncard ↔ e ∈ E(G) := by
   simp only [edgeDelete_edgeSet_ncard_lt_iff, inter_singleton_nonempty]
 
-lemma Inc₂.edgeDelete (hG : G.Inc₂ e x y) (he : e ∉ F) : (G ＼ F).Inc₂ e x y := by
-  rw [edgeDelete_inc₂]
+lemma IsLink.edgeDelete (hG : G.IsLink e x y) (he : e ∉ F) : (G ＼ F).IsLink e x y := by
+  rw [edgeDelete_isLink]
   exact ⟨he, hG⟩
 
-lemma Inc₂.of_edgeDelete (hG : (G ＼ F).Inc₂ e x y) : G.Inc₂ e x y := by
-  rw [edgeDelete_inc₂] at hG
+lemma IsLink.of_edgeDelete (hG : (G ＼ F).IsLink e x y) : G.IsLink e x y := by
+  rw [edgeDelete_isLink] at hG
   exact hG.2
 
 @[simp]
 lemma edgeDelete_inc : (G ＼ F).Inc e x ↔ e ∉ F ∧ G.Inc e x := by
-  simp_rw [inc_iff_exists_inc₂, edgeDelete_inc₂, exists_and_left]
+  simp_rw [inc_iff_exists_isLink, edgeDelete_isLink, exists_and_left]
 
 lemma edgeDelete_eq_edgeRestrict (G : Graph α β) (F : Set β) :
     G ＼ F = G ↾ (E(G) \ F) := copy_eq_self ..
@@ -291,8 +291,8 @@ lemma noEdge_le_iff {V : Set α} : Graph.noEdge V β ≤ G ↔ V ⊆ V(G) := by
 
 lemma edgeDelete_eq_noEdge (G : Graph α β) (hF : E(G) ⊆ F) : G ＼ F = Graph.noEdge V(G) β := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [edgeDelete_inc₂, noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
-    not_inc₂_of_not_mem_edgeSet, iff_false, not_and]
+  simp only [edgeDelete_isLink, noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
+    not_isLink_of_not_mem_edgeSet, iff_false, not_and]
   exact fun h hbtw ↦ h (hF hbtw.edge_mem)
 
 instance instOrderBotGraph : OrderBot (Graph α β) where
@@ -337,7 +337,7 @@ instance instUniqueGraph [IsEmpty α] : Unique (Graph α β) where
 @[simp] lemma eq_bot_of_isEmpty [IsEmpty α] : G = ⊥ := instUniqueGraph.uniq G
 
 @[simp]
-lemma bot_not_inc₂ : ¬ (⊥ : Graph α β).Inc₂ e x y := by
+lemma bot_not_isLink : ¬ (⊥ : Graph α β).IsLink e x y := by
   intro h
   simpa using h.vx_mem_left
 
@@ -368,30 +368,30 @@ lemma edgeDelete_univ : G ＼ (univ : Set β) = Graph.noEdge V(G) β := by
 The edges are the edges of `G` with both ends in `X`.
 (`X` is not required to be a subset of `V(G)` for this definition to work,
 even though this is the standard use case) -/
-@[simps! vertexSet inc₂]
+@[simps! vertexSet isLink]
 protected def induce (G : Graph α β) (X : Set α) : Graph α β := Graph.mk'
   (V := X)
-  (Inc₂ := fun e x y ↦ G.Inc₂ e x y ∧ x ∈ X ∧ y ∈ X)
-  (inc₂_symm := fun e x y ↦ by simp [G.inc₂_comm, and_comm (a := (x ∈ X))])
-  (eq_or_eq_of_inc₂_of_inc₂ := fun e x y u v ⟨h, _⟩ ⟨h', _⟩ ↦ G.eq_or_eq_of_inc₂_of_inc₂ h h')
-  (vx_mem_left_of_inc₂ := fun _ _ _ ⟨_, h⟩ ↦ h.1)
+  (IsLink := fun e x y ↦ G.IsLink e x y ∧ x ∈ X ∧ y ∈ X)
+  (isLink_symm := fun e x y ↦ by simp [G.isLink_comm, and_comm (a := (x ∈ X))])
+  (eq_or_eq_of_isLink_of_isLink := fun e x y u v ⟨h, _⟩ ⟨h', _⟩ ↦ G.eq_or_eq_of_isLink_of_isLink h h')
+  (vx_mem_left_of_isLink := fun _ _ _ ⟨_, h⟩ ↦ h.1)
 
 notation:max G:1000 "[" S "]" => Graph.induce G S
 
 lemma induce_le (hX : X ⊆ V(G)) : G[X] ≤ G :=
   ⟨hX, fun _ _ _ h ↦ h.1⟩
 
-lemma Inc₂.induce (hG : G.Inc₂ e x y) (hx : x ∈ X) (hy : y ∈ X) : G[X].Inc₂ e x y := by
-  rw [induce_inc₂]
+lemma IsLink.induce (hG : G.IsLink e x y) (hx : x ∈ X) (hy : y ∈ X) : G[X].IsLink e x y := by
+  rw [induce_isLink]
   exact ⟨hG, hx, hy⟩
 
-lemma Inc₂.of_induce (hG : G[X].Inc₂ e x y) : G.Inc₂ e x y := by
-  rw [induce_inc₂] at hG
+lemma IsLink.of_induce (hG : G[X].IsLink e x y) : G.IsLink e x y := by
+  rw [induce_isLink] at hG
   exact hG.1
 
 /-- This is too annoying to be a simp lemma. -/
 lemma induce_edgeSet (G : Graph α β) (X : Set α) :
-    E(G[X]) = {e | ∃ x y, G.Inc₂ e x y ∧ x ∈ X ∧ y ∈ X} := rfl
+    E(G[X]) = {e | ∃ x y, G.IsLink e x y ∧ x ∈ X ∧ y ∈ X} := rfl
 
 @[simp]
 lemma induce_edgeSet_subset (G : Graph α β) (X : Set α) :
@@ -399,15 +399,15 @@ lemma induce_edgeSet_subset (G : Graph α β) (X : Set α) :
   rintro e ⟨x,y,h, -, -⟩
   exact h.edge_mem
 
-lemma Inc₂.mem_induce_iff {X : Set α} (hG : G.Inc₂ e x y) : e ∈ E(G[X]) ↔ x ∈ X ∧ y ∈ X := by
+lemma IsLink.mem_induce_iff {X : Set α} (hG : G.IsLink e x y) : e ∈ E(G[X]) ↔ x ∈ X ∧ y ∈ X := by
   simp only [induce_edgeSet, mem_setOf_eq]
   refine ⟨fun ⟨x', y', he, hx', hy'⟩ ↦ ?_, fun h ↦ ⟨x, y, hG, h⟩⟩
-  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hG.eq_and_eq_or_eq_and_eq_of_inc₂ he <;> simp [hx', hy']
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hG.eq_and_eq_or_eq_and_eq_of_isLink he <;> simp [hx', hy']
 
 lemma induce_induce (G : Graph α β) (X Y : Set α) : G[X][Y] = G[Y] ↾ E(G[X]) := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [induce_inc₂, edgeRestrict_inc₂]
-  obtain he | he := em' (G.Inc₂ e x y)
+  simp only [induce_isLink, edgeRestrict_isLink]
+  obtain he | he := em' (G.IsLink e x y)
   · simp [he]
   rw [he.mem_induce_iff]
   tauto
@@ -415,7 +415,7 @@ lemma induce_induce (G : Graph α β) (X Y : Set α) : G[X][Y] = G[Y] ↾ E(G[X]
 lemma induce_mono (hle : H ≤ G) (hsu : X ⊆ Y) : H[X] ≤ G[Y] := by
   rw [le_iff]
   refine ⟨hsu, fun e x y ↦ ?_⟩
-  rw [induce_inc₂, induce_inc₂]
+  rw [induce_isLink, induce_isLink]
   exact fun ⟨hbtw, hxU, hyU⟩ ↦ ⟨hbtw.of_le hle, hsu hxU, hsu hyU⟩
 
 lemma induce_mono_left (hle : H ≤ G) (X : Set α) : H[X] ≤ G[X] :=
@@ -441,7 +441,7 @@ lemma induce_eq_self_iff (G : Graph α β) (X : Set α) : G[X] = G ↔ X = V(G) 
     subst X
     rw [le_iff]
     refine ⟨subset_refl _, fun e x y hbtw ↦ ?_⟩
-    rw [induce_inc₂]
+    rw [induce_isLink]
     exact ⟨hbtw, hbtw.vx_mem_left, hbtw.vx_mem_right⟩
 
 @[simp]
@@ -462,17 +462,17 @@ lemma vxDelete_vertexSet (G : Graph α β) (X : Set α) : V(G - X) = V(G) \ X :=
 
 @[simp]
 lemma vxDelete_edgeSet (G : Graph α β) (X : Set α) :
-  E(G - X) = {e | ∃ x y, G.Inc₂ e x y ∧ (x ∈ V(G) ∧ x ∉ X) ∧ y ∈ V(G) ∧ y ∉ X}  := rfl
+  E(G - X) = {e | ∃ x y, G.IsLink e x y ∧ (x ∈ V(G) ∧ x ∉ X) ∧ y ∈ V(G) ∧ y ∉ X}  := rfl
 
 @[simp]
-lemma vxDelete_inc₂ (G : Graph α β) (X : Set α) :
-    (G - X).Inc₂ e x y ↔ (G.Inc₂ e x y ∧ (x ∈ V(G) ∧ x ∉ X) ∧ y ∈ V(G) ∧ y ∉ X) := Iff.rfl
+lemma vxDelete_isLink (G : Graph α β) (X : Set α) :
+    (G - X).IsLink e x y ↔ (G.IsLink e x y ∧ (x ∈ V(G) ∧ x ∉ X) ∧ y ∈ V(G) ∧ y ∉ X) := Iff.rfl
 
 @[simp]
 lemma vxDelete_le : G - X ≤ G :=
   G.induce_le diff_subset
 
-lemma Inc₂.mem_vxDelete_iff {X : Set α} (hG : G.Inc₂ e x y) : e ∈ E(G - X) ↔ x ∉ X ∧ y ∉ X := by
+lemma IsLink.mem_vxDelete_iff {X : Set α} (hG : G.IsLink e x y) : e ∈ E(G - X) ↔ x ∉ X ∧ y ∉ X := by
   rw [vxDelete_def, hG.mem_induce_iff, mem_diff, mem_diff, and_iff_right hG.vx_mem_left,
     and_iff_right hG.vx_mem_right]
 
@@ -513,13 +513,13 @@ lemma vxDelete_univ : G - (univ : Set α) = ⊥ := by
 @[simp]
 lemma edgeRestrict_induce (G : Graph α β) (X : Set α) (F : Set β) : (G ↾ F)[X] = G[X] ↾ F := by
   refine Graph.ext (by simp) fun e x y ↦ ?_
-  simp only [induce_inc₂, edgeRestrict_inc₂]
+  simp only [induce_isLink, edgeRestrict_isLink]
   tauto
 
 lemma edgeRestrict_vxDelete (G : Graph α β) (F : Set β) (D : Set α) :
     (G ↾ F) - D = (G - D) ↾ F := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [vxDelete_inc₂, edgeRestrict_inc₂, edgeRestrict_vertexSet]
+  simp only [vxDelete_isLink, edgeRestrict_isLink, edgeRestrict_vertexSet]
   tauto
 
 @[simp]
@@ -540,8 +540,8 @@ lemma vxDelete_vxDelete : G - X - Y = G - (X ∪ Y) := by
   rw [G.vxDelete_def, induce_vxDelete, diff_diff]
   rfl
 
-@[simp] lemma singleEdge_le_iff : Graph.singleEdge u v e ≤ G ↔ G.Inc₂ e u v := by
-  simp only [le_iff, singleEdge_vertexSet, Set.pair_subset_iff, singleEdge_inc₂_iff, and_imp,
+@[simp] lemma singleEdge_le_iff : Graph.singleEdge u v e ≤ G ↔ G.IsLink e u v := by
+  simp only [le_iff, singleEdge_vertexSet, Set.pair_subset_iff, singleEdge_isLink_iff, and_imp,
     Sym2.eq_iff]
   refine ⟨fun h ↦ h.2 rfl (.inl ⟨rfl, rfl⟩), fun h ↦ ⟨⟨h.vx_mem_left, h.vx_mem_right⟩, ?_⟩⟩
   rintro e x y rfl (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩)
@@ -549,7 +549,7 @@ lemma vxDelete_vxDelete : G - X - Y = G - (X ∪ Y) := by
   exact h.symm
 
 /-- Two graphs are `Compatible` if the edges in their intersection agree on their ends -/
-def Compatible (G H : Graph α β) : Prop := ∀ ⦃e⦄, e ∈ E(G) → e ∈ E(H) → G.Inc₂ e = H.Inc₂ e
+def Compatible (G H : Graph α β) : Prop := ∀ ⦃e⦄, e ∈ E(G) → e ∈ E(H) → G.IsLink e = H.IsLink e
 
 lemma Compatible.symm (h : G.Compatible H) : H.Compatible G :=
   fun _ hH hG ↦ (h hG hH).symm
@@ -558,7 +558,7 @@ lemma Compatible.symm (h : G.Compatible H) : H.Compatible G :=
 lemma compatible_of_le_le {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : H₂ ≤ G) : H₁.Compatible H₂ := by
   intro e he₁ he₂
   ext x y
-  rw [← inc₂_iff_inc₂_of_le_of_mem h₁ he₁, ← inc₂_iff_inc₂_of_le_of_mem h₂ he₂]
+  rw [← isLink_iff_isLink_of_le_of_mem h₁ he₁, ← isLink_iff_isLink_of_le_of_mem h₂ he₂]
 
 lemma compatible_self (G : Graph α β) : G.Compatible G := by
   simp [Compatible]
@@ -569,7 +569,7 @@ lemma compatible_iff_inter_edge_eq_inter : G.Compatible H ↔ E(G ⊓ H) = E(G) 
     ext e
     simp only [mem_setOf_eq, mem_inter_iff]
     refine ⟨fun ⟨x, y, hG, hH⟩ ↦ ⟨hG.edge_mem, hH.edge_mem⟩, fun ⟨heG, heH⟩ ↦ ?_⟩
-    · obtain ⟨x, y, hbtw⟩ := exists_inc₂_of_mem_edgeSet heG
+    · obtain ⟨x, y, hbtw⟩ := exists_isLink_of_mem_edgeSet heG
       exact ⟨x, y, hbtw, (h heG heH) ▸ hbtw⟩
   · rintro h e heG heH
     have : e ∈ E(G) ∩ E(H) := ⟨heG, heH⟩
@@ -584,23 +584,23 @@ its `H`-ends, then `G` is favoured, so this is not commutative in general.
 protected def union (G H : Graph α β) : Graph α β where
   vertexSet := V(G) ∪ V(H)
   edgeSet := E(G) ∪ E(H)
-  Inc₂ e x y := G.Inc₂ e x y ∨ (e ∉ E(G) ∧ H.Inc₂ e x y)
-  inc₂_symm e x y h := by rwa [G.inc₂_comm, H.inc₂_comm]
-  eq_or_eq_of_inc₂_of_inc₂ := by
+  IsLink e x y := G.IsLink e x y ∨ (e ∉ E(G) ∧ H.IsLink e x y)
+  isLink_symm e x y h := by rwa [G.isLink_comm, H.isLink_comm]
+  eq_or_eq_of_isLink_of_isLink := by
     rintro e x y v w (h | h) (h' | h')
-    · exact h.left_eq_or_eq_of_inc₂ h'
+    · exact h.left_eq_or_eq_of_isLink h'
     · exact False.elim <| h'.1 h.edge_mem
     · exact False.elim <| h.1 h'.edge_mem
-    exact h.2.left_eq_or_eq_of_inc₂ h'.2
-  edge_mem_iff_exists_inc₂ e := by
+    exact h.2.left_eq_or_eq_of_isLink h'.2
+  edge_mem_iff_exists_isLink e := by
     refine ⟨?_, fun ⟨x, y, h⟩ ↦ h.elim (fun h' ↦ .inl h'.edge_mem) (fun h' ↦ .inr h'.2.edge_mem)⟩
     rw [← Set.union_diff_self]
     rintro (he | ⟨heH, heG⟩)
-    · obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet he
+    · obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edgeSet he
       exact ⟨x, y, .inl h⟩
-    obtain ⟨x, y, h⟩ := exists_inc₂_of_mem_edgeSet heH
+    obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edgeSet heH
     exact ⟨x, y, .inr ⟨heG, h⟩⟩
-  vx_mem_left_of_inc₂ := by
+  vx_mem_left_of_isLink := by
     rintro e x y (h | h)
     · exact .inl h.vx_mem_left
     exact .inr h.2.vx_mem_left
@@ -613,37 +613,37 @@ lemma union_vertexSet (G H : Graph α β) : V(G ∪ H) = V(G) ∪ V(H) := rfl
 @[simp]
 lemma union_edgeSet (G H : Graph α β) : E(G ∪ H) = E(G) ∪ E(H) := rfl
 
-lemma union_inc₂_iff : (G ∪ H).Inc₂ e x y ↔ G.Inc₂ e x y ∨ (e ∉ E(G) ∧ H.Inc₂ e x y) := Iff.rfl
+lemma union_isLink_iff : (G ∪ H).IsLink e x y ↔ G.IsLink e x y ∨ (e ∉ E(G) ∧ H.IsLink e x y) := Iff.rfl
 
 lemma union_le {H₁ H₂ : Graph α β} (h₁ : H₁ ≤ G) (h₂ : H₂ ≤ G) : H₁ ∪ H₂ ≤ G := by
-  suffices ∀ ⦃e : β⦄ ⦃x y : α⦄, H₁.Inc₂ e x y ∨ e ∉ E(H₁) ∧ H₂.Inc₂ e x y → G.Inc₂ e x y by
-    simpa [le_iff, vertexSet_subset_of_le h₁, vertexSet_subset_of_le h₂, union_inc₂_iff]
+  suffices ∀ ⦃e : β⦄ ⦃x y : α⦄, H₁.IsLink e x y ∨ e ∉ E(H₁) ∧ H₂.IsLink e x y → G.IsLink e x y by
+    simpa [le_iff, vertexSet_subset_of_le h₁, vertexSet_subset_of_le h₂, union_isLink_iff]
   rintro e x y (h | ⟨-, h⟩) <;>
   exact h.of_le <| by assumption
 
-lemma inc₂_or_inc₂_of_union (h : (G ∪ H).Inc₂ e x y) : G.Inc₂ e x y ∨ H.Inc₂ e x y := by
-  rw [union_inc₂_iff] at h
+lemma isLink_or_isLink_of_union (h : (G ∪ H).IsLink e x y) : G.IsLink e x y ∨ H.IsLink e x y := by
+  rw [union_isLink_iff] at h
   tauto
 
 @[simp]
 lemma left_le_union (G H : Graph α β) : G ≤ G ∪ H := by
-  simp_rw [le_iff, union_inc₂_iff]
+  simp_rw [le_iff, union_isLink_iff]
   tauto
 
 protected lemma union_assoc (G₁ G₂ G₃ : Graph α β) : (G₁ ∪ G₂) ∪ G₃ = G₁ ∪ (G₂ ∪ G₃) := by
   refine Graph.ext (Set.union_assoc ..) fun e x y ↦ ?_
-  simp [union_inc₂_iff]
+  simp [union_isLink_iff]
   tauto
 
-lemma Compatible.union_inc₂_iff (h : Compatible G H) :
-    (G ∪ H).Inc₂ e x y ↔ G.Inc₂ e x y ∨ H.Inc₂ e x y := by
+lemma Compatible.union_isLink_iff (h : Compatible G H) :
+    (G ∪ H).IsLink e x y ↔ G.IsLink e x y ∨ H.IsLink e x y := by
   by_cases heG : e ∈ E(G)
-  · simp only [Graph.union_inc₂_iff, heG, not_true_eq_false, false_and, or_false, iff_self_or]
+  · simp only [Graph.union_isLink_iff, heG, not_true_eq_false, false_and, or_false, iff_self_or]
     exact fun heH ↦ by rwa [h heG heH.edge_mem]
-  simp [Graph.union_inc₂_iff, heG]
+  simp [Graph.union_isLink_iff, heG]
 
 lemma Compatible.union_comm (h : Compatible G H) : G ∪ H = H ∪ G :=
-  Graph.ext (Set.union_comm ..) fun _ _ _ ↦ by rw [h.union_inc₂_iff, h.symm.union_inc₂_iff, or_comm]
+  Graph.ext (Set.union_comm ..) fun _ _ _ ↦ by rw [h.union_isLink_iff, h.symm.union_isLink_iff, or_comm]
 
 lemma Compatible.right_le_union (h : Compatible G H) : H ≤ G ∪ H := by
   simp [h.union_comm]
@@ -657,14 +657,14 @@ lemma Compatible.of_disjoint_edgeSet (h : Disjoint E(G) E(H)) : Compatible G H :
   fun _ heG heH ↦ False.elim <| h.not_mem_of_mem_left heG heH
 
 lemma union_eq_union_edgeDelete (G H : Graph α β) : G ∪ H = G ∪ (H ＼ E(G)) :=
-  Graph.ext rfl fun e x y ↦ by rw [union_inc₂_iff,
-    (Compatible.of_disjoint_edgeSet disjoint_sdiff_right).union_inc₂_iff, edgeDelete_inc₂, and_comm]
+  Graph.ext rfl fun e x y ↦ by rw [union_isLink_iff,
+    (Compatible.of_disjoint_edgeSet disjoint_sdiff_right).union_isLink_iff, edgeDelete_isLink, and_comm]
 
 lemma Compatible.mono_left {G₀ : Graph α β} (h : Compatible G H) (hG₀ : G₀ ≤ G) :
     Compatible G₀ H := by
   intro e heG heH
   ext x y
-  rw [← inc₂_iff_inc₂_of_le_of_mem hG₀ heG, h (edgeSet_subset_of_le hG₀ heG) heH]
+  rw [← isLink_iff_isLink_of_le_of_mem hG₀ heG, h (edgeSet_subset_of_le hG₀ heG) heH]
 
 lemma Compatible.mono_right {H₀ : Graph α β} (h : Compatible G H) (hH₀ : H₀ ≤ H) :
     Compatible G H₀ :=
@@ -683,10 +683,10 @@ lemma union_eq_self_of_le_right (hle : G ≤ H) : H ∪ G = H :=
 lemma Compatible.induce_left (h : Compatible G H) (X : Set α) : G[X].Compatible H := by
   intro e heG heH
   ext x y
-  obtain ⟨u, v, heuv : G.Inc₂ e u v, hu, hv⟩ := heG
-  simp only [induce_inc₂, ← h heuv.edge_mem heH, and_iff_left_iff_imp]
+  obtain ⟨u, v, heuv : G.IsLink e u v, hu, hv⟩ := heG
+  simp only [induce_isLink, ← h heuv.edge_mem heH, and_iff_left_iff_imp]
   intro h
-  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_and_eq_or_eq_and_eq_of_inc₂ heuv <;> simp_all
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := h.eq_and_eq_or_eq_and_eq_of_isLink heuv <;> simp_all
 
 lemma Compatible.induce_right (h : Compatible G H) (X : Set α) :
     G.Compatible H[X] :=
@@ -702,14 +702,14 @@ lemma Compatible.induce_induce : G[X].Compatible G[Y] :=
 
 lemma Compatible.induce_union (h : G.Compatible H) (X : Set α) : (G ∪ H)[X] = G[X] ∪ H[X] := by
   refine Graph.ext (by simp) fun e x y ↦ ?_
-  simp only [induce_inc₂, h.union_inc₂_iff, h.induce.union_inc₂_iff]
+  simp only [induce_isLink, h.union_isLink_iff, h.induce.union_isLink_iff]
   tauto
 
 lemma induce_union (G : Graph α β) (X Y : Set α) (hX : ∀ x ∈ X, ∀ y ∈ Y, ¬ G.Adj x y) :
     G [X ∪ Y] = G [X] ∪ G [Y] := by
   refine Graph.ext rfl fun e x y ↦ ?_
-  simp only [induce_inc₂, mem_union, Compatible.induce_induce.union_inc₂_iff]
-  by_cases hxy : G.Inc₂ e x y
+  simp only [induce_isLink, mem_union, Compatible.induce_induce.union_isLink_iff]
+  by_cases hxy : G.IsLink e x y
   · by_cases hx : x ∈ X
     · simp [hx, show y ∉ Y from fun hy ↦ hX x hx y hy hxy.adj]
     by_cases hy : y ∈ X
@@ -720,20 +720,20 @@ lemma induce_union (G : Graph α β) (X Y : Set α) (hX : ∀ x ∈ X, ∀ y ∈
 lemma Compatible.vxDelete_union (h : G.Compatible H) (X : Set α) :
     (G ∪ H) - X = (G - X) ∪ (H - X) := by
   refine Graph.ext union_diff_distrib fun e x y ↦ ?_
-  simp only [vxDelete_inc₂, union_vertexSet, mem_union]
-  rw [vxDelete_def, vxDelete_def, ((h.induce_left _).induce_right _).union_inc₂_iff,
-    h.union_inc₂_iff]
-  simp only [induce_inc₂, mem_diff]
-  by_cases hG : G.Inc₂ e x y
+  simp only [vxDelete_isLink, union_vertexSet, mem_union]
+  rw [vxDelete_def, vxDelete_def, ((h.induce_left _).induce_right _).union_isLink_iff,
+    h.union_isLink_iff]
+  simp only [induce_isLink, mem_diff]
+  by_cases hG : G.IsLink e x y
   · simp +contextual [hG, hG.vx_mem_left, hG.vx_mem_right]
-  by_cases hH : H.Inc₂ e x y
+  by_cases hH : H.IsLink e x y
   · simp +contextual [hH, hH.vx_mem_left, hH.vx_mem_right]
   simp [hG, hH]
 
 lemma edgeRestrict_union (G : Graph α β) (F₁ F₂ : Set β) : (G ↾ (F₁ ∪ F₂)) = G ↾ F₁ ∪ (G ↾ F₂) := by
   refine Graph.ext (by simp) fun e x y ↦ ?_
-  rw [(G.compatible_self.mono (by simp) (by simp)).union_inc₂_iff]
-  simp only [edgeRestrict_inc₂, mem_union]
+  rw [(G.compatible_self.mono (by simp) (by simp)).union_isLink_iff]
+  simp only [edgeRestrict_isLink, mem_union]
   tauto
 
 lemma edgeRestrict_union_edgeDelete (G : Graph α β) (F : Set β) : (G ↾ F) ∪ (G ＼ F) = G := by
@@ -755,11 +755,11 @@ lemma edgeDelete_union_induce (G : Graph α β) (hX : X ⊆ V(G)) : (G ＼ E(G[X
 
 @[simp]
 lemma singleEdge_compatible_iff :
-    (Graph.singleEdge x y e).Compatible G ↔ (e ∈ E(G) → G.Inc₂ e x y) := by
-  refine ⟨fun h he ↦ by simp [← h (by simp) he, singleEdge_inc₂_iff] , fun h f hf hfE ↦ ?_⟩
+    (Graph.singleEdge x y e).Compatible G ↔ (e ∈ E(G) → G.IsLink e x y) := by
+  refine ⟨fun h he ↦ by simp [← h (by simp) he, singleEdge_isLink_iff] , fun h f hf hfE ↦ ?_⟩
   obtain rfl : f = e := by simpa using hf
   ext u v
-  rw [(h hfE).inc₂_iff, Graph.singleEdge_inc₂_iff, and_iff_right rfl, Sym2.eq_iff]
+  rw [(h hfE).isLink_iff, Graph.singleEdge_isLink_iff, and_iff_right rfl, Sym2.eq_iff]
   tauto
 
 lemma exists_compatible_of_le (h : H ≤ G) : ∃ H' : Graph α β, H.Compatible H' ∧ H ∪ H' = G := by
@@ -769,15 +769,15 @@ lemma exists_compatible_of_le (h : H ≤ G) : ∃ H' : Graph α β, H.Compatible
   · rw [le_iff]
     simp only [union_vertexSet, edgeDelete_vertexSet, subset_union_right, true_and]
     rintro e u v hbtw
-    rw [union_inc₂_iff]
+    rw [union_isLink_iff]
     refine (em (e ∈ E(H))).imp ?_ ?_ <;> rintro he
-    · simp [← inc₂_iff_inc₂_of_le_of_mem h he, hbtw]
+    · simp [← isLink_iff_isLink_of_le_of_mem h he, hbtw]
     · simp [he, hbtw]
 
 /-! ### Induced Subgraphs -/
 
 structure IsInducedSubgraph (H G : Graph α β) : Prop where
   le : H ≤ G
-  inc₂_of_mem : ∀ ⦃e x y⦄, G.Inc₂ e x y → x ∈ V(H) → y ∈ V(H) → H.Inc₂ e x y
+  isLink_of_mem : ∀ ⦃e x y⦄, G.IsLink e x y → x ∈ V(H) → y ∈ V(H) → H.IsLink e x y
 
 infixl:50 " ≤i " => Graph.IsInducedSubgraph
