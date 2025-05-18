@@ -1,6 +1,7 @@
 import Mathlib.Data.Setoid.Partition
 import Mathlib.Data.SetLike.Basic
 import Mathlib.Data.Set.Finite.Powerset
+import Kura.Dep.Rel
 -- import Matroid.ForMathlib.Lattice
 
 open Set
@@ -209,6 +210,8 @@ lemma top_eq_indiscrete (hs : ⊤ ≠ ⊥) : (⊤ : Partition α) = indiscrete �
 lemma parts_top_subset : ((⊤ : Partition α) : Set α) ⊆ {⊤} := by
   simp
 
+lemma supp_le_of_le {P Q : Partition α} (h : P ≤ Q) : P.supp ≤ Q.supp :=
+  sSup_le_sSup_of_forall_exists_le h
 
 end Order
 section Bind
@@ -534,6 +537,22 @@ lemma ofRel_rel_eq (P : Partition (Set α)) : ofRel P.Rel = P := by
     P = P' := by
   rw [← ofRel_rel_eq P, ← ofRel_rel_eq P']; congr; ext; exact h _ _
 
+lemma le_iff_rel_imp_rel {P P' : Partition (Set α)} :
+    P ≤ P' ↔ ∀ x y, P.Rel x y → P'.Rel x y := by
+  refine ⟨fun h x y hxy ↦ ?_, fun h x hx ↦ ⟨P'.partOf (P.rep hx), P'.partOf_mem ?_, ?_⟩⟩
+  · rw [rel_iff_exists] at hxy ⊢
+    obtain ⟨t, ht, hx, hy⟩ := hxy
+    obtain ⟨u, hu, htu⟩ := h t ht
+    exact ⟨u, hu, htu hx, htu hy⟩
+  · rw [← rel_self_iff_mem]
+    apply h
+    rw [rel_self_iff_mem]
+    exact ⟨x, hx, rep_mem hx⟩
+  · rw [← setOf_rel_eq_partOf]
+    conv_lhs => rw [← setOf_rel_eq hx (rep_mem hx)]
+    simp only [le_eq_subset, setOf_subset_setOf]
+    apply h
+
 end Rel
 
 section Discrete
@@ -562,6 +581,58 @@ lemma discrete.rel_iff_eq_of_mem (ha : a ∈ s) : (Partition.discrete s).Rel a b
   aesop
 
 end Discrete
+
+instance : Lattice (Partition (Set α)) where
+  sup P Q := ofRel (Relation.TransClosure <| P.Rel ⊔ Q.Rel)
+  inf P Q := ofRel (P.Rel ⊓ Q.Rel)
+  le_sup_left P Q a ha := by
+    obtain ⟨v, hv⟩ := P.nonempty_of_mem ha
+    use Partition.partOf (ofRel (Relation.TransClosure (P.Rel ⊔ Q.Rel))) v, ?_, ?_
+    · refine Partition.partOf_mem _ ?_
+      simp only [ofRel_supp, mem_setOf_eq]
+      refine Relation.TransGen.single ?_
+      simp only [Pi.sup_apply, rel_of_mem_of_mem ha hv hv, le_Prop_eq, implies_true, sup_of_le_left]
+    · rintro w hw
+      rw [← setOf_rel_eq_partOf]
+      simp only [rel_ofRel_eq, mem_setOf_eq]
+      exact Relation.TransGen.single (by simp [rel_of_mem_of_mem ha hv hw])
+  le_sup_right P Q a ha := by
+    obtain ⟨v, hv⟩ := Q.nonempty_of_mem ha
+    use Partition.partOf (ofRel (Relation.TransClosure (P.Rel ⊔ Q.Rel))) v, ?_, ?_
+    · refine Partition.partOf_mem _ ?_
+      simp only [ofRel_supp, mem_setOf_eq]
+      refine Relation.TransGen.single ?_
+      simp only [Pi.sup_apply, rel_of_mem_of_mem ha hv hv, le_Prop_eq, implies_true, sup_of_le_right]
+    · rintro w hw
+      rw [← setOf_rel_eq_partOf]
+      simp only [rel_ofRel_eq, mem_setOf_eq]
+      exact Relation.TransGen.single (by simp [rel_of_mem_of_mem ha hv hw])
+  sup_le P Q R hP hQ a ha := by
+    obtain ⟨v, hv⟩ := Partition.nonempty_of_mem ha
+    rw [le_iff_rel_imp_rel] at hP hQ
+    have hRel : P.Rel ⊔ Q.Rel ≤ R.Rel := sup_le hP hQ
+    have hRel' : ∀ x y, Relation.TransClosure (P.Rel ⊔ Q.Rel) x y → R.Rel x y := by
+      change Relation.TransClosure (P.Rel ⊔ Q.Rel) ≤ R.Rel
+      rwa [ClosureOperator.IsClosed.closure_le_iff (transitive_of_trans R.Rel)]
+    rw [← rel_ofRel_eq (Relation.TransClosure (P.Rel ⊔ Q.Rel))] at hRel'
+    use Partition.partOf R v, ?_, fun w hw ↦ ?_
+    · rw [← le_iff_rel_imp_rel] at hRel'
+      refine Partition.partOf_mem _ <| supp_le_of_le hRel' (le_of_mem _ ha hv)
+    · rw [← setOf_rel_eq_partOf, mem_setOf_eq]
+      exact hRel' _ _ <| rel_of_mem_of_mem ha hv hw
+  inf_le_left P Q a ha := by
+    simp only [mem_ofRel_iff] at ha
+    obtain ⟨x, hx, rfl⟩ := ha
+    use P.partOf x, partOf_mem _ ?_, ?_
+    · rw [← rel_self_iff_mem]
+      sorry
+    · intro y hy
+      rw [mem_setOf_eq] at hy
+      sorry
+  inf_le_right P Q a ha := by
+    sorry
+  le_inf P Q R hP hQ a ha := by
+    sorry
 
 section RepFun
 

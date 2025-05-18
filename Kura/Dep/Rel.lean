@@ -225,6 +225,8 @@ def ReflClosure : ClosureOperator (α → α → Prop) where
     · exact h'
     · exact ReflGen.refl
     · exact ReflGen.single (ReflGen.single h')
+  IsClosed := Reflexive
+  isClosed_iff := ⟨Relation.reflGen_eq_self, fun hr => hr ▸ reflexive_reflGen⟩
 
 def TransClosure : ClosureOperator (α → α → Prop) where
   toFun := TransGen
@@ -237,6 +239,8 @@ def TransClosure : ClosureOperator (α → α → Prop) where
       | single h => exact h
       | tail _ h' ih => exact TransGen.trans ih h'
     · exact TransGen.single h
+  IsClosed := Transitive
+  isClosed_iff := ⟨Relation.transGen_eq_self, fun hr => hr ▸ transitive_transGen⟩
 
 def ReflTransClosure : ClosureOperator (α → α → Prop) where
   toFun := ReflTransGen
@@ -249,6 +253,9 @@ def ReflTransClosure : ClosureOperator (α → α → Prop) where
       | refl => exact ReflTransGen.refl
       | tail _ h' ih => exact ReflTransGen.trans ih h'
     · exact ReflTransGen.single h
+  IsClosed r := Reflexive r ∧ Transitive r
+  isClosed_iff := ⟨fun ⟨hrefl, htrans⟩ => reflTransGen_eq_self hrefl htrans,
+    fun h => ⟨h ▸ reflexive_reflTransGen, h ▸ transitive_reflTransGen⟩⟩
 
 def EqvGenClosure : ClosureOperator (α → α → Prop) where
   toFun := EqvGen
@@ -263,6 +270,9 @@ def EqvGenClosure : ClosureOperator (α → α → Prop) where
       | symm x y _ ih => exact EqvGen.symm x y ih
       | trans x y z _ _ ihxy ihyz => exact EqvGen.trans x y z ihxy ihyz
     · exact EqvGen.rel a b h
+  IsClosed r := Equivalence r
+  isClosed_iff := fun {r}=> ⟨Equivalence.eqvGen_eq, fun h => h ▸ EqvGen.is_equivalence r⟩
+
 
 end Relation
 
@@ -275,3 +285,23 @@ lemma closure_eq_closure_of_le_of_le_closure {r s : α} [PartialOrder α]
   · exact le_closure_iff.mp hlec
 
 end ClosureOperator
+
+instance {r : α → α → Prop} : IsTrans α (Relation.TransClosure r) := by
+  change IsTrans α (Relation.TransGen r)
+  infer_instance
+
+instance {r : α → α → Prop} [IsSymm α r] : IsSymm α (Relation.TransClosure r) := by
+  refine ⟨fun a b h ↦ ?_⟩
+  induction h with
+  | single hr => exact Relation.TransGen.single (symm_of r hr)
+  | tail _ hr ih => exact Relation.TransGen.head (symm_of r hr) ih
+
+instance {r s : α → α → Prop} [IsSymm α r] [IsSymm α s] : IsSymm α (r ⊔ s) := by
+  refine ⟨fun a b h ↦ ?_⟩
+  obtain (h | h) := h <;> simp [symm_of _ h]
+
+instance {r s : α → α → Prop} [IsSymm α r] [IsSymm α s] : IsSymm α (r ⊓ s) :=
+  ⟨fun a b ⟨hr, hs⟩ ↦ by simp [symm_of _ hr, symm_of _ hs]⟩
+
+instance {r s : α → α → Prop} [IsTrans α r] [IsTrans α s] : IsTrans α (r ⊓ s) :=
+  ⟨fun _ _ _ ⟨hr, hs⟩ ⟨hr', hs'⟩ ↦ ⟨trans_of r hr hr', trans_of s hs hs'⟩⟩

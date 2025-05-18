@@ -134,11 +134,19 @@ noncomputable def oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) : α :
 lemma zeroVx_ne_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.zeroVx he ≠ G.oneVx he := (G.exists_ends he).choose_spec.choose_spec.left
 
-lemma inc₂_zeroVx_oncVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
+lemma inc₂_zeroVx_oneVx (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.Inc₂ e (G.zeroVx he) (G.oneVx he) := (G.exists_ends he).choose_spec.choose_spec.right.left
 
+@[simp]
 lemma zeroVx_color_zero (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.color (G.zeroVx he) = 0 := (G.exists_ends he).choose_spec.choose_spec.right.right.left
 
+@[simp]
 lemma oneVx_color_one (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
     G.color (G.oneVx he) = 1 := (G.exists_ends he).choose_spec.choose_spec.right.right.right
+
+lemma zeroVx_mem (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
+    G.zeroVx he ∈ V(G) := (G.inc₂_zeroVx_oneVx he).vx_mem_left
+
+lemma oneVx_mem (G : Graph α β) [G.Bipartite] (he : e ∈ E(G)) :
+    G.oneVx he ∈ V(G) := (G.inc₂_zeroVx_oneVx he).vx_mem_right

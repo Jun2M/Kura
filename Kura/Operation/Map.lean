@@ -66,7 +66,7 @@ lemma vxMap_toMultiset : (φ '' G).toMultiset e = (G.toMultiset e).map φ := by
   rw [oftoMultiset_toMultiset (by simp [em])]
 
 @[simp]
-lemma vxMap_inc₂ : (φ '' G).Inc₂ e x y ↔ ∃ v w, G.Inc₂ e v w ∧ φ v = x ∧ φ w = y := by
+lemma vxMap_inc₂ : (φ '' G).Inc₂ e x y ↔ ∃ v, φ v = x ∧ ∃ w, φ w = y ∧ G.Inc₂ e v w := by
   simp_rw [← toMultiset_eq_pair_iff, vxMap_toMultiset, Multiset.map_eq_pair_iff]
 
 lemma vxMap_inc₂_toMultiset : (φ '' G).Inc₂ e x y ↔ (G.toMultiset e).map φ = {x, y} := Iff.rfl
@@ -76,8 +76,9 @@ lemma vxMap_eq_vxMap_of_eqOn (h : EqOn φ φ' V(G)) : (φ '' G) = (φ' '' G) := 
   · rw [vxMap_vertexSet, vxMap_vertexSet]
     exact image_congr h
   · simp_rw [vxMap_inc₂]
-    refine exists₂_congr fun v w ↦ and_congr_right fun hvw ↦ ?_
-    rw [h hvw.vx_mem_left, h hvw.vx_mem_right]
+    refine ⟨fun ⟨v, hv, w, hw, hvw⟩ ↦ ?_, fun ⟨v, hv, w, hw, hvw⟩ ↦ ?_⟩
+    · use v, (h hvw.vx_mem_left).symm.trans hv, w, (h hvw.vx_mem_right).symm.trans hw, hvw
+    · use v, (h hvw.vx_mem_left).trans hv, w, (h hvw.vx_mem_right).trans hw, hvw
 
 
 @[simps! vertexSet edgeSet]
@@ -176,3 +177,8 @@ lemma mem_vertexSet_map (hin : u ∈ V(G)) : f u ∈ V(G.map f g h) := by
 lemma mem_edgeSet_map (hin : e ∈ E(G)) : g e ∈ E(G.map f g h) := by
   rw [map_edgeSet]
   use e
+
+lemma map_eq_vxMap (f : α → α') : G.map f id (fun e₁ he₁ e₂ he₂ heq ↦ by simp_all) = (f '' G) := by
+  ext a b c
+  · simp
+  · simp only [map_inc₂, id_eq, exists_eq_left, vxMap_inc₂]

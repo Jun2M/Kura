@@ -314,10 +314,21 @@ lemma simplify_eq_edgeMap [hα : Nonempty α] [hG : G.Simple] [DecidablePred (·
     rw [← toSym2_eq_pair_iff hf, ← Sym2.eq_mk_out]
 
 lemma simplify_vertexIsom [hα : Nonempty α] [hG : G.Simple] :
-    ∃ (f : β → Sym2 α) (hf : InjOn f E(G)), G.edgeMap f hf = G.simplify := by
+    ∃ (F : G.Isom G.simplify), Subtype.val ∘ F.toFun = Subtype.val := by
   classical
-  use (fun e => if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some)),
-    (fun e he f hf => by simp [he, hf]), simplify_eq_edgeMap.symm
+  let F := (simplify_eq_edgeMap (G := G)) ▸ edgeMap_isom _ _
+  refine ⟨F, ?_⟩
+  ext v
+  simp only [simplify_vertexSet, comp_apply]
+  unfold F
+
+  sorry
+
+-- lemma simplify_vertexIsom [hα : Nonempty α] [hG : G.Simple] :
+--     ∃ (f : β → Sym2 α) (hf : InjOn f E(G)), G.edgeMap f hf = G.simplify := by
+--   classical
+--   use (fun e => if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some)),
+--     (fun e he f hf => by simp [he, hf]), simplify_eq_edgeMap.symm
 
 lemma simplify_edgeSet_ncard_lt (G : Graph α β) [hE : Finite E(G)] :
     E(G.simplify).ncard < E(G).ncard ↔ ¬ G.Simple := by

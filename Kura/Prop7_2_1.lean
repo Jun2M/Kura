@@ -24,7 +24,8 @@ theorem prop721_rec (t : ℕ) [Nonempty α] {G : Graph (Set α) (Sym2 (Set α))}
   simp at this
   have := prop721_rec t (G := G / ({e} : Set _) |>.simplify) (by simpa) ?_
   sorry
-  sorry
+  · rw []
+    sorry
 termination_by E(G).ncard
 decreasing_by exact this
 

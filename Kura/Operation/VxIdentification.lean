@@ -24,6 +24,7 @@ instance instIsPartitionGraphGraphicVertex [CompleteLattice α] :
       rw [hP, instVxSetGraphicVertex.invariant ⟨f, hf⟩]
 
 
+@[simps!]
 def Setify (G : Graph α β) : Graph (Set α) β :=
   vxMap G ({·})
 
@@ -39,16 +40,23 @@ lemma setify_isPartitionGraph (G : Graph α β) : G.Setify.IsPartitionGraph := b
   rw [eq_iff_eq_cancel_right]
   simp [ha]
 
+lemma forall_setify (F : {α : Type _} → {β : Type _} → Graph α β → Prop)
+    [hF : GraphicFunction F F] (h : ∀ (G' : Graph (Set α) β), G'.IsPartitionGraph → F G') :
+    ∀ (G : Graph α β), F G := fun G => by
+    rw [hF.invariant (setify_hasIsom G)]
+    exact h G.Setify <| setify_isPartitionGraph G
+
+
 @[simps! vertexSet edgeSet]
 def VxIdentification (G : Graph (Set α) β) (P : Partition (Set (Set α))) :
     Graph (Set α) β :=
   G.vxMap (⋃₀ P.partOf ·)
 
-variable {P : Partition (Set (Set α))} (hP : ⋃₀ P.parts = V(G))
+variable {P : Partition (Set (Set α))}
 
 @[simp]
-lemma vxIdentification_inc₂ : (G.VxIdentification P).Inc₂ e x y ↔ ∃ x' y',
-    G.Inc₂ e x' y' ∧ ⋃₀ P.partOf x' = x ∧ ⋃₀ P.partOf y' = y := by
+lemma vxIdentification_inc₂ : (G.VxIdentification P).Inc₂ e x y ↔ ∃ x', ⋃₀ P.partOf x' = x ∧
+  ∃ y', ⋃₀ P.partOf y' = y ∧ G.Inc₂ e x' y' := by
   rw [VxIdentification, vxMap_inc₂]
 
 lemma vxIdentification_inc₂_toMultiset :
@@ -63,3 +71,28 @@ lemma vxIdentification_toMultiset :
 @[simp]
 lemma vxIdentification_inc : (G.VxIdentification P).Inc e x ↔ ∃ y, G.Inc e y ∧ ⋃₀ P.partOf y = x := by
   rw [VxIdentification, vxMap_inc]
+
+lemma vxIdentification_isPartitionGraph (hP : P.supp = V(G)) (hGP : G.IsPartitionGraph) :
+    (G.VxIdentification P).IsPartitionGraph := by
+  obtain ⟨P', hP'⟩ := hGP
+  use P.flatten ⟨P', hP'.trans hP.symm⟩
+  ext v
+  simp only [Partition.flatten_parts, sSup_eq_sUnion, mem_image, Partition.mem_parts,
+    SetLike.mem_coe, VxIdentification_vertexSet]
+  refine ⟨fun ⟨x, hx, hv⟩ => ?_, fun ⟨x, hx, hv⟩ => ?_⟩ <;> subst v
+  · obtain ⟨v, hv⟩ := nonempty_iff_ne_empty.mpr <| P.ne_bot_of_mem hx
+    use v, hP ▸ mem_sUnion_of_mem hv hx, by rw [P.eq_partOf_of_mem hx hv]
+  · use P.partOf x, P.partOf_mem (hP ▸ hx)
+
+
+@[simps!]
+def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β := by
+  by_cases hS : S = ∅
+  · exact G.VxIdentification (Partition.discrete (V(G) \ S))
+  · exact G.VxIdentification (Partition.indiscrete S hS ⊔ Partition.discrete (V(G) \ S))
+
+scoped infix:100 " ÷ " => VxIdenBySet
+
+variable {G : Graph (Set α) β} {S : Set (Set α)}
+
+lemma vxIdenBySet_isPartitionGraph (hGP : G.IsPartitionGraph) : (G ÷ S).IsPartitionGraph := by

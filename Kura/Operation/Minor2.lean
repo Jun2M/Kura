@@ -255,13 +255,6 @@ lemma iff_exists_isom_setify (P : {α : Type u_6} → {β : Type u_8} → Graph 
   · rintro ⟨G', h, h'⟩
     rwa [hP.invariant h']
 
-lemma forall_setify (F : {α : Type u_6} → {β : Type u_8} → Graph α β → Prop)
-    [hF : GraphicFunction F F] (h : ∀ (G' : Graph (Set α) β), G'.IsPartitionGraph → F G') :
-    ∀ (G : Graph α β), F G :=
-  fun G => by
-    rw [hF.invariant (setify_hasIsom G)]
-    exact h G.Setify <| setify_isPartitionGraph G
-
 instance instIsiMinorleftGraphic : GraphicFunction (·.IsiMinor H) (·.IsiMinor H) where
   invariant h := by
     unfold IsiMinor
