@@ -643,14 +643,31 @@ instance : Lattice (Partition (Set α)) where
     obtain ⟨x, hx, rfl⟩ := ha
     use P.partOf x, partOf_mem _ ?_, ?_
     · rw [← rel_self_iff_mem]
-      sorry
+      exact hx.1
     · intro y hy
-      rw [mem_setOf_eq] at hy
-      sorry
+      rw [← setOf_rel_eq_partOf]
+      exact hy.1
   inf_le_right P Q a ha := by
-    sorry
-  le_inf P Q R hP hQ a ha := by
-    sorry
+    simp only [mem_ofRel_iff] at ha
+    obtain ⟨x, hx, rfl⟩ := ha
+    use Q.partOf x, partOf_mem _ ?_, ?_
+    · rw [← rel_self_iff_mem]
+      exact hx.2
+    · intro y hy
+      rw [← setOf_rel_eq_partOf]
+      exact hy.2
+  le_inf P Q R hQ hR a ha := by
+    rw [le_iff_rel_imp_rel] at hQ hR
+    simp only [mem_ofRel_iff, Pi.inf_apply, inf_Prop_eq, le_eq_subset]
+    use {y | Q.Rel (P.rep ha) y ∧ R.Rel (P.rep ha) y}, ?_, ?_
+    · use (P.rep ha), ⟨hQ _ _ (P.rep_rel_self ha), hR _ _ (P.rep_rel_self ha)⟩
+    intro x hx
+    simp only [mem_setOf_eq]
+    have : ∀ (x y : α), P.Rel x y → Q.Rel x y ∧ R.Rel x y := fun x y a ↦ ⟨hQ x y a, hR x y a⟩
+    apply this
+    apply symm_of
+    apply P.rep_rel ha hx
+
 
 section RepFun
 
