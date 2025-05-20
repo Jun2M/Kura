@@ -159,6 +159,7 @@ instance {α : Type*} [CompleteLattice α] [Subsingleton α] : Unique (Partition
 @[simp] lemma mem_indiscrete_iff (s : α) (hs : s ≠ ⊥) {a : α} :
     a ∈ Partition.indiscrete s hs ↔ a = s := Iff.rfl
 
+@[simp]
 lemma supp_indiscrete (s : α) (hs : s ≠ ⊥) : (Partition.indiscrete s hs).supp = s := by
   simp [Partition.indiscrete, supp]
 
@@ -173,6 +174,13 @@ lemma indiscrete'_eq_empty : indiscrete' ⊥ = Partition.empty α := by
 @[simp]
 lemma indiscrete'_eq_of_ne_bot {s : α} (hs : s ≠ ⊥) : indiscrete' s = indiscrete s hs := by
   simp only [indiscrete', hs, ↓reduceDIte]
+
+@[simp]
+lemma supp_indiscrete' {s : α} : (indiscrete' s).supp = s := by
+  simp [indiscrete']
+  split_ifs with hs
+  · rw [supp_empty, hs]
+  · rw [supp_indiscrete s hs]
 
 end indep
 
@@ -227,6 +235,8 @@ instance : OrderBot (Partition α) where
   bot_le a s hs := by simp only [not_mem_empty] at hs
 
 @[simp] lemma not_mem_bot {a : α} : a ∉ (⊥ : Partition α) := not_mem_empty α
+
+@[simp] lemma supp_bot : (⊥ : Partition α).supp = ⊥ := sSup_empty
 
 lemma supp_le_of_le {P Q : Partition α} (h : P ≤ Q) : P.supp ≤ Q.supp :=
   sSup_le_sSup_of_forall_exists_le h
@@ -340,6 +350,17 @@ lemma eq_partOf_of_mem {P : Partition (Set α)} (ht : t ∈ P) (hxt : x ∈ t) :
     exact mem_sUnion_of_mem hxt ht
   obtain ⟨t', ⟨-, h⟩⟩ := P.exists_unique_of_mem_set hx
   rw [h t ⟨ht, hxt⟩, h (P.partOf x) ⟨P.partOf_mem hx, P.mem_partOf hx⟩]
+
+lemma partOf_subset_supp {P : Partition (Set α)} : P.partOf x ⊆ P.supp := by
+  by_cases hx : x ∈ P.supp
+  · exact subset_of_mem (partOf_mem P hx)
+  · rw [partOf_eq_empty P hx]
+    exact empty_subset P.supp
+
+lemma self_mem_partOf_of_mem_partOf {P : Partition (Set α)} (hy : y ∈ P.partOf x) : x ∈ P.partOf x := by
+  by_cases hx : x ∈ P.supp
+  · exact mem_partOf P hx
+  · simp [partOf_eq_empty P hx] at hy
 
 /-- Noncomputably choose a representative from an equivalence class-/
 noncomputable def rep (P : Partition (Set α)) (ht : t ∈ P) : α := (P.nonempty_of_mem ht).some
@@ -571,6 +592,12 @@ lemma le_iff_rel_imp_rel {P P' : Partition (Set α)} :
     simp only [le_eq_subset, setOf_subset_setOf]
     apply h
 
+@[simp] lemma bot_rel : (⊥ : Partition (Set α)).Rel = fun _ _ ↦ False := by
+  ext a b
+  simp only [iff_false]
+  intro h
+  have := h.mem_left
+  simp at this
 end Rel
 
 section Discrete
@@ -668,6 +695,60 @@ instance : Lattice (Partition (Set α)) where
     apply symm_of
     apply P.rep_rel ha hx
 
+@[simp]
+lemma supp_sup (P Q : Partition (Set α)) : (P ⊔ Q).supp = P.supp ⊔ Q.supp := by
+  ext a
+  simp only [← rel_self_iff_mem, sup_eq_union, mem_union]
+  change (ofRel (Relation.TransClosure <| P.Rel ⊔ Q.Rel)).Rel a a ↔ _
+  rw [rel_ofRel_eq]
+  change Relation.TransGen (P.Rel ⊔ Q.Rel) a a ↔ _
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · rw [Relation.TransGen.head'_iff] at h
+    obtain ⟨b, (hbP | hbQ), h⟩ := h
+    · left
+      have := hbP.mem_left
+      rwa [← rel_self_iff_mem] at this
+    · right
+      have := hbQ.mem_left
+      rwa [← rel_self_iff_mem] at this
+  · left
+    obtain (haP | haQ) := h
+    · left
+      exact haP
+    · right
+      exact haQ
+
+lemma disjoint_inf_eq_bot (P Q : Partition (Set α)) (hdisj : Disjoint P.supp Q.supp) :
+    P ⊓ Q = ⊥ := by
+  ext a b
+  simp only [bot_rel, iff_false]
+  intro h
+  have := h.mem_left
+  sorry
+
+@[simp]
+lemma parts_sup_of_disjoint {P Q : Partition (Set α)} (hdisj : Disjoint P.supp Q.supp) :
+    (P ⊔ Q).parts = P.parts ∪ Q.parts := by
+  ext S
+  simp only [mem_parts, SetLike.mem_coe, mem_union]
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · sorry
+  · sorry
+
+lemma partOf_union_eq_left_of_disjoint {a : α} {P Q : Partition (Set α)} (hP : a ∈ P.supp)
+    (hdisj : Disjoint P.supp Q.supp) : P.partOf a ⊔ Q.partOf a = P.partOf a := by
+  ext b
+  simp only [sup_eq_union, mem_union, or_iff_left_iff_imp]
+  intro h
+  exfalso
+  have := partOf_subset_supp (self_mem_partOf_of_mem_partOf h)
+  have := hdisj (by simpa : {a} ≤ P.supp) (by simpa : {a} ≤ Q.supp)
+  simp at this
+
+lemma partOf_union_eq_right_of_disjoint {a : α} {P Q : Partition (Set α)} (hQ : a ∈ Q.supp)
+    (hdisj : Disjoint P.supp Q.supp) : P.partOf a ⊔ Q.partOf a = Q.partOf a := by
+  rw [sup_comm]
+  exact partOf_union_eq_left_of_disjoint hQ hdisj.symm
 
 section RepFun
 

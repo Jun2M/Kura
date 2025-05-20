@@ -86,8 +86,39 @@ lemma vxIdentification_isPartitionGraph (hP : P.supp = V(G)) (hGP : G.IsPartitio
 
 
 def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β :=
-  G.VxIdentification (Partition.indiscrete' S ⊔ Partition.discrete (V(G) \ S))
+  G.VxIdentification (Partition.indiscrete' (V(G) ∩ S) ⊔ Partition.discrete (V(G) \ S))
 
 scoped infix:100 " ÷ " => VxIdenBySet
 
 variable {G : Graph (Set α) β} {S : Set (Set α)}
+
+@[simp]
+lemma vxIdenBySet_isPartitionGraph (hGP : G.IsPartitionGraph) : (G ÷ S).IsPartitionGraph := by
+  rw [VxIdenBySet]
+  apply vxIdentification_isPartitionGraph (by simp) hGP
+
+@[simp]
+lemma vxIdenBySet_vertexSet : V(G ÷ S) = (V(G) \ S) ∪ {⋃₀ S} := by
+  ext s
+  simp only [VxIdenBySet, VxIdentification_vertexSet, mem_image, union_singleton, mem_insert_iff,
+    mem_diff]
+  sorry
+
+@[simp]
+lemma vxIdenBySet_edgeSet : E(G ÷ S) = E(G) := by
+  simp [VxIdenBySet]
+
+@[simp]
+lemma vxIdenBySet_isLink : (G ÷ S).IsLink e x y ↔ ∃ x', (x' ∈ S → x = ⋃₀ S) ∧ ∃ y',
+    (y' ∈ S → y = ⋃₀ S) ∧ G.IsLink e x' y' := by
+  simp [VxIdenBySet]
+  congr!
+  · rename_i s
+    refine ⟨fun h hsS => ?_, fun h => ?_⟩
+    · subst x
+      congr!
+      rw [Partition.partOf_union_eq_left_of_disjoint]
+      sorry
+    · sorry
+  · rename_i s t
+    sorry
