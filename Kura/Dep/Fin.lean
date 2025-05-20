@@ -79,11 +79,6 @@ lemma castPred_succ {n : ℕ} (i : Fin (n+1)) (hi : i ≠ last n) : (i.castPred 
   rw [Fin.val_add_one_of_lt]
   exact lt_last_iff_ne_last.mpr hi
 
-lemma natAdd_injective {n : ℕ} (m : ℕ) :
-    Function.Injective (Fin.natAdd m : Fin n → Fin (m + n)) := by
-  intro i j h
-  rwa [natAdd_inj m] at h
-
 @[simp]
 lemma ext_iff' {n : ℕ} (i j : Fin n) : i = j ↔ i.val = j.val := Fin.ext_iff
 

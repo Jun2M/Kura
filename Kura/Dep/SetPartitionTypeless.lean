@@ -163,7 +163,7 @@ instance {α : Type*} [CompleteLattice α] [Subsingleton α] : Unique (Partition
 lemma supp_indiscrete (s : α) (hs : s ≠ ⊥) : (Partition.indiscrete s hs).supp = s := by
   simp [Partition.indiscrete, supp]
 
-def indiscrete' (s : α) : Partition α :=
+noncomputable def indiscrete' (s : α) : Partition α :=
   let _ : Decidable (s = ⊥) := Classical.dec _
   if hs : s = ⊥ then Partition.empty α else indiscrete s hs
 
@@ -361,6 +361,8 @@ lemma self_mem_partOf_of_mem_partOf {P : Partition (Set α)} (hy : y ∈ P.partO
   by_cases hx : x ∈ P.supp
   · exact mem_partOf P hx
   · simp [partOf_eq_empty P hx] at hy
+
+
 
 /-- Noncomputably choose a representative from an equivalence class-/
 noncomputable def rep (P : Partition (Set α)) (ht : t ∈ P) : α := (P.nonempty_of_mem ht).some
@@ -736,7 +738,7 @@ lemma parts_sup_of_disjoint {P Q : Partition (Set α)} (hdisj : Disjoint P.supp 
   · sorry
 
 lemma partOf_union_eq_left_of_disjoint {a : α} {P Q : Partition (Set α)} (hP : a ∈ P.supp)
-    (hdisj : Disjoint P.supp Q.supp) : P.partOf a ⊔ Q.partOf a = P.partOf a := by
+    (hdisj : Disjoint P.supp Q.supp) : P.partOf a ∪ Q.partOf a = P.partOf a := by
   ext b
   simp only [sup_eq_union, mem_union, or_iff_left_iff_imp]
   intro h
@@ -749,6 +751,10 @@ lemma partOf_union_eq_right_of_disjoint {a : α} {P Q : Partition (Set α)} (hQ 
     (hdisj : Disjoint P.supp Q.supp) : P.partOf a ⊔ Q.partOf a = Q.partOf a := by
   rw [sup_comm]
   exact partOf_union_eq_left_of_disjoint hQ hdisj.symm
+
+lemma partOf_sup_eq_of_disjoint {a : α} {P Q : Partition (Set α)} (hP : a ∈ P.supp)
+    (hdisj : Disjoint P.supp Q.supp) : (P ⊔ Q).partOf a = P.partOf a := by
+  sorry
 
 section RepFun
 

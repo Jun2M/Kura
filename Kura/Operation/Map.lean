@@ -44,7 +44,7 @@ namespace Graph
 --     exact Set.mem_image_of_mem _ h.vx_mem_left
 
 @[simps! vertexSet edgeSet]
-def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
+noncomputable def vxMap {α' : Type*} (G : Graph α β) (f : α → α') : Graph α' β :=
   oftoMultiset (f '' V(G)) (fun e ↦ (G.toMultiset e).map f) fun e v h ↦ (by
     simp only [Multiset.mem_map, inc_iff_mem_toMultiset, mem_image] at h ⊢
     obtain ⟨v, hv, rfl⟩ := h
@@ -82,7 +82,7 @@ lemma vxMap_eq_vxMap_of_eqOn (h : EqOn φ φ' V(G)) : (φ '' G) = (φ' '' G) := 
 
 
 @[simps! vertexSet edgeSet]
-def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' :=
+noncomputable def edgePreimg {β' : Type*} (G : Graph α β) (σ : β' → β) : Graph α β' :=
   oftoMultiset V(G) (G.toMultiset <| σ ·) (fun e v hv ↦ by
     simp only [inc_iff_mem_toMultiset] at hv
     exact hv.vx_mem)

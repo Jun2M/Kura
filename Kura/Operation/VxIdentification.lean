@@ -25,7 +25,7 @@ instance instIsPartitionGraphGraphicVertex [CompleteLattice α] :
 
 
 @[simps!]
-def Setify (G : Graph α β) : Graph (Set α) β :=
+noncomputable def Setify (G : Graph α β) : Graph (Set α) β :=
   vxMap G ({·})
 
 def setify_hasIsom (G : Graph α β) : G ↔ᴳ G.Setify :=
@@ -48,7 +48,7 @@ lemma forall_setify (F : {α : Type _} → {β : Type _} → Graph α β → Pro
 
 
 @[simps! vertexSet edgeSet]
-def VxIdentification (G : Graph (Set α) β) (P : Partition (Set (Set α))) :
+noncomputable def VxIdentification (G : Graph (Set α) β) (P : Partition (Set (Set α))) :
     Graph (Set α) β :=
   G.vxMap (⋃₀ P.partOf ·)
 
@@ -85,7 +85,7 @@ lemma vxIdentification_isPartitionGraph (hP : P.supp = V(G)) (hGP : G.IsPartitio
   · use P.partOf x, P.partOf_mem (hP ▸ hx)
 
 
-def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β :=
+noncomputable def VxIdenBySet (G : Graph (Set α) β) (S : Set (Set α)) : Graph (Set α) β :=
   G.VxIdentification (Partition.indiscrete' (V(G) ∩ S) ⊔ Partition.discrete (V(G) \ S))
 
 scoped infix:100 " ÷ " => VxIdenBySet
@@ -109,15 +109,17 @@ lemma vxIdenBySet_edgeSet : E(G ÷ S) = E(G) := by
   simp [VxIdenBySet]
 
 @[simp]
-lemma vxIdenBySet_isLink : (G ÷ S).IsLink e x y ↔ ∃ x', (x' ∈ S → x = ⋃₀ S) ∧ ∃ y',
-    (y' ∈ S → y = ⋃₀ S) ∧ G.IsLink e x' y' := by
+lemma vxIdenBySet_isLink : (G ÷ S).IsLink e x y ↔ ∃ x', (x' ∈ S → x = ⋃₀ (V(G) ∩ S)) ∧ ∃ y',
+    (y' ∈ S → y = ⋃₀ (V(G) ∩ S)) ∧ G.IsLink e x' y' := by
   simp [VxIdenBySet]
   congr!
   · rename_i s
     refine ⟨fun h hsS => ?_, fun h => ?_⟩
     · subst x
       congr!
-      rw [Partition.partOf_union_eq_left_of_disjoint]
+      rw [Partition.partOf_sup_eq_of_disjoint]
+      sorry
+      sorry
       sorry
     · sorry
   · rename_i s t

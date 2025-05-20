@@ -305,3 +305,23 @@ instance {r s : α → α → Prop} [IsSymm α r] [IsSymm α s] : IsSymm α (r �
 
 instance {r s : α → α → Prop} [IsTrans α r] [IsTrans α s] : IsTrans α (r ⊓ s) :=
   ⟨fun _ _ _ ⟨hr, hs⟩ ⟨hr', hs'⟩ ↦ ⟨trans_of r hr hr', trans_of s hs hs'⟩⟩
+
+
+-- section Invariant
+
+-- universe u u₀ u₁ u₂ v₀ v₁ v₂
+
+-- variable {α₀ : Type u₀} {α₁ : Type u₁} {β : Type u}
+
+-- class Invariant (L₀ : Type u₀ → Type v₀) (L₁ : Type u₁ → Type v₁)
+--   (r : ∀ {α₀ : Type u₀} {α₁ : Type u₁}, L₀ α₀ → L₁ α₁ → Prop)
+--   (F₀ : ∀ {α₀ : Type u₀}, L₀ α₀ → β) (F₁ : ∀ {α₁ : Type u₁}, L₁ α₁ → β) : Prop where
+--   eq : ∀ {α₀ : Type u₀} {α₁ : Type u₁} (a : L₀ α₀) (b : L₁ α₁), r a b → F₀ a = F₁ b
+
+-- lemma eq_of_invariant {L₀ : Type u₀ → Type v₀} {L₁ : Type u₁ → Type v₁}
+--   {r : ∀ {α₀ : Type u₀} {α₁ : Type u₁}, L₀ α₀ → L₁ α₁ → Prop}
+--   {F₀ : ∀ {α₀ : Type u₀}, L₀ α₀ → β} {F₁ : ∀ {α₁ : Type u₁}, L₁ α₁ → β}
+--   [h : Invariant L₀ L₁ r F₀ F₁] {a : L₀ α₀} {b : L₁ α₁} (h' : r a b) : F₀ a = F₁ b :=
+--   h.eq a b h'
+
+-- end Invariant
