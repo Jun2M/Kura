@@ -6,12 +6,12 @@ variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e 
   {S S' T T' U U': Set α} {F F' R R' : Set β}
 namespace Graph
 
-def SetContract (G : Graph (Set α) β) (C : Set β) : Graph (Set α) β :=
+noncomputable def SetContract (G : Graph (Set α) β) (C : Set β) : Graph (Set α) β :=
   G.VxIdentification (G ↾ C).ConnectivityPartition ＼ C
 
 -- scoped infix:70 " / " => Graph.SetContract
 
-instance : HDiv (Graph (Set α) β) (Set β) (Graph (Set α) β) where
+noncomputable instance : HDiv (Graph (Set α) β) (Set β) (Graph (Set α) β) where
   hDiv := SetContract
 
 def setContract_def (G : Graph (Set α) β) (C : Set β) : G / C = G.SetContract C := rfl

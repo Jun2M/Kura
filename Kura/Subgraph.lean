@@ -62,6 +62,21 @@ lemma isLink_iff_isLink_of_le_of_mem (hle : H ≤ G) (he : e ∈ E(H)) :
     G.IsLink e x y ↔ H.IsLink e x y :=
   ⟨fun h ↦ h.of_le_of_mem hle he, fun h ↦ h.of_le hle⟩
 
+lemma isLink_eq_isLink_of_le_of_mem (hle : H ≤ G) (he : e ∈ E(H)) :
+    G.IsLink e = H.IsLink e := funext₂ fun x y ↦ by
+  rw [isLink_iff_isLink_of_le_of_mem hle he]
+
+lemma parallel.of_le (h : H.parallel e f) (hle : H ≤ G) : G.parallel e f := by
+  obtain ⟨he, hf, h⟩ := h
+  refine ⟨edgeSet_subset_of_le hle he, edgeSet_subset_of_le hle hf, ?_⟩
+  rwa [isLink_eq_isLink_of_le_of_mem hle he, isLink_eq_isLink_of_le_of_mem hle hf]
+
+lemma parallel_iff_parallel_of_le_of_mem (hle : G ≤ H) (he : e ∈ E(G)) (hf : f ∈ E(G)) :
+    G.parallel e f ↔ H.parallel e f := by
+  refine ⟨(·.of_le hle), fun ⟨_he, _hf, h⟩ ↦ ?_⟩
+  rw [isLink_eq_isLink_of_le_of_mem hle he, isLink_eq_isLink_of_le_of_mem hle hf] at h
+  exact ⟨he, hf, h⟩
+
 lemma inc_iff_inc_of_le_of_mem (hle : G ≤ H) (he : e ∈ E(G)) : G.Inc e x ↔ H.Inc e x := by
   revert x
   simp [inc_iff_inc_iff, isLink_iff_isLink_of_le_of_mem hle he]

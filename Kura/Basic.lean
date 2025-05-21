@@ -888,11 +888,44 @@ end Isolated
 
 section parallel
 
-def parallel (G : Graph α β) (e f : E(G)) : Prop :=
-  G.toSym2 e e.prop = G.toSym2 f f.prop
+def parallel (G : Graph α β) (e f : β) : Prop :=
+  e ∈ E(G) ∧ f ∈ E(G) ∧ G.IsLink e = G.IsLink f
 
+lemma parallel.left_mem (h : G.parallel e f) : e ∈ E(G) := h.1
 
+lemma parallel.right_mem (h : G.parallel e f) : f ∈ E(G) := h.2.1
 
+lemma parallel.isLink_eq (h : G.parallel e f) : G.IsLink e = G.IsLink f := h.2.2
+
+lemma parallel_iff_sym2_eq (G : Graph α β) (e f : β) :
+    G.parallel e f ↔ ∃ (he : e ∈ E(G)) (hf : f ∈ E(G)), G.toSym2 e he = G.toSym2 f hf := by
+  refine ⟨fun ⟨he, hf, h⟩ ↦ ⟨he, hf, ?_⟩, fun ⟨he, hf, h⟩ ↦ ⟨he, hf, ?_⟩⟩
+  · rwa [toSym2_eq_toSym2_iff]
+  · rwa [toSym2_eq_toSym2_iff] at h
+
+@[simp]
+lemma toSym2_eq_toSym2_iff_parallel (G : Graph α β) {e f : β} (he : e ∈ E(G)) (hf : f ∈ E(G)) :
+    G.toSym2 e he = G.toSym2 f hf ↔ G.parallel e f := by
+  simp [parallel_iff_sym2_eq, he, hf]
+
+lemma parallel.toSym2_eq (h : G.parallel e f) : G.toSym2 e h.left_mem = G.toSym2 f h.right_mem := by
+  obtain ⟨he, hf, h⟩ := G.parallel_iff_sym2_eq e f |>.mp h
+  exact h
+
+lemma parallel_iff_inc_eq (G : Graph α β) (e f : β) :
+    G.parallel e f ↔ e ∈ E(G) ∧ f ∈ E(G) ∧ G.Inc e = G.Inc f := by
+  refine ⟨fun ⟨he, hf, h⟩ ↦ ⟨he, hf, ?_⟩, fun ⟨he, hf, h⟩ ↦ ⟨he, hf, ?_⟩⟩
+  · rwa [inc_eq_inc_iff]
+  · rwa [inc_eq_inc_iff] at h
+
+@[simp]
+lemma inc_eq_inc_iff_parallel (G : Graph α β) {e f : β} (he : e ∈ E(G)) (hf : f ∈ E(G)) :
+    G.Inc e = G.Inc f ↔ G.parallel e f := by
+  simp [parallel_iff_inc_eq, he, hf]
+
+lemma parallel.inc_eq (h : G.parallel e f) : G.Inc e = G.Inc f := by
+  obtain ⟨he, hf, h⟩ := G.parallel_iff_inc_eq e f |>.mp h
+  exact h
 
 end parallel
 

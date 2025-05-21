@@ -311,6 +311,35 @@ structure Isom (G₁ : Graph α β) (G₂ : Graph α' β') extends Hom G₁ G₂
   edge_right_inv : RightInverse edgeInvFun edgeFun
   edge_left_inv : LeftInverse edgeInvFun edgeFun
 
+lemma Isom.inj_vx (f : Isom G G') : Injective f.toFun := f.vx_left_inv.injective
+lemma Isom.surj_vx (f : Isom G G') : Surjective f.toFun := f.vx_right_inv.surjective
+lemma Isom.inv_inj_vx (f : Isom G G') : Injective f.invFun := f.vx_right_inv.injective
+lemma Isom.surj_inv_vx (f : Isom G G') : Surjective f.invFun := f.vx_left_inv.surjective
+lemma Isom.inj_edge (f : Isom G G') : Injective f.edgeFun := f.edge_left_inv.injective
+lemma Isom.surj_edge (f : Isom G G') : Surjective f.edgeFun := f.edge_right_inv.surjective
+lemma Isom.inv_inj_edge (f : Isom G G') : Injective f.edgeInvFun := f.edge_right_inv.injective
+lemma Isom.surj_inv_edge (f : Isom G G') : Surjective f.edgeInvFun := f.edge_left_inv.surjective
+@[simp] lemma Isom.toFun_invFun {v : V(G')} (f : Isom G G') : f.toFun (f.invFun v) = v := f.vx_right_inv v
+@[simp] lemma Isom.edgeFun_invFun {e : E(G')} (f : Isom G G') : f.edgeFun (f.edgeInvFun e) = e := f.edge_right_inv e
+@[simp] lemma Isom.invFun_toFun {v : V(G)} (f : Isom G G') : f.invFun (f.toFun v) = v := f.vx_left_inv v
+@[simp] lemma Isom.edgeInvFun_toFun {e : E(G)} (f : Isom G G') : f.edgeInvFun (f.edgeFun e) = e := f.edge_left_inv e
+
+lemma Isom.bij_vx (f : Isom G G') : Bijective f.toFun := by
+  rw [Function.bijective_iff_has_inverse]
+  exact ⟨f.invFun, f.vx_left_inv, f.vx_right_inv⟩
+
+lemma Isom.bij_edge (f : Isom G G') : Bijective f.edgeFun := by
+  rw [Function.bijective_iff_has_inverse]
+  exact ⟨f.edgeInvFun, f.edge_left_inv, f.edge_right_inv⟩
+
+lemma Isom.bij_inv_vx (f : Isom G G') : Bijective f.invFun := by
+  rw [Function.bijective_iff_has_inverse]
+  exact ⟨f.toFun, f.vx_right_inv, f.vx_left_inv⟩
+
+lemma Isom.bij_inv_edge (f : Isom G G') : Bijective f.edgeInvFun := by
+  rw [Function.bijective_iff_has_inverse]
+  exact ⟨f.edgeFun, f.edge_right_inv, f.edge_left_inv⟩
+
 lemma Isom.isLink_iff (f : Isom G G') {e : E(G)} {x y : V(G)} :
     G.IsLink e x y ↔ G'.IsLink (f.edgeFun e) (f.toFun x) (f.toFun y) := by
   refine ⟨(f.isLink ·), fun h ↦ ?_⟩
@@ -328,30 +357,29 @@ lemma Isom.isLink_iff' (F : Isom G G') {e : E(G')} {x y : V(G')} :
     G'.IsLink e x y ↔ G.IsLink (F.edgeInvFun e) (F.invFun x) (F.invFun y) := by
   conv_lhs => rw [← F.edge_right_inv e, ← F.vx_right_inv x, ← F.vx_right_inv y, ← F.isLink_iff]
 
-lemma Isom.inj_vx (f : Isom G G') : Injective f.toFun := f.vx_left_inv.injective
-lemma Isom.surj_vx (f : Isom G G') : Surjective f.toFun := f.vx_right_inv.surjective
-lemma Isom.inv_inj_vx (f : Isom G G') : Injective f.invFun := f.vx_right_inv.injective
-lemma Isom.surj_inv_vx (f : Isom G G') : Surjective f.invFun := f.vx_left_inv.surjective
-lemma Isom.inj_edge (f : Isom G G') : Injective f.edgeFun := f.edge_left_inv.injective
-lemma Isom.surj_edge (f : Isom G G') : Surjective f.edgeFun := f.edge_right_inv.surjective
-lemma Isom.inv_inj_edge (f : Isom G G') : Injective f.edgeInvFun := f.edge_right_inv.injective
-lemma Isom.surj_inv_edge (f : Isom G G') : Surjective f.edgeInvFun := f.edge_left_inv.surjective
-
-lemma Isom.bij_vx (f : Isom G G') : Bijective f.toFun := by
-  rw [Function.bijective_iff_has_inverse]
-  exact ⟨f.invFun, f.vx_left_inv, f.vx_right_inv⟩
-
-lemma Isom.bij_edge (f : Isom G G') : Bijective f.edgeFun := by
-  rw [Function.bijective_iff_has_inverse]
-  exact ⟨f.edgeInvFun, f.edge_left_inv, f.edge_right_inv⟩
-
-lemma Isom.bij_inv_vx (f : Isom G G') : Bijective f.invFun := by
-  rw [Function.bijective_iff_has_inverse]
-  exact ⟨f.toFun, f.vx_right_inv, f.vx_left_inv⟩
-
-lemma Isom.bij_inv_edge (f : Isom G G') : Bijective f.edgeInvFun := by
-  rw [Function.bijective_iff_has_inverse]
-  exact ⟨f.edgeFun, f.edge_right_inv, f.edge_left_inv⟩
+lemma Isom.parallel_iff (F : Isom G G') {e f : E(G)} :
+    G.parallel e f ↔ G'.parallel (F.edgeFun e) (F.edgeFun f) := by
+  refine ⟨fun ⟨he, hf, h⟩ ↦ ⟨Subtype.coe_prop _, Subtype.coe_prop _, ?_⟩, fun ⟨he, hf, h⟩ ↦ ⟨Subtype.coe_prop _, Subtype.coe_prop _, ?_⟩⟩
+  · ext x y
+    refine ⟨fun hlink ↦ ?_, fun hlink ↦ ?_⟩
+    · have hlink' : G'.IsLink (↑(F.edgeFun e)) (F.toFun (F.invFun ⟨x, hlink.vx_mem_left⟩)) (F.toFun (F.invFun ⟨y, hlink.vx_mem_right⟩)) := by
+        simpa
+      rw [← F.isLink_iff, h, F.isLink_iff] at hlink'
+      simpa using hlink'
+    · have hlink' : G'.IsLink (↑(F.edgeFun f)) (F.toFun (F.invFun ⟨x, hlink.vx_mem_left⟩)) (F.toFun (F.invFun ⟨y, hlink.vx_mem_right⟩)) := by
+        simpa
+      rw [← F.isLink_iff, ← h, F.isLink_iff] at hlink'
+      simpa using hlink'
+  · ext u v
+    refine ⟨fun hlink ↦ ?_, fun hlink ↦ ?_⟩
+    · have hlink' : G.IsLink e (⟨u, hlink.vx_mem_left⟩ : V(G)) (⟨v, hlink.vx_mem_right⟩ : V(G)) := by
+        simpa
+      rw [F.isLink_iff, h, ← F.isLink_iff] at hlink'
+      simpa using hlink'
+    · have hlink' : G.IsLink f (⟨u, hlink.vx_mem_left⟩ : V(G)) (⟨v, hlink.vx_mem_right⟩ : V(G)) := by
+        simpa
+      rw [F.isLink_iff, ← h, ← F.isLink_iff] at hlink'
+      simpa using hlink'
 
 def Isom.toInvHom (f : Isom G G') : Hom G' G where
   toFun := f.invFun

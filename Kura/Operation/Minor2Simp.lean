@@ -8,7 +8,7 @@ variable {α β α' α'' β' : Type*} {u v w x y z : Set α} {e f : Sym2 (Set α
 namespace Graph
 
 @[simps! vertexSet edgeSet]
-def SimpMinor (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) : Graph (Set α) (Sym2 (Set α)) :=
+noncomputable def SimpMinor (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) : Graph (Set α) (Sym2 (Set α)) :=
   G / C |>.simplify
 
 scoped infix:50 " // " => Graph.SimpMinor
@@ -39,6 +39,7 @@ theorem simpMinor_adj (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set �
 instance simpMinor_isSimpleCanonical (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) :
     SimpleCanonical (G // C) := instSimpleCanonicalSimplify
 
-
+lemma edgeSet_ncard_simpMinor_singleton (G : Graph (Set α) (Sym2 (Set α))) (s : Sym2 (Set α))
+    [Finite E(G)] : (G // {s}).edgeSet.ncard = {e ∈ E(G) | ¬ G.parallel e s}.ncard := by
 
 end Graph

@@ -74,40 +74,32 @@ lemma toSym2_not_isDiag {G : Graph α β} [G.IsLoopless] {e : β} {he : e ∈ E(
   rwa [(toSym2_eq_pair_iff hxy.edge_mem).mpr hxy]
 
 class Simple (G : Graph α β) : Prop extends IsLoopless G where
-  no_multi_edges e f he hf : G.toSym2 e he = G.toSym2 f hf → e = f
+  no_multi_edges e f : G.parallel e f → e = f
 
 lemma Simple.of_le {G H : Graph α β} [G.Simple] (hle : H ≤ G) : H.Simple where
-  loopless x := by
-    rintro ⟨e, hbtw⟩
-    exact IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
-  no_multi_edges e f he hf h := by
-    obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
-    rw [← toSym2_eq_pair_iff he] at hxy
-    rw [hxy, eq_comm, toSym2_eq_of_le hle hf] at h
-    rw [toSym2_eq_of_le hle he] at hxy
-    refine Simple.no_multi_edges e f (edgeSet_subset_of_le hle he) (edgeSet_subset_of_le hle hf) ?_
-    rw [h, hxy]
+  loopless x := fun ⟨e, hbtw⟩ => IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
+  no_multi_edges e f h := Simple.no_multi_edges e f (h.of_le hle)
 
 @[simp]
 lemma toSym2_inj [hG : G.Simple] (he : e ∈ E(G)) (hf : f ∈ E(G)) :
     G.toSym2 e he = G.toSym2 f hf ↔ e = f :=
-  ⟨fun h ↦ hG.no_multi_edges e f he hf h, fun h ↦ h ▸ rfl⟩
+  ⟨fun h ↦ hG.no_multi_edges e f ((G.parallel_iff_sym2_eq e f).mpr ⟨he, hf, h⟩), fun h ↦ h ▸ rfl⟩
 
 @[simp]
 lemma IsLink.edge_eq_iff_isLink [hG : G.Simple] (hbtw : G.IsLink e u v) :
     G.IsLink f u v ↔ e = f := by
   refine ⟨fun h ↦ ?_, (· ▸ hbtw)⟩
   obtain a := ((toSym2_eq_pair_iff hbtw.edge_mem).mpr hbtw).trans ((toSym2_eq_pair_iff h.edge_mem).mpr h).symm
-  exact hG.no_multi_edges e f hbtw.edge_mem h.edge_mem a
+  exact hG.no_multi_edges e f ((G.parallel_iff_sym2_eq e f).mpr ⟨hbtw.edge_mem, h.edge_mem, a⟩)
 
 @[simp]
-lemma not_simple_iff : ¬ G.Simple ↔ (∃ x, G.Adj x x) ∨ ∃ e f he hf, G.toSym2 e he = G.toSym2 f hf ∧ e ≠ f := by
+lemma not_simple_iff : ¬ G.Simple ↔ (∃ x, G.Adj x x) ∨ ∃ e f, G.parallel e f ∧ e ≠ f := by
   refine ⟨fun h ↦ ?_, fun h hsimp ↦ ?_⟩
   · contrapose! h
     exact {loopless := h.1, no_multi_edges := h.2}
-  · obtain ⟨x, hadj⟩ | ⟨e, f, he, hf, heq, hne⟩ := h
+  · obtain ⟨x, hadj⟩ | ⟨e, f, hpara, hne⟩ := h
     · exact hsimp.loopless x hadj
-    · exact hne <| hsimp.no_multi_edges e f he hf heq
+    · exact hne <| hsimp.no_multi_edges e f hpara
 
 @[mk_iff]
 class SimpleCanonical (G : Graph α (Sym2 α)) : Prop extends Simple G where
@@ -115,12 +107,12 @@ class SimpleCanonical (G : Graph α (Sym2 α)) : Prop extends Simple G where
 
 instance instBotSimpleCanonical : SimpleCanonical (⊥ : Graph α (Sym2 α)) where
   loopless x := not_adj_of_right_not_mem_vertexSet x fun a ↦ a
-  no_multi_edges e f he hf h := by simp at he
+  no_multi_edges e f h := by simpa using h.1
   canonical e he := by simp at he
 
 instance instNoEdgeSimpleCanonical : SimpleCanonical (Graph.noEdge S (Sym2 α)) where
   loopless x := not_adj_noEdge
-  no_multi_edges e f he hf h := by simp at he
+  no_multi_edges e f h := by simpa using h.1
   canonical e he := by simp at he
 
 @[simp]
@@ -149,16 +141,19 @@ instance instSimpleGraphic : GraphicFunction |₂ Simple where
     ext
     refine ⟨fun hsimple ↦ {
       loopless := (instLooplessGraphic.invariant h ▸ hsimple.toIsLoopless).loopless
-      no_multi_edges e f he hf heq := by
+      no_multi_edges e f hpara := by
         obtain ⟨F⟩ := h
-        rw [(G'.toSym2 f hf).eq_mk_out, toSym2_eq_pair_iff] at heq
-        change G'.IsLink (⟨e, he⟩ : E(G')) (Quot.out (G'.toSym2 f hf)).1 (Quot.out (G'.toSym2 f hf)).2 at heq
-        
-
-        sorry}, fun hsimple ↦ {
+        have hpara' : G'.parallel (⟨e, hpara.left_mem⟩ : E(G')) (⟨f, hpara.right_mem⟩ : E(G')) := hpara
+        rw [F.symm.parallel_iff] at hpara'
+        have := hsimple.no_multi_edges _ _ hpara'
+        rwa [Subtype.val_inj, F.symm.inj_edge.eq_iff, Subtype.ext_iff] at this}, fun hsimple ↦ {
       loopless := (instLooplessGraphic.invariant h ▸ hsimple.toIsLoopless).loopless
-      no_multi_edges := fun e f he hf h ↦ by
-        sorry}⟩
+      no_multi_edges := fun e f hpara  ↦ by
+        obtain ⟨F⟩ := h
+        have hpara' : G.parallel (⟨e, hpara.left_mem⟩ : E(G)) (⟨f, hpara.right_mem⟩ : E(G)) := hpara
+        rw [F.parallel_iff] at hpara'
+        have := hsimple.no_multi_edges _ _ hpara'
+        rwa [Subtype.val_inj, F.inj_edge.eq_iff, Subtype.ext_iff] at this}⟩
 
 @[simps]
 def toSimpleGraph (G : Graph α β) : SimpleGraph V(G) where
@@ -249,7 +244,10 @@ instance instSimpleCanonicalSimplify : SimpleCanonical (simplify G) where
   loopless x := by
     simp only [Adj, simplify, mem_setOf_eq, oftoSym2_isLink, exists_prop, exists_eq_right,
       Sym2.isDiag_iff_proj_eq, not_true_eq_false, toSym2_eq_pair_iff, false_and, not_false_eq_true]
-  no_multi_edges e f he hf h := by simpa only [simplify, mem_setOf_eq, oftoSym2_tosym2] using h
+  no_multi_edges e f h := by
+    rw [parallel_iff_sym2_eq] at h
+    obtain ⟨he, hf, h⟩ := h
+    simpa only [simplify, mem_setOf_eq, oftoSym2_tosym2] using h
   canonical e he := by simp only [simplify, mem_setOf_eq, oftoSym2_tosym2]
 
 lemma simplify_edgeSet_ncard_le (G : Graph α β) [hE : Finite E(G)] :
@@ -297,7 +295,7 @@ lemma simplify_hasIsom [hG : G.Simple] : G ↔ᴳ G.simplify := ⟨{
 
 lemma simplify_eq_edgeMap [hα : Nonempty α] [hG : G.Simple] [DecidablePred (· ∈ E(G))] :
     G.simplify = G.edgeMap (fun e ↦ if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some))
-    (fun e he f hf => by simp [he, hf]) := by
+    (fun e he f hf => by simp [he, hf]; apply hG.no_multi_edges e f) := by
   refine Graph.ext_toSym2 rfl ?_ fun e he => ?_
   · ext e
     rw [Simplify_edgeSet]
@@ -332,15 +330,6 @@ lemma simplify_vertexIsom [hα : Nonempty α] [hG : G.Simple] :
 --   classical
 --   use (fun e => if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some)),
 --     (fun e he f hf => by simp [he, hf]), simplify_eq_edgeMap.symm
-
-lemma simplify_edgeSet_ncard_lt (G : Graph α β) [hE : Finite E(G)] :
-    E(G.simplify).ncard < E(G).ncard ↔ ¬ G.Simple := by
-  refine ⟨fun hG hsimp ↦ ?_, fun hsimp ↦ ?_⟩
-  · simp [(simplify_hasIsom (hG := hsimp)).eq (·.edgeSet.ncard) (·.edgeSet.ncard)] at hG
-  · rw [not_simple_iff] at hsimp
-    obtain ⟨x, e, hinc⟩ | ⟨e, f, he, hf, heq, hne⟩ := hsimp
-    · sorry
-    · sorry
 
 -- lemma simplify_vertexIsom [Nonempty α] [hG : G.Simple] :
 --     ∃ f : β → Sym2 α, (Funs.ofEdgeFun f).IsIsomOn G G.Simplify := by
@@ -399,8 +388,12 @@ lemma forall_Simplify {α : Type u} {β : Type v} (F : ∀ {β : Type u}, Graph 
     by_cases hα : Nonempty α
     · rw [hF.invariant simplify_vertexIsom]
       exact h G.simplify
-    · simp at hα
+    · rw [not_nonempty_iff] at hα
       rw [eq_bot_of_isEmpty (G := G)]
-      sorry
+      refine (hF.invariant ?_) ▸ (h _ : F (⊥ : Graph α (Sym2 α)))
+      obtain ⟨F⟩ := bot_hasIsom_bot
+      use F
+      ext ⟨x, hx⟩
+      simp at hx
 
 end Graph
