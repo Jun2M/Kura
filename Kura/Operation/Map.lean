@@ -137,6 +137,14 @@ lemma edgeMap_isLink (hσ : InjOn σ E(G)) : (G.edgeMap σ hσ).IsLink e' u v �
     obtain rfl := hσ hfinc.edge_mem hincv.edge_mem <| hfeq.trans heq.symm
     exact h x hfinc
 
+@[simp]
+lemma edgeMap_edgeSet_ncard_eq (hσ : InjOn σ E(G)) : E(G.edgeMap σ hσ).ncard = E(G).ncard := by
+  refine (ncard_congr (fun a _ ↦ σ a) (fun a ha ↦ ?_) (fun _ _ ↦ (hσ · ·)) (fun b hb ↦ ?_)).symm
+  · simp only [edgeMap_edgeSet, mem_image]
+    use a
+  · simp only [edgeMap_edgeSet, mem_image] at hb
+    obtain ⟨e, he, rfl⟩ := hb
+    use e
 
 @[simps! vertexSet isLink]
 def map (G : Graph α β) (f : α → α') (g : β → β') (h : ∀ (e₁) (he₁ : e₁ ∈ E(G)) (e₂)

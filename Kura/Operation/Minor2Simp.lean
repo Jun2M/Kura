@@ -40,6 +40,7 @@ instance simpMinor_isSimpleCanonical (G : Graph (Set α) (Sym2 (Set α))) (C : S
     SimpleCanonical (G // C) := instSimpleCanonicalSimplify
 
 lemma edgeSet_ncard_simpMinor_singleton (G : Graph (Set α) (Sym2 (Set α))) (s : Sym2 (Set α))
-    [Finite E(G)] : (G // {s}).edgeSet.ncard = {e ∈ E(G) | ¬ G.parallel e s}.ncard := by
+    [Finite E(G)] [G.Simple] : E(G // {s}).ncard = E(G).ncard - 1 - (N(G, x) ∩ N(G, y)).ncard := by
+  sorry
 
 end Graph

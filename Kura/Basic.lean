@@ -929,4 +929,82 @@ lemma parallel.inc_eq (h : G.parallel e f) : G.Inc e = G.Inc f := by
 
 end parallel
 
+section edgeNeighborhood
+def edgeNeighborhood (G : Graph α β) (v : α) := {e : β | G.Inc e v}
+
+scoped notation "Nₑ(" G "," v ")" => edgeNeighborhood G v
+
+@[simp]
+lemma mem_edgeNeighborhood_iff (G : Graph α β) (v : α) (e : β) :
+    e ∈ Nₑ(G, v) ↔ G.Inc e v := by simp [edgeNeighborhood]
+
+lemma edgeNeighborhood_subset_edgeSet (G : Graph α β) (v : α) :
+    Nₑ(G, v) ⊆ E(G) := fun _ hx => hx.edge_mem
+
+instance edgeNeighborhood_finite (G : Graph α β) (v : α) [Finite E(G)] :
+    Finite (Nₑ(G, v)) := Finite.Set.subset E(G) (G.edgeNeighborhood_subset_edgeSet v)
+
+lemma edgeNeighborhood_ncard_le_degree (G : Graph α β) (v : α) [Finite E(G)] :
+    Nₑ(G, v).ncard ≤ G.degree v := by
+  rw [degree_eq_edgeSet_sum]
+  rw [ncard_eq_toFinset_card Nₑ(G, v), Finset.card_eq_sum_ones]
+  apply le_trans (Finset.sum_le_sum fun e he ↦ ?_) (Finset.sum_le_sum_of_subset ?_)
+  · exact toFinset_subset_toFinset.mpr <| G.edgeNeighborhood_subset_edgeSet v
+  · simp only [toFinite_toFinset, mem_toFinset, mem_edgeNeighborhood_iff] at he
+    rw [← incFun_ne_zero] at he
+    exact Nat.one_le_iff_ne_zero.mpr he
+
+end edgeNeighborhood
+section vertexNeighborhood
+
+def vertexNeighborhood (G : Graph α β) (v : α) := {x : α | G.Adj v x}
+
+scoped notation "N(" G "," v ")" => vertexNeighborhood G v
+
+@[simp]
+lemma mem_vertexNeighborhood_iff (G : Graph α β) (v : α) (x : α) :
+    x ∈ N(G, v) ↔ G.Adj v x := by simp [vertexNeighborhood]
+
+lemma mem_vertexNeighborhood_comm (G : Graph α β) (v w : α) :
+    v ∈ N(G, w) ↔ w ∈ N(G, v) := by
+  simp only [vertexNeighborhood, mem_setOf_eq]
+  rw [adj_comm]
+
+lemma vertexNeighborhood_subset_vertexSet (G : Graph α β) (v : α) :
+    N(G, v) ⊆ V(G) := fun _ hx => hx.mem_right
+
+instance vertexNeighborhood_finite (G : Graph α β) (v : α) [Finite V(G)] :
+    Finite (N(G, v)) := Finite.Set.subset V(G) (G.vertexNeighborhood_subset_vertexSet v)
+
+lemma vertexNeighborhood_empty_of_isolated (G : Graph α β) (v : α) (hiso : G.Isolated v) :
+    N(G, v) = ∅ := by
+  simp only [vertexNeighborhood, eq_empty_iff_forall_not_mem]
+  intro x hx
+  exact hiso.not_adj_left hx
+
+lemma vertexNeighborhood_ncard_le_edgeNeighborhood_ncard (G : Graph α β) [hβ : Nonempty β] (v : α)
+    [Finite E(G)] : N(G, v).ncard ≤ Nₑ(G, v).ncard := by
+  classical
+  simp only [vertexNeighborhood, edgeNeighborhood]
+  refine ncard_le_ncard_of_injOn (fun x ↦ if hadj : G.Adj v x then hadj.choose else hβ.some) ?_ ?_ ?_
+  · intro x hadj
+    simp only [mem_setOf_eq] at hadj
+    simp only [hadj, ↓reduceDIte, mem_setOf_eq, hadj.choose_spec.inc_left]
+  · intro x hadj1 y hadj2 heq
+    simp only [mem_setOf_eq] at hadj1 hadj2
+    simp [hadj1, hadj2] at heq
+    have h1 := hadj1.choose_spec
+    have h2 := heq ▸ hadj2.choose_spec
+    rwa [h1.isLink_iff_eq_right] at h2
+  · change Finite (Nₑ(G, v))
+    exact Finite.Set.subset E(G) (G.edgeNeighborhood_subset_edgeSet v)
+
+lemma vertexNeighborhood_ncard_le_degree (G : Graph α β) (v : α) [Nonempty β] [Finite E(G)] :
+    N(G, v).ncard ≤ G.degree v :=
+  (vertexNeighborhood_ncard_le_edgeNeighborhood_ncard G v).trans
+  (G.edgeNeighborhood_ncard_le_degree v)
+
+
+
+end vertexNeighborhood
 end Graph
