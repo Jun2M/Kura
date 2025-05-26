@@ -34,7 +34,7 @@ lemma path_in_leftHalf_of_finishSep {w : Walk α β} (hP : G.IsPath w)
   · right
     rw [Nonempty.not_iff] at h
     obtain ⟨y, hy⟩ := h
-    simpa only [hy, nil_last, mem_singleton_iff, nil_vx, mem_cons, not_mem_nil, or_false] using hx
+    simpa only [hy, nil_last, mem_singleton_iff, nil_vx, mem_cons, notMem_nil, or_false] using hx
   rw [Nonempty.iff_exists_cons] at h
   obtain ⟨y, e, w', rfl⟩ := h
   simp only [cons_vx, mem_cons] at hx

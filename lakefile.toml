@@ -18,6 +18,10 @@ git = "https://github.com/apnelson1/Matroid.git"
 rev = "6d2a27f31207bbd0d45f2b321c10ea1975bdc67e"
 
 [[require]]
+name = "Canonical"
+scope = "chasenorman"
+
+[[require]]
 name = "mathlib"
 scope = "leanprover-community"
 

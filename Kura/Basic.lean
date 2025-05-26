@@ -126,17 +126,17 @@ lemma edgeSet_eq_setOf_exists_isLink : E(G) = {e | ∃ x y, G.IsLink e x y} :=
   Set.ext fun e ↦ G.edge_mem_iff_exists_isLink e
 
 @[simp]
-lemma not_isLink_of_not_mem_edgeSet (he : e ∉ E(G)) (x y : α) : ¬ G.IsLink e x y := by
+lemma not_isLink_of_notMem_edgeSet (he : e ∉ E(G)) (x y : α) : ¬ G.IsLink e x y := by
   contrapose! he
   exact he.edge_mem
 
 @[simp]
-lemma not_isLink_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.IsLink e x y := by
+lemma not_isLink_of_left_notMem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.IsLink e x y := by
   contrapose! hx
   exact hx.vx_mem_left
 
 @[simp]
-lemma not_isLink_of_right_not_mem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.IsLink e x y := by
+lemma not_isLink_of_right_notMem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.IsLink e x y := by
   contrapose! hy
   exact hy.vx_mem_right
 
@@ -205,11 +205,11 @@ lemma Inc.eq_of_isLink_of_ne_left (h : G.Inc e x) (h' : G.IsLink e y z) (hxy : x
   (h.eq_or_eq_of_isLink h').elim (False.elim ∘ hxy) id
 
 @[simp]
-lemma not_inc_of_not_mem_edgeSet (he : e ∉ E(G)) (x : α) : ¬ G.Inc e x :=
+lemma not_inc_of_notMem_edgeSet (he : e ∉ E(G)) (x : α) : ¬ G.Inc e x :=
   (he ·.edge_mem)
 
 @[simp]
-lemma not_inc_of_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Inc e x := by
+lemma not_inc_of_notMem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Inc e x := by
   contrapose! hx
   exact hx.vx_mem
 
@@ -353,11 +353,11 @@ lemma Adj.mem_right (h : G.Adj x y) : y ∈ V(G) :=
 lemma IsLink.adj (h : G.IsLink e x y) : G.Adj x y :=
   ⟨e, h⟩
 
-lemma not_adj_of_left_not_mem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Adj x y := by
+lemma not_adj_of_left_notMem_vertexSet (x : α) (hx : x ∉ V(G)) : ¬ G.Adj x y := by
   contrapose! hx
   exact hx.mem_left
 
-lemma not_adj_of_right_not_mem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.Adj x y := by
+lemma not_adj_of_right_notMem_vertexSet (y : α) (hy : y ∉ V(G)) : ¬ G.Adj x y := by
   contrapose! hy
   exact hy.mem_right
 
@@ -380,14 +380,14 @@ lemma vx_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : x ∈ V(G) := by
     obtain rfl | rfl := hxe
     · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.vx_mem_left
     · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.vx_mem_right
-  · exact (Multiset.not_mem_zero _ hxe).elim
+  · exact (Multiset.notMem_zero _ hxe).elim
 
 @[simp]
 lemma edge_mem_of_mem_toMultiset (hxe : x ∈ G.toMultiset e) : e ∈ E(G) := by
   simp only [toMultiset] at hxe
   split_ifs at hxe with he
   · exact (G.exists_isLink_of_mem_edgeSet he).choose_spec.choose_spec.edge_mem
-  · exact (Multiset.not_mem_zero _ hxe).elim
+  · exact (Multiset.notMem_zero _ hxe).elim
 
 @[simp]
 lemma toMultiset_card_eq_two (he : e ∈ E(G)) : (G.toMultiset e).card = 2 := by
@@ -530,8 +530,8 @@ lemma IsLink.incFun_support_eq [DecidableEq α] (h : G.IsLink e x y) :
 --     s ∩ {x} = if x ∈ s then {x} else ∅ := by
 --   split_ifs <;> simpa
 
-lemma incFun_eq_zero_of_not_mem (he : e ∉ E(G)) : G.incFun e = 0 := by
-  simp [DFunLike.ext_iff, incFun, inc_iff_exists_isLink, not_isLink_of_not_mem_edgeSet he]
+lemma incFun_eq_zero_of_notMem (he : e ∉ E(G)) : G.incFun e = 0 := by
+  simp [DFunLike.ext_iff, incFun, inc_iff_exists_isLink, not_isLink_of_notMem_edgeSet he]
 
 lemma incFun_le_two (G : Graph α β) (e : β) (x : α) : G.incFun e x ≤ 2 := by
   classical
@@ -571,7 +571,7 @@ lemma IsLoopAt.incFun_eq_two (h : G.IsLoopAt e x) : G.incFun e x = 2 :=
 
 @[simp]
 lemma incFun_eq_zero_iff : G.incFun e = 0 ↔ e ∉ E(G) := by
-  refine ⟨fun h he ↦ ?_, incFun_eq_zero_of_not_mem⟩
+  refine ⟨fun h he ↦ ?_, incFun_eq_zero_of_notMem⟩
   obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
   obtain hx | hx := hxy.inc_left.isLoopAt_or_isNonloopAt
   · have := h ▸ hx.incFun_eq_two
@@ -593,8 +593,8 @@ lemma toMultiset_count [DecidableEq α] (x : α) : (G.toMultiset e).count x = G.
   by_cases he : e ∈ E(G)
   · simp only [toMultiset, he, ↓reduceDIte, incFun]
     convert (Multiset.toFinsupp_apply _ x).symm
-  · simp only [toMultiset, he, ↓reduceDIte, Multiset.not_mem_zero, not_false_eq_true,
-    Multiset.count_eq_zero_of_not_mem, incFun, map_zero, Finsupp.coe_zero, Pi.ofNat_apply]
+  · simp only [toMultiset, he, ↓reduceDIte, Multiset.notMem_zero, not_false_eq_true,
+    Multiset.count_eq_zero_of_notMem, incFun, map_zero, Finsupp.coe_zero, Pi.ofNat_apply]
 
 @[simp]
 lemma incFun_ne_zero : G.incFun e v ≠ 0 ↔ G.Inc e v := by
@@ -746,7 +746,7 @@ def regular (G : Graph α β) := ∃ d, ∀ v, G.degree v = d
 
 lemma degree_eq_edgeSet_sum (G : Graph α β) [Fintype E(G)] (v : α) :
     G.degree v = ∑ e ∈ E(G), G.incFun e v := by
-  rw [degree, eDegree, tsum_eq_sum (s := E(G).toFinset) (by simp; exact fun b hb ↦ not_inc_of_not_mem_edgeSet hb v), ← Nat.cast_inj (R := ℕ∞),
+  rw [degree, eDegree, tsum_eq_sum (s := E(G).toFinset) (by simp; exact fun b hb ↦ not_inc_of_notMem_edgeSet hb v), ← Nat.cast_inj (R := ℕ∞),
     Nat.cast_sum, ENat.coe_toNat]
   refine WithTop.sum_ne_top.2 fun i _ ↦ ?_
   rw [← WithTop.lt_top_iff_ne_top]
@@ -763,7 +763,7 @@ lemma finsum_vertexSet_incFun_eq (he : e ∈ E(G)) : ∑ᶠ v ∈ V(G), G.incFun
   refine finsum_congr fun v ↦ ?_
   rw [indicator_apply_eq_self]
   rintro hv
-  simp [not_inc_of_not_mem_vertexSet v hv]
+  simp [not_inc_of_notMem_vertexSet v hv]
   · simp
 
 lemma handshake (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
@@ -775,14 +775,14 @@ lemma handshake (G : Graph α β) [hV : Finite V(G)] [hE : Finite E(G)] :
     rw [indicator_apply_eq_self]
     rintro hv
     convert finsum_zero with e
-    simp [not_inc_of_not_mem_vertexSet v hv]
+    simp [not_inc_of_notMem_vertexSet v hv]
   simp only [Set.mem_univ, finsum_true]
   rw [finsum_mem_congr (show E(G) = E(G) from rfl) (fun x h ↦ finsum_vertexSet_incFun_eq h),
     finsum_mem_eq_toFinset_sum, Finset.sum_const, ncard_eq_toFinset_card _ hE]
   simp only [toFinite_toFinset, toFinset_card, mul_comm, smul_eq_mul]
 
 @[simp]
-lemma degree_eq_zero_not_mem (G : Graph α β) (hv : v ∉ V(G)) : G.degree v = 0 := by
+lemma degree_eq_zero_notMem (G : Graph α β) (hv : v ∉ V(G)) : G.degree v = 0 := by
   unfold degree eDegree
   simp only [ENat.toNat_eq_zero]
   left
@@ -797,7 +797,7 @@ scoped notation "Δ(" G ")" => maxDegree G
 lemma degree_le_maxDegree (G : Graph α β) [Finite V(G)] [Finite E(G)] (v : α) :
     G.degree v ≤ Δ(G) := by
   obtain hv | hv := (em <| v ∈ V(G)).symm
-  · simp only [hv, not_false_eq_true, degree_eq_zero_not_mem, zero_le]
+  · simp only [hv, not_false_eq_true, degree_eq_zero_notMem, zero_le]
   unfold maxDegree
   have hmem : G.degree v ∈ (G.degree '' V(G)).toFinset := by
     simp
@@ -978,7 +978,7 @@ instance vertexNeighborhood_finite (G : Graph α β) (v : α) [Finite V(G)] :
 
 lemma vertexNeighborhood_empty_of_isolated (G : Graph α β) (v : α) (hiso : G.Isolated v) :
     N(G, v) = ∅ := by
-  simp only [vertexNeighborhood, eq_empty_iff_forall_not_mem]
+  simp only [vertexNeighborhood, eq_empty_iff_forall_notMem]
   intro x hx
   exact hiso.not_adj_left hx
 

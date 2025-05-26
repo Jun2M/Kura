@@ -26,8 +26,8 @@ lemma IsLink.endSet_eq (h : G.IsLink e x y) : G.endSet e = {x,y} := by
 lemma IsLoopAt.endSet_eq (h : G.IsLoopAt e x) : G.endSet e = {x} := by
   rw [IsLink.endSet_eq h, pair_eq_singleton]
 
-lemma endSet_eq_of_not_mem_edgeSet (he : e ∉ E(G)) : G.endSet e = ∅ := by
-  simp only [endSet, eq_empty_iff_forall_not_mem, mem_setOf_eq]
+lemma endSet_eq_of_notMem_edgeSet (he : e ∉ E(G)) : G.endSet e = ∅ := by
+  simp only [endSet, eq_empty_iff_forall_notMem, mem_setOf_eq]
   exact fun x hx ↦ he hx.edge_mem
 
 lemma endSet_encard_le (G : Graph α β) (e : β) : (G.endSet e).encard ≤ 2 := by
@@ -35,7 +35,7 @@ lemma endSet_encard_le (G : Graph α β) (e : β) : (G.endSet e).encard ≤ 2 :=
   · obtain ⟨x, y, h⟩ := exists_isLink_of_mem_edgeSet heE
     rw [h.endSet_eq]
     exact encard_pair_le x y
-  simp [endSet_eq_of_not_mem_edgeSet heE]
+  simp [endSet_eq_of_notMem_edgeSet heE]
 
 @[simp]
 lemma subsingleton_setOf_isLink (G : Graph α β) (e : β) (x : α) :

@@ -307,7 +307,7 @@ lemma noEdge_le_iff {V : Set α} : Graph.noEdge V β ≤ G ↔ V ⊆ V(G) := by
 lemma edgeDelete_eq_noEdge (G : Graph α β) (hF : E(G) ⊆ F) : G ＼ F = Graph.noEdge V(G) β := by
   refine Graph.ext rfl fun e x y ↦ ?_
   simp only [edgeDelete_isLink, noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
-    not_isLink_of_not_mem_edgeSet, iff_false, not_and]
+    not_isLink_of_notMem_edgeSet, iff_false, not_and]
   exact fun h hbtw ↦ h (hF hbtw.edge_mem)
 
 instance instOrderBotGraph : OrderBot (Graph α β) where
@@ -336,7 +336,7 @@ instance instESetIsEmptyBot : IsEmpty E((⊥ : Graph α β)) := by
 lemma vertexSet_empty_iff_eq_bot : V(G) = ∅ ↔ G = ⊥ := by
   constructor <;> rintro h
   · apply ext_inc h ?_
-    simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc_of_not_mem_edgeSet, iff_false]
+    simp only [bot_E, mem_empty_iff_false, not_false_eq_true, not_inc_of_notMem_edgeSet, iff_false]
     rintro e v hinc
     have := h ▸ hinc.vx_mem
     simp only [mem_empty_iff_false] at this
@@ -669,7 +669,7 @@ lemma Compatible.union_le_iff {H₁ H₂ : Graph α β} (h_compat : H₁.Compati
     fun h ↦ union_le h.1 h.2⟩
 
 lemma Compatible.of_disjoint_edgeSet (h : Disjoint E(G) E(H)) : Compatible G H :=
-  fun _ heG heH ↦ False.elim <| h.not_mem_of_mem_left heG heH
+  fun _ heG heH ↦ False.elim <| h.notMem_of_mem_left heG heH
 
 lemma union_eq_union_edgeDelete (G H : Graph α β) : G ∪ H = G ∪ (H ＼ E(G)) :=
   Graph.ext rfl fun e x y ↦ by rw [union_isLink_iff,

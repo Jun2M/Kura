@@ -228,7 +228,7 @@ lemma edgeSet_empty_iff_eq_noEdge (G : Graph α β) : E(G) = ∅ ↔ G = Graph.n
   constructor <;> rintro h
   · refine Graph.ext rfl fun e x y ↦ ?_
     simp only [noEdge_edgeSet, mem_empty_iff_false, not_false_eq_true,
-    not_isLink_of_not_mem_edgeSet, iff_false]
+    not_isLink_of_notMem_edgeSet, iff_false]
     rintro hinc
     have := h ▸ hinc.edge_mem
     simp at this

@@ -538,7 +538,7 @@ lemma mem_tail_iff_of_nodup (hw : Nodup w.vx) (hne : w.Nonempty) :
     x ∈ w.tail ↔ x ∈ w ∧ x ≠ w.first := by
   induction w with aesop
 
-lemma first_not_mem_tail_of_nodup (hw : Nodup w.vx) (hne : w.Nonempty) :
+lemma first_notMem_tail_of_nodup (hw : Nodup w.vx) (hne : w.Nonempty) :
     w.first ∉ w.tail := by
   simp [mem_tail_iff_of_nodup hw hne]
 
@@ -688,13 +688,13 @@ lemma Nontrivial.dropLast_firstEdge (hw : w.Nontrivial) :
     hw.dropLast_nonempty.firstEdge = hw.nonempty.firstEdge := by
   cases hw with simp
 
-lemma Nonempty.firstEdge_not_mem_tail (hw : w.Nonempty) (hnd : w.edge.Nodup) :
+lemma Nonempty.firstEdge_notMem_tail (hw : w.Nonempty) (hnd : w.edge.Nodup) :
     hw.firstEdge w ∉ w.tail.edge := by
   cases hw with simp_all
 
-lemma Nonempty.lastEdge_not_mem_dropLast (hw : w.Nonempty) (hnd : w.edge.Nodup) :
+lemma Nonempty.lastEdge_notMem_dropLast (hw : w.Nonempty) (hnd : w.edge.Nodup) :
     hw.lastEdge w ∉ w.dropLast.edge := by
-  have := hw.reverse.firstEdge_not_mem_tail <| by simpa
+  have := hw.reverse.firstEdge_notMem_tail <| by simpa
   rw [hw.firstEdge_reverse] at this
   simp_all
 
@@ -705,7 +705,7 @@ lemma Nontrivial.tail_lastEdge (hw : w.Nontrivial) :
 
 lemma Nontrivial.firstEdge_ne_lastEdge (hw : w.Nontrivial) (hnd : w.edge.Nodup) :
     hw.nonempty.firstEdge ≠ hw.nonempty.lastEdge := by
-  refine fun h_eq ↦ hw.nonempty.firstEdge_not_mem_tail hnd ?_
+  refine fun h_eq ↦ hw.nonempty.firstEdge_notMem_tail hnd ?_
   rw [h_eq, ← hw.tail_lastEdge]
   exact Nonempty.lastEdge_mem (tail_nonempty hw)
 
@@ -745,7 +745,7 @@ lemma dedup_cons_eq_ite (x : α) (e : β) (w : WList α β) :
 lemma dedup_cons_of_mem (hxw : x ∈ w) (e) : (cons x e w).dedup = dedup (w.suffixFromVx x) := by
   simp [dedup, hxw]
 
-lemma dedup_cons_of_not_mem (hxw : x ∉ w) (e) :
+lemma dedup_cons_of_notMem (hxw : x ∉ w) (e) :
     (cons x e w).dedup = cons x e (dedup w) := by
   simp [dedup, hxw]
 
@@ -769,7 +769,7 @@ lemma dedup_last (w : WList α β) : w.dedup.last = w.last := by
     simp only [last_cons]
     by_cases huw : u ∈ w
     · rw [dedup_cons_of_mem huw, dedup_last, suffixFromVx_last]
-    rw [dedup_cons_of_not_mem huw, last_cons, dedup_last]
+    rw [dedup_cons_of_notMem huw, last_cons, dedup_last]
 termination_by w.length
 
 lemma dedup_isSublist (w : WList α β) : w.dedup.IsSublist w := by
@@ -781,7 +781,7 @@ lemma dedup_isSublist (w : WList α β) : w.dedup.IsSublist w := by
     · rw [dedup_cons_of_mem huw]
       refine (w.suffixFromVx _).dedup_isSublist.trans ?_
       exact (w.suffixFromVx_isSuffix _).isSublist.trans <| by simp
-    rw [dedup_cons_of_not_mem huw]
+    rw [dedup_cons_of_notMem huw]
     exact (dedup_isSublist w).cons₂ _ _ (by simp)
 termination_by w.length
 
@@ -793,7 +793,7 @@ lemma dedup_vx_nodup (w : WList α β) : w.dedup.vx.Nodup := by
     by_cases huw : u ∈ w
     · rw [dedup_cons_of_mem huw]
       apply dedup_vx_nodup
-    simp only [dedup_cons_of_not_mem huw, cons_vx, nodup_cons, mem_vx]
+    simp only [dedup_cons_of_notMem huw, cons_vx, nodup_cons, mem_vx]
     exact ⟨mt w.dedup_isSublist.vx_sublist.mem huw, w.dedup_vx_nodup⟩
 termination_by w.length
 
@@ -802,7 +802,7 @@ lemma dedup_eq_self (hw : w.vx.Nodup) : w.dedup = w := by
   | nil => simp
   | cons u e w ih =>
     simp only [cons_vx, nodup_cons, mem_vx] at hw
-    rw [dedup_cons_of_not_mem hw.1, ih hw.2]
+    rw [dedup_cons_of_notMem hw.1, ih hw.2]
 
 lemma dedup_eq_self_iff : w.dedup = w ↔ w.vx.Nodup :=
   ⟨fun h ↦ by rw [← h]; exact dedup_vx_nodup w, dedup_eq_self⟩
@@ -877,7 +877,7 @@ lemma splitAtEdge_right_suffix [DecidableEq β] (w : WList α β) (e : β) :
     · simp only [splitAtEdge_cons, he', ↓reduceIte]
       exact IsSuffix.cons ih u e'
 
-lemma splitAtEdge_not_mem_left_edge [DecidableEq β] (w : WList α β) (e : β) :
+lemma splitAtEdge_notMem_left_edge [DecidableEq β] (w : WList α β) (e : β) :
     e ∉ (splitAtEdge w e).fst.edge := by
   induction w with
   | nil => simp
@@ -886,7 +886,7 @@ lemma splitAtEdge_not_mem_left_edge [DecidableEq β] (w : WList α β) (e : β) 
     · simp [he']
     · simpa [splitAtEdge_cons, he', ↓reduceIte]
 
-lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β) (h : w.edge.Nodup) :
+lemma splitAtEdge_notMem_right_edge [DecidableEq β] (w : WList α β) (e : β) (h : w.edge.Nodup) :
     e ∉ (splitAtEdge w e).snd.edge := by
   induction w with
   | nil => simp
@@ -981,7 +981,7 @@ lemma splitAtEdge_not_mem_right_edge [DecidableEq β] (w : WList α β) (e : β)
 --   | .cons x e (nil y) =>
 --     simp_all only [cons_validIn, nil_first, nil_validIn, endIf_cons, endIf_nil, dite_eq_ite]
 --     split_ifs with hPx
---     · simp_all only [cons_vx, nil_vx, mem_cons, not_mem_nil, or_false, exists_eq_or_imp,
+--     · simp_all only [cons_vx, nil_vx, mem_cons, notMem_nil, or_false, exists_eq_or_imp,
 --       exists_eq_left, true_or, ite_true, Nonempty.not_nil]
 --     · simp_all only [mem_cons_iff, mem_nil_iff, exists_eq_or_imp, exists_eq_left, false_or,
 --       ite_false, Nonempty.cons_true, last_cons, nil_last, not_false_eq_true, true_and,

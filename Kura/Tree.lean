@@ -60,17 +60,17 @@ lemma Connected.connected_of_maximal_acyclic_edgeRestrict (hG : G.Connected) {F 
   by_contra hcon
   obtain ⟨S, e, x, y, heF, hx, hy, hxy⟩ := hG.exists_of_edgeRestrict_not_connected hcon
   have hne : x ≠ y := S.disjoint.ne_of_mem hx hy
-  have hx' : x ∉ S.right := S.disjoint.not_mem_of_mem_left hx
-  have hy' : y ∉ S.left := S.disjoint.not_mem_of_mem_right hy
+  have hx' : x ∉ S.right := S.disjoint.notMem_of_mem_left hx
+  have hy' : y ∉ S.left := S.disjoint.notMem_of_mem_right hy
   have hFac : (G ↾ F).Acyclic := hF.prop.2
   have h_left : (G ↾ F)[S.left].Acyclic := hFac.mono (induce_le S.left_subset)
   have h_right : (G ↾ F)[S.right].Acyclic := hFac.mono (induce_le S.right_subset)
   have h_left' := h_left.union_acyclic_of_subsingleton_inter (singleEdge_acyclic hne e) ?_; swap
-  · rw [induce_vertexSet, singleEdge_vertexSet, pair_comm, inter_insert_of_not_mem hy']
+  · rw [induce_vertexSet, singleEdge_vertexSet, pair_comm, inter_insert_of_notMem hy']
     exact Subsingleton.inter_singleton
   have h' := h_left'.union_acyclic_of_subsingleton_inter h_right ?_; swap
   · simp only [union_vertexSet, induce_vertexSet, singleEdge_vertexSet, union_insert, union_singleton]
-    rw [insert_inter_of_not_mem hx', insert_inter_of_mem hy, S.disjoint.inter_eq]
+    rw [insert_inter_of_notMem hx', insert_inter_of_mem hy, S.disjoint.inter_eq]
     simp
   have hins : insert e F ⊆ E(G) := insert_subset hxy.edge_mem hF.prop.1
   refine heF <| hF.mem_of_prop_insert ⟨hins, h'.mono ?_⟩
@@ -110,7 +110,7 @@ lemma acyclic_of_minimal_connected (hF : Minimal (fun F ↦ (G ↾ F).Connected)
     (G ↾ F).Acyclic := by
   intro C hC
   obtain ⟨e, he⟩ := hC.nonempty.edgeSet_nonempty
-  refine hF.not_mem_of_prop_diff_singleton (x := e) ?_ (hC.isWalk.edgeSet_subset he).1
+  refine hF.notMem_of_prop_diff_singleton (x := e) ?_ (hC.isWalk.edgeSet_subset he).1
   rw [← edgeRestrict_edgeDelete]
   exact hF.prop.edgeDelete_singleton_connected <| hC.not_isBridge_of_mem he
 

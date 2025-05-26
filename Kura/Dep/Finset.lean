@@ -57,7 +57,7 @@ lemma inter_self (s : Multiset α) [DecidableEq α] : s ∩ s = s := by
 lemma ne_zero_of_mem {s : Multiset α} {a : α} (h : a ∈ s) : s ≠ 0 := by
   intro h0
   rw [h0] at h
-  exact not_mem_zero a h
+  exact notMem_zero a h
 
 -- lemma attachWith_map_val' [DecidableEq α] {s : Multiset α} {P : α → Prop}
 --   (H : ∀ (x : α), x ∈ s → P x) (f : α → β) :

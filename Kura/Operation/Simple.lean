@@ -106,7 +106,7 @@ class SimpleCanonical (G : Graph α (Sym2 α)) : Prop extends Simple G where
   canonical e he : G.toSym2 e he = e
 
 instance instBotSimpleCanonical : SimpleCanonical (⊥ : Graph α (Sym2 α)) where
-  loopless x := not_adj_of_right_not_mem_vertexSet x fun a ↦ a
+  loopless x := not_adj_of_right_notMem_vertexSet x fun a ↦ a
   no_multi_edges e f h := by simpa using h.1
   canonical e he := by simp at he
 

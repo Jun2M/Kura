@@ -9,12 +9,12 @@ variable {α β : Type*} {G G' H H' : Graph α β} {u v x y z : α} {e e' f g : 
 
 @[mk_iff]
 structure IsVxSeparator (G : Graph α β) (u v : α) (S : Set α) : Prop where
-  not_mem_left : u ∉ S
-  not_mem_right : v ∉ S
+  notMem_left : u ∉ S
+  notMem_right : v ∉ S
   not_connected : ¬ (G [V(G) \ S]).VxConnected u v
 
 lemma not_exists_isSeparator_self (hu : u ∈ V(G)) : ¬ ∃ S, G.IsVxSeparator u u S :=
-  fun ⟨S, hS⟩ ↦ hS.not_connected <| VxConnected.refl <| by simp [hu, hS.not_mem_left]
+  fun ⟨S, hS⟩ ↦ hS.not_connected <| VxConnected.refl <| by simp [hu, hS.notMem_left]
 
 -- lemma IsVxSeparator.iff_edgeDel_singleton_isLoop {S : Set α} (he : G.IsLoop e) :
 --     G.IsVxSeparator u v S ↔ (G -ᴳ e).IsVxSeparator u v S := by
@@ -358,16 +358,16 @@ lemma exists_left_vx_right_vx_of_minimal (h : Minimal (G.IsEdgeSetSeparator S T)
     rw [← (W.splitAtEdge_left_prefix e).first_eq, Connected.comm, connected_iff_exists_walk]
     obtain ⟨rfl, rfl⟩ := hVd.toIsPath.isTrail.eq_of_dInc_dInc (W.splitAtEdge_DInc heW) hxy
     use (W.splitAtEdge e).fst, ?_
-    have := W.splitAtEdge_not_mem_left_edge e
-    rw [IsWalk_edgeDel_of_not_mem (hVd.toIsPath.isWalk.prefix (W.splitAtEdge_left_prefix e))] at this
+    have := W.splitAtEdge_notMem_left_edge e
+    rw [IsWalk_edgeDel_of_notMem (hVd.toIsPath.isWalk.prefix (W.splitAtEdge_left_prefix e))] at this
     convert this using 1
     simp [heF]
   · use W.last, hVd.last_mem
     rw [← (W.splitAtEdge_right_suffix e).last_eq, connected_iff_exists_walk]
     obtain ⟨rfl, rfl⟩ := hVd.toIsPath.isTrail.eq_of_dInc_dInc (W.splitAtEdge_DInc heW) hxy
     use (W.splitAtEdge e).snd, ?_
-    have := W.splitAtEdge_not_mem_right_edge e hVd.toIsPath.isTrail.edge_nodup
-    rw [IsWalk_edgeDel_of_not_mem (hVd.toIsPath.isWalk.suffix (W.splitAtEdge_right_suffix e))] at this
+    have := W.splitAtEdge_notMem_right_edge e hVd.toIsPath.isTrail.edge_nodup
+    rw [IsWalk_edgeDel_of_notMem (hVd.toIsPath.isWalk.suffix (W.splitAtEdge_right_suffix e))] at this
     convert this using 1
     simp [heF]
 

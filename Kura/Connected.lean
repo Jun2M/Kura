@@ -47,14 +47,14 @@ lemma VxConnected.mem_left (hxy : G.VxConnected x y) : x ∈ V(G) := by
   | tail _ _ h => exact h
 
 @[simp]
-lemma not_vxConnected_of_not_mem_left (hx : ¬ x ∈ V(G)) : ¬ G.VxConnected x y :=
+lemma not_vxConnected_of_notMem_left (hx : ¬ x ∈ V(G)) : ¬ G.VxConnected x y :=
   fun h ↦ hx (h.mem_left)
 
 lemma VxConnected.mem_right (hxy : G.VxConnected x y) : y ∈ V(G) :=
   hxy.symm.mem_left
 
 @[simp]
-lemma not_vxConnected_of_not_mem_right (hy : ¬ y ∈ V(G)) : ¬ G.VxConnected x y :=
+lemma not_vxConnected_of_notMem_right (hy : ¬ y ∈ V(G)) : ¬ G.VxConnected x y :=
   fun h ↦ hy (h.mem_right)
 
 @[simp]
@@ -219,7 +219,7 @@ lemma exists_of_not_connected (h : ¬ G.Connected) (hne : V(G).Nonempty) :
     exists_prop, exists_and_left] at h
   obtain ⟨x, hx, y, hy, hxy⟩ := h
   refine ⟨{z | G.VxConnected x z}, ?_, ⟨x, by simpa⟩, fun u v (h : G.VxConnected x u) huv ↦ ?_⟩
-  · exact HasSubset.Subset.ssubset_of_mem_not_mem
+  · exact HasSubset.Subset.ssubset_of_mem_notMem
       (fun z hz ↦ VxConnected.mem_right hz) hy (by simpa)
   exact h.trans huv.vxConnected
 
@@ -295,7 +295,7 @@ lemma Connected.exists_vxConnected_deleteEdge_set_set (hG : G.Connected)
   have hxy' := hP.isWalk.isLink_of_dInc hxy
   rw [edgeDelete_edgeSet, mem_diff, mem_union, hxy'.mem_induce_iff,
     hxy'.mem_induce_iff, and_iff_right hxy'.edge_mem]
-  simp [hP.not_mem_left_of_dInc hxy, hP.not_mem_right_of_dInc hxy]
+  simp [hP.notMem_left_of_dInc hxy, hP.notMem_right_of_dInc hxy]
 
 lemma Connected.exists_adj_of_mem (hG : G.Connected) (hV : V(G).Nontrivial) (hx : x ∈ V(G)) :
     ∃ y ≠ x, G.Adj x y := by
@@ -334,19 +334,19 @@ def Separation.symm (S : G.Separation) : G.Separation where
   union_eq := by rw [← S.union_eq, union_comm]
   not_adj x y hx hy := by simpa [adj_comm] using S.not_adj hy hx
 
-lemma Separation.not_mem_left_iff (S : G.Separation) (hxV : x ∈ V(G)) :
+lemma Separation.notMem_left_iff (S : G.Separation) (hxV : x ∈ V(G)) :
     x ∉ S.left ↔ x ∈ S.right := by
   rw [← S.union_eq, mem_union] at hxV
-  have := S.disjoint.not_mem_of_mem_left (a := x)
+  have := S.disjoint.notMem_of_mem_left (a := x)
   tauto
 
-lemma Separation.not_mem_right_iff (S : G.Separation) (hxV : x ∈ V(G)) :
+lemma Separation.notMem_right_iff (S : G.Separation) (hxV : x ∈ V(G)) :
     x ∉ S.right ↔ x ∈ S.left := by
-  simpa using S.symm.not_mem_left_iff hxV
+  simpa using S.symm.notMem_left_iff hxV
 
 lemma Separation.mem_left_of_adj {S : G.Separation} (hx : x ∈ S.left) (hxy : G.Adj x y) :
     y ∈ S.left := by
-  rw [← S.not_mem_right_iff hxy.mem_right]
+  rw [← S.notMem_right_iff hxy.mem_right]
   exact fun hy ↦ S.not_adj hx hy hxy
 
 lemma Separation.mem_right_of_adj {S : G.Separation} (hx : x ∈ S.right) (hxy : G.Adj x y) :
@@ -360,7 +360,7 @@ lemma Separation.not_vxConnected (S : G.Separation) (hx : x ∈ S.left) (hy : y 
     ¬ G.VxConnected x y := by
   intro h
   obtain ⟨w, hw, rfl, rfl⟩ := h.exists_isWalk
-  rw [← S.not_mem_left_iff (S.right_subset hy)] at hy
+  rw [← S.notMem_left_iff (S.right_subset hy)] at hy
   obtain ⟨e, x, y, hinc, hx, hy⟩ := exists_dInc_prop_not_prop hx hy
   exact hy <| S.mem_left_of_adj hx (hw.isLink_of_dInc hinc).adj
 
@@ -396,10 +396,10 @@ lemma Connected.exists_of_edgeRestrict_not_connected (hG : G.Connected)
   obtain ⟨y₀, hy₀⟩ := S.nonempty_right
   obtain ⟨w, hw, rfl, rfl⟩ :=
     (hG.vxConnected (S.left_subset hx₀) (S.right_subset hy₀)).exists_isWalk
-  rw [← S.not_mem_left_iff (S.right_subset hy₀)] at hy₀
+  rw [← S.notMem_left_iff (S.right_subset hy₀)] at hy₀
   obtain ⟨e, x, y, hexy, hx, hy⟩ := w.exists_dInc_prop_not_prop hx₀ hy₀
   have h' := hw.isLink_of_dInc hexy
-  rw [S.not_mem_left_iff h'.vx_mem_right] at hy
+  rw [S.notMem_left_iff h'.vx_mem_right] at hy
   refine ⟨S, e, x, y, fun heF ↦ ?_, hx, hy, h'⟩
   exact S.not_adj hx hy <| IsLink.adj <| h'.of_le_of_mem (by simp) <| by simpa [h'.edge_mem]
 
@@ -414,8 +414,8 @@ lemma Separation.edge_induce_disjoint (S : G.Separation) : Disjoint E(G[S.left])
   obtain ⟨x, y, hexy, hx, hy⟩ := he
   obtain ⟨x', y', hexy', hx', hy'⟩ := he'
   obtain rfl | rfl := hexy.left_eq_or_eq_of_isLink hexy'
-  · exact S.disjoint.not_mem_of_mem_left hx hx'
-  exact S.disjoint.not_mem_of_mem_left hx hy'
+  · exact S.disjoint.notMem_of_mem_left hx hx'
+  exact S.disjoint.notMem_of_mem_left hx hy'
 
 lemma Separation.eq_union (S : G.Separation) : G = G [S.left] ∪ G [S.right] := by
   refine Graph.ext (by simp [S.union_eq]) fun e x y ↦ ?_
@@ -458,7 +458,7 @@ lemma union_not_connected_of_disjoint_vertexSet (hV : Disjoint V(G) V(H)) (hG : 
   obtain ⟨w, hw, rfl, rfl⟩ :=
     (h.vxConnected (x := x) (y := y) (by simp [hx]) (by simp [hy])).exists_isWalk
   obtain ⟨u, -, huG, huH⟩ := hw.exists_mem_mem_of_union hx hy
-  exact hV.not_mem_of_mem_left huG huH
+  exact hV.notMem_of_mem_left huG huH
 
 /-! ### Cycles -/
 
@@ -550,7 +550,7 @@ lemma Compatible.isCycle_union_iff_of_subsingleton_inter (hcompat : G.Compatible
 @[mk_iff]
 structure IsBridge (G : Graph α β) (e : β) : Prop where
   mem_edgeSet : e ∈ E(G)
-  not_mem_cycle : ∀ ⦃C⦄, G.IsCycle C → e ∉ C.edge
+  notMem_cycle : ∀ ⦃C⦄, G.IsCycle C → e ∉ C.edge
 
 lemma not_isBridge (he : e ∈ E(G)) : ¬ G.IsBridge e ↔ ∃ C, G.IsCycle C ∧ e ∈ C.edge := by
   simp [isBridge_iff, he]
@@ -600,7 +600,7 @@ lemma Connected.edgeDelete_singleton_connected_iff (hG : G.Connected) :
   obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet heE
   obtain ⟨P, hP, rfl, rfl⟩ := (h.vxConnected hxy.vx_mem_left hxy.vx_mem_right).exists_isPath
   simp only [isPath_edgeDelete_iff, disjoint_singleton_right, mem_edgeSet_iff] at hP
-  simpa using hbr.not_mem_cycle <| hP.1.cons_isCycle hxy hP.2
+  simpa using hbr.notMem_cycle <| hP.1.cons_isCycle hxy hP.2
 
 lemma Connected.isBridge_iff (hG : G.Connected) : G.IsBridge e ↔ ¬ (G ＼ {e}).Connected := by
   rw [hG.edgeDelete_singleton_connected_iff, not_not]
@@ -654,7 +654,7 @@ theorem twoPaths (hP : G.IsPath P) (hQ : G.IsPath Q) (hPQ : P ≠ Q) (h0 : P.fir
       refine ⟨(Q ++ P.reverse).dedup, ?_, ?_, ?_, by simp, ?_⟩
       · exact IsWalk.dedup_isPath (hQ.isWalk.append hP.1.isWalk.reverse (by simpa using h1.symm))
       · rw [← mem_edgeSet_iff]
-        refine not_mem_subset (t := E(Q ++ P.reverse)) ((dedup_isSublist _).edgeSet_subset) ?_
+        refine notMem_subset (t := E(Q ++ P.reverse)) ((dedup_isSublist _).edgeSet_subset) ?_
         simp [heQ, heP]
       · simp [append_first_of_nonempty hne]
       exact (dedup_isSublist _).edgeSet_subset.trans <| by simp

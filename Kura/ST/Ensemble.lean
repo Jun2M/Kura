@@ -37,7 +37,7 @@ def nil (U : Set α) (β : Type*) : Ensemble α β where
     simp only [mem_image] at hp hq
     obtain ⟨u, hu, rfl⟩ := hp
     obtain ⟨v, hv, rfl⟩ := hq
-    simp only [vx, mem_cons, not_mem_nil, or_false] at hxp hxq
+    simp only [vx, mem_cons, notMem_nil, or_false] at hxp hxq
     subst u v
     rfl
 
@@ -172,8 +172,8 @@ lemma byLast_of_last (hp : p ∈ Ps.walks) : Ps.byLast p.last (last_mem_lastSet 
 --   have hx2' : x ∈ Ps₂.vertexSet := by
 --     use Ps₂.byFirst v hv, byFirst_mem hv, hx2
 --   have := mem_lastSet_mem (hsu ⟨hx1', hx2'⟩) (List.mem_of_mem_dropLast hx1) (byLast_mem hu)
---   have := last_not_mem_dropLast_of_isPath
---   exact last_not_mem_vx_dropLast (this ▸ hx1)
+--   have := last_notMem_dropLast_of_isPath
+--   exact last_notMem_vx_dropLast (this ▸ hx1)
 
 def append (Ps₁ Ps₂ : Ensemble α β) (hsu : Ps₁.vertexSet ∩ Ps₂.vertexSet ⊆ Ps₁.lastSet)
     (heq : Ps₁.lastSet = Ps₂.firstSet) : Ensemble α β where
@@ -360,7 +360,7 @@ lemma insert_validIn (h : ∀ v ∈ p, v ∉ Ps.vertexSet) (hVd : Ps.ValidIn G)
 lemma insert_ncard (h : ∀ v ∈ p, v ∉ Ps.vertexSet) (hFin : Ps.walks.Finite) :
     (Ps.insert p h).walks.ncard = Ps.walks.ncard + 1 := by
   simp only [vertexSet, mem_setOf_eq, not_exists, not_and, insert, union_singleton] at h ⊢
-  refine Set.ncard_insert_of_not_mem (fun hp ↦ ?_) hFin
+  refine Set.ncard_insert_of_notMem (fun hp ↦ ?_) hFin
   obtain ⟨a, as, has⟩ := List.ne_nil_iff_exists_cons.mp (vx_ne_nil (w := p))
   specialize h a (by simp [← mem_vx, has]) p hp
   simp [← mem_vx, has] at h
@@ -389,13 +389,13 @@ lemma vx_dropLast_disjoint_lastSet (hp : p ∈ Ps.walks) (hP : G.IsPath p) :
   rintro x hx ⟨q, hq, rfl⟩
   obtain rfl := Ps.disj q.last q p hq hp last_mem (List.mem_of_mem_dropLast hx)
   simp at hx
-  exact (vx_getLast ▸ hP.nodup.getLast_not_mem_dropLast vx_ne_nil) hx
+  exact (vx_getLast ▸ hP.nodup.getLast_notMem_dropLast vx_ne_nil) hx
 
 lemma vx_tail_disjoint_firstSet (hp : p ∈ Ps.walks) (hP : G.IsPath p) :
     ∀ x ∈ p.vx.tail, x ∉ Ps.firstSet := by
   rintro x hx ⟨q, hq, rfl⟩
   obtain rfl := Ps.disj q.first q p hq hp first_mem (List.mem_of_mem_tail hx)
-  exact (vx_head ▸ hP.nodup.head_not_mem_tail vx_ne_nil) hx
+  exact (vx_head ▸ hP.nodup.head_notMem_tail vx_ne_nil) hx
 
 lemma validIn_induce_diff (hVd : Ps.ValidIn G) (hp : p ∈ Ps.walks) :
     (G - {x | ∃ p ∈ Ps.walks \ {p}, x ∈ p.vx}).IsPath p := by

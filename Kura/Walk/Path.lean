@@ -309,16 +309,16 @@ lemma isPathFrom_cons : G.IsPathFrom S T (cons x e P) ↔
     exact hnd.1 hv
   · refine IsPathFrom.mk (h.isPath.suffix (by simp)) rfl (by simpa using h.last_mem) (by simp) ?_
     exact fun y hyP hyT ↦ h.eq_last_of_mem (by simp [hyP]) hyT
-  have hxP : x ∉ P := hdj.not_mem_of_mem_left hxS
+  have hxP : x ∉ P := hdj.notMem_of_mem_left hxS
   refine IsPathFrom.mk (cons_isPath_iff.2 ⟨h.isPath, hinc, hxP⟩) (by simpa) h.last_mem ?_ ?_
   · simp only [mem_cons_iff, first_cons, forall_eq_or_imp, implies_true, true_and]
-    exact fun a haP haS ↦ (hdj.not_mem_of_mem_left haS haP).elim
+    exact fun a haP haS ↦ (hdj.notMem_of_mem_left haS haP).elim
   simpa [hxT] using h.eq_last_of_mem
 
-lemma IsPathFrom.not_mem_left_of_dInc (h : G.IsPathFrom S T P) (hP : P.DInc e x y) : y ∉ S :=
+lemma IsPathFrom.notMem_left_of_dInc (h : G.IsPathFrom S T P) (hP : P.DInc e x y) : y ∉ S :=
   fun hyS ↦ hP.ne_first h.nodup (h.eq_first_of_mem hP.vx_mem_right hyS)
 
-lemma IsPathFrom.not_mem_right_of_dInc (h : G.IsPathFrom S T P) (hP : P.DInc e x y) : x ∉ T :=
+lemma IsPathFrom.notMem_right_of_dInc (h : G.IsPathFrom S T P) (hP : P.DInc e x y) : x ∉ T :=
   fun hyT ↦ hP.ne_last h.nodup (h.eq_last_of_mem hP.vx_mem_left hyT)
 
 lemma IsTrailFrom.isTrail (h : G.IsTrailFrom S T w) : G.IsTrail w where
@@ -394,13 +394,13 @@ lemma IsPath.dropLast_vertexSet {w : WList α β} (hP : G.IsPath w) (hn : w.None
     simp only [cons_isPath_iff, cons_nonempty, cons_vertexSet, last_cons, forall_const, and_imp, first_cons,
       mem_cons_iff, not_or, dropLast_cons_cons] at this hP ⊢
     obtain ⟨⟨hP, h₂', hynin⟩, h₂, hne, hxnin⟩ := hP
-    rw [this hP h₂' hynin, ← insert_diff_of_not_mem, insert_comm]
+    rw [this hP h₂' hynin, ← insert_diff_of_notMem, insert_comm]
     simp only [mem_singleton_iff]
     rintro rfl
     simp only [last_mem, not_true_eq_false] at hxnin
 
 @[simp]
-lemma IsPath.last_not_mem_dropLast (hP : G.IsPath w) (hn : w.Nonempty) :
+lemma IsPath.last_notMem_dropLast (hP : G.IsPath w) (hn : w.Nonempty) :
     w.last ∉ w.dropLast := by
   rintro h
   rw [← mem_vertexSet_iff, hP.dropLast_vertexSet hn] at h
@@ -422,13 +422,13 @@ end Graph
 --     rw [append_vx] at this
 --     exact this.of_append_right
 
--- lemma not_mem_prefix_of_mem_suffix_tail (heq : w₁.last = w₂.first) (hP : G.IsPath (w₁ ++ w₂))
+-- lemma notMem_prefix_of_mem_suffix_tail (heq : w₁.last = w₂.first) (hP : G.IsPath (w₁ ++ w₂))
 --     (hmem : u ∈ w₂.vx.tail) : u ∉ w₁.vx := by
 --   have := hP.nodup
 --   rw [append_vx' heq, nodup_append] at this
 --   exact (this.2.2 · hmem)
 
--- lemma not_mem_suffix_of_mem_prefix_dropLast (hP : G.IsPath (w₁ ++ w₂))
+-- lemma notMem_suffix_of_mem_prefix_dropLast (hP : G.IsPath (w₁ ++ w₂))
 -- (hmem : u ∈ w₁.vx.dropLast) :
 --     u ∉ w₂.vx := by
 --   have := hP.nodup

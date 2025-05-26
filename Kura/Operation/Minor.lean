@@ -141,7 +141,7 @@ lemma exists_rep_of_contractSet (S : Set β) : ∃ (φ : α → α), ValidIn G �
 --     simp only [induce_V, mem_inter_iff, mem_preimage, not_and, ContractSys.confine, ite_eq_right_iff] at hv ⊢
 --     rintro hinR
 --     have : v ∉ V(G) := fun a ↦ hv a hinR
---     exact hmvalid.map_not_mem_simp this
+--     exact hmvalid.map_notMem_simp this
 --   · simp only [induce_V, mem_inter_iff, mem_preimage, ContractSys.confine, induce_restrict_eq_subgraph,
 --     and_imp]
 --     rintro v hv hinR
@@ -439,9 +439,9 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --   by_cases h : v ∈ V(G)
 --   · obtain ⟨w, hw, heq⟩ := hn.map_mem (x := m v) (mem_image_of_mem m h)
 --     rw [← heq, m.idem]
---   · rw [hn.map_not_mem, m.idem]
+--   · rw [hn.map_notMem, m.idem]
 --     simp only [contract, mem_image, not_exists, not_and]
---     rw [hm.map_not_mem h]
+--     rw [hm.map_notMem h]
 --     rintro x hx rfl
 --     exact h <| hm.map_mem hx
 
@@ -451,8 +451,8 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --   refine ⟨?_, ?_, ?_⟩
 --   · rintro x hx
 --     simp only [ContractSys.comp]
---     rw [hm.map_not_mem hx, hn.map_not_mem]
---     exact not_mem_contract_of_not_vx_mem hm hx
+--     rw [hm.map_notMem hx, hn.map_notMem]
+--     exact notMem_contract_of_not_vx_mem hm hx
 --   · rintro x hxmem
 --     simp only [ContractSys.comp]
 --     have hle := (G.restrict_mono m.contractSet (n.contractSet ∪ m.contractSet) subset_union_right)
@@ -470,9 +470,9 @@ lemma connected (hVd : ValidIn G φ C) (hconn : G.Connected u v) :
 --       exact hm.map_edge (e := e) he hxinc hyinc
 --     · apply hn.map_edge (e := e) (mem_of_mem_diff he) <;> simp only [contract]
 --       · use x, rfl, hxinc
---         exact not_mem_of_mem_diff he
+--         exact notMem_of_mem_diff he
 --       · use y, rfl, hyinc
---         exact not_mem_of_mem_diff he
+--         exact notMem_of_mem_diff he
 
 -- @[simp]
 -- lemma contract_contract_eq_contract_comp {m : ContractSys α β} (hm : m.validIn G)

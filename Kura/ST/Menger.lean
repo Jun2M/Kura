@@ -225,7 +225,7 @@ theorem Menger_VxSet {α β : Type*} (G : Graph α β) [hfin : G.Finite] (S T : 
 
   let PU : PathEnsemble α β := PathEnsemble.insert (hxy.path hxney) (PathEnsemble.nil U β) (by
     rintro z hz
-    simp only [hxy.path_vx, mem_cons, not_mem_nil, or_false] at hz
+    simp only [hxy.path_vx, mem_cons, notMem_nil, or_false] at hz
     obtain rfl | rfl := hz <;> simp only [PathEnsemble.nil_VxSet, hxU, hyU, not_false_eq_true])
 
   have hPUVdUxy : PU.ValidIn (G[insert x (insert y U)]) := by
@@ -287,7 +287,7 @@ decreasing_by
   · refine ncard_lt_ncard ?_ hfin.edge_fin
     have hle : G[hUxSep.leftSet ∪ (U ∪ {w₁.last})] ≤ G := induce_le G <| union_subset hLV hUx
     refine ssubset_of_subset_not_subset hle.2.1 ?_
-    · rw [not_subset_iff_exists_mem_not_mem]
+    · rw [not_subset_iff_exists_mem_notMem]
       use e, he
       intro he'
       have hinc := hxy.inc_right.le (induce_le G diff_subset)
@@ -299,7 +299,7 @@ decreasing_by
   · refine ncard_lt_ncard ?_ hfin.edge_fin
     have hle : G[hUySep.rightSet ∪ (U ∪ {w₂.first})] ≤ G := induce_le G <| union_subset hRV hUy
     refine ssubset_of_subset_not_subset hle.2.1 ?_
-    · rw [not_subset_iff_exists_mem_not_mem]
+    · rw [not_subset_iff_exists_mem_notMem]
       use e, he
       intro he'
       have hinc := hxy.inc_left.le (induce_le G diff_subset)
