@@ -1,5 +1,6 @@
 import Kura.Operation.VxIdentification
 import Kura.Connected
+import Canonical
 
 open Set Function
 variable {α β α' α'' β' : Type*} {G G' H H' : Graph α β} {u v w : α} {e f : β} {x y z : α'}
@@ -281,5 +282,71 @@ instance instHasCliqueMinorGraphic {n : ℕ} :
 instance instHasCliqueMinorGraphicVertex {n : ℕ} :
     GraphicVertexFunction (fun (G : Graph α _) ↦ G.HasCliqueMinor n) (fun (G : Graph α _) ↦ G.HasCliqueMinor n) :=
   instGraphicGraphicVertex (hF := instHasCliqueMinorGraphic)
+
+lemma vxConnected_in_edgeRestrict_singleton_inc {G : Graph (Set α) β} {e : β} {v z : Set α}
+    (hv_is_endpoint : G.Inc e v) (h_conn_vz : (G ↾ {e}).VxConnected v z) : G.Inc e z := by
+  let G' := G ↾ {e}
+  rw [vxConnected_edgeRestrict_singleton] at h_conn_vz
+  obtain ⟨rfl, hv⟩ | h_link_e_v_z := h_conn_vz.symm
+  · exact hv_is_endpoint
+
+  obtain ⟨x, y, he_link_xy⟩ := G.exists_isLink_of_mem_edgeSet hv_is_endpoint.edge_mem
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := he_link_xy.eq_and_eq_or_eq_and_eq_of_isLink h_link_e_v_z
+  · exact he_link_xy.inc_right
+  · exact he_link_xy.inc_left
+
+lemma vxConnected_in_edgeRestrict_isolated {G : Graph (Set α) β} {F: Set β} {v z : Set α}
+    (h_ninc : ∀ e ∈ F, ¬ G.Inc e v) (h_conn_vz : (G ↾ F).VxConnected v z) : z = v := by
+  obtain ⟨P, hP, rfl, rfl, hPF⟩ := vxConnected_edgeRestrict.mp h_conn_vz
+  by_cases hPnil : P.Nil
+  · exact (WList.Nil.first_eq_last hPnil).symm
+
+  exfalso
+  obtain ⟨a, e, P'⟩ := WList.not_nil_iff.mp hPnil
+  simp_all only [cons_isPath_iff, WList.first_cons, WList.cons_edgeSet, WList.last_cons,
+    WList.not_nil_cons, not_false_eq_true]
+  obtain ⟨hP', heaP', haP'⟩ := hP
+  exact h_ninc e (hPF <| mem_insert e P'.edgeSet) heaP'.inc_left
+
+lemma map_vertex_singleton_contract (G : Graph (Set α) β) {e : β} {x y : Set α} (he : G.IsLink e x y)
+    [DecidableRel G.Inc] {v : Set α} (hv : v ∈ V(G)) : (⋃₀ (G ↾ {e}).Component v) = if G.Inc e v then x ∪ y else v := by
+  let G' := G ↾ {e}
+
+  have v_mem_G' : v ∈ V(G') := edgeRestrict_vertexSet G {e} ▸ hv
+  have hx_mem_G' : x ∈ V(G') := edgeRestrict_vertexSet G {e} ▸ he.vx_mem_left
+  have hy_mem_G' : y ∈ V(G') := edgeRestrict_vertexSet G {e} ▸ he.vx_mem_right
+
+  split_ifs with h_inc_e_v
+  · -- Case: G.Inc e v is true (h_inc_e_v : G.Inc e v)
+    have h_comp_eq_xy : G'.Component v = {x, y} := by
+      ext z_ext
+      simp only [mem_component_iff, Set.mem_insert_iff, Set.mem_singleton_iff]
+      constructor
+      · -- Goal: G'.VxConnected v z_ext → z_ext = x ∨ z_ext = y
+        intro h_conn_v_z_ext
+        have h_inc_e_z_ext : G.Inc e z_ext :=
+          vxConnected_in_edgeRestrict_singleton_inc h_inc_e_v h_conn_v_z_ext
+        -- From G.Inc e z_ext and he : G.IsLink e x y, we deduce z_ext = x ∨ z_ext = y.
+        exact h_inc_e_z_ext.eq_or_eq_of_isLink he
+      · -- Goal: z_ext = x ∨ z_ext = y → G'.VxConnected v z_ext
+        rintro (rfl | rfl) <;> obtain (rfl | rfl) : v = _ ∨ v = _ := h_inc_e_v.eq_or_eq_of_isLink he
+        · exact VxConnected.refl hx_mem_G'
+        · exact (G.edgeRestrict_isLink {e} e _ _).mpr ⟨Set.mem_singleton e, he.symm⟩ |>.vxConnected
+        · exact (G.edgeRestrict_isLink {e} e _ _).mpr ⟨Set.mem_singleton e, he⟩ |>.vxConnected
+        · exact VxConnected.refl hy_mem_G'
+    rw [h_comp_eq_xy, sUnion_insert, sUnion_singleton]
+
+  · -- Case: G.Inc e v is false (h_inc_e_v : ¬ G.Inc e v)
+    have h_comp_eq_v : G'.Component v = {v} := by
+      ext z_ext
+      simp only [mem_component_iff, Set.mem_singleton_iff]
+      constructor
+      · -- Goal: G'.VxConnected v z_ext → z_ext = v
+        exact vxConnected_in_edgeRestrict_isolated (fun e_s he_s_mem_eq => by
+          rwa [mem_singleton_iff.mp he_s_mem_eq])
+      · -- Goal: z_ext = v → G'.VxConnected v z_ext
+        rintro rfl
+        exact VxConnected.refl v_mem_G'
+    rw [h_comp_eq_v, sUnion_singleton]
 
 end Graph
