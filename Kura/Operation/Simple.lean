@@ -41,15 +41,15 @@ lemma SimpleGraph.toGraph_inj : G'.toGraph = H'.toGraph ↔ G' = H' := by
 
 namespace Graph
 
-class IsLoopless (G : Graph α β) : Prop where
+class Loopless (G : Graph α β) : Prop where
   loopless x : ¬ G.Adj x x
 
-lemma IsLoopless.of_le {G H : Graph α β} [G.IsLoopless] (hle : H ≤ G) : H.IsLoopless where
+lemma IsLoopless.of_le {G H : Graph α β} [G.Loopless] (hle : H ≤ G) : H.Loopless where
   loopless x := by
     rintro ⟨e, hbtw⟩
-    exact IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
+    exact Loopless.loopless x ⟨e, hbtw.of_le hle⟩
 
-instance instLooplessGraphic : GraphicFunction IsLoopless IsLoopless where
+instance instLooplessGraphic : GraphicFunction Loopless Loopless where
   invariant h := by
     ext
     obtain ⟨g⟩ := h.symm
@@ -58,26 +58,26 @@ instance instLooplessGraphic : GraphicFunction IsLoopless IsLoopless where
     · exact hloop.loopless (g.toFun ⟨x, hbtw.vx_mem_right⟩) ⟨g.edgeFun ⟨e, hbtw.edge_mem⟩, hbtw.isIsomOn g⟩
     · exact hloop.loopless (f.toFun ⟨x, hbtw.vx_mem_right⟩) ⟨f.edgeFun ⟨e, hbtw.edge_mem⟩, hbtw.isIsomOn f⟩
 
-lemma IsLink.ne [hG : G.IsLoopless] (hbtw : G.IsLink e u v) : u ≠ v := by
+lemma IsLink.ne [hG : G.Loopless] (hbtw : G.IsLink e u v) : u ≠ v := by
   rintro rfl
   exact hG.loopless u ⟨e, hbtw⟩
 
-lemma Adj.ne (G : Graph α β) [hS : G.IsLoopless] (huv : G.Adj u v) : u ≠ v := by
+lemma Adj.ne (G : Graph α β) [hS : G.Loopless] (huv : G.Adj u v) : u ≠ v := by
   rintro rfl
   exact hS.loopless u huv
 
 @[simp]
-lemma toSym2_not_isDiag {G : Graph α β} [G.IsLoopless] {e : β} {he : e ∈ E(G)} :
+lemma toSym2_not_isDiag {G : Graph α β} [G.Loopless] {e : β} {he : e ∈ E(G)} :
     ¬ (G.toSym2 e he).IsDiag := by
   obtain ⟨x, y, hxy⟩ := exists_isLink_of_mem_edgeSet he
   have := hxy.ne
   rwa [(toSym2_eq_pair_iff hxy.edge_mem).mpr hxy]
 
-class Simple (G : Graph α β) : Prop extends IsLoopless G where
+class Simple (G : Graph α β) : Prop extends Loopless G where
   no_multi_edges e f : G.parallel e f → e = f
 
 lemma Simple.of_le {G H : Graph α β} [G.Simple] (hle : H ≤ G) : H.Simple where
-  loopless x := fun ⟨e, hbtw⟩ => IsLoopless.loopless x ⟨e, hbtw.of_le hle⟩
+  loopless x := fun ⟨e, hbtw⟩ => Loopless.loopless x ⟨e, hbtw.of_le hle⟩
   no_multi_edges e f h := Simple.no_multi_edges e f (h.of_le hle)
 
 @[simp]
@@ -140,14 +140,14 @@ instance instSimpleGraphic : GraphicFunction |₂ Simple where
   invariant {α β α' β' G G'} h := by
     ext
     refine ⟨fun hsimple ↦ {
-      loopless := (instLooplessGraphic.invariant h ▸ hsimple.toIsLoopless).loopless
+      loopless := (instLooplessGraphic.invariant h ▸ hsimple.toLoopless).loopless
       no_multi_edges e f hpara := by
         obtain ⟨F⟩ := h
         have hpara' : G'.parallel (⟨e, hpara.left_mem⟩ : E(G')) (⟨f, hpara.right_mem⟩ : E(G')) := hpara
         rw [F.symm.parallel_iff] at hpara'
         have := hsimple.no_multi_edges _ _ hpara'
         rwa [Subtype.val_inj, F.symm.inj_edge.eq_iff, Subtype.ext_iff] at this}, fun hsimple ↦ {
-      loopless := (instLooplessGraphic.invariant h ▸ hsimple.toIsLoopless).loopless
+      loopless := (instLooplessGraphic.invariant h ▸ hsimple.toLoopless).loopless
       no_multi_edges := fun e f hpara  ↦ by
         obtain ⟨F⟩ := h
         have hpara' : G.parallel (⟨e, hpara.left_mem⟩ : E(G)) (⟨f, hpara.right_mem⟩ : E(G)) := hpara

@@ -17,7 +17,7 @@ structure IsColoring (G : Graph α β) (f : α → ℕ) (n : ℕ) : Prop where
 
 def Colorable (G : Graph α β) (n : ℕ) : Prop := ∃ f : α → ℕ, IsColoring G f n
 
-lemma Colorable.isLoopless {n : ℕ} (G : Graph α β) (h : G.Colorable n) : G.IsLoopless where
+lemma Colorable.isLoopless {n : ℕ} (G : Graph α β) (h : G.Colorable n) : G.Loopless where
   loopless v hv := by
     obtain ⟨f, hf⟩ := h
     exact hf.proper hv rfl
@@ -80,7 +80,7 @@ def proper (G : Graph α β) [hBip : G.Bipartite] {u v} : G.Adj u v → color G 
   (hBip.proper ·)
 def twoColor (G : Graph α β) [hBip : G.Bipartite] : ∀ u, color G u < 2 := hBip.two
 
-instance instBipartiteIsLoopless (G : Graph α β) [G.Bipartite] : G.IsLoopless where
+instance instBipartiteIsLoopless (G : Graph α β) [G.Bipartite] : G.Loopless where
   loopless _ hv := G.proper hv rfl
 
 lemma color_zero_or_one (G : Graph α β) [G.Bipartite] (u : α) :

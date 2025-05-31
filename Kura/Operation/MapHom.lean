@@ -1,5 +1,4 @@
-import Kura.Operation.Map
-import Kura.Operation.Hom2
+import Kura.Operation.Hom
 
 open Set Function
 variable {α β α' β' γ δ β ζ : Type*} {G G' G₁ G₁' H : Graph α β} {G₂ G₂' : Graph γ δ}

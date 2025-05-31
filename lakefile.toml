@@ -8,11 +8,6 @@ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
 autoImplicit = false
 
 [[require]]
-name = "LeanCopilot"
-git = "https://github.com/lean-dojo/LeanCopilot.git"
-rev = "main"
-
-[[require]]
 name = "Matroid"
 git = "https://github.com/apnelson1/Matroid.git"
 rev = "6d2a27f31207bbd0d45f2b321c10ea1975bdc67e"
@@ -21,10 +16,5 @@ rev = "6d2a27f31207bbd0d45f2b321c10ea1975bdc67e"
 name = "Canonical"
 scope = "chasenorman"
 
-[[require]]
-name = "mathlib"
-scope = "leanprover-community"
-
 [[lean_lib]]
 name = "Kura"
-moreLinkArgs = ["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]

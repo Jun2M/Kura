@@ -7,6 +7,7 @@ import Mathlib.Data.Sym.Sym2
 import Mathlib.Topology.Instances.ENat
 import Kura.Dep.Finset
 import Kura.Dep.Sym2
+import Canonical
 
 /-!
 # Multigraphs

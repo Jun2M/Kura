@@ -8,14 +8,16 @@ variable {α β α' α'' β' : Type*} {u v w x y z : Set α} {e f : Sym2 (Set α
 namespace Graph
 
 @[simps! vertexSet edgeSet]
-noncomputable def SimpMinor (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) : Graph (Set α) (Sym2 (Set α)) :=
+noncomputable def SimpMinor (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) :
+    Graph (Set α) (Sym2 (Set α)) :=
   G / C |>.simplify
 
 scoped infix:50 " // " => Graph.SimpMinor
 
+variable {C : Set (Sym2 (Set α))}
+
 @[simp]
-theorem simpMinor_isLink (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) :
-    (G // C).IsLink e x y ↔  e = s(x, y) ∧ x ≠ y ∧ (G / C).Adj x y := by
+theorem simpMinor_isLink : (G // C).IsLink e x y ↔  e = s(x, y) ∧ x ≠ y ∧ (G / C).Adj x y := by
   simp only [SimpMinor, isLink_iff_eq, Simplify_edgeSet, SetContract_edgeSet, mem_diff, mem_setOf_eq,
     Sym2.isDiag_iff_proj_eq, toSym2_eq_pair_iff, SetContract_isLink, exists_and_left, exists_prop,
     ne_eq]
@@ -31,34 +33,125 @@ theorem simpMinor_isLink (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Se
     rw [SetContract_isLink] at hbtw
     exact ⟨e, hbtw.1, ⟨this, hbtw.1⟩, hbtw.2⟩
 
-theorem simpMinor_adj (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) :
-    (G // C).Adj x y ↔ x ≠ y ∧ (G / C).Adj x y := by
+theorem simpMinor_adj : (G // C).Adj x y ↔ x ≠ y ∧ (G / C).Adj x y := by
   simp_rw [Adj, simpMinor_isLink]
   rw [exists_eq_left, ← Graph.Adj]
 
-instance simpMinor_isSimpleCanonical (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) :
-    SimpleCanonical (G // C) := instSimpleCanonicalSimplify
+instance simpMinor_isSimpleCanonical : SimpleCanonical (G // C) := instSimpleCanonicalSimplify
 
-instance instSimpMinorVxSetFinite (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) [Finite V(G)] :
-    Finite V(G // C) := by
+instance instSimpMinorVxSetFinite [Finite V(G)] : Finite V(G // C) := by
   unfold SimpMinor
   apply instSimplifyVxSetFinite
 
-instance instSimpMinorEdgeSetFinite (G : Graph (Set α) (Sym2 (Set α))) (C : Set (Sym2 (Set α))) [Finite E(G)] :
-    Finite E(G // C) := by
+instance instSimpMinorEdgeSetFinite [Finite E(G)] : Finite E(G // C) := by
   unfold SimpMinor
   apply instSimplifyFinite
 
-@[simp]
-def commonNeighbors (G : Graph (Set α) (Sym2 (Set α))) (u v : Set α) : Set (Set α) :=
-  {w | G.Adj u w ∧ G.Adj v w}
+lemma edgeSet_ncard_simpMinor_singleton [Finite E(G)] [G.SimpleCanonical] [DecidableEq (Set α)]
+    (hs_mem : s(x, y) ∈ E(G)) (hs_ne_diag : x ≠ y) :
+    E(G // {s(x, y)}).ncard = E(G).ncard - 1 - (N(G, x) ∩ N(G, y)).ncard := by
+  classical
+  let C := Set.singleton s(x, y)
+  let H := G / C
+  rw [SimpMinor] -- Goal is E(H.simplify).ncard = ...
+  -- We need to show Set.ncard {p : Sym2 (V(H)) | ¬p.IsDiag ∧ H.Adj p.fst p.snd} = RHS
+  -- This will be done by partitioning edges of G and relating them to adjacencies in H.
 
-@[simp]
-lemma simplify_edgeSet_ncard_of_loopless_and_toSym2_preserves_nonloop
-    (H : Graph (Set α) (Sym2 (Set α))) [H.IsLoopless]
-    (h_tosym2_nonloop : ∀ (e : Sym2 (Set α)) (he : e ∈ E(H)), ¬(H.toSym2 e he).IsDiag)
-    [Finite E(H)] :
-    E(H.simplify).ncard = (Set.image (fun (eSub : E(H)) => H.toSym2 eSub.val eSub.property) E(H).toSet).ncard := by
+  let contract_vertices : Set (Set α) := {x, y}
+  let merged_vertex : Set α := x ∪ y -- Placeholder, formal def below
+
+  -- Formal definition of merged_vertex based on SetContract logic
+  -- We'll need to prove merged_vertex_formal = x ∪ y later under appropriate conditions
+  let merged_vertex_formal : Set α := ⋃₀ (G ↾ C).Component x -- x here is the lemma argument x
+
+  have component_sUnion_eq_merged_vertex (v_orig_arg : Set α) (hv_mem_contract_vertices : v_orig_arg ∈ contract_vertices) :
+      (⋃₀ (G ↾ C).Component v_orig_arg) = merged_vertex_formal := by
+    sorry
+
+  have component_sUnion_eq_self_if_not_contracted (v_orig : Set α) (hv_not_mem_contract_vertices : v_orig ∉ contract_vertices) :
+      (⋃₀ (G ↾ C).Component v_orig) = v_orig := by
+    sorry
+
+  have h_vx_H : V(H) = insert merged_vertex_formal (sdiff V(G) contract_vertices) := by
+    ext S_H_vx -- S_H_vx is a vertex of H, so it is of type Set α
+    simp_rw [setContract_vertexSet, mem_image, Set.mem_insert_iff, sdiff_eq, Set.mem_inter_iff, Set.mem_compl_iff]
+    constructor
+    · rintro ⟨v_G_orig, hv_G_orig_mem_VG, h_SH_eq_sUnion_comp_vG⟩
+      rw [←h_SH_eq_sUnion_comp_vG] -- S_H_vx = ⋃₀ (G ↾ C).Component v_G_orig
+      by_cases hv_G_orig_mem_contract_vertices : v_G_orig ∈ contract_vertices
+      · rw [component_sUnion_eq_merged_vertex v_G_orig hv_G_orig_mem_contract_vertices]
+        exact Or.inl rfl
+      · rw [component_sUnion_eq_self_if_not_contracted v_G_orig hv_G_orig_mem_contract_vertices]
+        refine Or.inr ?_
+        exact ⟨hv_G_orig_mem_VG, hv_G_orig_mem_contract_vertices, rfl⟩
+    · rintro (rfl | ⟨v_G_orig, ⟨hv_G_orig_mem_VG, hv_G_orig_not_mem_contract_vertices⟩, h_SH_eq_vG_orig⟩)
+      · -- Case 1: S_H_vx = merged_vertex_formal
+        rw [merged_vertex_formal] -- merged_vertex_formal is ⋃₀ (G↾C).Component x
+        -- We need to show ∃ v_G_orig ∈ V(G), merged_vertex_formal = ⋃₀ (G↾C).Component v_G_orig
+        -- Choose v_G_orig = x. We need x ∈ V(G).
+        have x_mem_VG : x ∈ V(G) := Graph.fst_mem_vertexSet_of_mem_edgeSet hs_mem
+        use x
+        exact ⟨x_mem_VG, rfl⟩
+      · -- Case 2: S_H_vx = v_G_orig where v_G_orig is not x or y
+        rw [h_SH_eq_vG_orig, ← component_sUnion_eq_self_if_not_contracted v_G_orig hv_G_orig_not_mem_contract_vertices]
+        use v_G_orig
+        exact ⟨hv_G_orig_mem_VG, rfl⟩
+
+  have h_adj_H_UU : ¬ H.Adj merged_vertex_formal merged_vertex_formal := by
+    intro h_adj_UU;
+    rcases h_adj_UU with ⟨e, h_is_link_H_UU⟩
+    -- Definition of IsLink for SetContract (G/C):
+    -- (G/C).IsLink e V W ↔ e ∉ C ∧ ∃ v_orig w_orig, (map G C v_orig) = V ∧ (map G C w_orig) = W ∧ G.IsLink e v_orig w_orig
+    -- where map G C v = ⋃₀ (G ↾ C).Component v
+    rw [SetContract_isLink] at h_is_link_H_UU
+    rcases h_is_link_H_UU with ⟨he_notin_C, v_orig, h_map_v_eq_U, w_orig, h_map_w_eq_U, h_G_link_vw⟩
+
+    have map_eq_merged_iff_vxconn_x (v : Set α) : (⋃₀ (G ↾ C).Component v) = merged_vertex_formal ↔ (G ↾ C).VxConnected v x := by
+      exact Graph.VxConnected.component_eq_iff_vxConnected (G := (G↾C)) v x -- Assuming this form and that ⋃₀ is handled by component equality.
+
+    have v_orig_conn_x : (G ↾ C).VxConnected v_orig x := (map_eq_merged_iff_vxconn_x v_orig).mp h_map_v_eq_U
+    have w_orig_conn_x : (G ↾ C).VxConnected w_orig x := (map_eq_merged_iff_vxconn_x w_orig).mp h_map_w_eq_U
+
+    -- We need to show: (⋃₀ (G ↾ C).Component v) = merged_vertex_formal → v ∈ contract_vertices
+    have map_to_merged_implies_in_contract_vertices (v : Set α) (h_map_eq_U : (⋃₀ (G ↾ C).Component v) = merged_vertex_formal) : v ∈ contract_vertices := by
+      -- This relies on: map G C v = map G C x → (G↾C).VxConnected v x (from map_eq_merged_iff_vxconn_x below, sorried)
+      -- And (G↾C).VxConnected v x → v ∈ contract_vertices (from vxconn_in_GC_means_mem_cv below, sorried)
+      sorry
+
+    have v_orig_in_cv : v_orig ∈ contract_vertices := map_to_merged_implies_in_contract_vertices v_orig h_map_v_eq_U
+    have w_orig_in_cv : w_orig ∈ contract_vertices := map_to_merged_implies_in_contract_vertices w_orig h_map_w_eq_U
+
+    -- Assuming G.isLink_iff_eq_ne exists from SimpleCanonical G, e.g. (SimpleCanonical.isLink_iff_eq_ne G)
+    rw [(G.isLink_iff_eq_ne (G:=G))] at h_G_link_vw
+    rcases h_G_link_vw with ⟨rfl, h_v_neq_w⟩ -- Now e = s(v_orig, w_orig)
+
+    have s_vo_wo_eq_sxy : s(v_orig, w_orig) = s(x,y) := by
+      simp only [contract_vertices, Set.mem_insert_iff, Set.mem_singleton_iff] at v_orig_in_cv w_orig_in_cv
+      rcases v_orig_in_cv with (vx | vy) <;> rcases w_orig_in_cv with (wx | wy)
+      · -- v_orig = x, w_orig = x
+        rw [vx, wx] at h_v_neq_w; contradiction
+      · -- v_orig = x, w_orig = y
+        rw [vx, wy]; simp
+      · -- v_orig = y, w_orig = x
+        rw [vy, wx]; simp [Sym2.eq_swap]
+      · -- v_orig = y, w_orig = y
+        rw [vy, wy] at h_v_neq_w; contradiction
+
+    rw [s_vo_wo_eq_sxy] at he_notin_C
+    simp only [Set.mem_singleton_iff, not_true_eq_false, iff_false] at he_notin_C
+    exact he_notin_C
+
+  have h_adj_H_U_v (v_H : Set α) (hv_H_is_orig_from_G_non_contracted: ∃ v_G ∈ (sdiff V(G) contract_vertices), v_H = v_G) :
+      H.Adj merged_vertex_formal v_H ↔ (∃ v_G ∈ (sdiff V(G) contract_vertices), v_H = v_G ∧ (G.Adj x v_G ∨ G.Adj y v_G)) := by
+    sorry
+
+  have h_adj_H_v_w (v_H w_H : Set α) (hv_H_is_orig: ∃ v_G ∈ (sdiff V(G) contract_vertices), v_H = v_G) (hw_H_is_orig: ∃ w_G ∈ (sdiff V(G) contract_vertices), w_H = w_G) :
+      H.Adj v_H w_H ↔ (∃ v_G w_G, v_H = v_G ∧ w_H = w_G ∧ v_G ∈ (sdiff V(G) contract_vertices) ∧ w_G ∈ (sdiff V(G) contract_vertices) ∧ v_G ≠ w_G ∧ G.Adj v_G w_G) := by
+    sorry
+
+  -- The proof continues by counting elements in {p : Sym2 (V(H)) | ¬p.IsDiag ∧ H.Adj p.fst p.snd}
+  -- based on h_vx_H, h_adj_H_UU, h_adj_H_U_v, and h_adj_H_v_w.
+  -- This involves partitioning the edges of G and seeing how they contribute to adjacencies in H.
   sorry
 
 lemma mapVx_apply_singleton_contract (G_graph : Graph (Set α) (Sym2 (Set α)))

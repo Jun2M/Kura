@@ -1,5 +1,6 @@
 import Kura.Operation.Hom
 import Kura.Dep.SetPartitionTypeless
+import Kura.Connected
 
 
 open Set Function
@@ -22,6 +23,21 @@ instance instIsPartitionGraphGraphicVertex [CompleteLattice α] :
     · obtain ⟨P, hP⟩ := h
       use P
       rw [hP, instVxSetGraphicVertex.invariant ⟨f, hf⟩]
+
+lemma subset_iff_mem (hGP : G.IsPartitionGraph) (hx : x ∈ V(G)) {S : Set (Set α)} (hS : S ⊆ V(G)) :
+    x ⊆ ⋃₀ S ↔ x ∈ S := by
+  obtain ⟨P, hP⟩ := hGP
+  rw [P.subset_sUnion_iff_mem (by rwa [← hP] at hx) (hP ▸ hS)]
+
+lemma subset_component_iff_vxConnected_of_le (hGP : G.IsPartitionGraph) (hx : x ∈ V(G))
+    (hGH : H ≤ G) : x ⊆ ⋃₀ H.Component y ↔ H.VxConnected x y := by
+  obtain ⟨P, hP⟩ := hGP
+  rw [P.subset_sUnion_iff_mem (by rwa [← hP] at hx) (component_subset_V.trans <| hP ▸ hGH.vx_subset)]
+  exact mem_component_iff'
+
+lemma subset_component_iff_vxConnected (hGP : G.IsPartitionGraph) (hx : x ∈ V(G)) :
+    x ⊆ ⋃₀ G.Component y ↔ G.VxConnected x y :=
+  subset_component_iff_vxConnected_of_le hGP hx (le_refl G)
 
 
 @[simps!]
