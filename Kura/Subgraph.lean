@@ -119,6 +119,25 @@ instance instvxNonemptyOfEdgeNonempty (G : Graph α β) [hE : Nonempty E(G)] : N
   obtain ⟨x, y, hbtw⟩ := exists_isLink_of_mem_edgeSet hE.some.prop
   use x, hbtw.vx_mem_left
 
+instance instWellFoundedLTGraph [Finite α] [Finite β] : WellFoundedLT (Graph α β) := by
+  let f : Graph α β → ℕ := fun G ↦ V(G).ncard + E(G).ncard
+  have hf : StrictMono f := by
+    rintro G H hlt
+    simp only [f]
+    obtain ⟨hle, hne⟩ := lt_iff_le_and_ne.mp hlt
+    obtain hV | hV := ssubset_or_eq_of_subset <| vertexSet_subset_of_le hle
+    · have hE' : E(G) ⊆ E(H) := edgeSet_subset_of_le hle
+      have hE'ncard : E(G).ncard ≤ E(H).ncard := ncard_le_ncard hE'
+      have hVncard : V(G).ncard < V(H).ncard := ncard_lt_ncard hV (toFinite V(H))
+      exact Nat.add_lt_add_of_lt_of_le hVncard hE'ncard
+    rw [hV]
+    obtain hE | hE := ssubset_or_eq_of_subset <| edgeSet_subset_of_le hle
+    · have hEncard : E(G).ncard < E(H).ncard := ncard_lt_ncard hE (toFinite E(H))
+      exact Nat.add_lt_add_left hEncard V(H).ncard
+    obtain rfl := ext_of_le_le hle le_rfl hV hE
+    simp only [ne_eq, not_true_eq_false, f] at hne
+  exact hf.wellFoundedLT
+
 /-- Restrict `G : Graph α β` to the edges in a set `E₀` without removing vertices -/
 @[simps]
 def edgeRestrict (G : Graph α β) (E₀ : Set β) : Graph α β where
