@@ -138,6 +138,15 @@ instance instWellFoundedLTGraph [Finite α] [Finite β] : WellFoundedLT (Graph �
     simp only [ne_eq, not_true_eq_false, f] at hne
   exact hf.wellFoundedLT
 
+lemma minimal_exist {P : Graph α β → Prop} [Finite α] [Finite β] (h : P G) :
+    ∃ G : Graph α β, Minimal P G :=
+  exists_minimal_of_wellFoundedLT _ (by use G)
+
+lemma forall_of_minimal_not_exist {P : Graph α β → Prop} [Finite α] [Finite β]
+    (h : ¬ ∃ G : Graph α β, Minimal (¬ P ·) G) : P G := by
+  contrapose! h
+  exact minimal_exist h
+
 /-- Restrict `G : Graph α β` to the edges in a set `E₀` without removing vertices -/
 @[simps]
 def edgeRestrict (G : Graph α β) (E₀ : Set β) : Graph α β where

@@ -73,6 +73,61 @@ lemma toSym2_not_isDiag {G : Graph α β} [G.Loopless] {e : β} {he : e ∈ E(G)
   have := hxy.ne
   rwa [(toSym2_eq_pair_iff hxy.edge_mem).mpr hxy]
 
+@[simps]
+def deloop (G : Graph α β) : Graph α β where
+  vertexSet := V(G)
+  edgeSet := {e | ∃ x y, G.IsLink e x y ∧ x ≠ y}
+  IsLink e x y := G.IsLink e x y ∧ x ≠ y
+  isLink_symm _ _ _ h := by rwa [G.isLink_comm, ne_comm] at h
+  vx_mem_left_of_isLink _ _ _ h := G.vx_mem_left_of_isLink h.1
+  edge_mem_iff_exists_isLink _ := by simp only [ne_eq, mem_setOf_eq]
+  eq_or_eq_of_isLink_of_isLink _ _ _ _ _ h1 h2 := G.eq_or_eq_of_isLink_of_isLink h1.1 h2.1
+
+instance instDeloopLoopless (G : Graph α β) : G.deloop.Loopless where
+  loopless x := by
+    rintro ⟨e, hbtw⟩
+    simp only [deloop_isLink, ne_eq, not_true_eq_false, and_false] at hbtw
+
+lemma deloop_edgeSet_subset : E(G.deloop) ⊆ E(G) := by
+  rintro e he
+  obtain ⟨x, y, hbtw, hne⟩ := he
+  exact hbtw.edge_mem
+
+lemma deloop_isLink_iff_of_mem_edgeSet (he : e ∈ E(G.deloop)) :
+    G.deloop.IsLink e u v ↔ G.IsLink e u v := by
+  refine ⟨(·.1), fun h ↦ ?_⟩
+  obtain ⟨x, y, hbtw, hne⟩ := he
+  obtain ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ := hbtw.eq_and_eq_or_eq_and_eq_of_isLink h
+  · exact ⟨h, hne⟩
+  · exact ⟨h, hne.symm⟩
+
+@[simp↓]
+lemma deloop_eq_self [G.Loopless] : G.deloop = G := by
+  ext e x y
+  · simp only [deloop_vertexSet]
+  · simp only [deloop_isLink, ne_eq, and_iff_left_iff_imp]
+    exact (·.ne)
+
+lemma deloop_edgeSet_eq_edgeSet_iff_loopless : E(G.deloop) = E(G) ↔ G.Loopless := by
+  refine ⟨fun h ↦ ⟨fun x hx ↦ ?_⟩, fun h ↦ by simp only [↓deloop_eq_self]⟩
+  obtain ⟨e, hbtw⟩ := hx
+  obtain he : e ∈ E(G.deloop) := h ▸ hbtw.edge_mem
+  simpa using (deloop_isLink_iff_of_mem_edgeSet he).mpr hbtw |>.ne
+
+@[simp]
+lemma deloop_adj : G.deloop.Adj u v ↔ G.Adj u v ∧ u ≠ v := by
+  simp only [Adj, deloop_isLink, ne_eq, exists_and_right]
+
+@[simp]
+lemma deloop_toSym2 (he : e ∈ E(G.deloop)) :
+    G.deloop.toSym2 e he = G.toSym2 e (deloop_edgeSet_subset he) := by
+  rw [toSym2_eq_toSym2_iff]
+  ext _ _
+  exact deloop_isLink_iff_of_mem_edgeSet he
+
+
+
+
 class Simple (G : Graph α β) : Prop extends Loopless G where
   no_multi_edges e f : G.parallel e f → e = f
 
@@ -184,22 +239,32 @@ lemma Simplify_edgeSet : E(G.simplify) = {s | ¬s.IsDiag ∧ ∃ x, ∃ (x_1 : x
   unfold simplify
   simp only [mem_setOf_eq, oftoSym2_edgeSet, exists_and_right]
 
-lemma simplify_edgeSet_subset_image_toSym2 :
+lemma simplify_edgeSet_subset_range_toSym2 :
     E(G.simplify) ⊆ Set.range (fun a ↦ G.toSym2 a.1 a.2 : E(G) → _) := by
   rintro s hs
   simp only [Simplify_edgeSet, mem_setOf_eq] at hs
   obtain ⟨hdiag, e, he, rfl⟩ := hs
   use ⟨e, he⟩
 
+lemma simplify_edgeSet_eq_range_toSym2 [G.Loopless]:
+    E(G.simplify) = Set.range (fun a ↦ G.toSym2 a.1 a.2 : E(G) → _) := by
+  apply subset_antisymm simplify_edgeSet_subset_range_toSym2
+  rintro s hs
+  simp only [mem_range, Subtype.exists] at hs
+  obtain ⟨e, he, rfl⟩ := hs
+  simp only [Simplify_edgeSet, mem_setOf_eq, toSym2_not_isDiag, not_false_eq_true,
+    toSym2_eq_toSym2_iff_parallel, exists_prop, true_and]
+  use e, he, he
+
 lemma card_simplify_edgeSet_le (G : Graph α β) [Finite E(G)] :
     E(G.simplify).ncard ≤ E(G).ncard := by
   refine le_trans ?_ <| Finite.card_range_le (fun a ↦ G.toSym2 a.1 a.2)
   rw [Set.Nat.card_coe_set_eq]
-  exact Set.ncard_le_ncard simplify_edgeSet_subset_image_toSym2
+  exact Set.ncard_le_ncard simplify_edgeSet_subset_range_toSym2
 
 instance instSimplifyFinite (G : Graph α β) [Finite E(G)] : Finite E(G.simplify) :=
   Set.finite_range (fun a ↦ G.toSym2 a.1 a.2 : E(G) → _)
-  |>.subset simplify_edgeSet_subset_image_toSym2
+  |>.subset simplify_edgeSet_subset_range_toSym2
 
 lemma simplify_edgeSet_adj {G : Graph α β} : E(G.simplify) = {s | ∃ u v, s(u, v) = s ∧ u ≠ v ∧ G.Adj u v} := by
   ext s
@@ -250,19 +315,16 @@ instance instSimpleCanonicalSimplify : SimpleCanonical (simplify G) where
     simpa only [simplify, mem_setOf_eq, oftoSym2_tosym2] using h
   canonical e he := by simp only [simplify, mem_setOf_eq, oftoSym2_tosym2]
 
-lemma simplify_edgeSet_ncard_le (G : Graph α β) [hE : Finite E(G)] :
-    E(G.simplify).ncard ≤ E(G).ncard := by
-  rw [Simplify_edgeSet]
-  have : Finite ↑{e | ∃ (he : e ∈ E(G)), ¬(G.toSym2 e he).IsDiag} := by
-    apply Set.Finite.subset hE
-    rintro e he
-    exact he.1
-  refine le_trans ?_ (Set.ncard_le_ncard (ht := hE) (fun e he ↦ he.choose) : {e | ∃ (he : e ∈ E(G)), ¬ (G.toSym2 e he).IsDiag}.ncard ≤ _)
-  apply Nat.card_le_card_of_surjective (fun e ↦ ⟨G.toSym2 e e.prop.choose, by
-    use e.prop.choose_spec, e, e.prop.choose⟩)
-  rintro ⟨e, hne, f, hf, rfl⟩
-  simp only [coe_setOf, mem_setOf_eq, Subtype.mk.injEq, Subtype.exists]
-  use f, ⟨hf, hne⟩
+@[simp]
+lemma deloop_simplify_eq_simplify : G.deloop.simplify = G.simplify := by
+  ext e x y
+  · simp only [simplify_vertexSet, deloop_vertexSet]
+  · simp +contextual only [isLink_iff_eq, Simplify_edgeSet, deloop_toSym2, deloop_edgeSet, ne_eq,
+    mem_setOf_eq, Sym2.isDiag_iff_proj_eq, toSym2_eq_pair_iff, exists_prop, and_congr_right_iff]
+    rintro rfl (hne : x ≠ y)
+    refine ⟨fun ⟨e, _, hbtw⟩ ↦ ?_, fun ⟨e, he, hbtw⟩ ↦ ?_⟩
+    · use e, hbtw.edge_mem
+    · use e, by use x, y
 
 lemma simplify_hasIsom [hG : G.Simple] : G ↔ᴳ G.simplify := ⟨{
   toFun := id
@@ -292,6 +354,29 @@ lemma simplify_hasIsom [hG : G.Simple] : G ↔ᴳ G.simplify := ⟨{
     obtain he := by simpa only [Simplify_edgeSet, ne_eq, mem_setOf_eq] using e.prop
     rw [Subtype.ext_iff]
     exact he.2.choose_spec.choose_spec}⟩
+
+lemma simplify_edgeSet_ncard_eq_iff_simple (G : Graph α β) [hE : Finite E(G)] :
+    E(G.simplify).ncard = E(G).ncard ↔ G.Simple := by
+  refine ⟨fun h ↦ ?_, fun h ↦ G.simplify_hasIsom.symm.eq |₂ (fun G ↦ E(G).ncard)⟩
+  have : G.Loopless := by
+    rw [← deloop_simplify_eq_simplify] at h
+    have h1 : E(G.deloop).ncard ≤ E(G).ncard := ncard_le_ncard deloop_edgeSet_subset hE
+    have h1fin : Finite E(G.deloop) := Finite.subset hE deloop_edgeSet_subset
+    have h2 : E(G.deloop.simplify).ncard ≤ E(G.deloop).ncard := card_simplify_edgeSet_le G.deloop
+    rw [h] at h2
+    have H : E(G.deloop) = E(G) := eq_of_subset_of_ncard_le deloop_edgeSet_subset (le_antisymm h1 h2).ge
+    rwa [deloop_edgeSet_eq_edgeSet_iff_loopless] at H
+
+  rw [simplify_edgeSet_eq_range_toSym2] at h
+  have : Injective (fun a ↦ G.toSym2 a.1 a.2 : E(G) → _) := by
+    rw [injective_iff_injOn_univ, ← ncard_image_iff finite_univ]
+    convert h <;> simp
+
+  refine ⟨fun e f hef ↦ ?_⟩
+  rw [parallel_iff_sym2_eq] at hef
+  obtain ⟨he, hf, heq⟩ := hef
+  obtain H := @this ⟨e, he⟩ ⟨f, hf⟩ heq
+  rwa [Subtype.ext_iff] at H
 
 lemma simplify_eq_edgeMap [hα : Nonempty α] [hG : G.Simple] [DecidablePred (· ∈ E(G))] :
     G.simplify = G.edgeMap (fun e ↦ if he : e ∈ E(G) then G.toSym2 e he else s(hα.some, hα.some))

@@ -898,6 +898,9 @@ lemma parallel.right_mem (h : G.parallel e f) : f ∈ E(G) := h.2.1
 
 lemma parallel.isLink_eq (h : G.parallel e f) : G.IsLink e = G.IsLink f := h.2.2
 
+@[simp]
+lemma parallel_refl (he : e ∈ E(G)) : G.parallel e e := ⟨he, he, rfl⟩
+
 lemma parallel_iff_sym2_eq (G : Graph α β) (e f : β) :
     G.parallel e f ↔ ∃ (he : e ∈ E(G)) (hf : f ∈ E(G)), G.toSym2 e he = G.toSym2 f hf := by
   refine ⟨fun ⟨he, hf, h⟩ ↦ ⟨he, hf, ?_⟩, fun ⟨he, hf, h⟩ ↦ ⟨he, hf, ?_⟩⟩
